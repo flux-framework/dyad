@@ -10,7 +10,7 @@ AC_INIT([dyad], [0.1.0])
 AC_CONFIG_AUX_DIR([config])
 AC_CONFIG_MACRO_DIR([config])
 AC_CONFIG_SRCDIR([README.md])
-# AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_HEADERS([config/config.h])
 # TODO Look into replacing this. It's deprecated as of Autoconf 2
 AC_CANONICAL_SYSTEM
 
@@ -18,6 +18,11 @@ AC_CANONICAL_SYSTEM
 # Initialize Automake #
 #######################
 AM_INIT_AUTOMAKE([foreign subdir-objects])
+
+######################
+# Initialize Libtool #
+######################
+LT_INIT
 
 #######################
 # Checks for programs #
