@@ -1,0 +1,4 @@
+lib_LTLIBRARIES: dyad.la
+dyad_la_SOURCES = dyad.c read_all.c dyad_ctx.h read_all.h
+dyad_la_LIBADD = $(top_builddir)/src/common/libutils.la $(FLUXCORE_LIBS)
+dyad_la_CPPFLAGS = $(FLUXCORE_CFLAGS)
