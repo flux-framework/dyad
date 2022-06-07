@@ -34,7 +34,6 @@ AX_CXX_COMPILE_STDCXX([11], [noext], [mandatory])
 AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_LN_S
-AC_PROG_RANLIB
 PKG_PROG_PKG_CONFIG
 
 ########################
