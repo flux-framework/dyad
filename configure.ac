@@ -22,7 +22,7 @@ AM_INIT_AUTOMAKE([foreign subdir-objects])
 ######################
 # Initialize Libtool #
 ######################
-LT_INIT
+LT_INIT([shared dlopen])
 
 #######################
 # Checks for programs #
