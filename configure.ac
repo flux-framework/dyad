@@ -73,7 +73,7 @@ AC_TYPE_UINT64_T
 AC_TYPE_UINT8_T
 # Defining _POSIX_C_SOURCE for now
 # TODO look into side effects of setting this on non-Linux OSes (e.g., macOS)
-AC_DEFINE([_POSIX_C_SOURCE], [200112L])
+AC_DEFINE([_POSIX_C_SOURCE], [200112L], [Set the version of the POSIX standard to use])
 
 ################################
 # Checks for library functions #
