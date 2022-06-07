@@ -1,7 +1,7 @@
 lib_LTLIBRARIES = libdyad_sync.la
 libdyad_sync_la_SOURCES = wrapper.c wrapper.h dyad_ctx.h
 libdyad_sync_la_LIBADD = $(top_builddir)/src/common/libutils.la $(top_builddir)/src/common/libmurmur3.la $(FLUXCORE_LIBS)
-libdyad_sync_la_CPPFLAGS = $(FLUXCORE_CFLAGS) -DDYAD_CHECK=1
+libdyad_sync_la_CPPFLAGS = $(FLUXCORE_CFLAGS) -DDYAD_CHECK=1 -I$(top_builddir)/src/common
 
 bin_PROGRAMS = flux_barrier
 flux_barrier_SOURCES = flux_barrier.c
