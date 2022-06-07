@@ -1,0 +1,184 @@
+#!/bin/sh
+
+usage() {
+    cat << EOF
+Usage: dyadrun <-c | -p> -path <DYAD_PATH> -n <NAMESPACE> [OPTIONS] <user_program> [...]
+
+Required Arguments:
+===================
+  * --consumer | -c                     run <user_program> as a consumer
+  * --producer | -p                     run <user_program> as a producer
+  * -path <DYAD_PATH>                   specify the path to the DYAD-managed directory
+  * --kvs_namespace | -n <NAMESPACE>    set the Flux KVS namespace in which DYAD will store info
+
+Options:
+========
+  * --preload | -pre                          enable DYAD's wrapper around C file I/O functions (e.g., open, fopen)
+  * --key_depth | -d <DEPTH>                  set the depth of DYAD's keys in the Flux KVS
+  * --key_bins | -b <NUM_BINS>                set the number of bins for DYAD's keys in the Flux KVS
+  * --shared_storage | -shared                TBA
+  * --sync_debug | -sd                        produce additional debugging messages during execution
+  * --sync_check | -sc                        TBA
+  * --sync_start | -ss                        use DYAD to synchronize startup
+  * --num_cpa_points | -ncp <NUM_CPA_PTS>     TBA
+  * --profile_tag | -pt <TAG>                 print a identifier (i.e., tag) in DYAD profiling messages
+EOF
+}
+
+DYAD_LIB_DIR=@libdir@
+
+is_consumer=-1
+managed_path=""
+should_preload=0
+namespace=""
+depth=-1
+bins=-1
+use_shared_storage=0
+use_sync_start=0
+use_sync_health=0
+use_sync_debug=0
+use_sync_check=0
+cpa_pts=-1
+profile_tag=""
+
+while :
+do
+    case "$1" in
+        --consumer | -c)
+            if test $is_consumer -ne -1; then
+                echo "Consumer/Producer status already provided!"
+                echo "Only provide one of '-c' or '-p'"
+                usage
+                exit -1
+            fi
+            is_consumer=1
+            ;;
+        --producer | -p)
+            if test $is_consumer -ne -1; then
+                echo "Consumer/Producer status already provided!"
+                echo "Only provide one of '-c' or '-p'"
+                usage
+                exit -1
+            fi
+            is_consumer=0
+            ;;
+        -path)
+            managed_path=$2
+            shift
+            ;;
+        --preload | -pre)
+            should_preload=1
+            ;;
+        --kvs_namespace | -n)
+            namespace=$2
+            shift
+            ;;
+        --key_depth | -d)
+            depth=$2
+            shift
+            ;;
+        --key_bins | -b)
+            bins=$2
+            shift
+            ;;
+        --shared_storage | -shared)
+            use_shared_storage=1
+            ;;
+        --sync_debug | -sd)
+            use_sync_debug=1
+            ;;
+        --sync_check | -sc)
+            use_sync_check=1
+            ;;
+        --sync_start | -ss)
+            use_sync_start=1
+            ;;
+        --num_cpa_points | -ncp)
+            cpa_pts=$2
+            shift
+            ;;
+        --profile_tag | -pt)
+            profile_tag=$2
+            shift
+            ;;
+        --) # Recognize "--" as indicating the end of dyadrun arguments
+            shift
+            break
+            ;;
+        -*) # Any additional flags (i.e., elements starting with "-") are considered invalid
+            echo "Bad argument $1"
+            usage
+            exit -1
+            ;;
+        *) # Assume the first non-flag argument is the name of the program to run
+            break
+            ;;
+    esac
+    shift
+done
+
+if test $is_consumer -eq -1; then
+    echo "The '-c' or '-p' flag is required!"
+    usage
+    exit -1
+fi
+if test -z $managed_path; then
+    echo "The path to DYAD's managed directory (-path) is required!"
+    usage
+    exit -1
+fi
+if test -z $namespace; then
+    echo "The KVS namespace for DYAD (-n) is required!"
+    usage
+    exit -1
+fi
+
+command_to_run="$1"
+shift
+
+env_str=""
+
+if test $is_consumer -eq 0; then
+    env_str="$env_str DYAD_KIND_PRODUCER=1 DYAD_PATH_PRODUCER=$managed_path"
+else
+    env_str="$env_str DYAD_KIND_CONSUMER=1 DYAD_PATH_CONSUMER=$managed_path"
+fi
+env_str="$env_str FLUX_KVS_NAMESPACE=$namespace"
+
+if test $depth -ne -1; then
+    env_str="$env_str DYAD_KEY_DEPTH=$depth"
+fi
+if test $bins -ne -1; then
+    env_str="$env_str DYAD_KEY_BINS=$bins"
+fi
+if test $use_sync_debug -ne 0; then
+    env_str="$env_str DYAD_SYNC_DEBUG=1"
+fi
+if test $use_sync_check -ne 0; then
+    env_str="$env_str DYAD_SYNC_CHECK=1"
+fi
+if test $use_sync_start -ne 0; then
+    env_str="$env_str DYAD_SYNC_START=1"
+fi
+if test $cpa_pts -ge 0; then
+    env_str="$env_str DYAD_NUM_CPA_POINTS=$cpa_pts"
+fi
+if test $use_shared_storage -ne 0; then
+    env_str="$env_str DYAD_SHARED_STORAGE=1"
+fi
+if test ! -z $profile_tag; then
+    env_str="$env_str DYAD_PROFILE_TAG=$profile_tag"
+fi
+
+if test $should_preload -ne 0; then
+    if test ! -f "$DYAD_LIB_DIR/libdyad_sync.so"; then
+        echo "ERROR: Could not find $DYAD_LIB_DIR/libdyad_sync.so!"
+        echo "       Please confirm that a shared library was built for the wrapper API!"
+        echo "       If one was not, first confirm that your system supports shared libraries."
+        echo "       Otherwise, rebuild DYAD with the '--enable_shared' flag."
+        exit -1
+    fi
+    env_str="LD_PRELOAD=$DYAD_LIB_DIR/libdyad_sync.so $env_str"
+fi
+
+$env_str $command_to_run $@
