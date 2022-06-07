@@ -1,5 +1,3 @@
-SUBDIRS = libtap 
-
 noinst_LTLIBRARIES = libutils.la libmurmur3.la libtap.la
 libutils_la_SOURCES = utils.c utils.h dyad.h
 libutils_la_CPPFLAGS = $(FLUXCORE_CFLAGS)
