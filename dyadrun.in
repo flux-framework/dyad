@@ -25,7 +25,7 @@ Options:
 EOF
 }
 
-DYAD_LIB_DIR=@libdir@
+DYAD_INSTALL_LIB=@libdir@
 
 is_consumer=-1
 managed_path=""
@@ -171,14 +171,20 @@ if test ! -z $profile_tag; then
 fi
 
 if test $should_preload -ne 0; then
-    if test ! -f "$DYAD_LIB_DIR/libdyad_sync.so"; then
-        echo "ERROR: Could not find $DYAD_LIB_DIR/libdyad_sync.so!"
-        echo "       Please confirm that a shared library was built for the wrapper API!"
-        echo "       If one was not, first confirm that your system supports shared libraries."
-        echo "       Otherwise, rebuild DYAD with the '--enable_shared' flag."
-        exit -1
+    lib_dir_opts=""
+    if test ! -z $DYAD_ROOT; then
+        lib_dir_opts="$lib_dir_opts $DYAD_ROOT/lib/libdyad_sync.so"
     fi
-    env_str="LD_PRELOAD=$DYAD_LIB_DIR/libdyad_sync.so $env_str"
+    if test ! -z $DYAD_LIBRARYDIR; then
+        lib_dir_opts="$lib_dir_opts $DYAD_LIBRARYDIR/libdyad_sync.so"
+    fi
+    lib_dir_opts="$lib_dir_opts $DYAD_INSTALL_LIB/libdyad_sync.so"
+    for ldir in $lib_dir_opts; do
+        if test -f $ldir; then
+            env_str="LD_PRELOAD=$ldir $env_str"
+            break
+        fi
+    done
 fi
 
 $env_str $command_to_run $@

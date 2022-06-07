@@ -102,8 +102,7 @@ AC_CONFIG_FILES([Makefile
                  src/common/libtap/Makefile
                  src/lib/Makefile
                  src/modules/Makefile
-                 src/wrapper/Makefile
-                 dyadrun])
+                 src/wrapper/Makefile])
 
 #####################
 # Complete Autoconf #
