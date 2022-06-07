@@ -4,8 +4,8 @@ SUBDIRS = . src
 
 # dist_bin_SCRIPTS = dyadrun
 
-install-dyadrun:
+install-exec-local:
 	$(SED) -e 's,[@]libdir[@],$(libdir),' dyadrun.in > $(bindir)/dyadrun
 
-uninstall-dyadrun:
+uninstall-local:
 	rm $(bindir)/dyadrun
