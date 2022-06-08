@@ -141,38 +141,38 @@ fi
 command_to_run="$1"
 shift
 
-env_str=""
-
 if test $is_consumer -eq 0; then
-    env_str="$env_str DYAD_KIND_PRODUCER=1 DYAD_PATH_PRODUCER=$managed_path"
+    export DYAD_KIND_PRODUCER=1
+    export DYAD_PATH_PRODUCER=$managed_path
 else
-    env_str="$env_str DYAD_KIND_CONSUMER=1 DYAD_PATH_CONSUMER=$managed_path"
+    export DYAD_KIND_CONSUMER=1
+    export DYAD_PATH_CONSUMER=$managed_path
 fi
-env_str="$env_str FLUX_KVS_NAMESPACE=$namespace"
+export FLUX_KVS_NAMESPACE=$namespace
 
 if test $depth -ne -1; then
-    env_str="$env_str DYAD_KEY_DEPTH=$depth"
+    export DYAD_KEY_DEPTH=$depth
 fi
 if test $bins -ne -1; then
-    env_str="$env_str DYAD_KEY_BINS=$bins"
+    export DYAD_KEY_BINS=$bins
 fi
 if test $use_sync_debug -ne 0; then
-    env_str="$env_str DYAD_SYNC_DEBUG=1"
+    export DYAD_SYNC_DEBUG=1
 fi
 if test $use_sync_check -ne 0; then
-    env_str="$env_str DYAD_SYNC_CHECK=1"
+    export DYAD_SYNC_CHECK=1
 fi
 if test $use_sync_start -ne 0; then
-    env_str="$env_str DYAD_SYNC_START=1"
+    export DYAD_SYNC_START=1
 fi
 if test $cpa_pts -ge 0; then
-    env_str="$env_str DYAD_NUM_CPA_POINTS=$cpa_pts"
+    export DYAD_NUM_CPA_POINTS=$cpa_pts
 fi
 if test $use_shared_storage -ne 0; then
-    env_str="$env_str DYAD_SHARED_STORAGE=1"
+    export DYAD_SHARED_STORAGE=1
 fi
 if test ! -z $profile_tag; then
-    env_str="$env_str DYAD_PROFILE_TAG=$profile_tag"
+    export DYAD_PROFILE_TAG=$profile_tag
 fi
 
 if test $should_preload -ne 0; then
@@ -184,12 +184,19 @@ if test $should_preload -ne 0; then
         lib_dir_opts="$lib_dir_opts $DYAD_LIBRARYDIR/libdyad_sync.so"
     fi
     lib_dir_opts="$lib_dir_opts $DYAD_INSTALL_LIB/libdyad_sync.so"
+    preload_found=0
     for ldir in $lib_dir_opts; do
         if test -f $ldir; then
-            env_str="LD_PRELOAD=$ldir:$LD_PRELOAD $env_str"
+            export LD_PRELOAD=$ldir:$LD_PRELOAD
+            preload_found=1
             break
         fi
     done
+    if test $preload_found -ne 1; then
+        echo "ERROR: Could not find libdyad_sync.so!"
+        echo "       Checked the following locations: $lib_dir_opts"
+        exit -1
+    fi
 fi
 
-$env_str $command_to_run $@
+$command_to_run $@
