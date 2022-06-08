@@ -22,6 +22,7 @@ Options:
   * --sync_start | -ss                        use DYAD to synchronize startup
   * --num_cpa_points | -ncp <NUM_CPA_PTS>     TBA
   * --profile_tag | -pt <TAG>                 print a identifier (i.e., tag) in DYAD profiling messages
+  * --help | -h                               print this usage statement
 EOF
 }
 
@@ -49,7 +50,7 @@ do
                 echo "Consumer/Producer status already provided!"
                 echo "Only provide one of '-c' or '-p'"
                 usage
-                exit -1
+                return -1 2>/dev/null || exit -1
             fi
             is_consumer=1
             ;;
@@ -58,7 +59,7 @@ do
                 echo "Consumer/Producer status already provided!"
                 echo "Only provide one of '-c' or '-p'"
                 usage
-                exit -1
+                return -1 2>/dev/null || exit -1
             fi
             is_consumer=0
             ;;
@@ -101,6 +102,10 @@ do
             profile_tag=$2
             shift
             ;;
+        --help | -h)
+            usage
+            return 0 2>/dev/null || exit 0
+            ;;
         --) # Recognize "--" as indicating the end of dyadrun arguments
             shift
             break
@@ -108,7 +113,7 @@ do
         -*) # Any additional flags (i.e., elements starting with "-") are considered invalid
             echo "Bad argument $1"
             usage
-            exit -1
+            return -1 2>/dev/null || exit -1
             ;;
         *) # Assume the first non-flag argument is the name of the program to run
             break
@@ -120,17 +125,17 @@ done
 if test $is_consumer -eq -1; then
     echo "The '-c' or '-p' flag is required!"
     usage
-    exit -1
+    return -1 2>/dev/null || exit -1
 fi
 if test -z $managed_path; then
     echo "The path to DYAD's managed directory (-path) is required!"
     usage
-    exit -1
+    return -1 2>/dev/null || exit -1
 fi
 if test -z $namespace; then
     echo "The KVS namespace for DYAD (-n) is required!"
     usage
-    exit -1
+    return -1 2>/dev/null || exit -1
 fi
 
 command_to_run="$1"
