@@ -181,7 +181,7 @@ if test $should_preload -ne 0; then
     lib_dir_opts="$lib_dir_opts $DYAD_INSTALL_LIB/libdyad_sync.so"
     for ldir in $lib_dir_opts; do
         if test -f $ldir; then
-            env_str="LD_PRELOAD=$ldir $env_str"
+            env_str="LD_PRELOAD=$ldir:$LD_PRELOAD $env_str"
             break
         fi
     done
