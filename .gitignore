@@ -98,3 +98,6 @@ compile_flags.txt
 .vscode
 .idea
 .clangd
+
+# ignore installable version of dyadrun
+dyadrun
