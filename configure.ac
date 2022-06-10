@@ -36,6 +36,22 @@ AC_PROG_INSTALL
 AC_PROG_LN_S
 PKG_PROG_PKG_CONFIG
 
+#################################################
+# Checks for additional configure-time features #
+#################################################
+AC_ARG_ENABLE([debug],
+    [AS_HELP_STRING([--enable-dyad-debug],
+                    [whether to include debugging prints in DYAD])],
+    [enable_debug=$enableval],
+    [enable_debug=no]
+)
+AC_ARG_ENABLE([perfflow],
+    [AS_HELP_STRING([--enable-perfflow],
+                    [whether to enable PerfFlow Aspect performance measurement])],
+    [enable_perfflow=$enableval],
+    [enable_perfflow=no]
+)
+
 ########################
 # Checks for libraries #
 ########################
@@ -47,6 +63,20 @@ AC_CHECK_LIB([dl], [dlsym])
 # AC_CHECK_LIB([tap], [main])
 # Find and get info for Flux-Core using pkg-config
 PKG_CHECK_MODULES([FLUXCORE], [flux-core], [], [])
+if test "x$enable_perfflow" = xyes; then
+    PKG_CHECK_MODULES([PERFFLOW],
+        [perfflow], # TODO confirm name of PerfFlow Aspect's .pc file
+        [has_perfflow=yes],
+        [has_perfflow=err]
+    )
+else
+    has_perfflow=no
+fi
+if test "$has_perfflow" = "err"; then
+    AC_MSG_WARN([You requested PerfFlow Aspect support, but we couldn't find PerfFlow! Continuing without PerfFlow!])
+    has_perfflow=no
+fi
+AM_CONDITIONAL([HASPERFFLOW], [test "$has_perfflow" = "yes"])
 
 ###########################
 # Checks for header files #
@@ -92,6 +122,13 @@ AC_CHECK_FUNCS( \
     setenv \
     strerror \
 )
+
+#######################################
+# Add any necessary compilation flags #
+#######################################
+if test "x$enable_debug" = xyes; then
+    CPPFLAGS="$CPPFLAGS -DDYAD_FULL_DEBUG=1 -DDYAD_LOGGING_ON=1"
+fi
 
 ####################################
 # Configures Makefiles and dyadrun #
