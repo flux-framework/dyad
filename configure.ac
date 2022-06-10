@@ -39,7 +39,7 @@ PKG_PROG_PKG_CONFIG
 #################################################
 # Checks for additional configure-time features #
 #################################################
-AC_ARG_ENABLE([debug],
+AC_ARG_ENABLE([dyad-debug],
     [AS_HELP_STRING([--enable-dyad-debug],
                     [whether to include debugging prints in DYAD])],
     [enable_debug=$enableval],
@@ -65,7 +65,7 @@ AC_CHECK_LIB([dl], [dlsym])
 PKG_CHECK_MODULES([FLUXCORE], [flux-core], [], [])
 if test "x$enable_perfflow" = xyes; then
     PKG_CHECK_MODULES([PERFFLOW],
-        [perfflow], # TODO confirm name of PerfFlow Aspect's .pc file
+        [perfflowaspect],
         [has_perfflow=yes],
         [has_perfflow=err]
     )
@@ -130,9 +130,9 @@ if test "x$enable_debug" = xyes; then
     CPPFLAGS="$CPPFLAGS -DDYAD_FULL_DEBUG=1 -DDYAD_LOGGING_ON=1"
 fi
 
-####################################
-# Configures Makefiles and dyadrun #
-####################################
+########################
+# Configures Makefiles #
+########################
 AC_CONFIG_FILES([Makefile
                  src/Makefile
                  src/common/Makefile
