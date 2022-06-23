@@ -65,6 +65,12 @@ AC_ARG_ENABLE([urpc],
     [enable_urpc=$enableval],
     [enable_urpc=no]
 )
+AC_ARG_ENABLE([perfflow],
+    [AS_HELP_STRING([--enable-perfflow],
+                    [enable performance measurement with PerfFlow Aspect])],
+    [enable_perfflow=$enableval],
+    [enable_perfflow=no]
+)
 # TODO Add support for libb64 back once base64 encoding/decoding is fully complete
 # AC_ARG_VAR([LIBB64_DIR], [root directory for libb64])
 
@@ -88,6 +94,14 @@ if test "x$enable_urpc" = "xyes" && test "x$pkg_check_jansson_found" = "xno"; th
     AC_MSG_ERROR([jansson cannot be located, but it is required when '--enable-urpc' is provided])
 fi
 AM_CONDITIONAL([URPC], [test "x$enable_urpc" = "xyes"])
+AX_PERFFLOW_ASPECT([PERFFLOW],
+    [pkg_check_perfflow_found=yes],
+    [pkg_check_perfflow_found=no]
+)
+if test "x$enable_perfflow" = "xyes" && test "x$pkg_check_perfflow_found" = "xno"; then
+    AC_MSG_ERROR([requested PerfFlow Aspect support, but cannot find PerfFlow Aspect with pkg-config])
+fi
+AM_CONDITIONAL([PERFFLOW], [test "x$enable_perfflow" = "xyes"])
 
 ###########################
 # Checks for header files #
