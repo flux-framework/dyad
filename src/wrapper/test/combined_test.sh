@@ -1,3 +1,13 @@
+#************************************************************
+# Copyright 2021 Lawrence Livermore National Security, LLC
+# (c.f. AUTHORS, NOTICE.LLNS, COPYING)
+#
+# This file is part of the Flux resource manager framework.
+# For details, see https://github.com/flux-framework.
+#
+# SPDX-License-Identifier: LGPL-3.0
+#************************************************************
+
 #!/bin/bash
 # flux mini run -N 2 -n 2 -o mpi=spectrum ./combined_test.sh
 

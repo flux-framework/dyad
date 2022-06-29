@@ -1,10 +1,14 @@
+#************************************************************
+# Copyright 2021 Lawrence Livermore National Security, LLC
+# (c.f. AUTHORS, NOTICE.LLNS, COPYING)
+#
+# This file is part of the Flux resource manager framework.
+# For details, see https://github.com/flux-framework.
+#
+# SPDX-License-Identifier: LGPL-3.0
+#************************************************************
+
 #!/bin/bash
-#runs-prod/runs_prod.1.out
-#DYAD synchronized start at 05/17/21 23:50:07.450381983
-#DYAD stops at 05/17/21 23:50:07.450543486
-##runs-cons/runs_cons.1.out
-#DYAD synchronized start at 05/17/21 23:50:07.450303797
-#DYAD stops at 05/17/21 23:50:07.450584179
 
 if [ $# -ne 2 ] ; then
   echo "Usage> $0 exp_dir c|p"
