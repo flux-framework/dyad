@@ -2,6 +2,10 @@ ACLOCAL_AMFLAGS = -I config
 
 SUBDIRS = . src
 
+EXTRA_DIST= \
+        NOTICE \
+        README.md
+
 dist_bin_SCRIPTS = dyadrun
 
 dyadrun:

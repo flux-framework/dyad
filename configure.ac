@@ -72,7 +72,7 @@ AC_ARG_ENABLE([perfflow],
     [enable_perfflow=no]
 )
 # TODO Add support for libb64 back once base64 encoding/decoding is fully complete
-# AC_ARG_VAR([LIBB64_DIR], [root directory for libb64])
+AC_ARG_VAR([LIBB64_DIR], [root directory for libb64])
 
 ########################
 # Checks for libraries #
@@ -94,6 +94,18 @@ if test "x$enable_urpc" = "xyes" && test "x$pkg_check_jansson_found" = "xno"; th
     AC_MSG_ERROR([jansson cannot be located, but it is required when '--enable-urpc' is provided])
 fi
 AM_CONDITIONAL([URPC], [test "x$enable_urpc" = "xyes"])
+if test "x$enable_urpc" = "xyes"; then
+    if test "x$LIBB64_DIR" = "x"; then
+        AC_MSG_ERROR([LIBB64_DIR env variable needs to be set for urpc support])
+    else
+        AC_MSG_NOTICE([enable_urpc = $enable_urpc])
+        AC_MSG_NOTICE([LIBB64_DIR = $LIBB64_DIR])
+    fi
+else
+    AC_MSG_NOTICE([enable_urpc = $enable_urpc])
+
+fi
+
 AX_PERFFLOW_ASPECT([PERFFLOW],
     [pkg_check_perfflow_found=yes],
     [pkg_check_perfflow_found=no]
@@ -109,9 +121,18 @@ AM_CONDITIONAL([PERFFLOW], [test "x$enable_perfflow" = "xyes"])
 AC_HEADER_STDC
 AC_CHECK_HEADERS( \
     fcntl.h \
-    stdint.h \
-    [sys/param.h] \
     unistd.h \
+    libgen.h \
+    dlfcn.h \
+    sys/types.h \
+    sys/stat.h \
+    linux/limits.h \
+    limits.h \
+    stdlib.h \
+    stdarg.h \
+    stdbool.h \
+    stddef.h \
+    string.h
 )
 
 #################################################################
@@ -139,13 +160,16 @@ AC_FUNC_MMAP
 AC_FUNC_REALLOC
 AC_CHECK_FUNCS( \
     clock_gettime \
-    getcwd \
     memset \
     mkdir \
+    mkpath \
     realpath \
-    regcomp \
+    readlink \
+    dirname \
     setenv \
-    strerror \
+    getenv \
+    fsync \
+    nanosleep \
 )
 
 #######################################
@@ -153,7 +177,17 @@ AC_CHECK_FUNCS( \
 #######################################
 if test "x$enable_debug" = xyes; then
     CPPFLAGS="$CPPFLAGS -DDYAD_FULL_DEBUG=1 -DDYAD_LOGGING_ON=1"
+    if test "x$enable_urpc" = "xyes"; then
+        CPPFLAGS="$CPPFLAGS -DURPC_FULL_DEBUG=1 -DURPC_LOGGING_ON=1"
+    fi
 fi
+
+SRNCAT_SPECIFIC_CFLAGS=;
+if `$CXX -v 2>&1 | grep -v icc | grep 'gcc version' >/dev/null 2>&1` ; then
+  STRNCAT_SPECIFIC_CFLAGS="-Wstringop-overflow=0"
+fi
+
+AC_SUBST(STRNCAT_SPECIFIC_CFLAGS, $STRNCAT_SPECIFIC_CFLAGS)
 
 ########################
 # Configures Makefiles #
@@ -170,3 +204,23 @@ AC_CONFIG_FILES([Makefile
 # Complete Autoconf #
 #####################
 AC_OUTPUT
+
+echo "
+  $PACKAGE_NAME version $PACKAGE_VERSION
+  Prefix...........: $prefix
+  Debug Build......: $debug
+  C Compiler.......: $CC
+  C++ Compiler.....: $CXX
+  CFLAGS...........: $CFLAGS
+  CPPFLAGS.......... $CPPFLAGS
+  CXXFLAGS.......... $CXXFLAGS
+  FLUX.............: $FLUX
+  FLUX_VERSION.....: $($FLUX version | sed -n 's/libflux-core:\t*//p')
+  FLUX_CORE_CFLAGS.: $FLUX_CORE_CFLAGS
+  FLUX_CORE_LIBS...: $FLUX_CORE_LIBS
+  LIBFLUX_VERSION..: $LIBFLUX_VERSION
+  FLUX_PREFIX......: $FLUX_PREFIX
+  LDFLAGS..........: $LDFLAGS
+  LIBS.............: $LIBS
+  Linker...........: $LD
+"
