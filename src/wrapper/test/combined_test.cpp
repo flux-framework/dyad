@@ -183,9 +183,6 @@ int main (int argc, char *argv[])
     t_iter.assign (max_iter, 0.0);
 
     if (!explicit_sync) {
-      #if DYAD_PROFILE
-        setenv ("DYAD_PROFILE_TAG", context.c_str (), 1);
-      #endif // DYAD_PROFILE
     }
 
     rngen.seed (seed);

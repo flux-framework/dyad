@@ -19,16 +19,8 @@ struct dyad_mod_ctx {
     bool debug;
     flux_msg_handler_t **handlers;
     const char *dyad_path;
-  #if DYAD_PROFILE
-    double t_sync_io_mod;  // Local file IO cost used
-    double t_rpc_mod; // Total time to send files to consumer
-  #endif //DYAD_PROFILE
 } dyad_mod_ctx_default =
-  #if DYAD_PROFILE
-    {NULL, false, NULL, NULL, 0.0, 0.0};
-  #else
     {NULL, false, NULL, NULL};
-  #endif //DYAD_PROFILE
 
 typedef struct dyad_mod_ctx dyad_mod_ctx_t;
 

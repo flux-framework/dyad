@@ -48,48 +48,17 @@
 
 static void dyad_mod_fini (void) __attribute__((destructor));
 
-#if DYAD_PROFILE
-static void print_stats (const dyad_mod_ctx_t *ctx)
-{
-    uint32_t rank; // Flux rank
-
-    if (ctx == NULL) {
-        return;
-    }
-
-    if (flux_get_rank (ctx->h, &rank) < 0) {
-        FLUX_LOG_ERR (ctx->h, "flux_get_rank() failed.\n");
-        return;
-    }
-    printf ("DYAD Profile [%u] SYNC IO MODULE: %f sec\n",
-             rank, ctx->t_sync_io_mod);
-    printf ("DYAD Profile [%u] RPC MODULE: %f sec\n",
-             rank, ctx->t_rpc_mod);
-    FLUX_LOG_INFO (ctx->h, "DYAD Profile [%u] SYNC IO MODULE: %f sec\n", \
-                            rank, ctx->t_sync_io_mod);
-    FLUX_LOG_INFO (ctx->h, "DYAD Profile [%u] RPC MODULE: %f sec\n", \
-                            rank, ctx->t_rpc_mod);
-}
-#endif // DYAD_PROFILE
-
 void dyad_mod_fini (void)
 {
     flux_t *h = flux_open (NULL, 0);
 
     if (h != NULL) {
-      #if DYAD_PROFILE
-        dyad_mod_ctx_t *ctx = (dyad_mod_ctx_t *) flux_aux_get (h, "dyad");
-        print_stats (ctx);
-      #endif // DYAD_PROFILE
     }
 }
 
 static void freectx (void *arg)
 {
     dyad_mod_ctx_t *ctx = (dyad_mod_ctx_t *)arg;
-  #if DYAD_PROFILE
-    print_stats (ctx);
-  #endif // DYAD_PROFILE
     flux_msg_handler_delvec (ctx->handlers);
     free (ctx);
 }
@@ -104,10 +73,6 @@ static dyad_mod_ctx_t *getctx (flux_t *h)
         ctx->debug = false;
         ctx->handlers = NULL;
         ctx->dyad_path = NULL;
-      #if DYAD_PROFILE
-        ctx->t_sync_io_mod = 0.0;
-        ctx->t_rpc_mod = 0.0;
-      #endif // DYAD_PROFILE
         if (flux_aux_set (h, "dyad", ctx, freectx) < 0) {
             FLUX_LOG_ERR (h, "DYAD_MOD: flux_aux_set() failed!\n");
             goto error;
@@ -149,9 +114,6 @@ static void dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w,
     uint32_t userid = 0u;
     char *upath = NULL;
     char fullpath[PATH_MAX+1] = {'\0'};
-  #if DYAD_PROFILE
-    struct timespec t_1, t_2;
-  #endif // DYAD_PROFILE
     int saved_errno = errno;
     errno = 0;
 
@@ -162,10 +124,6 @@ static void dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w,
         goto error;
 
     FLUX_LOG_INFO (h, "DYAD_MOD: requested user_path: %s", upath);
-
-  #if DYAD_PROFILE
-    clock_gettime(CLOCK_MONOTONIC_RAW, &t_1);
-  #endif // DYAD_PROFILE
 
     strncpy (fullpath, ctx->dyad_path, PATH_MAX-1);
     concat_str (fullpath, upath, "/", PATH_MAX);
@@ -189,11 +147,6 @@ static void dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w,
     }
     close (fd);
 
-  #if DYAD_PROFILE
-    clock_gettime(CLOCK_MONOTONIC_RAW, &t_2);
-    ctx->t_sync_io_mod += TIME_DIFF(t_1, t_2);
-  #endif // DYAD_PROFILE
-
     goto done;
 
 error:
@@ -206,9 +159,6 @@ done:
 #if DYAD_PERFFLOW
     dyad_respond (h, msg, inbuf, inlen);
 #else
-  #if DYAD_PROFILE
-    clock_gettime(CLOCK_MONOTONIC_RAW, &t_1);
-  #endif // DYAD_PROFILE
     //if (flux_respond_raw (h, msg, errno, inbuf, inlen) < 0)
     if (flux_respond_raw (h, msg, inbuf, inlen) < 0) {
         FLUX_LOG_ERR (h, "DYAD_MOD: %s: flux_respond", __FUNCTION__);
@@ -218,10 +168,6 @@ done:
     }
     // TODO: check if flux_respond_raw deallocates inbuf.
     // If not, deallocate it here
-  #if DYAD_PROFILE
-    clock_gettime(CLOCK_MONOTONIC_RAW, &t_2);
-    ctx->t_rpc_mod += TIME_DIFF(t_1, t_2);
-  #endif // DYAD_PROFILE
 #endif // DYAD_PERFFLOW
     errno = saved_errno;
     return;

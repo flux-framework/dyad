@@ -210,18 +210,8 @@ static int subscribe_via_flux (const char *consumer_path, const char *user_path)
     char file_path [PATH_MAX+1] = {'\0'};
     char file_path_copy [PATH_MAX+1] = {'\0'};
 
-  #if DYAD_PROFILE
-    struct timespec t_1, t_2;
-    clock_gettime(CLOCK_MONOTONIC_RAW, &t_1);
-  #endif // DYAD_PROFILE
-
     memset (topic, '\0', topic_len + 1);
     gen_path_key (user_path, topic, topic_len, ctx->key_depth, ctx->key_bins);
-
-  #if DYAD_PROFILE
-    clock_gettime(CLOCK_MONOTONIC_RAW, &t_2);
-    ctx->t_hash_cons += TIME_DIFF(t_1, t_2);
-  #endif // DYAD_PROFILE
 
     if (!ctx->h)
         goto done;
@@ -231,10 +221,6 @@ static int subscribe_via_flux (const char *consumer_path, const char *user_path)
 #if DYAD_PERFFLOW
     dyad_kvs_lookup (topic, &owner_rank);
 #else
-  #if DYAD_PROFILE
-    clock_gettime(CLOCK_MONOTONIC_RAW, &t_1);
-  #endif // DYAD_PROFILE
-
     // Look up key-value-store for the owner of a file
     f1 = flux_kvs_lookup (ctx->h, ctx->kvs_namespace, FLUX_KVS_WAITCREATE, topic);
     if (f1 == NULL) {
@@ -249,11 +235,6 @@ static int subscribe_via_flux (const char *consumer_path, const char *user_path)
     }
     flux_future_destroy (f1);
     f1 = NULL;
-
-  #if DYAD_PROFILE
-    clock_gettime(CLOCK_MONOTONIC_RAW, &t_2);
-    ctx->t_kvs_cons += TIME_DIFF(t_1, t_2);
-  #endif // DYAD_PROFILE
 #endif // DYAD_PERFFLOW
 
     FLUX_LOG_INFO ( \
@@ -272,10 +253,6 @@ static int subscribe_via_flux (const char *consumer_path, const char *user_path)
    if (dyad_rpc_get_raw (f2, &file_data, &file_len, user_path))
        goto done;
 #else
-  #if DYAD_PROFILE
-    clock_gettime(CLOCK_MONOTONIC_RAW, &t_1);
-  #endif // DYAD_PROFILE
-
     // Send the request to fetch a file
     if (!(f2 = flux_rpc_pack (ctx->h, "dyad.fetch", owner_rank, 0,
                               "{s:s}", "upath", user_path))) {
@@ -288,18 +265,9 @@ static int subscribe_via_flux (const char *consumer_path, const char *user_path)
         FLUX_LOG_ERR ("flux_rpc_get_raw(\"%s\") failed.\n", user_path);
         goto done;
     }
-
-  #if DYAD_PROFILE
-    clock_gettime(CLOCK_MONOTONIC_RAW, &t_2);
-    ctx->t_rpc_cons += TIME_DIFF(t_1, t_2);
-  #endif // DYAD_PROFILE
 #endif // DYAD_PERFFLOW
 
     FLUX_LOG_INFO ("The size of file received: %d.\n", file_len);
-
-  #if DYAD_PROFILE
-    clock_gettime(CLOCK_MONOTONIC_RAW, &t_1);
-  #endif // DYAD_PROFILE
 
     // Set output file path
     strncpy (file_path, consumer_path, PATH_MAX-1);
@@ -332,11 +300,6 @@ static int subscribe_via_flux (const char *consumer_path, const char *user_path)
 
     flux_future_destroy (f2);
     f2 = NULL;
-
-  #if DYAD_PROFILE
-    clock_gettime(CLOCK_MONOTONIC_RAW, &t_2);
-    ctx->t_sync_io_cons += TIME_DIFF(t_1, t_2);
-  #endif // DYAD_PROFILE
 
 done:
     if (f1 != NULL) {
@@ -380,27 +343,13 @@ static int publish_via_flux (const char *producer_path, const char *user_path)
     const size_t topic_len = PATH_MAX;
     char topic [topic_len + 1];
 
-  #if DYAD_PROFILE
-    struct timespec t_1, t_2;
-    clock_gettime(CLOCK_MONOTONIC_RAW, &t_1);
-  #endif // DYAD_PROFILE
-
     memset (topic, '\0', topic_len + 1);
     gen_path_key (user_path, topic, topic_len, ctx->key_depth, ctx->key_bins);
-
-  #if DYAD_PROFILE
-    clock_gettime(CLOCK_MONOTONIC_RAW, &t_2);
-    ctx->t_hash_prod += TIME_DIFF(t_1, t_2);
-  #endif // DYAD_PROFILE
 
     if (!ctx->h)
         goto done;
 
     FLUX_LOG_INFO ("DYAD_SYNC PROD: publish_via_flux() for \"%s\".\n", topic);
-
-  #if DYAD_PROFILE
-    clock_gettime(CLOCK_MONOTONIC_RAW, &t_1);
-  #endif // DYAD_PROFILE
 
     // Register the owner of the file into key-value-store
     if (!(txn = flux_kvs_txn_create ())) {
@@ -428,11 +377,6 @@ static int publish_via_flux (const char *producer_path, const char *user_path)
     flux_future_destroy (f);
     f = NULL;
     flux_kvs_txn_destroy (txn);
-
-  #if DYAD_PROFILE
-    clock_gettime(CLOCK_MONOTONIC_RAW, &t_2);
-    ctx->t_kvs_prod += TIME_DIFF(t_1, t_2);
-  #endif // DYAD_PROFILE
 #endif // DYAD_PERFFLOW
 
     rc = 0;
@@ -447,17 +391,9 @@ static int dyad_open_sync (const char* __restrict__ path,
 {
     int rc = 0;
     if (is_dyad_consumer ()) {
-      #if DYAD_PROFILE
-        struct timespec t_1, t_2;
-        clock_gettime(CLOCK_MONOTONIC_RAW, &t_1);
-      #endif // DYAD_PROFILE
         ctx->reenter = false;
         rc = subscribe_via_flux (dyad_path, user_path);
         ctx->reenter = true;
-      #if DYAD_PROFILE
-        clock_gettime(CLOCK_MONOTONIC_RAW, &t_2);
-        ctx->t_sync_cons += TIME_DIFF(t_1, t_2);
-      #endif // DYAD_PROFILE
     }
     return rc;
 }
@@ -468,17 +404,9 @@ static int dyad_close_sync (const char* __restrict__ path,
 {
     int rc = 0;
     if (is_dyad_producer ()) {
-      #if DYAD_PROFILE
-        struct timespec t_1, t_2;
-        clock_gettime(CLOCK_MONOTONIC_RAW, &t_1);
-      #endif // DYAD_PROFILE
         ctx->reenter = false;
         rc = publish_via_flux (dyad_path, user_path);
         ctx->reenter = true;
-      #if DYAD_PROFILE
-        clock_gettime(CLOCK_MONOTONIC_RAW, &t_2);
-        ctx->t_sync_prod += TIME_DIFF(t_1, t_2);
-      #endif // DYAD_PROFILE
     }
     return rc;
 }
@@ -615,17 +543,6 @@ void dyad_sync_init (void)
 
     ctx->initialized = true;
 
-  #if DYAD_PROFILE
-    ctx->t_kvs_prod = 0.0;
-    ctx->t_kvs_cons = 0.0;
-    ctx->t_rpc_cons = 0.0;
-    ctx->t_sync_io_cons = 0.0;
-    ctx->t_sync_prod = 0.0;
-    ctx->t_sync_cons = 0.0;
-    ctx->t_hash_prod = 0.0;
-    ctx->t_hash_cons = 0.0;
-  #endif // DYAD_PROFILE
-
     FLUX_LOG_INFO ("DYAD Initialized\n");
     FLUX_LOG_INFO ("DYAD_SYNC_DEBUG=%s\n", (ctx->debug)? "true": "false");
     FLUX_LOG_INFO ("DYAD_SYNC_CHECK=%s\n", (ctx->check)? "true": "false");
@@ -657,36 +574,6 @@ void dyad_sync_init (void)
 
 void dyad_sync_fini ()
 {
-  #if DYAD_PROFILE
-    const char* profile_tag = getenv ("DYAD_PROFILE_TAG");
-    if (profile_tag == NULL) {
-        profile_tag = "";
-    }
-    printf ("DYAD Profile [%s] KVS PROD: %f sec\n", profile_tag, ctx->t_kvs_prod);
-    printf ("DYAD Profile [%s] KVS CONS: %f sec\n", profile_tag, ctx->t_kvs_cons);
-    printf ("DYAD Profile [%s] RPC CONS: %f sec\n", profile_tag, ctx->t_rpc_cons);
-    printf ("DYAD Profile [%s] SYNC IO CONS: %f sec\n", profile_tag, ctx->t_sync_io_cons);
-    printf ("DYAD Profile [%s] SYNC PROD: %f sec\n", profile_tag, ctx->t_sync_prod);
-    printf ("DYAD Profile [%s] SYNC CONS: %f sec\n", profile_tag, ctx->t_sync_cons);
-    printf ("DYAD Profile [%s] HASH PROD: %f sec\n", profile_tag, ctx->t_hash_prod);
-    printf ("DYAD Profile [%s] HASH CONS: %f sec\n", profile_tag, ctx->t_hash_cons);
-    FLUX_LOG_INFO ("DYAD Profile [%s] KVS PROD: %f sec\n", \
-                    profile_tag, ctx->t_kvs_prod);
-    FLUX_LOG_INFO ("DYAD Profile [%s] KVS CONS: %f sec\n", \
-                    profile_tag, ctx->t_kvs_cons);
-    FLUX_LOG_INFO ("DYAD Profile [%s] RPC CONS: %f sec\n", \
-                    profile_tag, ctx->t_rpc_cons);
-    FLUX_LOG_INFO ("DYAD Profile [%s] SYNC IO CONS: %f sec\n", \
-                    profile_tag, ctx->t_sync_io_cons);
-    FLUX_LOG_INFO ("DYAD Profile [%s] SYNC PROD: %f sec\n", \
-                    profile_tag, ctx->t_sync_prod);
-    FLUX_LOG_INFO ("DYAD Profile [%s] SYNC CONS: %f sec\n", \
-                    profile_tag, ctx->t_sync_cons);
-    FLUX_LOG_INFO ("DYAD Profile [%s] HASH PROD: %f sec\n", \
-                    profile_tag, ctx->t_hash_prod);
-    FLUX_LOG_INFO ("DYAD Profile [%s] HASH CONS: %f sec\n", \
-                    profile_tag, ctx->t_hash_cons);
-  #endif // DYAD_PROFILE
   #if DYAD_SYNC_START
     if (ctx->sync_started) {
         struct timespec t_now;

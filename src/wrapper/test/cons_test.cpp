@@ -71,9 +71,6 @@ int main (int argc, char *argv[])
 
     setenv ("DYAD_PATH_CONSUMER", dyad_path.c_str (), 1);
     setenv ("DYAD_KIND_CONSUMER", "1", 1);
-  #if DYAD_PROFILE
-    setenv ("DYAD_PROFILE_TAG", context.c_str (), 1);
-  #endif // DYAD_PROFILE
 
     for (int iter = 0; iter < max_iter; iter ++)
     {
