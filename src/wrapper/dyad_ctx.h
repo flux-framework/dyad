@@ -16,7 +16,6 @@
 #endif // !defined(__cplusplus)
 
 #include <flux/core.h>
-#include "dyad_cpa.h"
 
 struct dyad_sync_ctx_t {
     flux_t *h;
@@ -43,15 +42,6 @@ struct dyad_sync_ctx_t {
     double t_hash_cons;  // file name hashing cost by consumer, included in sync
     const char* profile_tag; // To show the result with a distinguishing tag
   #endif // DYAD_PROFILE
-  #if DYAD_CPA
-    dyad_cpa_t *t_rec;
-    unsigned int t_rec_capacity;
-    unsigned int t_rec_size;
-   #if DYAD_CPA_UNIQUE_PRODUCER
-    uint32_t prod_rank;
-   #endif // DYAD_CPA_UNIQUE_PRODUCER
-    FILE *cpa_outfile;
-  #endif // DYAD_CPA
 } dyad_sync_ctx_t_default =
   #if DYAD_PROFILE
     {NULL, false, false, false, true, false, false, 3u, 1024u, 0u, NULL,

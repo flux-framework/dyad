@@ -11,7 +11,6 @@
 #include <cstdlib>
 #include <cstdio>
 #include "io_test.hpp"
-#include "user_cpa.h"
 #include <unistd.h>
 
 
@@ -27,21 +26,6 @@ int main (int argc, char *argv[])
                          "verify(0|1) [iter [numfiles size [usec]]]\n", argv[0]);
         return EXIT_FAILURE;
     }
-  #if USER_CPA
-    my_ctx.t_rec_size = 0u;
-    my_ctx.t_rec_capacity = 0u;
-    char *e = NULL;
-    if ((e = getenv (USER_NUM_CPA_PTS))) {
-        my_ctx.t_rec_capacity = (unsigned) atoi (e);
-    }
-    if (my_ctx.t_rec_capacity == 0u) {
-        my_ctx.t_rec_capacity = 20u;
-    }
-    my_ctx.t_rec = (u_cpa_t *) malloc (my_ctx.t_rec_capacity * sizeof (u_cpa_t));
-    my_ctx.cpa_outfile = NULL;
-  #endif // USER_CPA
-
-    U_REC_TIME(my_ctx, UCPA_CONS_BEGINS);
 
     // Root directory under which shared files are located
     const std::string dyad_path = get_dyad_path (argv[1]);
@@ -115,23 +99,7 @@ int main (int argc, char *argv[])
 
     print_times (t_iter, "Iter :");
     print_times (t_cons, "Cons :");
-    U_REC_TIME(my_ctx, UCPA_CONS_ENDS);
 
-  #if USER_CPA
-    char ofile_name [1024] = {'0'};
-    char cwd [1024] = {'0'};
-    getcwd (cwd, sizeof (cwd));
-    sprintf (ofile_name, "%s/user_cpa_%s.%s.txt", cwd, "CONS", context.c_str ());
-    FILE *oFile = fopen (ofile_name, "w");
-
-    if (my_ctx.t_rec != NULL) {
-        for (unsigned int i = 0u; i < my_ctx.t_rec_size; ++i) {
-            U_PRINT_CPA_CLK (oFile, "CONS", my_ctx.t_rec[i]);
-        }
-        fclose (oFile);
-    }
-    free (my_ctx.t_rec);
-  #endif // USER_CPA
     return EXIT_SUCCESS;
 }
 

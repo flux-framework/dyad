@@ -235,8 +235,6 @@ static int subscribe_via_flux (const char *consumer_path, const char *user_path)
     clock_gettime(CLOCK_MONOTONIC_RAW, &t_1);
   #endif // DYAD_PROFILE
 
-    REC_TIME (ctx, CPA_KVS_QRY);
-
     // Look up key-value-store for the owner of a file
     f1 = flux_kvs_lookup (ctx->h, ctx->kvs_namespace, FLUX_KVS_WAITCREATE, topic);
     if (f1 == NULL) {
@@ -256,8 +254,6 @@ static int subscribe_via_flux (const char *consumer_path, const char *user_path)
     clock_gettime(CLOCK_MONOTONIC_RAW, &t_2);
     ctx->t_kvs_cons += TIME_DIFF(t_1, t_2);
   #endif // DYAD_PROFILE
-
-    REC_TIME (ctx, CPA_KVS_QRY_FIN);
 #endif // DYAD_PERFFLOW
 
     FLUX_LOG_INFO ( \
@@ -280,16 +276,12 @@ static int subscribe_via_flux (const char *consumer_path, const char *user_path)
     clock_gettime(CLOCK_MONOTONIC_RAW, &t_1);
   #endif // DYAD_PROFILE
 
-    REC_TIME (ctx, CPA_RPC_REQ);
-
     // Send the request to fetch a file
     if (!(f2 = flux_rpc_pack (ctx->h, "dyad.fetch", owner_rank, 0,
                               "{s:s}", "upath", user_path))) {
         FLUX_LOG_ERR ("flux_rpc_pack({dyad.fetch %s})", user_path);
         goto done;
     }
-
-    REC_TIME (ctx, CPA_RPC_REQ_FIN);
 
     // Extract the data from reply
     if (flux_rpc_get_raw (f2, (const void **) &file_data, &file_len) < 0) {
@@ -301,8 +293,6 @@ static int subscribe_via_flux (const char *consumer_path, const char *user_path)
     clock_gettime(CLOCK_MONOTONIC_RAW, &t_2);
     ctx->t_rpc_cons += TIME_DIFF(t_1, t_2);
   #endif // DYAD_PROFILE
-
-    REC_TIME (ctx, CPA_RPC_RECV);
 #endif // DYAD_PERFFLOW
 
     FLUX_LOG_INFO ("The size of file received: %d.\n", file_len);
@@ -310,11 +300,6 @@ static int subscribe_via_flux (const char *consumer_path, const char *user_path)
   #if DYAD_PROFILE
     clock_gettime(CLOCK_MONOTONIC_RAW, &t_1);
   #endif // DYAD_PROFILE
-
-  #if DYAD_CPA_UNIQUE_PRODUCER
-    // This assumes that producer does not change
-    ctx->prod_rank = owner_rank;
-  #endif // DYAD_CPA_UNIQUE_PRODUCER
 
     // Set output file path
     strncpy (file_path, consumer_path, PATH_MAX-1);
@@ -352,8 +337,6 @@ static int subscribe_via_flux (const char *consumer_path, const char *user_path)
     clock_gettime(CLOCK_MONOTONIC_RAW, &t_2);
     ctx->t_sync_io_cons += TIME_DIFF(t_1, t_2);
   #endif // DYAD_PROFILE
-
-    REC_TIME (ctx, CPA_CONS_WRITE);
 
 done:
     if (f1 != NULL) {
@@ -434,7 +417,6 @@ static int publish_via_flux (const char *producer_path, const char *user_path)
     if (dyad_kvs_commit (txn, &f, user_path) < 0)
         goto done;
 #else
-    REC_TIME (ctx, CPA_KVS_PUB);
 
     if (!(f = flux_kvs_commit (ctx->h, ctx->kvs_namespace, 0, txn))) {
         FLUX_LOG_ERR ("flux_kvs_commit(owner rank of %s = %u)\n", \
@@ -451,8 +433,6 @@ static int publish_via_flux (const char *producer_path, const char *user_path)
     clock_gettime(CLOCK_MONOTONIC_RAW, &t_2);
     ctx->t_kvs_prod += TIME_DIFF(t_1, t_2);
   #endif // DYAD_PROFILE
-
-    REC_TIME (ctx, CPA_KVS_PUB_FIN);
 #endif // DYAD_PERFFLOW
 
     rc = 0;
@@ -645,29 +625,12 @@ void dyad_sync_init (void)
     ctx->t_hash_prod = 0.0;
     ctx->t_hash_cons = 0.0;
   #endif // DYAD_PROFILE
-  #if DYAD_CPA
-    ctx->t_rec_size = 0u;
-    ctx->t_rec_capacity = 0u;
-    if ((e = getenv (DYAD_NUM_CPA_PTS))) {
-        ctx->t_rec_capacity = (unsigned) atoi (e);
-    }
-    if (ctx->t_rec_capacity == 0u) {
-        ctx->t_rec_capacity = 2000u;
-    }
-    ctx->t_rec = (dyad_cpa_t *) malloc (ctx->t_rec_capacity * sizeof (dyad_cpa_t));
-    ctx->cpa_outfile = NULL;
-  #endif // DYAD_CPA
 
     FLUX_LOG_INFO ("DYAD Initialized\n");
     FLUX_LOG_INFO ("DYAD_SYNC_DEBUG=%s\n", (ctx->debug)? "true": "false");
     FLUX_LOG_INFO ("DYAD_SYNC_CHECK=%s\n", (ctx->check)? "true": "false");
     FLUX_LOG_INFO ("DYAD_KEY_DEPTH=%u\n", ctx->key_depth);
     FLUX_LOG_INFO ("DYAD_KEY_BINS=%u\n", ctx->key_bins);
-  #if DYAD_CPA
-    FLUX_LOG_INFO ("DYAD CPA points collection:\n");
-    FLUX_LOG_INFO ("\tcapacity = %u\n", ctx->t_rec_capacity);
-    FLUX_LOG_INFO ("\tcurrent num = %u\n", ctx->t_rec_size);
-  #endif // DYAD_CPA
 
   #if DYAD_SYNC_START
     ctx->sync_started = false;
@@ -724,63 +687,6 @@ void dyad_sync_fini ()
     FLUX_LOG_INFO ("DYAD Profile [%s] HASH CONS: %f sec\n", \
                     profile_tag, ctx->t_hash_cons);
   #endif // DYAD_PROFILE
-  #if DYAD_CPA
-    char ofile_name [PATH_MAX+1] = {'\0'};
-    char* role = "none";
-
-   #if DYAD_CPA_UNIQUE_PRODUCER
-    flux_future_t *f2 = NULL;
-    const char *reply_data = NULL;
-    char dump_name [PATH_MAX+1] = {'\0'};
-    char cwd [PATH_MAX+1] = {'\0'};
-   #endif // DYAD_CPA_UNIQUE_PRODUCER
-
-    if (is_dyad_consumer ()) {
-        role = "consumer";
-    } else if (is_dyad_producer ()) {
-        role = "producer";
-    }
-
-    sprintf (ofile_name, "dyad_cpa_%s.%d.txt", role, ctx->rank);
-    FILE *oFile = fopen (ofile_name, "w");
-
-    if (ctx->t_rec != NULL) {
-        for (unsigned int i = 0u; i < ctx->t_rec_size; ++i) {
-            PRINT_CPA_CLK (oFile, role, ctx->t_rec[i]);
-        }
-        fclose (oFile);
-    }
-    free (ctx->t_rec);
-
-   #if DYAD_CPA_UNIQUE_PRODUCER
-    // This only works if there is one producer per consumner. If not, use
-    // the cpa_dump tool to signal the DYAD module to dump trace.
-    if (is_dyad_consumer ()) {
-        if (getcwd (cwd, sizeof (cwd)) == NULL) {
-            FLUX_LOG_ERR ("getcwd() error\n");
-            goto done;
-        }
-        // Send the request to dump cpa data into a file
-        sprintf (dump_name, "%s/dyad_cpa_module.%u.txt", cwd, ctx->prod_rank);
-        if (!(f2 = flux_rpc_pack (ctx->h, "dyad.cpa_dump", ctx->prod_rank, 0,
-                                  "{s:s}", "dumpfile", dump_name))) {
-            FLUX_LOG_ERR ("flux_rpc_pack({dyad.cpa_dump %s})", dump_name);
-            goto done;
-        } else {
-            if (flux_rpc_get (f2, (const char **) &reply_data) < 0) {
-                FLUX_LOG_ERR ("flux_rpc_get() failed for cpa dump.\n");
-                goto done;
-            }
-        }
-        FLUX_LOG_INFO ("DYAD CPA CONS: %u asks %u to dump\n", \
-                       ctx->rank, ctx->prod_rank);
-    }
-done:
-    if (f2 != NULL) {
-        flux_future_destroy (f2);
-    }
-   #endif // DYAD_CPA_UNIQUE_PRODUCER
-  #endif // DYAD_CPA
   #if DYAD_SYNC_START
     if (ctx->sync_started) {
         struct timespec t_now;

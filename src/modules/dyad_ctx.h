@@ -13,7 +13,6 @@
 
 #include <stdbool.h>
 #include <flux/core.h>
-#include "dyad_cpa.h"
 
 struct dyad_mod_ctx {
     flux_t *h;
@@ -24,12 +23,6 @@ struct dyad_mod_ctx {
     double t_sync_io_mod;  // Local file IO cost used
     double t_rpc_mod; // Total time to send files to consumer
   #endif //DYAD_PROFILE
-  #if DYAD_CPA
-    dyad_cpa_t *t_rec;
-    unsigned int t_rec_capacity;
-    unsigned int t_rec_size;
-    FILE* cpa_outfile;
-  #endif // DYAD_CPA
 } dyad_mod_ctx_default =
   #if DYAD_PROFILE
     {NULL, false, NULL, NULL, 0.0, 0.0};

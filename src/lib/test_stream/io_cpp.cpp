@@ -21,7 +21,6 @@
 #include <libgen.h> // dirname ()
 #include "../../common/utils.h" // mkdir_as_needed ()
 #include "io_cpp.hpp"
-#include "user_cpa.h"
 #include <algorithm>
 #include <iostream>
 #include <vector>
@@ -38,22 +37,7 @@
 } while (0)
 #else
 #define PRINT_CLOCK(Who, What)
-#endif // DYAD_CPA
-
-#if USER_CPA
-u_ctx_t my_ctx;
-const char *UCPA_OP_STR[UCPA_NUM_OPS+1] =
-{
-  "Undefined",
-  "UCPA_CONS_BEGINS",
-  "UCPA_PROD_BEGINS",
-  "UCPA_CONS_ENDS",
-  "UCPA_PROD_ENDS",
-  "UCPA_CONS_OPENS",
-  "UCPA_PROD_CLOSES",
-  "Noop"
-};
-#endif // USER_CPA
+#endif
 
 int mkdir_of_path (const char* path)
 {
@@ -143,7 +127,6 @@ int test_prod_io_stream (const std::string& pf, const size_t sz)
 
     // Close the file
     ofs_dyad.close ();
-    U_REC_TIME(my_ctx, UCPA_PROD_CLOSES);
     PRINT_CLOCK ("Prod", "closes");
     return 0;
 }
@@ -208,7 +191,6 @@ int test_cons_io_stream (const std::string& pf,
     // Create upper directory of the file if it does not exist yet.
     //mkdir_of_path (pf);
 
-    U_REC_TIME (my_ctx, UCPA_CONS_OPENS);
     dyad::ifstream_dyad ifs_dyad;
     ifs_dyad.open (pf, std::ifstream::in | std::ios::binary);
     std::ifstream& ifs = ifs_dyad.get_stream ();
