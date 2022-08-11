@@ -1,7 +1,7 @@
 lib_LTLIBRARIES = libdyad_sync.la
-libdyad_sync_la_SOURCES = wrapper.c wrapper.h dyad_ctx.h
-libdyad_sync_la_LIBADD = $(top_builddir)/src/common/libutils.la $(top_builddir)/src/common/libmurmur3.la $(FLUX_CORE_LIBS)
-libdyad_sync_la_CPPFLAGS = $(FLUX_CORE_CFLAGS) -DDYAD_CHECK=1 -I$(top_builddir)/src/common
+libdyad_sync_la_SOURCES = wrapper.c wrapper.h
+libdyad_sync_la_LIBADD = $(top_builddir)/src/core/libdyad_core.la
+libdyad_sync_la_CPPFLAGS = -DDYAD_CHECK=1 -I$(top_builddir)/src/utils -I$(top_builddir)/src/core
 if PERFFLOW
 libdyad_sync_la_LIBADD += $(PERFFLOW_LIBS)
 libdyad_sync_la_CPPFLAGS += $(PERFFLOW_PLUGIN_CPPFLAGS) $(PERFFLOW_CFLAGS) -DDYAD_PERFFLOW=1

@@ -11,15 +11,14 @@
 #ifndef WRAPPER_H
 #define WRAPPER_H
 
-#include "dyad.h"
-#include "dyad_ctx.h"
+#include "dyad_core.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif // __cplusplus
 
-extern __thread dyad_sync_ctx_t *ctx;
+extern __thread dyad_ctx_t *ctx;
 extern int open_sync (const char *path);
 extern int close_sync (const char *path);
 

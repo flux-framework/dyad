@@ -29,7 +29,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <flux/core.h>
-#include "dyad.h"
 #include "dyad_ctx.h"
 #include "utils.h"
 #include "read_all.h"

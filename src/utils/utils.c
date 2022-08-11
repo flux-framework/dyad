@@ -39,7 +39,6 @@
 #include <stdbool.h>
 #endif
 
-#include "dyad.h"
 #include "utils.h"
 
 // Debug message
@@ -58,6 +57,35 @@
 
 static __thread bool debug_dyad_utils = false;
 
+bool file_in_read_mode(FILE *f)
+{
+    return fd_in_read_mode(fileno(f));
+}
+
+bool fd_in_read_mode(int fd)
+{
+    int mode = fcntl(fd, F_GETFL);
+    return oflag_is_read(mode);
+}
+
+bool oflag_is_read(int oflag)
+{
+    int acc_mode = oflag & O_ACCMODE;
+    if (acc_mode == O_RDONLY || acc_mode == O_RDWR)
+    {
+        // TODO check if read-write should count as read
+        return true;
+    }
+    return false;
+}
+
+bool mode_is_read(const char *mode)
+{
+    return (strcmp(mode, "r") &&
+            strcmp(mode, "r+") &&
+            strcmp(mode, "w+") &&
+            strcmp(mode, "a+"));
+}
 
 void enable_debug_dyad_utils (void)
 {
