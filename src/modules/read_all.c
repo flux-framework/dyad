@@ -8,10 +8,6 @@
  * SPDX-License-Identifier: LGPL-3.0
 \************************************************************/
 
-#if HAVE_CONFIG_H
-#include "config.h"
-#endif // HAVE_CONFIG_H
-
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>

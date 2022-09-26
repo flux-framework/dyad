@@ -96,10 +96,25 @@ fi
 AM_CONDITIONAL([URPC], [test "x$enable_urpc" = "xyes"])
 if test "x$enable_urpc" = "xyes"; then
     if test "x$LIBB64_DIR" = "x"; then
-        AC_MSG_ERROR([LIBB64_DIR env variable needs to be set for urpc support])
+        #AC_MSG_ERROR([LIBB64_DIR env variable needs to be set for urpc support])
+        AC_CHECK_HEADERS([b64/cencode.h b64/cdecode.h], [], \
+            [AC_MSG_ERROR([Unable to find the headers for libb64. \
+                          Set LIBB64_DIR env variable to the custom installation path \
+                          of libb64 for urpc support])]
+        )
+        AC_SEARCH_LIBS([base64_encode_block], [b64], \
+            [AC_MSG_NOTICE([enable_urpc = $enable_urpc])], \
+            [AC_MSG_ERROR([Unable to find the base64_encode_block() function. \
+                          Set LIBB64_DIR env variable to the custom installation path \
+                          of libb64 for urpc support])]
+        )
     else
         AC_MSG_NOTICE([enable_urpc = $enable_urpc])
         AC_MSG_NOTICE([LIBB64_DIR = $LIBB64_DIR])
+        AC_ARG_VAR([LIBB64_CPPFLAGS], [header location option for libb64])
+        AC_ARG_VAR([LIBB64_LIBADD], [linker option for libb64])
+        AC_SUBST([LIBB64_CPPFLAGS], ["-I$LIBB64_DIR/include"])
+        AC_SUBST([LIBB64_LIBADD], ["-L$LIBB64_DIR/src"])
     fi
 else
     AC_MSG_NOTICE([enable_urpc = $enable_urpc])
@@ -176,13 +191,13 @@ AC_CHECK_FUNCS( \
 # Add any necessary compilation flags #
 #######################################
 if test "x$enable_debug" = xyes; then
-    CPPFLAGS="$CPPFLAGS -DDYAD_FULL_DEBUG=1 -DDYAD_LOGGING_ON=1"
+    AC_SUBST([CPPFLAGS], ["$CPPFLAGS -DDYAD_FULL_DEBUG=1 -DDYAD_LOGGING_ON=1"])
     if test "x$enable_urpc" = "xyes"; then
-        CPPFLAGS="$CPPFLAGS -DURPC_FULL_DEBUG=1 -DURPC_LOGGING_ON=1"
+        AC_SUBST([CPPFLAGS], ["$CPPFLAGS -DURPC_FULL_DEBUG=1 -DURPC_LOGGING_ON=1"])
     fi
 fi
 
-SRNCAT_SPECIFIC_CFLAGS=;
+STRNCAT_SPECIFIC_CFLAGS=;
 if `$CXX -v 2>&1 | grep -v icc | grep 'gcc version' >/dev/null 2>&1` ; then
   STRNCAT_SPECIFIC_CFLAGS="-Wstringop-overflow=0"
 fi

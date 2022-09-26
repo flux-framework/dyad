@@ -10,6 +10,8 @@ libmurmur3_la_SOURCES = murmur3.c murmur3.h
 
 if URPC
 libb64_payload_la_SOURCES = b64_payload.c b64_payload.h
-libb64_payload_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(LIBB64_DIR)/include
-libb64_payload_la_LIBADD = $(AM_LDFLAGS) -L$(LIBB64_DIR)/src -lb64
+libb64_payload_la_CPPFLAGS = $(AM_CPPFLAGS) $(LIBB64_CPPFLAGS)
+# -I$(LIBB64_DIR)/include
+libb64_payload_la_LIBADD = $(AM_LDFLAGS) $(LIBB64_LIBADD) -lb64
+#-L$(LIBB64_DIR)/src -lb64
 endif
