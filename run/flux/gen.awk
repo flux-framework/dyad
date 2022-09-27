@@ -1,3 +1,5 @@
+#!/bin/gawk -f
+
 #************************************************************
 # Copyright 2021 Lawrence Livermore National Security, LLC
 # (c.f. AUTHORS, NOTICE.LLNS, COPYING)
@@ -8,7 +10,6 @@
 # SPDX-License-Identifier: LGPL-3.0
 #************************************************************
 
-#!/bin/gawk -f
 # required parameters:
 #   In case of applying to yaml spec files
 #                      -v nodes=(number of nodes)

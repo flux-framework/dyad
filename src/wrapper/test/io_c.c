@@ -21,7 +21,6 @@
 #include <libgen.h> // dirname ()
 #include "../../common/utils.h" // mkdir_as_needed ()
 #include "io_c.h"
-#include "user_cpa.h"
 
 #if 0
 #include <time.h>
@@ -34,22 +33,8 @@
 } while (0)
 #else
 #define PRINT_CLOCK(Who, What)
-#endif // DYAD_CPA
+#endif
 
-#if USER_CPA
-u_ctx_t my_ctx;
-const char *UCPA_OP_STR[UCPA_NUM_OPS+1] =
-{
-  "Undefined",
-  "UCPA_CONS_BEGINS",
-  "UCPA_PROD_BEGINS",
-  "UCPA_CONS_ENDS",
-  "UCPA_PROD_ENDS",
-  "UCPA_CONS_OPENS",
-  "UCPA_PROD_CLOSES",
-  "Noop"
-};
-#endif // USER_CPA
 
 int mkdir_of_path (const char* path)
 {
@@ -191,7 +176,6 @@ int test_prod_io (const char* pf, const size_t sz)
 
     // Close the file
     rc = close (fd);
-    U_REC_TIME(my_ctx, UCPA_PROD_CLOSES);
     PRINT_CLOCK ("Prod", "closes");
     if (rc != 0 ) {
         fprintf (stderr, "PROD: Cannot close %s\n", pf);
@@ -230,7 +214,6 @@ int test_prod_io_buf (const char* pf, const size_t sz)
 
     // Close the file
     rc = fclose (fptr);
-    U_REC_TIME(my_ctx, UCPA_PROD_CLOSES);
     PRINT_CLOCK ("Prod", "closes");
     if (rc != 0 ) {
         fprintf (stderr, "PROD: Cannot fclose %s\n", pf);
@@ -314,7 +297,6 @@ int test_cons_io (const char* pf, size_t sz, int verify)
     // Create upper directory of the file if it does not exist yet.
     //mkdir_of_path (pf);
 
-    U_REC_TIME(my_ctx, UCPA_CONS_OPENS);
     fd = open (pf, O_RDONLY);
     PRINT_CLOCK ("Cons", "opens");
     if (fd < 0) {
@@ -351,7 +333,6 @@ int test_cons_io_buf (const char* pf, size_t sz, int verify)
     // Create upper directory of the file if it does not exist yet.
     //mkdir_of_path (pf);
 
-    U_REC_TIME(my_ctx, UCPA_CONS_OPENS);
     fptr = fopen (pf, "r");
     PRINT_CLOCK ("Cons", "opens");
     if (fptr == NULL) {

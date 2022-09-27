@@ -101,5 +101,4 @@ compile_flags.txt
 
 # ignore installable version of dyadrun
 dyadrun
-cpa_dump
 flux_barrier
