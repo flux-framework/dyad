@@ -14,6 +14,7 @@
 tasks_per_node=1
 max_iters_per_node=4
 num_files_per_iter=16
+barrier=barrier
 
 
 . ./absolute_path.sh
@@ -80,6 +81,7 @@ do
               | sed -e 's/@NODES@/'$n'/g' \
               | sed -e 's/@TOTAL_TASKS@/'${total_tasks}'/g' \
               | sed -e 's/@DYAD_INSTALL_PATH@/'${DYAD_PATH_STRING}'/g' \
+              | sed -e 's/@EXT_BARRIER@/'${barrier}'/g' \
               > ${odir}/separate_steps.${n}.sh
 
 
