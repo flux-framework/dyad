@@ -7,7 +7,8 @@ AC_PREREQ([2.63])
 ################
 # Package Info #
 ################
-AC_INIT([dyad], [0.1.0])
+AC_INIT([dyad],
+        m4_esyscmd([git describe --always --tags | awk '/.*/ {sub(/^v/, ""); printf "%s",$1; exit}']))
 AC_CONFIG_AUX_DIR([config])
 AC_CONFIG_MACRO_DIR([config])
 AC_CONFIG_SRCDIR([README.md])
