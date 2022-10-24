@@ -11,6 +11,7 @@ enum dyad_core_err_codes {
     DYAD_BADRESPONSE = -6, // Cannot create/populate a DYAD response
     DYAD_BADRPC = -7, // Flux RPC pack or get didn't work
     DYAD_BADFIO = -8, // File I/O failed
+    DYAD_BADMANAGEDPATH = -9, // Cons or Prod Manged Path is bad
 };
 
 typedef enum dyad_core_err_codes dyad_core_err_t;

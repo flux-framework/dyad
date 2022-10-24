@@ -82,6 +82,7 @@ static inline int is_wronly (int fd)
 
 void dyad_sync_init (void)
 {
+    printf("In dyad_sync_init\n");
     char *e = NULL;
 
     bool debug = false;
@@ -96,6 +97,7 @@ void dyad_sync_init (void)
 
     DPRINTF (ctx, "DYAD_WRAPPER: Initializeing DYAD wrapper\n");
 
+    printf("Reading evn vars\n");
     if ((e = getenv ("DYAD_SYNC_DEBUG"))) {
         debug = true;
         enable_debug_dyad_utils ();
@@ -146,33 +148,36 @@ void dyad_sync_init (void)
         prod_managed_path = NULL;
     }
 
+    printf("Calling dyad_init\n");
     int rc = dyad_init(debug, check, shared_storage, key_depth,
             key_bins, kvs_namespace, prod_managed_path,
             cons_managed_path, intercept, &ctx);
 
+    printf("Checking for dyad_init error\n");
     if (DYAD_IS_ERROR(rc))
     {
-        FLUX_LOG_ERR("Could not initialize DYAD!\n");
+        DYAD_LOG_ERR(ctx, "Could not initialize DYAD!\n");
         ctx = NULL;
         return;
     }
 
-    FLUX_LOG_INFO ("DYAD Initialized\n");
-    FLUX_LOG_INFO ("DYAD_SYNC_DEBUG=%s\n", (ctx->debug)? "true": "false");
-    FLUX_LOG_INFO ("DYAD_SYNC_CHECK=%s\n", (ctx->check)? "true": "false");
-    FLUX_LOG_INFO ("DYAD_KEY_DEPTH=%u\n", ctx->key_depth);
-    FLUX_LOG_INFO ("DYAD_KEY_BINS=%u\n", ctx->key_bins);
+    printf("Logging info\n");
+    DYAD_LOG_INFO (ctx, "DYAD Initialized\n");
+    DYAD_LOG_INFO (ctx, "DYAD_SYNC_DEBUG=%s\n", (ctx->debug)? "true": "false");
+    DYAD_LOG_INFO (ctx, "DYAD_SYNC_CHECK=%s\n", (ctx->check)? "true": "false");
+    DYAD_LOG_INFO (ctx, "DYAD_KEY_DEPTH=%u\n", ctx->key_depth);
+    DYAD_LOG_INFO (ctx, "DYAD_KEY_BINS=%u\n", ctx->key_bins);
 
   #if DYAD_SYNC_START
     ctx->sync_started = false;
     if ((e = getenv ("DYAD_SYNC_START")) && (atoi (e) > 0)) {
-        FLUX_LOG_INFO ("Before barrier %u\n", ctx->rank);
+        DYAD_LOG_INFO (ctx, "Before barrier %u\n", ctx->rank);
         flux_future_t *fb;
         if (!(fb = flux_barrier (ctx->h, "sync_start", atoi (e))))
-            FLUX_LOG_ERR ("flux_barrier failed for %d ranks\n", atoi (e));
+            DYAD_LOG_ERR (ctx, "flux_barrier failed for %d ranks\n", atoi (e));
         if (flux_future_get (fb, NULL) < 0)
-            FLUX_LOG_ERR ("flux_future_get for barrir failed\n");
-        FLUX_LOG_INFO ("After barrier %u\n", ctx->rank);
+            DYAD_LOG_ERR (ctx, "flux_future_get for barrir failed\n");
+        DYAD_LOG_INFO (ctx, "After barrier %u\n", ctx->rank);
         flux_future_destroy (fb);
 
         ctx->sync_started = true;
@@ -207,6 +212,7 @@ void dyad_sync_fini ()
 
 int open (const char *path, int oflag, ...)
 {
+    printf("In wrapped open (%s, %d)\n", path, oflag);
     char *error = NULL;
     typedef int (*open_ptr_t) (const char *, int, mode_t, ...);
     open_ptr_t func_ptr = NULL;
@@ -220,6 +226,7 @@ int open (const char *path, int oflag, ...)
         va_end (arg);
     }
 
+    printf("Getting real open function\n");
     func_ptr = (open_ptr_t) dlsym (RTLD_NEXT, "open");
     if ((error = dlerror ())) {
         DPRINTF (ctx, "DYAD_SYNC: error in dlsym: %s\n", error);
@@ -231,15 +238,18 @@ int open (const char *path, int oflag, ...)
         goto real_call;
     }
 
+    printf("Checking if file is being opened in write mode\n");
     if (!oflag_is_read(oflag)) {
         goto real_call;
     }
 
+    printf("Checking for early DYAD abortion\n");
     if (!(ctx && ctx->h) || (ctx && !ctx->reenter)) {
         IPRINTF (ctx, "DYAD_SYNC: open sync not applicable for \"%s\".\n", path);
         goto real_call;
     }
 
+    printf("Calling dyad_consume\n");
     IPRINTF (ctx, "DYAD_SYNC: enters open sync (\"%s\").\n", path);
     int rc = dyad_consume(ctx, path);
     if (DYAD_IS_ERROR(rc)) {
@@ -255,6 +265,7 @@ real_call:;
 
 FILE *fopen (const char *path, const char *mode)
 {
+    printf("In wrapped fopen\n");
     char *error = NULL;
     typedef FILE *(*fopen_ptr_t) (const char *, const char *);
     fopen_ptr_t func_ptr = NULL;
@@ -295,6 +306,7 @@ real_call:
 
 int close (int fd)
 {
+    printf("In wrapped close\n");
     bool to_sync = false;
     char *error = NULL;
     typedef int (*close_ptr_t) (int);
@@ -320,6 +332,7 @@ int close (int fd)
             IPRINTF (ctx, "DYAD_SYNC: close sync not applicable. (invalid file descriptor)\n");
         }
       #endif // defined(IPRINTF_DEFINED)
+        to_sync = false;
         goto real_call;
     }
 
@@ -336,6 +349,7 @@ int close (int fd)
 
     if (get_path (fd, PATH_MAX-1, path) < 0) {
         IPRINTF (ctx, "DYAD_SYNC: unable to obtain file path from a descriptor.\n");
+        to_sync = false;
         goto real_call;
     }
 
@@ -377,6 +391,7 @@ real_call:; // semicolon here to avoid the error
 
 int fclose (FILE *fp)
 {
+    printf("In wrapped fclose\n");
     bool to_sync = false;
     char *error = NULL;
     typedef int (*fclose_ptr_t) (FILE *);
@@ -403,6 +418,7 @@ int fclose (FILE *fp)
             IPRINTF (ctx, "DYAD_SYNC: fclose sync not applicable. (invalid file pointer)\n");
         }
       #endif // defined(IPRINTF_DEFINED)
+        to_sync = false;
         goto real_call;
     }
 
@@ -419,6 +435,7 @@ int fclose (FILE *fp)
 
     if (get_path (fileno (fp), PATH_MAX-1, path) < 0) {
         IPRINTF (ctx, "DYAD_SYNC: unable to obtain file path from a descriptor.\n");
+        to_sync = false;
         goto real_call;
     }
 
