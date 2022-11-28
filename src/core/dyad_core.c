@@ -1,6 +1,4 @@
-// Also provides dyad_core.h
-#include "dyad_flux_log.h"
-#include "dyad_open_dlwrap.h"
+#include "dyad_core.h"
 #include "dyad_err.h"
 #include "utils.h"
 #include "murmur3.h"
@@ -513,7 +511,7 @@ int dyad_pull(dyad_ctx_t *ctx, const char* fname,
         goto pull_done;
     }
 
-    of = dyad_fopen(ctx, file_path, "w");
+    of = fopen(ctx, file_path, "w");
     if (of == NULL)
     {
         DYAD_LOG_ERR(ctx, "Cannot open file %s\n", file_path);

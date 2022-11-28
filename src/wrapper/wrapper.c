@@ -39,8 +39,6 @@ using namespace std; // std::clock ()
 #include <unistd.h>
 #include "utils.h"
 #include "wrapper.h"
-#include "dyad_err.h"
-#include "dyad_open_dlwrap.h"
 
 __thread dyad_ctx_t *ctx = NULL;
 static void dyad_sync_init (void) __attribute__((constructor));

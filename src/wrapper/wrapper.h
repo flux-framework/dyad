@@ -19,8 +19,8 @@ extern "C"
 #endif // __cplusplus
 
 extern __thread dyad_ctx_t *ctx;
-extern int open_sync (const char *path);
-extern int close_sync (const char *path);
+// extern int open_sync (const char *path);
+// extern int close_sync (const char *path);
 
 #ifdef __cplusplus
 }
