@@ -147,7 +147,7 @@ void dyad_stream_core::init ()
     else
         m_key_bins = 256;
 
-    const char* ns = getenv ("FLUX_KVS_NAMESPACE");
+    const char* ns = getenv ("DYAD_KVS_NAMESPACE");
     m_kvs_namespace = std::string ((ns == nullptr)? "" : ns);
 
   #if defined(TEST_WITHOUT_FLUX)
@@ -217,7 +217,7 @@ void dyad_stream_core::log_info (const std::string& msg_head) const
     FLUX_LOG_INFO ("DYAD_SHARED_STORAGE=%s\n", (m_shared_storage)? "true": "false");
     FLUX_LOG_INFO ("DYAD_KEY_DEPTH=%u\n", m_key_depth);
     FLUX_LOG_INFO ("DYAD_KEY_BINS=%u\n", m_key_bins);
-    FLUX_LOG_INFO ("FLUX_KVS_NAMESPACE=%s\n", m_kvs_namespace.c_str ());
+    FLUX_LOG_INFO ("DYAD_KVS_NAMESPACE=%s\n", m_kvs_namespace.c_str ());
 }
 
 bool dyad_stream_core::is_dyad_producer ()

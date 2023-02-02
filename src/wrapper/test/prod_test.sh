@@ -34,9 +34,9 @@ if [ ${DRYRUN} -eq 0 ] ; then
 fi
 
 # Set KVS namespace for file sharing context
-unset FLUX_KVS_NAMESPACE
+unset DYAD_KVS_NAMESPACE
 if [ "${DYAD_KVS_NS}" != "" ] ; then
-    export FLUX_KVS_NAMESPACE=${DYAD_KVS_NS}
+    export DYAD_KVS_NAMESPACE=${DYAD_KVS_NS}
 fi
 
 # Compose the command

@@ -19,12 +19,12 @@ flux resource list
 export DYAD_SYNC_DEBUG=1
 
 flux kvs namespace create TEST1
-flux mini submit -N 1 -n 1 -c 56 --output=flux-{{id}}.out bash -c "FLUX_KVS_NAMESPACE=TEST1 ./test_stream ${DYAD_PATH} ${DYAD_PATH}/test.txt 0 0"
-flux mini submit -N 1 -n 1 -c 56 --output=flux-{{id}}.out bash -c "FLUX_KVS_NAMESPACE=TEST1 ./test_stream ${DYAD_PATH} ${DYAD_PATH}/test.txt 1 0"
+flux mini submit -N 1 -n 1 -c 56 --output=flux-{{id}}.out bash -c "DYAD_KVS_NAMESPACE=TEST1 ./test_stream ${DYAD_PATH} ${DYAD_PATH}/test.txt 0 0"
+flux mini submit -N 1 -n 1 -c 56 --output=flux-{{id}}.out bash -c "DYAD_KVS_NAMESPACE=TEST1 ./test_stream ${DYAD_PATH} ${DYAD_PATH}/test.txt 1 0"
 
 flux kvs namespace create TEST2
-flux mini submit -N 1 -n 1 -c 56 --output=flux-{{id}}.out bash -c "FLUX_KVS_NAMESPACE=TEST2 ./test_stream ${DYAD_PATH} ${DYAD_PATH}/test2.txt 0 1"
-flux mini submit -N 1 -n 1 -c 56 --output=flux-{{id}}.out bash -c "FLUX_KVS_NAMESPACE=TEST2 ./test_stream ${DYAD_PATH} ${DYAD_PATH}/test2.txt 1 1"
+flux mini submit -N 1 -n 1 -c 56 --output=flux-{{id}}.out bash -c "DYAD_KVS_NAMESPACE=TEST2 ./test_stream ${DYAD_PATH} ${DYAD_PATH}/test2.txt 0 1"
+flux mini submit -N 1 -n 1 -c 56 --output=flux-{{id}}.out bash -c "DYAD_KVS_NAMESPACE=TEST2 ./test_stream ${DYAD_PATH} ${DYAD_PATH}/test2.txt 1 1"
 
 flux jobs -a
 flux queue drain
