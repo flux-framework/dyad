@@ -90,9 +90,22 @@ int sync_directory (const char* path);
  *                                                                           *
  *****************************************************************************/
 
-static inline bool is_wronly (int fd)
+/**
+ * Checks if the file descriptor was opened in write-only mode
+ *
+ * @param[in] fd The file descriptor to check
+ *
+ * @return 1 if the file descriptor is write-only, 0 if not, and -1
+ *         if there was an error in fcntl
+ */
+static inline int is_wronly (int fd)
 {
-  return (O_WRONLY == fcntl(fd, F_GETFL) & O_ACCMODE);
+    int rc = fcntl (fd, F_GETFL);
+    if (rc == -1)
+        return -1;
+    if ((rc & O_ACCMODE) == O_WRONLY)
+        return 1;
+    return 0;
 }
 
 static inline bool is_dyad_producer ()
@@ -706,8 +719,12 @@ real_call:; // semicolon here to avoid the error
     }
   #endif // DYAD_SYNC_DIR
 
+    int wronly = is_wronly (fd);
 
-    if (to_sync && is_wronly (fd)) {
+    if (wronly == -1)
+        DPRINTF ("Failed to check the mode of the file with fcntl: %s\n", strerror (errno));
+
+    if (to_sync && wronly == 1) {
         rc = func_ptr (fd);
         if (rc != 0) {
             DPRINTF ("Failed close (\"%s\").: %s\n", path, strerror (errno));
@@ -778,8 +795,13 @@ real_call:;
     }
   #endif // DYAD_SYNC_DIR
 
+    int wronly = is_wronly (fd);
 
-    if (to_sync && is_wronly (fd)) {
+    if (wronly == -1)
+        DPRINTF ("Failed to check the mode of the file with fcntl: %s\n", strerror (errno));
+
+
+    if (to_sync && wronly == 1) {
         rc = func_ptr (fp);
         if (rc != 0) {
             DPRINTF ("Failed fclose (\"%s\").\n", path);
