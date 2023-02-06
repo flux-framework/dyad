@@ -47,7 +47,7 @@ if [ "${SYNC}" == "0" ] ; then
     # Set KVS namespace for file sharing context
     # Remove any quest KVS_NAMESPACE and use the primary namespace to allow the
     # producers and the consumers of different jobs to see the same KVS namespace
-    unset FLUX_KVS_NAMESPACE
+    unset DYAD_KVS_NAMESPACE
     if [ "${DYAD_KVS_NS}" != "" ] ; then
         if [ "`flux kvs namespace list | grep ${DYAD_KVS_NS}`" != "" ] ; then
             # flush out any existing key-value entries
@@ -55,7 +55,7 @@ if [ "${SYNC}" == "0" ] ; then
         fi
         flux kvs namespace create ${DYAD_KVS_NS}
         flux kvs namespace list
-        export FLUX_KVS_NAMESPACE=${DYAD_KVS_NS}
+        export DYAD_KVS_NAMESPACE=${DYAD_KVS_NS}
     fi
 
     dyad_exists=`flux exec -r all flux module list | grep dyad`

@@ -59,7 +59,7 @@ static int publish_via_flux (FILE* df, flux_t* h, const char *user_path)
         goto done;
     }
 
-    if (!(f = flux_kvs_commit (h, getenv ("FLUX_KVS_NAMESPACE"), 0, txn))) {
+    if (!(f = flux_kvs_commit (h, getenv ("DYAD_KVS_NAMESPACE"), 0, txn))) {
         fprintf (df, "flux_kvs_commit(owner rank of %s = %u)\n",
                  user_path, owner_rank);
         goto done;
@@ -114,7 +114,7 @@ int main (int argc, char **argv)
 
 
     fprintf(df, "Consumer kvs search for %s\n", file_name);
-    f1 = flux_kvs_lookup (h, getenv ("FLUX_KVS_NAMESPACE"),
+    f1 = flux_kvs_lookup (h, getenv ("DYAD_KVS_NAMESPACE"),
                           FLUX_KVS_WAITCREATE, topic);
     if (f1 == NULL) {
         flux_log_error (h, "flux_kvs_lookup(%s) failed.\n", topic);

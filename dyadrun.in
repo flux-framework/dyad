@@ -142,7 +142,7 @@ else
     export DYAD_KIND_CONSUMER=1
     export DYAD_PATH_CONSUMER=$managed_path
 fi
-export FLUX_KVS_NAMESPACE=$namespace
+export DYAD_KVS_NAMESPACE=$namespace
 
 if test $depth -ne -1; then
     export DYAD_KEY_DEPTH=$depth

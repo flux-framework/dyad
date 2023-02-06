@@ -528,7 +528,7 @@ void dyad_sync_init (void)
 
     ctx->reenter = true;
 
-    if ((e = getenv ("FLUX_KVS_NAMESPACE")))
+    if ((e = getenv ("DYAD_KVS_NAMESPACE")))
         ctx->kvs_namespace = e;
     else
         ctx->kvs_namespace = NULL;
