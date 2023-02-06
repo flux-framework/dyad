@@ -721,8 +721,9 @@ real_call:; // semicolon here to avoid the error
 
     int wronly = is_wronly (fd);
 
-    if (wronly == -1)
+    if (wronly == -1) {
         DPRINTF ("Failed to check the mode of the file with fcntl: %s\n", strerror (errno));
+    }
 
     if (to_sync && wronly == 1) {
         rc = func_ptr (fd);
@@ -797,8 +798,9 @@ real_call:;
 
     int wronly = is_wronly (fd);
 
-    if (wronly == -1)
+    if (wronly == -1) {
         DPRINTF ("Failed to check the mode of the file with fcntl: %s\n", strerror (errno));
+    }
 
 
     if (to_sync && wronly == 1) {
