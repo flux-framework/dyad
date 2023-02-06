@@ -90,6 +90,24 @@ int sync_directory (const char* path);
  *                                                                           *
  *****************************************************************************/
 
+/**
+ * Checks if the file descriptor was opened in write-only mode
+ *
+ * @param[in] fd The file descriptor to check
+ *
+ * @return 1 if the file descriptor is write-only, 0 if not, and -1
+ *         if there was an error in fcntl
+ */
+static inline int is_wronly (int fd)
+{
+    int rc = fcntl (fd, F_GETFL);
+    if (rc == -1)
+        return -1;
+    if ((rc & O_ACCMODE) == O_WRONLY)
+        return 1;
+    return 0;
+}
+
 static inline bool is_dyad_producer ()
 {
     char *e = NULL;
@@ -390,11 +408,9 @@ static int dyad_open_sync (const char* __restrict__ path,
                            const char* __restrict__ user_path)
 {
     int rc = 0;
-    if (is_dyad_consumer ()) {
-        ctx->reenter = false;
-        rc = subscribe_via_flux (dyad_path, user_path);
-        ctx->reenter = true;
-    }
+    ctx->reenter = false;
+    rc = subscribe_via_flux (dyad_path, user_path);
+    ctx->reenter = true;
     return rc;
 }
 
@@ -403,11 +419,9 @@ static int dyad_close_sync (const char* __restrict__ path,
                             const char* __restrict__ user_path)
 {
     int rc = 0;
-    if (is_dyad_producer ()) {
-        ctx->reenter = false;
-        rc = publish_via_flux (dyad_path, user_path);
-        ctx->reenter = true;
-    }
+    ctx->reenter = false;
+    rc = publish_via_flux (dyad_path, user_path);
+    ctx->reenter = true;
     return rc;
 }
 
@@ -418,11 +432,7 @@ int open_sync (const char *path)
     char upath [PATH_MAX] = {'\0'}; // path with the dyad_path prefix removed
 
     if (!(dyad_path = getenv (DYAD_PATH_CONS_ENV))) {
-        if ((dyad_path = getenv (DYAD_PATH_PROD_ENV))) {
-            IPRINTF ("DYAD_SYNC OPEN: no need to sync producer open (\"%s\")\n", path);
-        } else {
-            IPRINTF ("DYAD_SYNC OPEN not enabled for \"%s\".\n", path);
-        }
+        IPRINTF ("DYAD_SYNC OPEN not enabled. Opening \"%s\".\n", path);
         goto done;
     }
 
@@ -431,7 +441,6 @@ int open_sync (const char *path)
     } else {
         IPRINTF ("DYAD_SYNC OPEN: %s is not a prefix of %s.\n", \
                  dyad_path, path);
-        rc = 0;
     }
 
 done:
@@ -442,17 +451,12 @@ done:
 
 int close_sync (const char *path)
 {
-    int rc = -1;
+    int rc = 0;
     const char *dyad_path = NULL;
     char upath [PATH_MAX] = {'\0'};
 
     if (!(dyad_path = getenv (DYAD_PATH_PROD_ENV))) {
-        rc = 0;
-        if ((dyad_path = getenv (DYAD_PATH_CONS_ENV))) {
-            IPRINTF ("DYAD_SYNC CLOSE: no need to sync consumer close (\"%s\")\n", path);
-        } else {
-            IPRINTF ("DYAD_SYNC CLOSE not enabled for \"%s\".\n", path);
-        }
+        IPRINTF ("DYAD_SYNC CLOSE not enabled. Closing \"%s\".\n", path);
         goto done;
     }
 
@@ -461,7 +465,6 @@ int close_sync (const char *path)
     } else {
         IPRINTF ("DYAD_SYNC CLOSE: %s is not a prefix of %s.\n", \
                  dyad_path, path);
-        rc = 0;
     }
 
 done:
@@ -592,6 +595,15 @@ int open (const char *path, int oflag, ...)
     char *error = NULL;
     typedef int (*open_ptr_t) (const char *, int, mode_t, ...);
     open_ptr_t func_ptr = NULL;
+    int mode = 0;
+
+    if (oflag & O_CREAT)
+    {
+        va_list arg;
+        va_start (arg, oflag);
+        mode = va_arg (arg, int);
+        va_end (arg);
+    }
 
     func_ptr = (open_ptr_t) dlsym (RTLD_NEXT, "open");
     if ((error = dlerror ())) {
@@ -599,7 +611,7 @@ int open (const char *path, int oflag, ...)
         return -1;
     }
 
-    if (is_path_dir (path)) {
+    if ((mode != O_RDONLY) || is_path_dir (path)) {
         // TODO: make sure if the directory mode is consistent
         goto real_call;
     }
@@ -617,15 +629,7 @@ int open (const char *path, int oflag, ...)
     IPRINTF ("DYAD_SYNC: exists open sync (\"%s\").\n", path);
 
 real_call:;
-    int mode = 0;
 
-    if (oflag & O_CREAT)
-    {
-        va_list arg;
-        va_start (arg, oflag);
-        mode = va_arg (arg, int);
-        va_end (arg);
-    }
     return (func_ptr (path, oflag, mode));
 }
 
@@ -641,7 +645,7 @@ FILE *fopen (const char *path, const char *mode)
         return NULL;
     }
 
-    if (is_path_dir (path)) {
+    if ((strcmp (mode, "r") != 0) || is_path_dir (path)) {
         // TODO: make sure if the directory mode is consistent
         goto real_call;
     }
@@ -715,9 +719,14 @@ real_call:; // semicolon here to avoid the error
     }
   #endif // DYAD_SYNC_DIR
 
-    rc = func_ptr (fd);
+    int wronly = is_wronly (fd);
 
-    if (to_sync) {
+    if (wronly == -1) {
+        DPRINTF ("Failed to check the mode of the file with fcntl: %s\n", strerror (errno));
+    }
+
+    if (to_sync && wronly == 1) {
+        rc = func_ptr (fd);
         if (rc != 0) {
             DPRINTF ("Failed close (\"%s\").: %s\n", path, strerror (errno));
         }
@@ -726,6 +735,8 @@ real_call:; // semicolon here to avoid the error
             DPRINTF ("DYAD_SYNC: failed close sync (\"%s\").\n", path);
         }
         IPRINTF ("DYAD_SYNC: exits close sync (\"%s\").\n", path);
+    } else {
+        rc = func_ptr (fd);
     }
 
     return rc;
@@ -739,6 +750,7 @@ int fclose (FILE *fp)
     fclose_ptr_t func_ptr = NULL;
     char path [PATH_MAX+1] = {'\0'};
     int rc = 0;
+    int fd = 0;
 
     func_ptr = (fclose_ptr_t) dlsym (RTLD_NEXT, "fclose");
     if ((error = dlerror ())) {
@@ -775,7 +787,8 @@ int fclose (FILE *fp)
 
 real_call:;
     fflush (fp);
-    fsync (fileno (fp));
+    fd = fileno (fp);
+    fsync (fd);
 
   #if DYAD_SYNC_DIR
     if (to_sync) {
@@ -783,9 +796,15 @@ real_call:;
     }
   #endif // DYAD_SYNC_DIR
 
-    rc = func_ptr (fp);
+    int wronly = is_wronly (fd);
 
-    if (to_sync) {
+    if (wronly == -1) {
+        DPRINTF ("Failed to check the mode of the file with fcntl: %s\n", strerror (errno));
+    }
+
+
+    if (to_sync && wronly == 1) {
+        rc = func_ptr (fp);
         if (rc != 0) {
             DPRINTF ("Failed fclose (\"%s\").\n", path);
         }
@@ -794,6 +813,8 @@ real_call:;
             DPRINTF ("DYAD_SYNC: failed fclose sync (\"%s\").\n", path);
         }
         IPRINTF ("DYAD_SYNC: exits fclose sync (\"%s\").\n", path);
+    } else {
+        rc = func_ptr (fp);
     }
 
     return rc;
