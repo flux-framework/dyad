@@ -511,7 +511,7 @@ int dyad_pull(dyad_ctx_t *ctx, const char* fname,
         goto pull_done;
     }
 
-    of = fopen(ctx, file_path, "w");
+    of = fopen(file_path, "w");
     if (of == NULL)
     {
         DYAD_LOG_ERR(ctx, "Cannot open file %s\n", file_path);
@@ -525,7 +525,7 @@ int dyad_pull(dyad_ctx_t *ctx, const char* fname,
         rc = DYAD_BADFIO;
         goto pull_done;
     }
-    rc = dyad_fclose(ctx, of);
+    rc = fclose(of);
 
     if (rc != 0)
     {

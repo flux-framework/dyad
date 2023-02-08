@@ -41,7 +41,7 @@ using namespace std; // std::clock ()
 #include "wrapper.h"
 
 __thread dyad_ctx_t *ctx = NULL;
-static void dyad_sync_init (void) __attribute__((constructor));
+//static void dyad_sync_init (void) __attribute__((constructor));
 static void dyad_sync_fini (void) __attribute__((destructor));
 
 #if DYAD_SYNC_DIR
@@ -80,7 +80,6 @@ static inline int is_wronly (int fd)
 
 void dyad_sync_init (void)
 {
-    printf("In dyad_sync_init\n");
     char *e = NULL;
 
     bool debug = false;
@@ -95,7 +94,6 @@ void dyad_sync_init (void)
 
     DPRINTF (ctx, "DYAD_WRAPPER: Initializeing DYAD wrapper\n");
 
-    printf("Reading evn vars\n");
     if ((e = getenv ("DYAD_SYNC_DEBUG"))) {
         debug = true;
         enable_debug_dyad_utils ();
@@ -146,12 +144,10 @@ void dyad_sync_init (void)
         prod_managed_path = NULL;
     }
 
-    printf("Calling dyad_init\n");
     int rc = dyad_init(debug, check, shared_storage, key_depth,
             key_bins, kvs_namespace, prod_managed_path,
             cons_managed_path, intercept, &ctx);
 
-    printf("Checking for dyad_init error\n");
     if (DYAD_IS_ERROR(rc))
     {
         DYAD_LOG_ERR(ctx, "Could not initialize DYAD!\n");
@@ -159,7 +155,6 @@ void dyad_sync_init (void)
         return;
     }
 
-    printf("Logging info\n");
     DYAD_LOG_INFO (ctx, "DYAD Initialized\n");
     DYAD_LOG_INFO (ctx, "DYAD_SYNC_DEBUG=%s\n", (ctx->debug)? "true": "false");
     DYAD_LOG_INFO (ctx, "DYAD_SYNC_CHECK=%s\n", (ctx->check)? "true": "false");
@@ -210,7 +205,10 @@ void dyad_sync_fini ()
 
 int open (const char *path, int oflag, ...)
 {
-    printf("In wrapped open (%s, %d)\n", path, oflag);
+    if (ctx == NULL)
+    {
+        dyad_sync_init();
+    }
     char *error = NULL;
     typedef int (*open_ptr_t) (const char *, int, mode_t, ...);
     open_ptr_t func_ptr = NULL;
@@ -224,7 +222,6 @@ int open (const char *path, int oflag, ...)
         va_end (arg);
     }
 
-    printf("Getting real open function\n");
     func_ptr = (open_ptr_t) dlsym (RTLD_NEXT, "open");
     if ((error = dlerror ())) {
         DPRINTF (ctx, "DYAD_SYNC: error in dlsym: %s\n", error);
@@ -236,18 +233,15 @@ int open (const char *path, int oflag, ...)
         goto real_call;
     }
 
-    printf("Checking if file is being opened in write mode\n");
     if (!oflag_is_read(oflag)) {
         goto real_call;
     }
 
-    printf("Checking for early DYAD abortion\n");
     if (!(ctx && ctx->h) || (ctx && !ctx->reenter)) {
         IPRINTF (ctx, "DYAD_SYNC: open sync not applicable for \"%s\".\n", path);
         goto real_call;
     }
 
-    printf("Calling dyad_consume\n");
     IPRINTF (ctx, "DYAD_SYNC: enters open sync (\"%s\").\n", path);
     int rc = dyad_consume(ctx, path);
     if (DYAD_IS_ERROR(rc)) {
@@ -263,7 +257,10 @@ real_call:;
 
 FILE *fopen (const char *path, const char *mode)
 {
-    printf("In wrapped fopen\n");
+    if (ctx == NULL)
+    {
+        dyad_sync_init();
+    }
     char *error = NULL;
     typedef FILE *(*fopen_ptr_t) (const char *, const char *);
     fopen_ptr_t func_ptr = NULL;
@@ -304,7 +301,10 @@ real_call:
 
 int close (int fd)
 {
-    printf("In wrapped close\n");
+    if (ctx == NULL)
+    {
+        dyad_sync_init();
+    }
     bool to_sync = false;
     char *error = NULL;
     typedef int (*close_ptr_t) (int);
@@ -366,7 +366,7 @@ real_call:; // semicolon here to avoid the error
     int wronly = is_wronly (fd);
 
     if (wronly == -1) {
-        DPRINTF ("Failed to check the mode of the file with fcntl: %s\n", strerror (errno));
+        DPRINTF (ctx, "Failed to check the mode of the file with fcntl: %s\n", strerror (errno));
     }
 
     if (to_sync && wronly == 1) {
@@ -389,7 +389,10 @@ real_call:; // semicolon here to avoid the error
 
 int fclose (FILE *fp)
 {
-    printf("In wrapped fclose\n");
+    if (ctx == NULL)
+    {
+        dyad_sync_init();
+    }
     bool to_sync = false;
     char *error = NULL;
     typedef int (*fclose_ptr_t) (FILE *);
@@ -453,7 +456,7 @@ real_call:;
     int wronly = is_wronly (fd);
 
     if (wronly == -1) {
-        DPRINTF ("Failed to check the mode of the file with fcntl: %s\n", strerror (errno));
+        DPRINTF (ctx, "Failed to check the mode of the file with fcntl: %s\n", strerror (errno));
     }
 
 
