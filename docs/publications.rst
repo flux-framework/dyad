@@ -5,7 +5,7 @@ Publications and Presentations
 Posters
 #######
 
-* J.-S. Yeom, D. H. Ahn, I. Lumsden, J. Luettgau, S. Caino-Lores,
+* J. Yeom, D. H. Ahn, I. Lumsden, J. Luettgau, S. Caino-Lores,
   and M. Taufer, “Ubique: A new model for untangling inter-task data
   dependence in complex HPC workflows,” in
   *2022 IEEE 18th international conference on e-science (e-science)*,

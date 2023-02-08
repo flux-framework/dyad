@@ -18,9 +18,8 @@ sys.path.insert(0, os.path.abspath('.'))
 # -- Project information -----------------------------------------------------
 
 project = 'DYAD'
-# TODO update to the correct copyright
-copyright = '2023, DYAD Team'
-author = 'DYAD Team'
+copyright = """Copyright 2021 Lawrence Livermore National Security, LLC. SPDX-License-Identifier: LGPL-3.0"""
+author = 'This page is maintained by the <a href="https://github.com/flux-framework/dyad/graphs/contributors">contributors to DYAD</a>'
 
 
 # -- General configuration ---------------------------------------------------
