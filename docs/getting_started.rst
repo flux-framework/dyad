@@ -181,9 +181,11 @@ There are three steps to running DYAD-enabled applications:
 Create a Flux KVS Namespace
 ***************************
 
-The first step in running DYAD is to create a namespace in the Flux's hierarchical key-value store (KVS).
-This namespace is used by DYAD to exchange file information (e.g., the Flux broker that "owns"
-a file) needed to synchronize the consumer application and transfer the file from producer to
+DYAD uses its own namespace in Flux's hierarchical key-value store (KVS) to isolate
+itself from the KVS entries from other Flux services. Thus, the first step in running DYAD
+is to create a KVS namespace. This namespace is used by DYAD to exchange
+file information (e.g., the Flux broker that "owns" a file) needed to synchronize
+the consumer application and transfer the file from producer to
 consumer. To create this namespace, run the following:
 
 .. code-block:: shell
@@ -253,31 +255,35 @@ Once the KVS namespace and DYAD module are set up, the DYAD-enabled applications
 application, simply run your application as normal with certain environment variables set. A table containing the current
 environment variables recognized by DYAD is shown below.
 
-+-----------------------------+-----------------+--------------+---------+-----------------------------------------------------------------+
-| Name                        | Type            | Required?    | Default | Description                                                     |
-+=============================+=================+==============+=========+=================================================================+
-| :code:`DYAD_KVS_NAMESPACE`  | String          | Yes          | N/A     | The Flux KVS namespace that DYAD will use to record or look     |
-|                             |                 |              |         |                                                                 |
-|                             |                 |              |         | for file information                                            |
-+-----------------------------+-----------------+--------------+---------+-----------------------------------------------------------------+
-| :code:`DYAD_PATH_PRODUCER`  | Directory Path  | Yes [#one]_  | N/A     | The producer-managed path of the application                    |
-+-----------------------------+                 +              +         +-----------------------------------------------------------------+
-| :code:`DYAD_PATH_CONSUMER`  |                 |              |         | The consumer-managed path of the application                    |
-+-----------------------------+-----------------+--------------+---------+-----------------------------------------------------------------+
-| :code:`DYAD_SHARED_STORAGE` | 0 or 1          | No           | 0       | If 1 (i.e., true), only provide per-file synchronization of     |
-|                             |                 |              |         |                                                                 |
-|                             |                 |              |         | the consumer (i.e., no transfer)                                |
-+-----------------------------+-----------------+--------------+---------+-----------------------------------------------------------------+
-| :code:`DYAD_KEY_DEPTH`      | Integer         | No           | 3       | The number of levels in Flux's hierarchical KVS to use          |
-|                             |                 |              |         |                                                                 |
-|                             |                 |              |         | within DYAD's namespace                                         |
-+-----------------------------+-----------------+--------------+---------+-----------------------------------------------------------------+
-| :code:`DYAD_KEY_BINS`       | Integer         | No           | 1024    | The maximum number of unique values for the keys associated     |
-|                             |                 |              |         |                                                                 |
-|                             |                 |              |         | with any given level of Flux's hierarchical KVS within          |
-|                             |                 |              |         |                                                                 |
-|                             |                 |              |         | DYAD's namespace                                                |
-+-----------------------------+-----------------+--------------+---------+-----------------------------------------------------------------+
++--------------------------------+-----------------+--------------+---------+-----------------------------------------------------------------+
+| Name                           | Type            | Required?    | Default | Description                                                     |
++================================+=================+==============+=========+=================================================================+
+| :code:`DYAD_KVS_NAMESPACE`     | String          | Yes          | N/A     | The Flux KVS namespace that DYAD will use to record or look     |
+|                                |                 |              |         |                                                                 |
+|                                |                 |              |         | for file information                                            |
++--------------------------------+-----------------+--------------+---------+-----------------------------------------------------------------+
+| :code:`DYAD_PATH_PRODUCER`     | Directory Path  | Yes [#one]_  | N/A     | The producer-managed path of the application                    |
++--------------------------------+                 +              +         +-----------------------------------------------------------------+
+| :code:`DYAD_PATH_CONSUMER`     |                 |              |         | The consumer-managed path of the application                    |
++--------------------------------+-----------------+--------------+---------+-----------------------------------------------------------------+
+| :code:`DYAD_SHARED_STORAGE`    | 0 or 1          | No           | 0       | If 1 (i.e., true), only provide per-file synchronization of     |
+|                                |                 |              |         |                                                                 |
+|                                |                 |              |         | the consumer (i.e., no transfer)                                |
++--------------------------------+-----------------+--------------+---------+-----------------------------------------------------------------+
+| :code:`DYAD_KEY_DEPTH` [#two]_ | Integer         | No           | 3       | The number of levels in Flux's hierarchical KVS to use          |
+|                                |                 |              |         |                                                                 |
+|                                |                 |              |         | within DYAD's namespace                                         |
++--------------------------------+-----------------+--------------+---------+-----------------------------------------------------------------+
+| :code:`DYAD_KEY_BINS` [#two]_  | Integer         | No           | 1024    | The maximum number of unique values for the keys associated     |
+|                                |                 |              |         |                                                                 |
+|                                |                 |              |         | with any given level of Flux's hierarchical KVS within          |
+|                                |                 |              |         |                                                                 |
+|                                |                 |              |         | DYAD's namespace                                                |
++--------------------------------+-----------------+--------------+---------+-----------------------------------------------------------------+
 
 .. [#one] For DYAD to do anything, at least one of :code:`DYAD_PATH_PRODUCER` or :code:`DYAD_PATH_CONSUMER` must be provided.
    Applications will still work if neither are provided, but DYAD will not do anything.
+
+.. [#two] Since the Flux KVS is hierarchical, the number of KVS levels (controlled by :code:`DYAD_KEY_DEPTH`) and
+   the size of each KVS level (controlled by :code:`DYAD_KEY_BINS`) will affect the performance of DYAD. To obtain
+   optimal performance, tune these values for your use case.
