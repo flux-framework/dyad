@@ -107,3 +107,5 @@ flux_barrier
 # ignore build artifacts from Sphinx
 **/.DS_Store
 **/_build/
+
+**/bib/*.rst
