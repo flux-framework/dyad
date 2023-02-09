@@ -123,7 +123,7 @@ void dyad_sync_init (void)
         key_bins = 1024;
 
     if ((e = getenv ("DYAD_KVS_NAMESPACE")))
-        ctx->kvs_namespace = e;
+        kvs_namespace = e;
     else
         kvs_namespace = NULL;
 

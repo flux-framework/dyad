@@ -190,6 +190,7 @@ int dyad_init(bool debug, bool check, bool shared_storage,
     printf("Getting Flux Rank\n");
     if (flux_get_rank((*ctx)->h, &((*ctx)->rank)) < 0)
     {
+        fprintf(stderr, "Could not get Flux rank\n");
         FLUX_LOG_ERR ((*ctx)->h, "Could not get Flux rank!\n");
         return DYAD_FLUXFAIL;
     }
