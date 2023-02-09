@@ -1,11 +1,10 @@
-#include <sys/stat.h>
+#include "generation.h"
 
 #include <dyad_stream_api.hpp>
 #include <fstream>
 #include <iostream>
 #include <string>
-
-#include "generation.h"
+#include <cstring> // For memset
 
 /**
  * Transfer the specified file with DYAD and read it
