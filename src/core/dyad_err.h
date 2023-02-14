@@ -16,19 +16,6 @@ enum dyad_core_err_codes {
 
 typedef enum dyad_core_err_codes dyad_core_err_t;
 
-#define DYAD_IS_ERROR(code) (code < 0)
+#define DYAD_IS_ERROR(code) ((code) < 0)
 
 #endif
-
-
-
-
-                                           
-                                           
-                                           
-                                           
-                                           
-                                           
-                                           
-                                           
-                                           

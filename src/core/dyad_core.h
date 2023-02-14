@@ -48,7 +48,6 @@ struct dyad_ctx {
     char *kvs_namespace; // Flux KVS namespace for DYAD
     char *prod_managed_path; // producer path managed by DYAD
     char *cons_managed_path; // consumer path managed by DYAD
-    bool intercept; // if true, intercepts (f)open and (f)close
 };
 extern const struct dyad_ctx dyad_ctx_default;
 typedef struct dyad_ctx dyad_ctx_t;
@@ -96,7 +95,7 @@ typedef struct dyad_kvs_response dyad_kvs_response_t;
 int dyad_init(bool debug, bool check, bool shared_storage,
         unsigned int key_depth, unsigned int key_bins,
         const char *kvs_namespace, const char* prod_managed_path,
-        const char *cons_managed_path, bool intercept, dyad_ctx_t **ctx);
+        const char *cons_managed_path, dyad_ctx_t **ctx);
 
 /**
  * @brief Wrapper function that performs all the common tasks needed
@@ -125,61 +124,12 @@ __attribute__((annotate("@critical_path()")))
 int dyad_consume(dyad_ctx_t *ctx, const char *fname);
 
 /**
- * @brief Commits (i.e., writes) the file's metadata to the Flux KVS
- * @param[in] ctx    the DYAD context for the operation
- * @param[in] fname  the name of the file being committed
- *
- * @return An integer error code (values TBD)
- */
-#if DYAD_PERFFLOW
-__attribute__((annotate("@critical_path()")))
-#endif
-int dyad_commit(dyad_ctx_t *ctx, const char *fname);
-
-/**
- * @brief Fetches (i.e., reads) the file's metadata from the Flux KVS
- * @param[in] ctx    the DYAD context for the operation
- * @param[in] fname  the name of the file being fetched
- * @param[out] resp  the data fetched from the KVS
- *
- * @return An integer error code (values TBD)
- */
-#if DYAD_PERFFLOW
-__attribute__((annotate("@critical_path()")))
-#endif
-int dyad_fetch(dyad_ctx_t *ctx, const char* fname,
-        dyad_kvs_response_t **resp);
-
-/**
- * @brief Pulls the file from the producer using Flux RPC
- * @param[in] ctx       the DYAD context for the operation
- * @param[in] fname     the name of the file being pulled
- * @param[in] kvs_data  the data previously fetched from the KVS for
- *                      this file
- *
- * @return An integer error code (values TBD)
- */
-#if DYAD_PERFFLOW
-__attribute__((annotate("@critical_path()")))
-#endif
-int dyad_pull(dyad_ctx_t *ctx, const char* fname,
-        dyad_kvs_response_t *kvs_data);
-
-/**
- * @brief Frees/Deallocates a block of data fetched from the KVS
- * @param[in] resp  the data previously fetched from the KVS
- *
- * @return An integer error code (values TBD)
- */
-int dyad_free_kvs_response(dyad_kvs_response_t *resp);
-
-/**
  * @brief Finalizes the DYAD instance and deallocates the context
  * @param[in] ctx  the DYAD context being finalized
  *
  * @return An integer error code (values TBD)
  */
-int dyad_finalize(dyad_ctx_t *ctx);
+int dyad_finalize(dyad_ctx_t **ctx);
 
 #if DYAD_SYNC_DIR
 int dyad_sync_directory(dyad_ctx_t *ctx, const char *path);

@@ -4,50 +4,67 @@
 #include "murmur3.h"
 
 #include <libgen.h>
-#include <limits.h>
-#include <string.h>
 #include <unistd.h>
 
+#ifdef __cplusplus
+#include <climits>
+#include <cstring>
+#else
+#include <limits.h>
+#include <string.h>
+#endif
+
 const struct dyad_ctx dyad_ctx_default = {
-    NULL,
-    false,
-    false,
-    false,
-    true,
-    false,
-    false,
-    3u,
-    1024u,
-    0u,
-    NULL,
-    NULL
+    NULL,  // h
+    false, // debug
+    false, // check
+    false, // reenter
+    true,  // initialized
+    false, // shared_storage
+    false, // sync_started
+    3u,    // key_depth
+    1024u, // key_bins
+    0u,    // rank
+    NULL,  // kvs_namespace
+    NULL,  // prod_managed_path
+    NULL   // cons_managed_path
 };
 
-int validate_context(dyad_ctx_t *ctx, bool check_cons, bool check_prod)
+static int validate_context(dyad_ctx_t *ctx, bool check_cons, bool check_prod)
 {
+    // If the context is not defined, then it is not valid.
+    // So, return DYAD_NOCTX
     if (!ctx || !ctx->h)
     {
         return DYAD_NOCTX;
     }
+    // Only run if check_cons is true.
+    // If the consumer-managed path is NULL or empty, then the context is not valid
+    // for a consumer operation. So, return DYAD_BADMANAGEDPATH
     if (check_cons && (ctx->cons_managed_path == NULL || strlen(ctx->cons_managed_path) == 0))
     {
         return DYAD_BADMANAGEDPATH;
     }
+    // Only run if check_prod is true.
+    // If the producer-managed path is NULL or empty, then the context is not valid
+    // for a producer operation. So, return DYAD_BADMANAGEDPATH
     if (check_prod && (ctx->prod_managed_path == NULL || strlen(ctx->prod_managed_path) == 0))
     {
         return DYAD_BADMANAGEDPATH;
     }
+    // If none of the above conditions were met, then the context is valid for the desired
+    // operation. So, return DYAD_OK
     return DYAD_OK;
 }
 
-int gen_path_key (const char* str, char* path_key, const size_t len,
+static int gen_path_key (const char* str, char* path_key, const size_t len,
         const uint32_t depth, const uint32_t width)
 {
     static const uint32_t seeds [10]
-        = {104677, 104681, 104683, 104693, 104701,
-            104707, 104711, 104717, 104723, 104729};
+        = {104677u, 104681u, 104683u, 104693u, 104701u,
+            104707u, 104711u, 104717u, 104723u, 104729u};
 
-    uint32_t seed = 57;
+    uint32_t seed = 57u;
     uint32_t hash[4] = {0u}; // Output for the hash
     size_t cx = 0ul;
     int n = 0;
@@ -79,9 +96,23 @@ int gen_path_key (const char* str, char* path_key, const size_t len,
 int dyad_init(bool debug, bool check, bool shared_storage,
         unsigned int key_depth, unsigned int key_bins,
         const char *kvs_namespace, const char *prod_managed_path,
-        const char *cons_managed_path, bool intercept, dyad_ctx_t **ctx)
+        const char *cons_managed_path, dyad_ctx_t **ctx)
 {
     printf("In dyad_init\n");
+    // If ctx is NULL, we won't be able to return a dyad_ctx_t
+    // to the user. In that case, print an error and return
+    // immediately with DYAD_NOCTX.
+    if (ctx == NULL)
+    {
+        fprintf(stderr, "'ctx' argument to dyad_init is NULL! This prevents us from returning a dyad_ctx_t object!\n");
+        return DYAD_NOCTX;
+    }
+    // Check if the actual dyad_ctx_t object is not NULL.
+    // If it is not NULL, that means the dyad_ctx_t object
+    // has either been allocated or fully initialized.
+    // If it's initialized, simply print a message and
+    // return DYAD_OK. Otherwise, initialize the dyad_ctx_t
+    // object with dyad_ctx_default and return DYAD_OK.
     if (*ctx != NULL)
     {
         if ((*ctx)->initialized)
@@ -96,20 +127,50 @@ int dyad_init(bool debug, bool check, bool shared_storage,
         return DYAD_OK;
     }
     printf("Allocating ctx\n");
+    // Allocate the dyad_ctx_t object and make sure the allocation
+    // worked successfully
     *ctx = (dyad_ctx_t*) malloc(sizeof(struct dyad_ctx));
     if (*ctx == NULL)
     {
         fprintf (stderr, "Could not allocate DYAD context!\n");
         return DYAD_NOCTX;
     }
+    // Set the initial contents of the dyad_ctx_t object
+    // to dyad_ctx_default.
     printf("Setting ctx values that don't need allocation\n");
     **ctx = dyad_ctx_default;
+    // If neither managed path is provided, DYAD will not do anything.
+    // So, simply print a warning and return DYAD_OK.
+    if (prod_managed_path == NULL && cons_managed_path == NULL)
+    {
+        fprintf (stderr, "Warning: no managed path provided! DYAD will not do anything!\n");
+        return DYAD_OK;
+    }
+    // Set the values in dyad_ctx_t that don't need allocation
     (*ctx)->debug = debug;
     (*ctx)->check = check;
     (*ctx)->shared_storage = shared_storage;
     (*ctx)->key_depth = key_depth;
     (*ctx)->key_bins = key_bins;
-    (*ctx)->intercept = intercept;
+    // Open a Flux handle and store it in the dyad_ctx_t
+    // object. If the open operation failed, return DYAD_FLUXFAIL
+    printf("Opening Flux\n");
+    (*ctx)->h = flux_open(NULL, 0);
+    if ((*ctx)->h == NULL)
+    {
+        fprintf (stderr, "Could not open Flux handle!\n");
+        return DYAD_FLUXFAIL;
+    }
+    // Get the rank of the Flux broker corresponding
+    // to the handle. If this fails, return DYAD_FLUXFAIL
+    printf("Getting Flux Rank\n");
+    if (flux_get_rank((*ctx)->h, &((*ctx)->rank)) < 0)
+    {
+        fprintf(stderr, "Could not get Flux rank\n");
+        FLUX_LOG_ERR ((*ctx)->h, "Could not get Flux rank!\n");
+        return DYAD_FLUXFAIL;
+    }
+    // If the namespace is provided, copy it into the dyad_ctx_t object
     printf("Setting KVS namespace\n");
     if (kvs_namespace == NULL)
     {
@@ -117,7 +178,8 @@ int dyad_init(bool debug, bool check, bool shared_storage,
         // TODO see if we want a different return val
         return DYAD_NOCTX;
     }
-    (*ctx)->kvs_namespace = (char*) malloc(strlen(kvs_namespace)+1);
+    const size_t namespace_len = strlen(kvs_namespace);
+    (*ctx)->kvs_namespace = (char*) malloc(namespace_len+1);
     if ((*ctx)->kvs_namespace == NULL)
     {
         fprintf (stderr, "Could not allocate buffer for KVS namespace!\n");
@@ -128,8 +190,10 @@ int dyad_init(bool debug, bool check, bool shared_storage,
     strncpy(
             (*ctx)->kvs_namespace,
             kvs_namespace,
-            strlen(kvs_namespace)+1
+            namespace_len+1
            );
+    // If the producer-managed path is provided, copy it into
+    // the dyad_ctx_t object
     printf("Setting prod_managed_path\n");
     if (prod_managed_path == NULL)
     {
@@ -152,6 +216,8 @@ int dyad_init(bool debug, bool check, bool shared_storage,
                 strlen(prod_managed_path)+1
             );
     }
+    // If the consumer-managed path is provided, copy it into
+    // the dyad_ctx_t object
     printf("Setting cons_managed_path\n");
     if (cons_managed_path == NULL)
     {
@@ -175,26 +241,10 @@ int dyad_init(bool debug, bool check, bool shared_storage,
                 strlen(cons_managed_path)+1
             );
     }
-    if ((*ctx)->prod_managed_path == NULL && (*ctx)->cons_managed_path == NULL)
-    {
-        fprintf (stderr, "Warning: DYAD instance is neither producer nor consumer!\n");
-    }
-    printf("Opening Flux\n");
-    (*ctx)->reenter = true;
-    (*ctx)->h = flux_open(NULL, 0);
-    if ((*ctx)->h == NULL)
-    {
-        fprintf (stderr, "Could not open Flux handle!\n");
-        return DYAD_FLUXFAIL;
-    }
-    printf("Getting Flux Rank\n");
-    if (flux_get_rank((*ctx)->h, &((*ctx)->rank)) < 0)
-    {
-        fprintf(stderr, "Could not get Flux rank\n");
-        FLUX_LOG_ERR ((*ctx)->h, "Could not get Flux rank!\n");
-        return DYAD_FLUXFAIL;
-    }
+    // Initialization is now complete!
+    // Set reenter and initialized to indicate this.
     printf("Initialization complete\n");
+    (*ctx)->reenter = true;
     (*ctx)->initialized = true;
     // TODO Print logging info
     return DYAD_OK;
@@ -202,35 +252,66 @@ int dyad_init(bool debug, bool check, bool shared_storage,
 
 int dyad_produce(dyad_ctx_t *ctx, const char *fname)
 {
-    int rc = validate_context(ctx, false, true);
+    // Make sure the dyad_ctx_t object is valid for
+    // the upcoming producer operation.
+    // If not, forward the return code from validate_context
+    int rc = 0;
+    rc = validate_context(ctx, false, true);
     if (DYAD_IS_ERROR(rc))
     {
         return rc;
     }
+    // If the context is valid, call dyad_commit to perform
+    // the producer operation
     return dyad_commit(ctx, fname);
 }
 
 int dyad_consume(dyad_ctx_t *ctx, const char *fname)
 {
-    int rc = validate_context(ctx, true, false);
+    int rc = 0;
+    // Make sure that the correct information is in ctx
+    // to run dyad_consume.
+    rc = validate_context(ctx, true, false);
     if (DYAD_IS_ERROR(rc))
     {
         return rc;
     }
+    // Set reenter to false to avoid recursively performing
+    // DYAD operations
+    ctx->reenter = false;
+    // Call dyad_fetch to get (and possibly wait on)
+    // data from the Flux KVS
     dyad_kvs_response_t *resp = NULL;
     rc = dyad_fetch(ctx, fname, &resp);
-    if (rc != 0)
+    // If an error occured in dyad_fetch, log an error
+    // and return the corresponding DYAD return code
+    if (DYAD_IS_ERROR(rc))
     {
         DYAD_LOG_ERR (ctx, "dyad_fetch failed!\n");
-        if (resp != NULL)
-        {
-            dyad_free_kvs_response(resp);
-        }
+        // No need to free 'resp' because it will always
+        // be NULL if dyad_fetch doesn't return DYAD_OK
         return rc;
     }
+    // If dyad_fetch was successful, but resp is still NULL,
+    // then we need to skip data transfer.
+    // This will most likely happend because shared_storage
+    // is enabled
+    if (resp == NULL)
+    {
+        DYAD_LOG_INFO (ctx, "The KVS response is NULL! Skipping dyad_pull!\n");
+        return DYAD_OK;
+    }
+    // Call dyad_pull to fetch the data from the producer's
+    // Flux broker
     rc = dyad_pull(ctx, fname, resp);
+    // Set reenter to true to allow additional intercepting
+    ctx->reenter = true;
+    // Regardless if there was an error in dyad_pull,
+    // free the KVS response object
     dyad_free_kvs_response(resp);
-    if (rc != 0)
+    // If an error occured in dyad_pull, log it
+    // and return the corresponding DYAD return code
+    if (DYAD_IS_ERROR(rc))
     {
         DYAD_LOG_ERR (ctx, "dyad_free_kvs_response failed!\n");
         return rc;
@@ -241,20 +322,24 @@ int dyad_consume(dyad_ctx_t *ctx, const char *fname)
 #if DYAD_PERFFLOW
 __attribute__((annotate("@critical_path()")))
 #endif
-int dyad_kvs_commit(dyad_ctx_t *ctx, flux_kvs_txn_t *txn,
+static int dyad_kvs_commit(dyad_ctx_t *ctx, flux_kvs_txn_t *txn,
         const char *upath, flux_future_t **f)
 {
+    // Commit the transaction to the Flux KVS
     printf("Committing data to KVS\n");
     *f = flux_kvs_commit(ctx->h, ctx->kvs_namespace,
             0, txn);
+    // If the commit failed, log an error and return DYAD_BADCOMMIT
     if (*f == NULL)
     {
         DYAD_LOG_ERR(ctx, "Could not commit transaction to Flux KVS\n");
         return DYAD_BADCOMMIT;
     }
+    // If the commit is pending, wait for it to complete
     printf("Wait for commit to complete\n");
     flux_future_wait_for(*f, -1.0);
     printf("Destroy future for KVS commit\n");
+    // Once the commit is complete, destroy the future and transaction
     flux_future_destroy(*f);
     *f = NULL;
     printf("Destroy transaction on KVS\n");
@@ -265,16 +350,20 @@ int dyad_kvs_commit(dyad_ctx_t *ctx, flux_kvs_txn_t *txn,
 #if DYAD_PERFFLOW
 __attribute__((annotate("@critical_path()")))
 #endif
-int publish_via_flux(dyad_ctx_t* ctx, const char *upath)
+static int publish_via_flux(dyad_ctx_t* ctx, const char *upath)
 {
     printf("Initial publication setup\n");
-    const char *prod_managed_path = ctx->prod_managed_path;
+    int ret = 0;
+    const char* prod_managed_path = NULL;
     flux_kvs_txn_t *txn = NULL;
     flux_future_t *f = NULL;
     const size_t topic_len = PATH_MAX;
-    char topic[topic_len+1];
+    char topic[topic_len+1] = {'\0'};
+    prod_managed_path = ctx->prod_managed_path;
     printf("Creating KVS key\n");
     memset(topic, '\0', topic_len+1);
+    // Generate the KVS key from the file path relative to
+    // the producer-managed directory
     gen_path_key(
             upath,
             topic,
@@ -282,11 +371,17 @@ int publish_via_flux(dyad_ctx_t* ctx, const char *upath)
             ctx->key_depth,
             ctx->key_bins
             );
+    // If we don't have a valid Flux handle, we cannot continue.
+    // So, print an error and return DYAD_NOCTX
     if (ctx->h == NULL)
     {
         fprintf (stderr, "No Flux handle found in publish_via_flux!\n");
         return DYAD_NOCTX;
     }
+    // Crete and pack a Flux KVS transaction.
+    // The transaction will contain a single key-value pair
+    // with the previously generated key as the key and the
+    // producer's rank as the value
     // TODO FLUX_LOG_INFO
     printf("Create KVS transaction\n");
     txn = flux_kvs_txn_create();
@@ -301,8 +396,10 @@ int publish_via_flux(dyad_ctx_t* ctx, const char *upath)
         DYAD_LOG_ERR(ctx, "Could not pack Flux KVS transaction\n");
         return DYAD_FLUXFAIL;
     }
+    // Call dyad_kvs_commit to commit the transaction into the Flux KVS
     printf("Calling dyad_kvs_commit\n");
-    int ret = dyad_kvs_commit(ctx, txn, upath, &f);
+    ret = dyad_kvs_commit(ctx, txn, upath, &f);
+    // If dyad_kvs_commit failed, log an error and forward the return code
     if (ret < 0)
     {
         DYAD_LOG_ERR(ctx, "dyad_kvs_commit failed!\n");
@@ -311,30 +408,39 @@ int publish_via_flux(dyad_ctx_t* ctx, const char *upath)
     return DYAD_OK;
 }
 
-int dyad_commit(dyad_ctx_t *ctx, const char *fname)
+#if DYAD_PERFFLOW
+__attribute__((annotate("@critical_path()")))
+#endif
+static int dyad_commit(dyad_ctx_t *ctx, const char *fname)
 {
-    int rc = validate_context(ctx, false, true);
-    if (DYAD_IS_ERROR(rc))
-    {
-        return rc;
-    }
+    int rc = 0;
+    char upath[PATH_MAX] = {'\0'};
+    // If a context is not provided, print an error and return DYAD_NOCTX
     if (ctx == NULL)
     {
         fprintf (stderr, "DYAD context not provided to dyad_commit\n");
         return DYAD_NOCTX;
     }
-    char upath[PATH_MAX] = {'\0'};
+    // Extract the path to the file specified by fname relative to the
+    // producer-managed path
+    // This relative path will be stored in upath
     if (!cmp_canonical_path_prefix (ctx->prod_managed_path, fname, upath, PATH_MAX))
     {
         DYAD_LOG_INFO (ctx, "%s is not in the Producer's managed path\n", fname);
-        rc = 0;
+        rc = DYAD_OK;
         goto commit_done;
     }
+    // Call publish_via_flux to actually store information about the file into
+    // the Flux KVS
+    // Fence this call with reassignments of reenter so that, if intercepting
+    // file I/O API calls, we will not get stuck in infinite recursion
     ctx->reenter = false;
     rc = publish_via_flux(ctx, upath);
     ctx->reenter = true;
 
 commit_done:
+    // If "check" is set and the operation was successful, set the
+    // DYAD_CHECK_ENV environment variable to "ok"
     if (rc == DYAD_OK && (ctx && ctx->check))
     {
         setenv(DYAD_CHECK_ENV, "ok", 1);
@@ -345,26 +451,33 @@ commit_done:
 #if DYAD_PERFFLOW
 __attribute__((annotate("@critical_path()")))
 #endif
-int dyad_kvs_lookup(dyad_ctx_t *ctx, const char* kvs_topic, uint32_t *owner_rank)
+static int dyad_kvs_lookup(dyad_ctx_t *ctx, const char* kvs_topic, uint32_t *owner_rank)
 {
     int rc = -1;
     flux_future_t *f = NULL;
+    // Lookup information about the desired file (represented by kvs_topic)
+    // from the Flux KVS. If there is no information, wait for it to be
+    // made available
     f = flux_kvs_lookup(ctx->h,
             ctx->kvs_namespace,
             FLUX_KVS_WAITCREATE,
             kvs_topic
             );
+    // If the KVS lookup failed, log an error and return DYAD_BADLOOKUP
     if (f == NULL)
     {
         DYAD_LOG_ERR (ctx, "KVS lookup failed!\n");
         return DYAD_BADLOOKUP;
     }
+    // Extract the rank of the producer from the KVS response
     rc = flux_kvs_lookup_get_unpack(f, "i", owner_rank);
+    // No matter what, destroy the Flux future if needed
     if (f != NULL)
     {
         flux_future_destroy(f);
         f = NULL;
     }
+    // If the extraction did not work, log an error and return DYAD_BADFETCH
     if (rc < 0)
     {
         DYAD_LOG_ERR(ctx, "Could not unpack owner's rank from KVS response\n");
@@ -373,29 +486,32 @@ int dyad_kvs_lookup(dyad_ctx_t *ctx, const char* kvs_topic, uint32_t *owner_rank
     return DYAD_OK;
 }
 
-int dyad_fetch(dyad_ctx_t *ctx, const char* fname,
+#if DYAD_PERFFLOW
+__attribute__((annotate("@critical_path()")))
+#endif
+static int dyad_fetch(dyad_ctx_t *ctx, const char* fname,
         dyad_kvs_response_t **resp)
 {
-    int rc = validate_context(ctx, true, false);
-    if (DYAD_IS_ERROR(rc))
-    {
-        return rc;
-    }
+    int rc = 0;
+    char upath[PATH_MAX] = {'\0'};
+    uint32_t owner_rank = 0;
+    const size_t topic_len = PATH_MAX;
+    char topic[topic_len+1] = {'\0'};
     if (ctx == NULL)
     {
         fprintf (stderr, "DYAD context not provided to dyad_fetch\n");
         return DYAD_NOCTX;
     }
-    char upath[PATH_MAX] = {'\0'};
+    // Extract the path to the file specified by fname relative to the
+    // consumer-managed path
+    // This relative path will be stored in upath
     if (!cmp_canonical_path_prefix(ctx->cons_managed_path, fname, upath, PATH_MAX))
     {
         DYAD_LOG_INFO (ctx, "%s is not in the Consumer's managed path\n", fname);
-        return 0;
+        return DYAD_OK;
     }
-    uint32_t owner_rank = 0;
-    const size_t topic_len = PATH_MAX;
-    char topic[topic_len+1];
-    memset(topic, '\0', topic_len+1);
+    // Generate the KVS key from the file path relative to
+    // the consumer-managed directory
     gen_path_key(
             upath,
             topic,
@@ -408,16 +524,28 @@ int dyad_fetch(dyad_ctx_t *ctx, const char* fname,
         fprintf (stderr, "No Flux handle found in dyad_fetch!\n");
         return DYAD_NOCTX;
     }
+    // Call dyad_kvs_lookup to retrieve infromation about the file
+    // from the Flux KVS
     rc = dyad_kvs_lookup(ctx, topic, &owner_rank);
-    if (rc != DYAD_OK)
+    // If an error occured in dyad_kvs_lookup, log it and propagate the return code
+    if (DYAD_IS_ERROR(rc))
     {
         DYAD_LOG_ERR(ctx, "dyad_kvs_lookup failed!\n");
         return rc;
     }
+    // There are two cases where we do not want to perform file transfer:
+    //   1. if the shared storage feature is enabled
+    //   2. if the producer and consumer share the same rank
+    // In either of these cases, skip the creation of the dyad_kvs_response_t object,
+    // and return DYAD_OK. This will cause the file transfer step to be skipped
     if (ctx->shared_storage || (owner_rank == ctx->rank))
     {
-        return 0;
+        *resp = NULL;
+        return DYAD_OK;
     }
+    // Allocate and populate the dyad_kvs_response_t object.
+    // If an error occurs, log it and return the appropriate
+    // return code
     *resp = malloc(sizeof(struct dyad_kvs_response));
     if (*resp == NULL)
     {
@@ -437,11 +565,14 @@ int dyad_fetch(dyad_ctx_t *ctx, const char* fname,
 #if DYAD_PERFFLOW
 __attribute__((annotate("@critical_path()")))
 #endif
-int dyad_rpc_get(dyad_ctx_t *ctx, dyad_kvs_response_t *kvs_data,
+static int dyad_rpc_get(dyad_ctx_t *ctx, dyad_kvs_response_t *kvs_data,
         const char **file_data, int *file_len)
 {
-    int rc = -1;
+    int rc = 0;
     flux_future_t *f = NULL;
+    // Create and send an RPC payload to the producer's Flux broker.
+    // This payload will tell the broker to run the dyad.fetch function
+    // with the upath specified by the data fetched from the KVS
     f = flux_rpc_pack(ctx->h,
             "dyad.fetch",
             kvs_data->owner_rank,
@@ -450,17 +581,21 @@ int dyad_rpc_get(dyad_ctx_t *ctx, dyad_kvs_response_t *kvs_data,
             "upath",
             kvs_data->fpath
             );
+    // If the RPC dispatch failed, log an error and return DYAD_BADRPC
     if (f == NULL)
     {
         DYAD_LOG_ERR(ctx, "Cannot send RPC to producer plugin!\n");
         return DYAD_BADRPC;
     }
+    // Extract the file data from the RPC response
     rc = flux_rpc_get_raw(f, (const void**) file_data, file_len);
+    // No matter what, destroy the Flux future for the RPC, if needed
     if (f != NULL)
     {
         flux_future_destroy(f);
         f = NULL;
     }
+    // If the extraction failed, log an error and return DYAD_BADRPC
     if (rc < 0)
     {
         DYAD_LOG_ERR(ctx, "Cannot get file back from plugin via RPC!\n");
@@ -469,34 +604,36 @@ int dyad_rpc_get(dyad_ctx_t *ctx, dyad_kvs_response_t *kvs_data,
     return DYAD_OK;
 }
 
-int dyad_pull(dyad_ctx_t *ctx, const char* fname,
+#if DYAD_PERFFLOW
+__attribute__((annotate("@critical_path()")))
+#endif
+static int dyad_pull(dyad_ctx_t *ctx, const char* fname,
         dyad_kvs_response_t *kvs_data)
 {
-    int rc = validate_context(ctx, true, false);
-    if (DYAD_IS_ERROR(rc))
-    {
-        return rc;
-    }
-    if (ctx == NULL)
-    {
-        fprintf (stderr, "DYAD context not provided to dyad_pull\n");
-        return DYAD_NOCTX;
-    }
+    int rc = 0;
     const char *file_data = NULL;
     int file_len = 0;
     const char *odir = NULL;
     FILE *of = NULL;
     char file_path [PATH_MAX+1] = {'\0'};
     char file_path_copy [PATH_MAX+1] = {'\0'};
+    mode_t m = (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH | S_ISGID);
+    size_t written_len = 0;
+    if (ctx == NULL)
+    {
+        fprintf (stderr, "DYAD context not provided to dyad_pull\n");
+        return DYAD_NOCTX;
+    }
 
+    // Call dyad_rpc_get to dispatch a RPC to the producer's Flux broker
+    // and retrieve the data associated with the file
     rc = dyad_rpc_get(ctx, kvs_data, &file_data, &file_len);
     if (rc != DYAD_OK)
     {
         goto pull_done;
     }
 
-    ctx->reenter = false;
-
+    // Build the full path to the file being consumed
     strncpy (file_path, ctx->cons_managed_path, PATH_MAX-1);
     concat_str (file_path, kvs_data->fpath, "/", PATH_MAX);
     strncpy (file_path_copy, file_path, PATH_MAX); // dirname modifies the arg
@@ -504,7 +641,6 @@ int dyad_pull(dyad_ctx_t *ctx, const char* fname,
     // Create the directory as needed
     // TODO: Need to be consistent with the mode at the source
     odir = dirname (file_path_copy);
-    mode_t m = (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH | S_ISGID);
     if ((strncmp (odir, ".", strlen(".")) != 0) &&
             (mkdir_as_needed (odir, m) < 0)) {
         DYAD_LOG_ERR(ctx, "Cannot create needed directories for pulled file\n");
@@ -512,6 +648,7 @@ int dyad_pull(dyad_ctx_t *ctx, const char* fname,
         goto pull_done;
     }
 
+    // Write the file contents to the location specified by the user
     of = fopen(file_path, "w");
     if (of == NULL)
     {
@@ -519,7 +656,7 @@ int dyad_pull(dyad_ctx_t *ctx, const char* fname,
         rc = DYAD_BADFIO;
         goto pull_done;
     }
-    size_t written_len = fwrite(file_data, sizeof(char), (size_t) file_len, of);
+    written_len = fwrite(file_data, sizeof(char), (size_t) file_len, of);
     if (written_len != (size_t) file_len)
     {
         DYAD_LOG_ERR(ctx, "fwrite of pulled file failed!\n");
@@ -536,53 +673,57 @@ int dyad_pull(dyad_ctx_t *ctx, const char* fname,
     rc = DYAD_OK;
 
 pull_done:
-    ctx->reenter = true;
+    // If "check" is set and the operation was successful, set the
+    // DYAD_CHECK_ENV environment variable to "ok"
     if (rc == DYAD_OK && (ctx && ctx->check))
         setenv (DYAD_CHECK_ENV, "ok", 1);
     return DYAD_OK;
 }
 
-int dyad_free_kvs_response(dyad_kvs_response_t *resp)
+#if DYAD_PERFFLOW
+__attribute__((annotate("@critical_path()")))
+#endif
+static int dyad_free_kvs_response(dyad_kvs_response_t **resp)
 {
-    if (resp == NULL)
+    if (resp == NULL || *resp == NULL)
     {
-        return 0;
+        return DYAD_OK;
     }
-    free(resp->fpath);
-    free(resp);
-    resp = NULL;
-    return 0;
+    free((*resp)->fpath);
+    free(*resp);
+    *resp = NULL;
+    return DYAD_OK;
 }
 
-int dyad_finalize(dyad_ctx_t *ctx)
+int dyad_finalize(dyad_ctx_t **ctx)
 {
-    if (ctx == NULL)
+    if (ctx == NULL || *ctx == NULL)
     {
-        return 0;
+        return DYAD_OK;
     }
-    if (ctx->h != NULL)
+    if ((*ctx)->h != NULL)
     {
-        flux_close(ctx->h);
-        ctx->h = NULL;
+        flux_close((*ctx)->h);
+        (*ctx)->h = NULL;
     }
-    if (ctx->kvs_namespace != NULL)
+    if ((*ctx)->kvs_namespace != NULL)
     {
-        free(ctx->kvs_namespace);
-        ctx->kvs_namespace = NULL;
+        free((*ctx)->kvs_namespace);
+        (*ctx)->kvs_namespace = NULL;
     }
-    if (ctx->prod_managed_path != NULL)
+    if ((*ctx)->prod_managed_path != NULL)
     {
-        free(ctx->prod_managed_path);
-        ctx->prod_managed_path = NULL;
+        free((*ctx)->prod_managed_path);
+        (*ctx)->prod_managed_path = NULL;
     }
-    if (ctx->cons_managed_path != NULL)
+    if ((*ctx)->cons_managed_path != NULL)
     {
-        free(ctx->cons_managed_path);
-        ctx->cons_managed_path = NULL;
+        free((*ctx)->cons_managed_path);
+        (*ctx)->cons_managed_path = NULL;
     }
-    free(ctx);
-    ctx = NULL;
-    return 0;
+    free(*ctx);
+    *ctx = NULL;
+    return DYAD_OK;
 }
 
 #if DYAD_SYNC_DIR

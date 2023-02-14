@@ -106,7 +106,7 @@ void dyad_stream_core::init ()
     else
         key_bins = 256;
 
-    if ((e = getenv ("FLUX_KVS_NAMESPACE")))
+    if ((e = getenv ("DYAD_KVS_NAMESPACE")))
     {
         kvs_namespace = e;
     }
@@ -208,7 +208,7 @@ bool dyad_stream_core::open_sync (const char *path)
 bool dyad_stream_core::close_sync (const char *path)
 {
     IPRINTF (m_ctx, "DYAD_SYNC CLOSE: enters sync (\"%s\").\n", path);
-    if (!m_initialized)
+   if (!m_initialized)
     {
         // TODO log
         return true;
@@ -235,6 +235,4 @@ bool dyad_stream_core::close_sync (const char *path)
 
 /*
  * vi: ts=4 sw=4 expandtab
- * y
- * y
  */
