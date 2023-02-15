@@ -90,7 +90,6 @@ void dyad_sync_init (void)
     char *kvs_namespace = NULL;
     char *prod_managed_path = NULL;
     char *cons_managed_path = NULL;
-    bool intercept = true;
 
     DPRINTF (ctx, "DYAD_WRAPPER: Initializeing DYAD wrapper\n");
 
@@ -146,7 +145,7 @@ void dyad_sync_init (void)
 
     int rc = dyad_init(debug, check, shared_storage, key_depth,
             key_bins, kvs_namespace, prod_managed_path,
-            cons_managed_path, intercept, &ctx);
+            cons_managed_path, &ctx);
 
     if (DYAD_IS_ERROR(rc))
     {
@@ -200,7 +199,7 @@ void dyad_sync_fini ()
                  tbuf, t_now.tv_nsec);
     }
 #endif // DYAD_SYNC_START
-    dyad_finalize(ctx);
+    dyad_finalize(&ctx);
 }
 
 int open (const char *path, int oflag, ...)
@@ -230,10 +229,6 @@ int open (const char *path, int oflag, ...)
 
     if ((mode != O_RDONLY) || is_path_dir (path)) {
         // TODO: make sure if the directory mode is consistent
-        goto real_call;
-    }
-
-    if (!oflag_is_read(oflag)) {
         goto real_call;
     }
 
@@ -273,11 +268,6 @@ FILE *fopen (const char *path, const char *mode)
 
     if ((strcmp (mode, "r") != 0) || is_path_dir (path)) {
         // TODO: make sure if the directory mode is consistent
-        goto real_call;
-    }
-
-    if (!mode_is_read(mode))
-    {
         goto real_call;
     }
 
@@ -336,12 +326,6 @@ int close (int fd)
 
     if (is_fd_dir (fd)) {
         // TODO: make sure if the directory mode is consistent
-        goto real_call;
-    }
-
-    if (fd_in_read_mode(fd))
-    {
-        to_sync = false;
         goto real_call;
     }
 
@@ -425,12 +409,6 @@ int fclose (FILE *fp)
 
     if (is_fd_dir (fileno (fp))) {
         // TODO: make sure if the directory mode is consistent
-        goto real_call;
-    }
-
-    if (file_in_read_mode(fp))
-    {
-        to_sync = false;
         goto real_call;
     }
 
