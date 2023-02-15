@@ -177,7 +177,6 @@ bool basic_ifstream_dyad<_CharT, _Traits>::is_open ()
 #else //-----------------------------------------------------------------------
 template < typename _CharT, typename _Traits >
 basic_ifstream_dyad<_CharT, _Traits>::basic_ifstream_dyad (const dyad_stream_core& ctx)
-  : m_ctx(ctx)
 {
     m_ctx.init ();
     m_stream = std::unique_ptr<basic_ifstream> (new basic_ifstream ());

@@ -41,9 +41,8 @@ namespace dyad {
  *                                                                           *
  *****************************************************************************/
 
-dyad_stream_core::dyad_stream_core(std::ios_base::openmode mode)
+dyad_stream_core::dyad_stream_core()
     : m_ctx(NULL)
-    , m_mode(mode)
     , m_initialized(false)
 {}
 
@@ -60,11 +59,6 @@ void dyad_stream_core::finalize()
         m_ctx = NULL;
         m_initialized = false;
     }
-}
-
-void dyad_stream_core::set_mode(std::ios_base::openmode mode)
-{
-    m_mode = mode;
 }
 
 void dyad_stream_core::init ()
@@ -166,16 +160,12 @@ void dyad_stream_core::log_info (const std::string& msg_head) const
 
 bool dyad_stream_core::is_dyad_producer ()
 {
-    if (m_mode & std::ios::in)
-    {
-        return false;
-    }
-    return true;
+    return m_ctx->prod_managed_path != NULL && strlen(m_ctx->prod_managed_path) != 0;
 }
 
 bool dyad_stream_core::is_dyad_consumer ()
 {
-    return !is_dyad_producer();
+    return m_ctx->cons_managed_path != NULL && strlen(m_ctx->cons_managed_path) != 0;
 }
 
 bool dyad_stream_core::open_sync (const char *path)
@@ -207,7 +197,7 @@ bool dyad_stream_core::open_sync (const char *path)
 bool dyad_stream_core::close_sync (const char *path)
 {
     IPRINTF (m_ctx, "DYAD_SYNC CLOSE: enters sync (\"%s\").\n", path);
-   if (!m_initialized)
+    if (!m_initialized)
     {
         // TODO log
         return true;

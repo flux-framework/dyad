@@ -22,18 +22,14 @@ extern "C" {
 namespace dyad {
 
 struct dyad_stream_core {
-                                     
-    dyad_ctx *m_ctx;                 
-                                     
-    bool m_initialized;              
-                                     
-    std::ios_base::openmode m_mode;  
-                                     
-    dyad_stream_core (std::ios_base::openmode mode=std::ios::in);
+
+    dyad_ctx *m_ctx;
+
+    bool m_initialized;
+
+    dyad_stream_core ();
 
     ~dyad_stream_core();
-
-    void set_mode(std::ios_base::openmode mode);
 
     void init ();
     void init (const dyad_params& p);
