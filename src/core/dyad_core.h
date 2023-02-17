@@ -94,8 +94,8 @@ typedef struct dyad_kvs_response dyad_kvs_response_t;
  */
 int dyad_init(bool debug, bool check, bool shared_storage,
         unsigned int key_depth, unsigned int key_bins,
-        const char *kvs_namespace, const char* prod_managed_path,
-        const char *cons_managed_path, dyad_ctx_t **ctx);
+        const char* kvs_namespace, const char* prod_managed_path,
+        const char* cons_managed_path, dyad_ctx_t** ctx);
 
 /**
  * @brief Wrapper function that performs all the common tasks needed
@@ -108,7 +108,7 @@ int dyad_init(bool debug, bool check, bool shared_storage,
 #if DYAD_PERFFLOW
 __attribute__((annotate("@critical_path()")))
 #endif
-int dyad_produce(dyad_ctx_t *ctx, const char *fname);
+int dyad_produce(dyad_ctx_t* ctx, const char* fname);
 
 /**
  * @brief Wrapper function that performs all the common tasks needed
@@ -121,7 +121,7 @@ int dyad_produce(dyad_ctx_t *ctx, const char *fname);
 #if DYAD_PERFFLOW
 __attribute__((annotate("@critical_path()")))
 #endif
-int dyad_consume(dyad_ctx_t *ctx, const char *fname);
+int dyad_consume(dyad_ctx_t* ctx, const char* fname);
 
 /**
  * @brief Finalizes the DYAD instance and deallocates the context
@@ -129,10 +129,10 @@ int dyad_consume(dyad_ctx_t *ctx, const char *fname);
  *
  * @return An integer error code (values TBD)
  */
-int dyad_finalize(dyad_ctx_t **ctx);
+int dyad_finalize(dyad_ctx_t** ctx);
 
 #if DYAD_SYNC_DIR
-int dyad_sync_directory(dyad_ctx_t *ctx, const char *path);
+int dyad_sync_directory(dyad_ctx_t* ctx, const char* path);
 #endif
 
 #ifdef __cplusplus
