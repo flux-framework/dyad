@@ -8,54 +8,53 @@
  * SPDX-License-Identifier: LGPL-3.0
 \************************************************************/
 
-#include "dyad_core.h"
 #include "dyad_stream_core.hpp"
-#include "utils.h"
+
+#include "dyad_core.h"
 #include "murmur3.h"
+#include "utils.h"
 
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #include <ios>
-#endif // _GNU_SOURCE
+#endif  // _GNU_SOURCE
 
+#include <cerrno>
+#include <climits>
+#include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
-#include <climits>
 #include <cstring>
-#include <cerrno>
-#include <cstdarg>
 #include <ctime>
-using namespace std; // std::clock ()
+using namespace std;  // std::clock ()
 //#include <cstdbool> // c++11
 
-#include <fcntl.h>
-#include <libgen.h> // dirname
 #include <dlfcn.h>
+#include <fcntl.h>
+#include <libgen.h>  // dirname
 #include <unistd.h>
 
-namespace dyad {
-
+namespace dyad
+{
 /*****************************************************************************
  *                                                                           *
  *                           dyad_stream_core API                             *
  *                                                                           *
  *****************************************************************************/
 
-dyad_stream_core::dyad_stream_core()
-    : m_ctx(NULL)
-    , m_initialized(false)
-{}
-
-dyad_stream_core::~dyad_stream_core()
+dyad_stream_core::dyad_stream_core () : m_ctx (NULL), m_initialized (false)
 {
-    finalize();
 }
 
-void dyad_stream_core::finalize()
+dyad_stream_core::~dyad_stream_core ()
 {
-    if (m_ctx != NULL)
-    {
-        dyad_finalize(&m_ctx);
+    finalize ();
+}
+
+void dyad_stream_core::finalize ()
+{
+    if (m_ctx != NULL) {
+        dyad_finalize (&m_ctx);
         m_ctx = NULL;
         m_initialized = false;
     }
@@ -99,60 +98,64 @@ void dyad_stream_core::init ()
     else
         key_bins = 256;
 
-    if ((e = getenv ("DYAD_KVS_NAMESPACE")))
-    {
+    if ((e = getenv ("DYAD_KVS_NAMESPACE"))) {
         kvs_namespace = e;
-    }
-    else
-    {
+    } else {
         kvs_namespace = NULL;
     }
 
-    if ((e = getenv (DYAD_PATH_CONS_ENV)))
-    {
+    if ((e = getenv (DYAD_PATH_CONS_ENV))) {
         cons_managed_path = e;
-    }
-    else
-    {
+    } else {
         cons_managed_path = NULL;
     }
-    if ((e = getenv (DYAD_PATH_PROD_ENV)))
-    {
+    if ((e = getenv (DYAD_PATH_PROD_ENV))) {
         prod_managed_path = e;
-    }
-    else
-    {
+    } else {
         prod_managed_path = NULL;
     }
 
-    int rc = dyad_init(debug, check, shared_storage, key_depth,
-            key_bins, kvs_namespace, prod_managed_path,
-            cons_managed_path, &m_ctx);
+    int rc = dyad_init (debug,
+                        check,
+                        shared_storage,
+                        key_depth,
+                        key_bins,
+                        kvs_namespace,
+                        prod_managed_path,
+                        cons_managed_path,
+                        &m_ctx);
 
     // TODO figure out if we want to error if init fails
     m_initialized = true;
     log_info ("Stream core is initialized by env variables.");
 }
 
-void dyad_stream_core::init (const dyad_params& p)
+void dyad_stream_core::init (const dyad_params &p)
 {
     DPRINTF (m_ctx, "DYAD_WRAPPER: Initializeing DYAD wrapper\n");
-    int rc = dyad_init(p.m_debug, false, p.m_shared_storage,
-            p.m_key_depth, p.m_key_bins, p.m_kvs_namespace.c_str(),
-            p.m_prod_managed_path.c_str(), p.m_cons_managed_path.c_str(),
-            &m_ctx);
+    int rc = dyad_init (p.m_debug,
+                        false,
+                        p.m_shared_storage,
+                        p.m_key_depth,
+                        p.m_key_bins,
+                        p.m_kvs_namespace.c_str (),
+                        p.m_prod_managed_path.c_str (),
+                        p.m_cons_managed_path.c_str (),
+                        &m_ctx);
     // TODO figure out if we want to error if init fails
     m_initialized = true;
     log_info ("Stream core is initialized by parameters");
 }
 
-void dyad_stream_core::log_info (const std::string& msg_head) const
+void dyad_stream_core::log_info (const std::string &msg_head) const
 {
     DYAD_LOG_INFO (m_ctx, "=== %s ===\n", msg_head.c_str ());
     DYAD_LOG_INFO (m_ctx, "%s=%s\n", DYAD_PATH_CONS_ENV, m_ctx->cons_managed_path);
     DYAD_LOG_INFO (m_ctx, "%s=%s\n", DYAD_PATH_PROD_ENV, m_ctx->prod_managed_path);
-    DYAD_LOG_INFO (m_ctx, "DYAD_SYNC_DEBUG=%s\n", (m_ctx->debug)? "true": "false");
-    DYAD_LOG_INFO (m_ctx, "DYAD_SHARED_STORAGE=%s\n", (m_ctx->shared_storage)? "true": "false");
+    DYAD_LOG_INFO (m_ctx, "DYAD_SYNC_DEBUG=%s\n", (m_ctx->debug) ? "true" : "false");
+    DYAD_LOG_INFO (m_ctx,
+                   "DYAD_SHARED_STORAGE=%s\n",
+                   (m_ctx->shared_storage) ? "true" : "false");
     DYAD_LOG_INFO (m_ctx, "DYAD_KEY_DEPTH=%u\n", m_ctx->key_depth);
     DYAD_LOG_INFO (m_ctx, "DYAD_KEY_BINS=%u\n", m_ctx->key_bins);
     DYAD_LOG_INFO (m_ctx, "FLUX_KVS_NAMESPACE=%s\n", m_ctx->kvs_namespace);
@@ -160,32 +163,31 @@ void dyad_stream_core::log_info (const std::string& msg_head) const
 
 bool dyad_stream_core::is_dyad_producer ()
 {
-    return m_ctx->prod_managed_path != NULL && strlen(m_ctx->prod_managed_path) != 0;
+    return m_ctx->prod_managed_path != NULL && strlen (m_ctx->prod_managed_path) != 0;
 }
 
 bool dyad_stream_core::is_dyad_consumer ()
 {
-    return m_ctx->cons_managed_path != NULL && strlen(m_ctx->cons_managed_path) != 0;
+    return m_ctx->cons_managed_path != NULL && strlen (m_ctx->cons_managed_path) != 0;
 }
 
 bool dyad_stream_core::open_sync (const char *path)
 {
     IPRINTF (m_ctx, "DYAD_SYNC OPEN: enters sync (\"%s\").\n", path);
-    if (!m_initialized)
-    {
+    if (!m_initialized) {
         // TODO log
         return true;
     }
 
     int rc = 0;
 
-    if (! is_dyad_consumer ()) {
+    if (!is_dyad_consumer ()) {
         return true;
     }
 
-    rc = dyad_consume(m_ctx, path);
+    rc = dyad_consume (m_ctx, path);
 
-    if (DYAD_IS_ERROR(rc)) {
+    if (DYAD_IS_ERROR (rc)) {
         DPRINTF (m_ctx, "DYAD_SYNC OPEN: failed sync (\"%s\").\n", path);
         return false;
     }
@@ -197,21 +199,20 @@ bool dyad_stream_core::open_sync (const char *path)
 bool dyad_stream_core::close_sync (const char *path)
 {
     IPRINTF (m_ctx, "DYAD_SYNC CLOSE: enters sync (\"%s\").\n", path);
-    if (!m_initialized)
-    {
+    if (!m_initialized) {
         // TODO log
         return true;
     }
 
     int rc = 0;
 
-    if (! is_dyad_producer ()) {
+    if (!is_dyad_producer ()) {
         return true;
     }
 
-    rc = dyad_produce(m_ctx, path);
+    rc = dyad_produce (m_ctx, path);
 
-    if (DYAD_IS_ERROR(rc)) {
+    if (DYAD_IS_ERROR (rc)) {
         DPRINTF (m_ctx, "DYAD_SYNC CLOSE: failed sync (\"%s\").\n", path);
         return false;
     }
@@ -220,7 +221,7 @@ bool dyad_stream_core::close_sync (const char *path)
     return true;
 }
 
-} // end of namespace dyad
+}  // end of namespace dyad
 
 /*
  * vi: ts=4 sw=4 expandtab

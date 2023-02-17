@@ -13,8 +13,8 @@
 
 #include <string>
 
-namespace dyad {
-
+namespace dyad
+{
 struct dyad_params {
     bool m_debug;
     // Indicate if the storage associated with the managed path is shared
@@ -34,15 +34,16 @@ struct dyad_params {
     std::string m_prod_managed_path;
 
     dyad_params ()
-    : m_debug(false)
-    , m_shared_storage(false)
-    , m_key_depth(2u)
-    , m_key_bins(256u)
-    , m_kvs_namespace("")
-    , m_cons_managed_path("")
-    , m_prod_managed_path("")
-    {}
+        : m_debug (false),
+          m_shared_storage (false),
+          m_key_depth (2u),
+          m_key_bins (256u),
+          m_kvs_namespace (""),
+          m_cons_managed_path (""),
+          m_prod_managed_path ("")
+    {
+    }
 };
 
-} // end of namespace dyad
-#endif // DYAD_PARAMS_HPP
+}  // end of namespace dyad
+#endif  // DYAD_PARAMS_HPP

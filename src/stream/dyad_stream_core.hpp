@@ -13,37 +13,36 @@
 
 #include <iostream>
 #include <string>
+
 #include "dyad_params.hpp"
 
 extern "C" {
-    struct dyad_ctx;
+struct dyad_ctx;
 }
 
-namespace dyad {
-
+namespace dyad
+{
 struct dyad_stream_core {
-
     dyad_ctx *m_ctx;
 
     bool m_initialized;
 
     dyad_stream_core ();
 
-    ~dyad_stream_core();
+    ~dyad_stream_core ();
 
     void init ();
-    void init (const dyad_params& p);
-    void log_info (const std::string& msg_head) const;
+    void init (const dyad_params &p);
+    void log_info (const std::string &msg_head) const;
 
-    void finalize();
+    void finalize ();
 
     bool is_dyad_producer ();
     bool is_dyad_consumer ();
 
     bool open_sync (const char *path);
     bool close_sync (const char *path);
-
 };
 
-} // end of namespace dyad
-#endif // DYAD_STREAM_CORE_HPP
+}  // end of namespace dyad
+#endif  // DYAD_STREAM_CORE_HPP

@@ -14,9 +14,8 @@
 #include "dyad_core.h"
 
 #ifdef __cplusplus
-extern "C"
-{
-#endif // __cplusplus
+extern "C" {
+#endif  // __cplusplus
 
 extern __thread dyad_ctx_t *ctx;
 // extern int open_sync (const char *path);
@@ -24,7 +23,7 @@ extern __thread dyad_ctx_t *ctx;
 
 #ifdef __cplusplus
 }
-#endif // __cplusplus
+#endif  // __cplusplus
 
 #endif /* WRAPPER_H */
 

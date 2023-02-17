@@ -10,50 +10,51 @@
 
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
-#endif // _GNU_SOURCE
+#endif  // _GNU_SOURCE
 
-#include <sys/types.h> // open
-#include <sys/stat.h> // open
-#include <fcntl.h> // open
-
-#include <unistd.h> // readlink
-#include <libgen.h> // basename dirname
+#include <fcntl.h>      // open
+#include <libgen.h>     // basename dirname
+#include <sys/stat.h>   // open
+#include <sys/types.h>  // open
+#include <unistd.h>     // readlink
 
 #if defined(__cplusplus)
-#include <cstdio>
-#include <cstring>
-#include <cstdlib>
 #include <cerrno>
-#include <cstddef>
 #include <climits>
+#include <cstddef>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <ctime>
 //#include <cstdbool> // c++11
 #else
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 #include <errno.h>
-#include <stddef.h>
-#include <limits.h> // PATH_MAX
-#include <time.h>
+#include <limits.h>  // PATH_MAX
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
 #endif
 
 #include "utils.h"
 
 // Debug message
 #ifndef DPRINTF
-#define DPRINTF(fmt,...) do { \
-    if (debug_dyad_utils) fprintf (stderr, fmt, ##__VA_ARGS__); \
-} while (0)
-#endif // DPRINTF
+#define DPRINTF(fmt, ...)                         \
+    do {                                          \
+        if (debug_dyad_utils)                     \
+            fprintf (stderr, fmt, ##__VA_ARGS__); \
+    } while (0)
+#endif  // DPRINTF
 
 // Detailed information message that can be omitted
 #if DYAD_FULL_DEBUG
 #define IPRINTF DPRINTF
 #else
-#define IPRINTF(fmt,...)
-#endif // DYAD_FULL_DEBUG
+#define IPRINTF(fmt, ...)
+#endif  // DYAD_FULL_DEBUG
 
 static __thread bool debug_dyad_utils = false;
 
@@ -71,7 +72,6 @@ bool check_debug_dyad_utils (void)
 {
     return debug_dyad_utils;
 }
-
 
 /**
  * Append the string `to_append` to the existing string `str`.
@@ -94,14 +94,13 @@ char* concat_str (char* __restrict__ str,
 
     bool con_end = false;
     if ((connector != NULL) && (str_len_org >= con_len)) {
-        con_end
-          = (strncmp (str + str_len_org - con_len, connector, con_len) == 0);
+        con_end = (strncmp (str + str_len_org - con_len, connector, con_len) == 0);
     }
-    const size_t str_len = (con_end? (str_len_org - con_len) : str_len_org);
+    const size_t str_len = (con_end ? (str_len_org - con_len) : str_len_org);
 
     const char* const str_end = str + str_capacity;
-    bool no_overlap
-        =  ((to_append + strlen (to_append) <= str) || (str_end <= to_append))
+    bool no_overlap =
+        ((to_append + strlen (to_append) <= str) || (str_end <= to_append))
         && ((connector + strlen (connector) <= str) || (str_end <= connector));
 
     if (!no_overlap) {
@@ -109,7 +108,7 @@ char* concat_str (char* __restrict__ str,
         return NULL;
     }
 
-    char* buf = (char*) calloc (all_len+1ul, sizeof (char));
+    char* buf = (char*)calloc (all_len + 1ul, sizeof (char));
 
     strncpy (buf, str, str_len);
 
@@ -137,7 +136,7 @@ bool extract_user_path (const char* __restrict__ path,
     }
 
     if (!(((upath + PATH_MAX) <= path) || ((path + PATH_MAX) <= upath))) {
-        return false; // buffers overlap
+        return false;  // buffers overlap
     }
 
     size_t upath_pos = strlen (path) - upath_len;
@@ -152,19 +151,17 @@ bool extract_user_path (const char* __restrict__ path,
  * delimiter. Then, returns the length of the user added path string
  * that follows the path prefix via the last argument.
  */
-bool cmp_prefix (const char*  __restrict__ prefix,
-                const char*  __restrict__ full,
-                const char*  __restrict__ delim,
-                size_t*  __restrict__ u_len)
+bool cmp_prefix (const char* __restrict__ prefix,
+                 const char* __restrict__ full,
+                 const char* __restrict__ delim,
+                 size_t* __restrict__ u_len)
 {
     {
-        const char* const u_len_end = ((const char*) u_len) + sizeof (size_t);
-        bool no_overlap = ((prefix + strlen (prefix) <= (char*) u_len) ||
-                           (u_len_end <= prefix))
-                       && ((full + strlen (full) <= (char*) u_len) ||
-                           (u_len_end <= full))
-                       && ((delim + strlen (delim) <= (char*) u_len) ||
-                           (u_len_end <= delim));
+        const char* const u_len_end = ((const char*)u_len) + sizeof (size_t);
+        bool no_overlap =
+            ((prefix + strlen (prefix) <= (char*)u_len) || (u_len_end <= prefix))
+            && ((full + strlen (full) <= (char*)u_len) || (u_len_end <= full))
+            && ((delim + strlen (delim) <= (char*)u_len) || (u_len_end <= delim));
 
         if (!no_overlap) {
             DPRINTF ("DYAD UTIL: buffers overlap.\n");
@@ -173,14 +170,14 @@ bool cmp_prefix (const char*  __restrict__ prefix,
     }
 
     const size_t full_len = strlen (full);
-    const size_t delim_len = ((delim == NULL)? 0ul : strlen (delim));
+    const size_t delim_len = ((delim == NULL) ? 0ul : strlen (delim));
     size_t prefix_len = strlen (prefix);
     if (full_len > PATH_MAX || delim_len > PATH_MAX || prefix_len > PATH_MAX) {
         DPRINTF ("DYAD UTIL: path length cannot be larger than PATH_MAX\n");
         return false;
     }
 
-    if (delim_len == 0ul) { // no delimiter is defined
+    if (delim_len == 0ul) {  // no delimiter is defined
         if (strncmp (prefix, full, prefix_len) != 0) {
             return false;
         }
@@ -205,14 +202,13 @@ bool cmp_prefix (const char*  __restrict__ prefix,
         return false;
     }
 
-
     if (full_len == prefix_len) {
         // The full path string is exactly the same as the prefix string.
         if (u_len != NULL) {
             *u_len = 0ul;
         }
         return true;
-    }  else if (full_len < prefix_len + delim_len) {
+    } else if (full_len < prefix_len + delim_len) {
         return false;
     }
 
@@ -223,7 +219,7 @@ bool cmp_prefix (const char*  __restrict__ prefix,
     // Finally, make sure that the user path begins with the delimiter.
     // This check correctly identifies, for example, "prefix_path2/user_path" as
     // a mismatch when "prefix_path/user_path" is a match.
-    return (strncmp (full+prefix_len, delim, delim_len) == 0);
+    return (strncmp (full + prefix_len, delim, delim_len) == 0);
 }
 
 bool cmp_canonical_path_prefix (const char* __restrict__ prefix,
@@ -233,20 +229,18 @@ bool cmp_canonical_path_prefix (const char* __restrict__ prefix,
 {
     {
         const char* const upath_end = upath + upath_capacity;
-        bool no_overlap =  ((prefix + strlen (prefix) <= upath) ||
-                            (upath_end <= prefix))
-                        && ((path + strlen (path) <= upath) ||
-                            (upath_end <= path));
+        bool no_overlap = ((prefix + strlen (prefix) <= upath) || (upath_end <= prefix))
+                          && ((path + strlen (path) <= upath) || (upath_end <= path));
 
         if (!no_overlap) {
             DPRINTF ("DYAD UTIL: buffers overlap\n");
             return false;
-       }
+        }
     }
 
     // Only works when there are no multiple absolute paths via hardlinks
-    char can_prefix[PATH_MAX] = {'\0'}; // canonical form of the managed path
-    char can_path[PATH_MAX] = {'\0'};  // canonical form of the given path
+    char can_prefix[PATH_MAX] = {'\0'};  // canonical form of the managed path
+    char can_path[PATH_MAX] = {'\0'};    // canonical form of the given path
 
     // The path prefix needs to translate to a real path
     if (!realpath (prefix, can_prefix)) {
@@ -262,7 +256,7 @@ bool cmp_canonical_path_prefix (const char* __restrict__ prefix,
     // dyad managed path or its canonical form when the path is not a real one.
     if (!realpath (path, can_path)) {
         IPRINTF ("DYAD UTIL: %s is NOT a realpath.\n", path);
-        if (! cmp_prefix (prefix, path, DYAD_PATH_DELIM, &upath_len)) {
+        if (!cmp_prefix (prefix, path, DYAD_PATH_DELIM, &upath_len)) {
             match = cmp_prefix (can_prefix, path, DYAD_PATH_DELIM, &upath_len);
         } else {
             match = true;
@@ -286,7 +280,7 @@ bool cmp_canonical_path_prefix (const char* __restrict__ prefix,
  * Recursively create a directory
  * https://stackoverflow.com/questions/2336242/recursive-mkdir-system-call-on-unix
  */
-int mkpath (const char *dir, const mode_t m)
+int mkpath (const char* dir, const mode_t m)
 {
     struct stat sb;
 
@@ -314,35 +308,41 @@ int mkdir_as_needed (const char* path, const mode_t m)
 
     const mode_t RWX_UGO = (S_IRWXU | S_IRWXG | S_IRWXO);
 
-    if (stat (path, &sb) == 0) { // already exist
-        if (S_ISDIR (sb.st_mode) == 0) { // not a directory
+    if (stat (path, &sb) == 0) {          // already exist
+        if (S_ISDIR (sb.st_mode) == 0) {  // not a directory
             DPRINTF ("\"%s\" already exists not as a directory\n", path);
             return -2;
         } else if ((sb.st_mode & RWX_UGO) ^ (m & RWX_UGO)) {
-            DPRINTF ("Directory \"%s\" already exists with "
-                     "different permission bits %o from "
-                     "the requested %o\n", path,
-                     (sb.st_mode & RWX_UGO), (m & RWX_UGO));
-            return 5; // already exists but with different mode
+            DPRINTF (
+                "Directory \"%s\" already exists with "
+                "different permission bits %o from "
+                "the requested %o\n",
+                path,
+                (sb.st_mode & RWX_UGO),
+                (m & RWX_UGO));
+            return 5;  // already exists but with different mode
         }
-        return 1; // already exists
+        return 1;  // already exists
     }
     IPRINTF ("Creating directory \"%s\"\n", path);
 
     const mode_t old_mask = umask (0);
     if (mkpath (path, m) != 0) {
-        if (stat (path, &sb) == 0) { // already exist
-            if (S_ISDIR (sb.st_mode) == 0) { // not a directory
+        if (stat (path, &sb) == 0) {          // already exist
+            if (S_ISDIR (sb.st_mode) == 0) {  // not a directory
                 DPRINTF ("\"%s\" already exists not as a directory\n", path);
                 return -4;
             } else if ((sb.st_mode & RWX_UGO) ^ (m & RWX_UGO)) {
-                DPRINTF ("Directory \"%s\" already exists with "
-                         "different permission bits %o from "
-                         "the requested %o\n", path,
-                         (sb.st_mode & RWX_UGO), (m & RWX_UGO));
-                return 5; // already exists but with different mode
+                DPRINTF (
+                    "Directory \"%s\" already exists with "
+                    "different permission bits %o from "
+                    "the requested %o\n",
+                    path,
+                    (sb.st_mode & RWX_UGO),
+                    (m & RWX_UGO));
+                return 5;  // already exists but with different mode
             }
-            return 1; // already exists
+            return 1;  // already exists
         }
         DPRINTF ("Cannot create directory \"%s\": %s\n", path, strerror (errno));
         perror ("mkdir_as_needed() ");
@@ -350,11 +350,11 @@ int mkdir_as_needed (const char* path, const mode_t m)
     }
     umask (old_mask);
 
-  #if DYAD_SYNC_DIR
+#if DYAD_SYNC_DIR
     sync_containing_dir (path);
-  #endif // DYAD_SYNC_DIR
+#endif  // DYAD_SYNC_DIR
 
-    return 0; // The new directory has been succesfully created
+    return 0;  // The new directory has been succesfully created
 }
 
 int get_path (const int fd, const size_t max_size, char* path)
@@ -363,20 +363,20 @@ int get_path (const int fd, const size_t max_size, char* path)
         DPRINTF ("Invalid max path size.\n");
         return -1;
     }
-    memset (path, '\0', max_size+1);
+    memset (path, '\0', max_size + 1);
     char proclink[PATH_MAX] = {'\0'};
 
     sprintf (proclink, "/proc/self/fd/%d", fd);
     ssize_t rc = readlink (proclink, path, max_size);
-    if (rc < (ssize_t) 0) {
+    if (rc < (ssize_t)0) {
         IPRINTF ("DYAD UTIL: error reading the file link (%s): %s\n",
-                 strerror (errno), proclink);
-        return -1;
-    } else if ((size_t) rc == max_size) {
-        IPRINTF ("DYAD UTIL: truncation might have happend with %s\n",
+                 strerror (errno),
                  proclink);
+        return -1;
+    } else if ((size_t)rc == max_size) {
+        IPRINTF ("DYAD UTIL: truncation might have happend with %s\n", proclink);
     }
-    path[max_size+1] = '\0';
+    path[max_size + 1] = '\0';
 
     return 0;
 }
@@ -419,53 +419,54 @@ bool get_stat (const char* path, unsigned int max_retry, long ns_sleep)
     tim.tv_nsec = ns_sleep;
 
     while ((stat (path, &sb) != 0) && (num_retry < max_retry)) {
-        nanosleep (&tim , &tim2);
-        num_retry ++;
+        nanosleep (&tim, &tim2);
+        num_retry++;
     }
     if (num_retry == max_retry) {
         return false;
     }
     return true;
 }
-#endif // DYAD_SPIN_WAIT
+#endif  // DYAD_SPIN_WAIT
 
 #if DYAD_SYNC_DIR
 int sync_containing_dir (const char* path)
 {
-    char fullpath [PATH_MAX+2] = {'\0'};
+    char fullpath[PATH_MAX + 2] = {'\0'};
     strncpy (fullpath, path, PATH_MAX);
     const char* containing_dir = dirname (fullpath);
     int dir_fd = open (containing_dir, O_RDONLY);
     if (strlen (containing_dir) == 0) {
         return 0;
-    } else if ((strlen (containing_dir) == 2) &&
-               (containing_dir[0] == '.') &&
-               (containing_dir[1] == '/')) {
+    } else if ((strlen (containing_dir) == 2) && (containing_dir[0] == '.')
+               && (containing_dir[1] == '/')) {
         return 0;
     }
 
     if (dir_fd < 0) {
-        char errmsg [ PATH_MAX+256 ] = {'\0'};
-        snprintf (errmsg, PATH_MAX+256,
-                  "Failed to open directory %s\n", containing_dir);
+        char errmsg[PATH_MAX + 256] = {'\0'};
+        snprintf (errmsg,
+                  PATH_MAX + 256,
+                  "Failed to open directory %s\n",
+                  containing_dir);
         perror (errmsg);
-        return -1; //exit (SYS_ERR);
+        return -1;  // exit (SYS_ERR);
     }
 
     if (fsync (dir_fd) < 0) {
-        char errmsg [ PATH_MAX+256 ] = {'\0'};
-        snprintf (errmsg, PATH_MAX+256, "Failed to fsync %s\n", containing_dir);
+        char errmsg[PATH_MAX + 256] = {'\0'};
+        snprintf (errmsg, PATH_MAX + 256, "Failed to fsync %s\n", containing_dir);
         perror (errmsg);
-        return -1; //exit (SYS_ERR);
+        return -1;  // exit (SYS_ERR);
     }
 
     if (close (dir_fd) < 0) {
-        char errmsg [ PATH_MAX+256 ] = {'\0'};
-        snprintf (errmsg, PATH_MAX+256, "Failed to close %s\n", containing_dir);
+        char errmsg[PATH_MAX + 256] = {'\0'};
+        snprintf (errmsg, PATH_MAX + 256, "Failed to close %s\n", containing_dir);
         perror (errmsg);
-        return -1; //exit (SYS_ERR);
+        return -1;  // exit (SYS_ERR);
     }
 
     return 0;
 }
-#endif // DYAD_SYNC_DIR
+#endif  // DYAD_SYNC_DIR

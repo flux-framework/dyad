@@ -11,17 +11,16 @@
 #ifndef DYAD_MOD_CTX_H
 #define DYAD_MOD_CTX_H
 
-#include <stdbool.h>
 #include <flux/core.h>
+#include <stdbool.h>
 
 struct dyad_mod_ctx {
     flux_t *h;
     bool debug;
     flux_msg_handler_t **handlers;
     const char *dyad_path;
-} dyad_mod_ctx_default =
-    {NULL, false, NULL, NULL};
+} dyad_mod_ctx_default = {NULL, false, NULL, NULL};
 
 typedef struct dyad_mod_ctx dyad_mod_ctx_t;
 
-#endif // DYAD_MOD_CTX_H
+#endif  // DYAD_MOD_CTX_H

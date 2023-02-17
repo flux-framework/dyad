@@ -12,17 +12,19 @@
 #define URPC_CLIENT_H
 
 #ifdef __cplusplus
-extern "C"
-{
-#endif // __cplusplus
+extern "C" {
+#endif  // __cplusplus
 
 uint32_t urpc_get_my_rank (void);
 uint32_t urpc_get_service_rank (const char *service_name);
-int urpc_client (uint32_t server_rank, const char *cmd, const char *file_path, int is_json);
+int urpc_client (uint32_t server_rank,
+                 const char *cmd,
+                 const char *file_path,
+                 int is_json);
 
 #ifdef __cplusplus
 }
-#endif // __cplusplus
+#endif  // __cplusplus
 
 #endif /* URPC_CLIENT_H */
 

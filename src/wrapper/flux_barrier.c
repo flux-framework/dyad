@@ -8,33 +8,36 @@
  * SPDX-License-Identifier: LGPL-3.0
 \************************************************************/
 
+#include <flux/core.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 #include <string.h>
 #include <sys/types.h>
-#include <flux/core.h>
+#include <time.h>
 
 #if DYAD_FULL_DEBUG
 #define IPRINTF DPRINTF
 #define IPRINTF_DEFINED
 #else
-#define IPRINTF(fmt,...)
-#endif // DYAD_FULL_DEBUG
+#define IPRINTF(fmt, ...)
+#endif  // DYAD_FULL_DEBUG
 
 #if !defined(DYAD_LOGGING_ON) || (DYAD_LOGGING_ON == 0)
-#define FLUX_LOG_INFO(...) do {} while (0)
-#define FLUX_LOG_ERR(...) do {} while (0)
+#define FLUX_LOG_INFO(...) \
+    do {                   \
+    } while (0)
+#define FLUX_LOG_ERR(...) \
+    do {                  \
+    } while (0)
 #else
 #define FLUX_LOG_INFO(...) flux_log (h, LOG_INFO, __VA_ARGS__)
 #define FLUX_LOG_ERR(...) flux_log_error (h, __VA_ARGS__)
 #endif
 
-
 int main (int argc, char** argv)
 {
-    flux_future_t *fb;
-    flux_t *h;
+    flux_future_t* fb;
+    flux_t* h;
     uint32_t n_ranks = 1u;
     uint32_t my_rank = 0u;
     const char* tag = "flux_barrier";
@@ -44,7 +47,8 @@ int main (int argc, char** argv)
     }
 
     if (argc != 2) {
-        FLUX_LOG_ERR ("flux_barrier requires a tag to distinguish different synchronizations\n");
+        FLUX_LOG_ERR (
+            "flux_barrier requires a tag to distinguish different synchronizations\n");
         return EXIT_FAILURE;
     }
     tag = argv[1];
@@ -53,20 +57,21 @@ int main (int argc, char** argv)
     if (flux_get_size (h, &n_ranks) < 0) {
         FLUX_LOG_ERR ("flux_get_size() failed");
     }
-    FLUX_LOG_INFO("FLUX Instance Size: %u\n", n_ranks);
+    FLUX_LOG_INFO ("FLUX Instance Size: %u\n", n_ranks);
 #else
     if (argc != 3) {
         FLUX_LOG_ERR ("flux_barrier requires number of ranks to synchronize\n");
         return EXIT_FAILURE;
     }
 
-    n_ranks = (uint32_t) atoi (argv[2]);
+    n_ranks = (uint32_t)atoi (argv[2]);
 #endif
     my_rank = 0u;
 
     if ((flux_get_rank (h, &my_rank) < 0) || (my_rank >= n_ranks)) {
-        FLUX_LOG_ERR ("flux_get_rank() failed or " \
-                      "an invalid number of ranks is given.\n");
+        FLUX_LOG_ERR (
+            "flux_get_rank() failed or "
+            "an invalid number of ranks is given.\n");
         return EXIT_FAILURE;
     }
 

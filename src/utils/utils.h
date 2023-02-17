@@ -13,7 +13,7 @@
 
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
-#endif // _GNU_SOURCE
+#endif  // _GNU_SOURCE
 
 #define DYAD_PATH_DELIM "/"
 
@@ -23,18 +23,18 @@
 #else
 #include <stdbool.h>
 #include <stddef.h>
-#endif // defined(__cplusplus)
+#endif  // defined(__cplusplus)
 
 #include <sys/stat.h>
 
 #if defined(__cplusplus)
 extern "C" {
-#endif // defined(__cplusplus)
+#endif  // defined(__cplusplus)
 
-bool file_in_read_mode(FILE *f);
-bool fd_in_read_mode(int fd);
-bool oflag_is_read(int oflag);
-bool mode_is_read(const char *mode);
+bool file_in_read_mode (FILE* f);
+bool fd_in_read_mode (int fd);
+bool oflag_is_read (int oflag);
+bool mode_is_read (const char* mode);
 
 void enable_debug_dyad_utils (void);
 void disable_debug_dyad_utils (void);
@@ -49,10 +49,10 @@ bool extract_user_path (const char* __restrict__ path,
                         char* __restrict__ upath,
                         const size_t upath_len);
 
-bool cmp_prefix (const char*  __restrict__ prefix,
-                 const char*  __restrict__ full,
-                 const char*  __restrict__ delim,
-                 size_t*  __restrict__ u_len);
+bool cmp_prefix (const char* __restrict__ prefix,
+                 const char* __restrict__ full,
+                 const char* __restrict__ delim,
+                 size_t* __restrict__ u_len);
 
 bool cmp_canonical_path_prefix (const char* __restrict__ prefix,
                                 const char* __restrict__ path,
@@ -73,7 +73,7 @@ bool is_fd_dir (int fd);
 #if DYAD_SPIN_WAIT
 /// Try access file info
 bool get_stat (const char* path, unsigned int max_retry, long ns_sleep);
-#endif // DYAD_SPIN_WAIT
+#endif  // DYAD_SPIN_WAIT
 
 #if DYAD_SYNC_DIR
 /**
@@ -82,10 +82,10 @@ bool get_stat (const char* path, unsigned int max_retry, long ns_sleep);
  * This cannot be used with DYAD interception.
  */
 int sync_containing_dir (const char* path);
-#endif // DYAD_SYNC_DIR
+#endif  // DYAD_SYNC_DIR
 
 #if defined(__cplusplus)
 };
-#endif // defined(__cplusplus)
+#endif  // defined(__cplusplus)
 
-#endif // DYAD_UTILS_H
+#endif  // DYAD_UTILS_H
