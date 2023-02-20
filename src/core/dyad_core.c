@@ -79,10 +79,10 @@ static int gen_path_key (const char* str,
 
 #if DYAD_PERFFLOW
 __attribute__ ((annotate ("@critical_path()"))) static int dyad_kvs_commit (
-    dyad_ctx_t* ctx,
+    const dyad_ctx_t* ctx,
     flux_kvs_txn_t* txn)
 #else
-static inline int dyad_kvs_commit (dyad_ctx_t* ctx, flux_kvs_txn_t* txn)
+static inline int dyad_kvs_commit (const dyad_ctx_t* ctx, flux_kvs_txn_t* txn)
 #endif
 {
     flux_future_t* f = NULL;
@@ -104,10 +104,10 @@ static inline int dyad_kvs_commit (dyad_ctx_t* ctx, flux_kvs_txn_t* txn)
 
 #if DYAD_PERFFLOW
 __attribute__ ((annotate ("@critical_path()"))) static int publish_via_flux (
-    dyad_ctx_t* restrict ctx,
+    const dyad_ctx_t* restrict ctx,
     const char* restrict upath)
 #else
-static inline int publish_via_flux (dyad_ctx_t* restrict ctx,
+static inline int publish_via_flux (const dyad_ctx_t* restrict ctx,
                                     const char* restrict upath)
 #endif
 {
@@ -156,7 +156,7 @@ publish_done:;
 
 #if DYAD_PERFFLOW
 __attribute__ ((annotate ("@critical_path()"))) static int dyad_commit (
-    dyad_ctx_t* restrict ctx,
+    const dyad_ctx_t* restrict ctx,
     const char* restrict fname)
 #else
 static inline int dyad_commit (dyad_ctx_t* restrict ctx, const char* restrict fname)
@@ -195,12 +195,12 @@ commit_done:;
 
 #if DYAD_PERFFLOW
 __attribute__ ((annotate ("@critical_path()"))) static int dyad_kvs_lookup (
-    dyad_ctx_t* ctx,
+    const dyad_ctx_t* ctx,
     const char* restrict kvs_topic,
     uint32_t* owner_rank,
     flux_future_t** f)
 #else
-static inline int dyad_kvs_lookup (dyad_ctx_t* ctx,
+static inline int dyad_kvs_lookup (const dyad_ctx_t* ctx,
                                    const char* restrict kvs_topic,
                                    uint32_t* owner_rank,
                                    flux_future_t** f)
@@ -232,11 +232,11 @@ static inline int dyad_kvs_lookup (dyad_ctx_t* ctx,
 
 #if DYAD_PERFFLOW
 __attribute__ ((annotate ("@critical_path()"))) static int dyad_fetch (
-    dyad_ctx_t* restrict ctx,
+    const dyad_ctx_t* restrict ctx,
     const char* restrict fname,
     dyad_kvs_response_t** restrict resp)
 #else
-static inline int dyad_fetch (dyad_ctx_t* restrict ctx,
+static inline int dyad_fetch (const dyad_ctx_t* restrict ctx,
                               const char* restrict fname,
                               dyad_kvs_response_t** restrict resp)
 #endif
@@ -309,13 +309,13 @@ fetch_done:;
 
 #if DYAD_PERFFLOW
 __attribute__ ((annotate ("@critical_path()"))) static int dyad_rpc_get (
-    dyad_ctx_t* ctx,
+    const dyad_ctx_t* ctx,
     const dyad_kvs_response_t* restrict kvs_data,
     const char** file_data,
     int* file_len,
     flux_future_t** f)
 #else
-static inline int dyad_rpc_get (dyad_ctx_t* ctx,
+static inline int dyad_rpc_get (const dyad_ctx_t* ctx,
                                 const dyad_kvs_response_t* restrict kvs_data,
                                 const char** file_data,
                                 int* file_len,
@@ -355,11 +355,11 @@ static inline int dyad_rpc_get (dyad_ctx_t* ctx,
 
 #if DYAD_PERFFLOW
 __attribute__ ((annotate ("@critical_path()"))) static int dyad_pull (
-    dyad_ctx_t* restrict ctx,
+    const dyad_ctx_t* restrict ctx,
     const char* restrict fname,
     const dyad_kvs_response_t* restrict kvs_data)
 #else
-static inline int dyad_pull (dyad_ctx_t* restrict ctx,
+static inline int dyad_pull (const dyad_ctx_t* restrict ctx,
                              const char* restrict fname,
                              const dyad_kvs_response_t* restrict kvs_data)
 #endif
