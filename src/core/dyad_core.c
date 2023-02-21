@@ -111,7 +111,7 @@ static inline dyad_rc_t publish_via_flux (const dyad_ctx_t* restrict ctx,
                                           const char* restrict upath)
 #endif
 {
-    dyad_rc_t rc = 0;
+    dyad_rc_t rc = DYAD_RC_OK;
     const char* prod_managed_path = NULL;
     flux_kvs_txn_t* txn = NULL;
     const size_t topic_len = PATH_MAX;
@@ -163,7 +163,7 @@ static inline dyad_rc_t dyad_commit (dyad_ctx_t* restrict ctx,
                                      const char* restrict fname)
 #endif
 {
-    dyad_rc_t rc = 0;
+    dyad_rc_t rc = DYAD_RC_OK;
     char upath[PATH_MAX];
     memset (upath, 0, PATH_MAX);
     // Extract the path to the file specified by fname relative to the
@@ -207,7 +207,7 @@ static inline dyad_rc_t dyad_kvs_lookup (const dyad_ctx_t* ctx,
                                          flux_future_t** f)
 #endif
 {
-    dyad_rc_t rc = 0;
+    dyad_rc_t rc = DYAD_RC_OK;
     // Lookup information about the desired file (represented by kvs_topic)
     // from the Flux KVS. If there is no information, wait for it to be
     // made available
@@ -242,7 +242,7 @@ static inline dyad_rc_t dyad_fetch (const dyad_ctx_t* restrict ctx,
                                     dyad_kvs_response_t** restrict resp)
 #endif
 {
-    dyad_rc_t rc = 0;
+    dyad_rc_t rc = DYAD_RC_OK;
     char upath[PATH_MAX];
     uint32_t owner_rank = 0;
     const size_t topic_len = PATH_MAX;
@@ -323,7 +323,7 @@ static inline dyad_rc_t dyad_rpc_get (const dyad_ctx_t* ctx,
                                       flux_future_t** f)
 #endif
 {
-    dyad_rc_t rc = 0;
+    dyad_rc_t rc = DYAD_RC_OK;
     // Create and send an RPC payload to the producer's Flux broker.
     // This payload will tell the broker to run the dyad.fetch function
     // with the upath specified by the data fetched from the KVS
@@ -365,7 +365,7 @@ static inline dyad_rc_t dyad_pull (const dyad_ctx_t* restrict ctx,
                                    const dyad_kvs_response_t* restrict kvs_data)
 #endif
 {
-    dyad_rc_t rc = 0;
+    dyad_rc_t rc = DYAD_RC_OK;
     const char* file_data = NULL;
     int file_len = 0;
     const char* odir = NULL;
