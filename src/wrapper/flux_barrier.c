@@ -48,7 +48,8 @@ int main (int argc, char** argv)
 
     if (argc != 2) {
         FLUX_LOG_ERR (
-            "flux_barrier requires a tag to distinguish different synchronizations\n");
+            "flux_barrier requires a tag to distinguish different "
+            "synchronizations\n");
         return EXIT_FAILURE;
     }
     tag = argv[1];

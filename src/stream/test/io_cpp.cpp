@@ -50,9 +50,7 @@ int mkdir_of_path (const char* path)
     const mode_t m = (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH | S_ISGID);
     if (mkdir_as_needed (upper_dir, m) < 0) {
         char errmsg[PATH_MAX + 256] = {'\0'};
-        snprintf (errmsg,
-                  PATH_MAX + 256,
-                  "Directory %s cannot be created.\n",
+        snprintf (errmsg, PATH_MAX + 256, "Directory %s cannot be created.\n",
                   upper_dir);
         perror (errmsg);
         return -1;
@@ -60,7 +58,9 @@ int mkdir_of_path (const char* path)
     return 0;
 }
 
-static void fill_buf (std::string& buffer, size_t buf_sz, const std::string& line)
+static void fill_buf (std::string& buffer,
+                      size_t buf_sz,
+                      const std::string& line)
 {
     buffer.clear ();
     if (buf_sz == 0ul) {
@@ -149,11 +149,8 @@ check_read (const char* buf, size_t sz, const std::string& line)
     size_t j = 0ul;
     for (; i < sz; ++i) {
         if (buffer[j] != buf[i]) {
-            fprintf (stderr,
-                     "error at %lu th character: %c != %c \n",
-                     i,
-                     buffer[j],
-                     buf[i]);
+            fprintf (stderr, "error at %lu th character: %c != %c \n", i,
+                     buffer[j], buf[i]);
             return -2;
         }
         if (++j == fill_sz)
@@ -177,21 +174,23 @@ consume_stream (std::istream& ifp, const size_t sz, const bool verify)
     ifp.seekg (0, std::ios::beg);
 
     if (static_cast<size_t> (fsize) != sz * sizeof (char_t)) {
-        fprintf (stderr,
-                 " read %lu bytes instead of %lu\n",
-                 static_cast<size_t> (fsize),
-                 sz * sizeof (char_t));
+        fprintf (stderr, " read %lu bytes instead of %lu\n",
+                 static_cast<size_t> (fsize), sz * sizeof (char_t));
         return -1;
     }
     std::vector<char_t> buf (fsize);
     ifp.read (&buf[0], fsize);
 
-    int rc = ((verify != 0) ? check_read (buf.data (), sz, "test produce_stream") : 0);
+    int rc =
+        ((verify != 0) ? check_read (buf.data (), sz, "test produce_stream")
+                       : 0);
 
     return rc;
 }
 
-int test_cons_io_stream (const std::string& pf, const size_t sz, const bool verify)
+int test_cons_io_stream (const std::string& pf,
+                         const size_t sz,
+                         const bool verify)
 {
     int rc = -1;
 

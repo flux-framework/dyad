@@ -115,15 +115,9 @@ void dyad_stream_core::init ()
         prod_managed_path = NULL;
     }
 
-    dyad_rc_t rc = dyad_init (debug,
-                              check,
-                              shared_storage,
-                              key_depth,
-                              key_bins,
-                              kvs_namespace,
-                              prod_managed_path,
-                              cons_managed_path,
-                              &m_ctx);
+    dyad_rc_t rc =
+        dyad_init (debug, check, shared_storage, key_depth, key_bins,
+                   kvs_namespace, prod_managed_path, cons_managed_path, &m_ctx);
 
     // TODO figure out if we want to error if init fails
     m_initialized = true;
@@ -133,15 +127,11 @@ void dyad_stream_core::init ()
 void dyad_stream_core::init (const dyad_params &p)
 {
     DPRINTF (m_ctx, "DYAD_WRAPPER: Initializeing DYAD wrapper\n");
-    dyad_rc_t rc = dyad_init (p.m_debug,
-                              false,
-                              p.m_shared_storage,
-                              p.m_key_depth,
-                              p.m_key_bins,
-                              p.m_kvs_namespace.c_str (),
-                              p.m_prod_managed_path.c_str (),
-                              p.m_cons_managed_path.c_str (),
-                              &m_ctx);
+    dyad_rc_t rc =
+        dyad_init (p.m_debug, false, p.m_shared_storage, p.m_key_depth,
+                   p.m_key_bins, p.m_kvs_namespace.c_str (),
+                   p.m_prod_managed_path.c_str (),
+                   p.m_cons_managed_path.c_str (), &m_ctx);
     // TODO figure out if we want to error if init fails
     m_initialized = true;
     log_info ("Stream core is initialized by parameters");
@@ -150,11 +140,13 @@ void dyad_stream_core::init (const dyad_params &p)
 void dyad_stream_core::log_info (const std::string &msg_head) const
 {
     DYAD_LOG_INFO (m_ctx, "=== %s ===\n", msg_head.c_str ());
-    DYAD_LOG_INFO (m_ctx, "%s=%s\n", DYAD_PATH_CONS_ENV, m_ctx->cons_managed_path);
-    DYAD_LOG_INFO (m_ctx, "%s=%s\n", DYAD_PATH_PROD_ENV, m_ctx->prod_managed_path);
-    DYAD_LOG_INFO (m_ctx, "DYAD_SYNC_DEBUG=%s\n", (m_ctx->debug) ? "true" : "false");
-    DYAD_LOG_INFO (m_ctx,
-                   "DYAD_SHARED_STORAGE=%s\n",
+    DYAD_LOG_INFO (m_ctx, "%s=%s\n", DYAD_PATH_CONS_ENV,
+                   m_ctx->cons_managed_path);
+    DYAD_LOG_INFO (m_ctx, "%s=%s\n", DYAD_PATH_PROD_ENV,
+                   m_ctx->prod_managed_path);
+    DYAD_LOG_INFO (m_ctx, "DYAD_SYNC_DEBUG=%s\n",
+                   (m_ctx->debug) ? "true" : "false");
+    DYAD_LOG_INFO (m_ctx, "DYAD_SHARED_STORAGE=%s\n",
                    (m_ctx->shared_storage) ? "true" : "false");
     DYAD_LOG_INFO (m_ctx, "DYAD_KEY_DEPTH=%u\n", m_ctx->key_depth);
     DYAD_LOG_INFO (m_ctx, "DYAD_KEY_BINS=%u\n", m_ctx->key_bins);
@@ -163,12 +155,14 @@ void dyad_stream_core::log_info (const std::string &msg_head) const
 
 bool dyad_stream_core::is_dyad_producer ()
 {
-    return m_ctx->prod_managed_path != NULL && strlen (m_ctx->prod_managed_path) != 0;
+    return m_ctx->prod_managed_path != NULL
+           && strlen (m_ctx->prod_managed_path) != 0;
 }
 
 bool dyad_stream_core::is_dyad_consumer ()
 {
-    return m_ctx->cons_managed_path != NULL && strlen (m_ctx->cons_managed_path) != 0;
+    return m_ctx->cons_managed_path != NULL
+           && strlen (m_ctx->cons_managed_path) != 0;
 }
 
 bool dyad_stream_core::open_sync (const char *path)

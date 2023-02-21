@@ -75,10 +75,11 @@ void Pairing::set_partner ()
     m_partner = get_partner (m_my_rank, m_num_ranks, m_randomize);
 
     if (m_randomize) {
-        int tmp = static_cast<int> (get_rngen () ())  // differentiate iterations
-                  + (m_my_rank + m_partner) % 3       // differentiate pairs
-                  + static_cast<int> (
-                      m_partner > m_my_rank);  // differentiate this and its partner
+        int tmp =
+            static_cast<int> (get_rngen () ())  // differentiate iterations
+            + (m_my_rank + m_partner) % 3       // differentiate pairs
+            + static_cast<int> (
+                m_partner > m_my_rank);  // differentiate this and its partner
         m_is_consumer = static_cast<bool> (tmp % 2);
         m_is_producer = ((m_my_rank == m_partner) || !m_is_consumer);
     } else {
@@ -196,8 +197,9 @@ int main (int argc, char* argv[])
     for (int iter = 0; iter < max_iter; iter++) {
         Pairing p (rank, num_ranks, randomize);
         const std::string ctx =
-            (context.empty () ? std::to_string (p.m_prod_rank)
-                              : (context + "-" + std::to_string (p.m_prod_rank)));
+            (context.empty ()
+                 ? std::to_string (p.m_prod_rank)
+                 : (context + "-" + std::to_string (p.m_prod_rank)));
 
 #if 0
         printf ("Iter %d\t%s %d paired with %d\n", iter,

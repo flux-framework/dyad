@@ -106,7 +106,8 @@ urpc_exec_cmd (flux_t *h, const char *cmd, void **inbuf, ssize_t *inlen)
 
     fd = fileno (fp);
     if ((*inlen = read_all (fd, inbuf)) < 0) {
-        FLUX_LOG_ERR (h, "URPC_MOD: Failed to catch result from \"%s\".\n", cmd);
+        FLUX_LOG_ERR (h, "URPC_MOD: Failed to catch result from \"%s\".\n",
+                      cmd);
         goto error;
     }
 
@@ -222,25 +223,14 @@ urpc_execj_request_cb (flux_t *h,
     }
 
     if (!(jcmd = json_loads (cmd_json, 0, &error))) {
-        FLUX_LOG_ERR (h,
-                      "URPC_MOD: json error on line %d: %s\n",
-                      error.line,
+        FLUX_LOG_ERR (h, "URPC_MOD: json error on line %d: %s\n", error.line,
                       error.text);
         goto error;
     }
 
     // TODO: generalize the format string.
-    rc = json_unpack (jcmd,
-                      "{s:s, s:[s, {s:s, s:s}, i]}",
-                      "cmd",
-                      &exec,
-                      "args",
-                      &arg1,
-                      "file",
-                      &filename,
-                      "content",
-                      &content,
-                      &n);
+    rc = json_unpack (jcmd, "{s:s, s:[s, {s:s, s:s}, i]}", "cmd", &exec, "args",
+                      &arg1, "file", &filename, "content", &content, &n);
 
     if (rc) {
         FLUX_LOG_ERR (h, "URPC_MOD: could not unpack '%s'.\n", cmd_json);
@@ -324,7 +314,8 @@ int mod_main (flux_t *h, int argc, char **argv)
     FLUX_LOG_INFO (ctx->h, "urpc module begins using \"%s\"\n", argv[0]);
 
     if (flux_msg_handler_addvec (ctx->h, htab, (void *)h, &ctx->handlers) < 0) {
-        FLUX_LOG_ERR (ctx->h, "flux_msg_handler_addvec: %s\n", strerror (errno));
+        FLUX_LOG_ERR (ctx->h, "flux_msg_handler_addvec: %s\n",
+                      strerror (errno));
         goto error;
     }
 

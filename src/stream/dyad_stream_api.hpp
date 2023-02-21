@@ -43,7 +43,8 @@ template <typename _Path,
           typename _Result = _Path,
           typename _Path2 =
               decltype (std::declval<_Path&> ().make_preferred ().filename ())>
-using dyad_if_fs_path = std::enable_if_t<std::is_same_v<_Path, _Path2>, _Result>;
+using dyad_if_fs_path =
+    std::enable_if_t<std::is_same_v<_Path, _Path2>, _Result>;
 #endif  // c++17 filesystem
 
 // https://stackoverflow.com/questions/676787/how-to-do-fsync-on-an-ofstream
@@ -148,9 +149,11 @@ class basic_ifstream_dyad
 using ifstream_dyad = basic_ifstream_dyad<char>;
 using wifstream_dyad = basic_ifstream_dyad<wchar_t>;
 
-#if __cplusplus < 201103L  //----------------------------------------------------
+#if __cplusplus \
+    < 201103L  //----------------------------------------------------
 template <typename _CharT, typename _Traits>
-basic_ifstream_dyad<_CharT, _Traits>::basic_ifstream_dyad (const dyad_stream_core& ctx)
+basic_ifstream_dyad<_CharT, _Traits>::basic_ifstream_dyad (
+    const dyad_stream_core& ctx)
     : m_ctx (ctx)
 {
     m_stream = new basic_ifstream ();
@@ -164,8 +167,9 @@ basic_ifstream_dyad<_CharT, _Traits>::basic_ifstream_dyad ()
 }
 
 template <typename _CharT, typename _Traits>
-basic_ifstream_dyad<_CharT, _Traits>::basic_ifstream_dyad (const char* filename,
-                                                           std::ios_base::openmode mode)
+basic_ifstream_dyad<_CharT, _Traits>::basic_ifstream_dyad (
+    const char* filename,
+    std::ios_base::openmode mode)
 {
     m_ctx.init ();
     m_ctx.open_sync (filename);
@@ -182,7 +186,8 @@ bool basic_ifstream_dyad<_CharT, _Traits>::is_open ()
 }
 #else  //-----------------------------------------------------------------------
 template <typename _CharT, typename _Traits>
-basic_ifstream_dyad<_CharT, _Traits>::basic_ifstream_dyad (const dyad_stream_core& ctx)
+basic_ifstream_dyad<_CharT, _Traits>::basic_ifstream_dyad (
+    const dyad_stream_core& ctx)
 {
     m_ctx.init ();
     m_stream = std::unique_ptr<basic_ifstream> (new basic_ifstream ());
@@ -196,31 +201,36 @@ basic_ifstream_dyad<_CharT, _Traits>::basic_ifstream_dyad ()
 }
 
 template <typename _CharT, typename _Traits>
-basic_ifstream_dyad<_CharT, _Traits>::basic_ifstream_dyad (const char* filename,
-                                                           std::ios_base::openmode mode)
+basic_ifstream_dyad<_CharT, _Traits>::basic_ifstream_dyad (
+    const char* filename,
+    std::ios_base::openmode mode)
 {
     m_ctx.init ();
     m_ctx.open_sync (filename);
-    m_stream = std::unique_ptr<basic_ifstream> (new basic_ifstream (filename, mode));
+    m_stream =
+        std::unique_ptr<basic_ifstream> (new basic_ifstream (filename, mode));
     if ((m_stream != nullptr) && (*m_stream)) {
         m_filename = std::string{filename};
     }
 }
 
 template <typename _CharT, typename _Traits>
-basic_ifstream_dyad<_CharT, _Traits>::basic_ifstream_dyad (const string& filename,
-                                                           std::ios_base::openmode mode)
+basic_ifstream_dyad<_CharT, _Traits>::basic_ifstream_dyad (
+    const string& filename,
+    std::ios_base::openmode mode)
 {
     m_ctx.init ();
     m_ctx.open_sync (filename.c_str ());
-    m_stream = std::unique_ptr<basic_ifstream> (new basic_ifstream (filename, mode));
+    m_stream =
+        std::unique_ptr<basic_ifstream> (new basic_ifstream (filename, mode));
     if ((m_stream != nullptr) && (*m_stream)) {
         m_filename = filename;
     }
 }
 
 template <typename _CharT, typename _Traits>
-basic_ifstream_dyad<_CharT, _Traits>::basic_ifstream_dyad (basic_ifstream_dyad&& rhs)
+basic_ifstream_dyad<_CharT, _Traits>::basic_ifstream_dyad (
+    basic_ifstream_dyad&& rhs)
     : m_stream (std::move (rhs.m_stream)), m_ctx (std::move (rhs.m_ctx))
 {
 }
@@ -228,19 +238,20 @@ basic_ifstream_dyad<_CharT, _Traits>::basic_ifstream_dyad (basic_ifstream_dyad&&
 #if (__cplusplus >= 201703L) && __has_include(<filesystem>)
 template <typename _CharT, typename _Traits>
 template <typename _Path, typename _Require>
-basic_ifstream_dyad<_CharT, _Traits>::basic_ifstream_dyad (const _Path& filepath,
-                                                           std::ios_base::openmode mode)
+basic_ifstream_dyad<_CharT, _Traits>::basic_ifstream_dyad (
+    const _Path& filepath,
+    std::ios_base::openmode mode)
 {
     m_ctx.init ();
     m_ctx.open_sync (filepath.c_str ());
-    m_stream =
-        std::unique_ptr<basic_ifstream> (new basic_ifstream (filepath.c_str (), mode));
+    m_stream = std::unique_ptr<basic_ifstream> (
+        new basic_ifstream (filepath.c_str (), mode));
 }
 #endif  // c++17 filesystem
 
 template <typename _CharT, typename _Traits>
-basic_ifstream_dyad<_CharT, _Traits>& basic_ifstream_dyad<_CharT, _Traits>::operator= (
-    basic_ifstream_dyad&& rhs)
+basic_ifstream_dyad<_CharT, _Traits>& basic_ifstream_dyad<_CharT, _Traits>::
+operator= (basic_ifstream_dyad&& rhs)
 {
     m_stream = std::move (rhs.m_stream);
     m_ctx = std::move (rhs.ctx);
@@ -319,8 +330,8 @@ std::filebuf* basic_ifstream_dyad<_CharT, _Traits>::rdbuf () const
 }
 
 template <typename _CharT, typename _Traits>
-std::basic_ifstream<_CharT, _Traits>& basic_ifstream_dyad<_CharT,
-                                                          _Traits>::get_stream ()
+std::basic_ifstream<_CharT, _Traits>& basic_ifstream_dyad<_CharT, _Traits>::
+    get_stream ()
 {
     if (m_stream == nullptr) {
         // TODO: throw
@@ -401,9 +412,11 @@ class basic_ofstream_dyad
 using ofstream_dyad = basic_ofstream_dyad<char>;
 using wofstream_dyad = basic_ofstream_dyad<wchar_t>;
 
-#if __cplusplus < 201103L  //----------------------------------------------------
+#if __cplusplus \
+    < 201103L  //----------------------------------------------------
 template <typename _CharT, typename _Traits>
-basic_ofstream_dyad<_CharT, _Traits>::basic_ofstream_dyad (const dyad_stream_core& ctx)
+basic_ofstream_dyad<_CharT, _Traits>::basic_ofstream_dyad (
+    const dyad_stream_core& ctx)
     : m_ctx (ctx)
 {
     m_stream = new basic_ofstream ();
@@ -417,8 +430,9 @@ basic_ofstream_dyad<_CharT, _Traits>::basic_ofstream_dyad ()
 }
 
 template <typename _CharT, typename _Traits>
-basic_ofstream_dyad<_CharT, _Traits>::basic_ofstream_dyad (const char* filename,
-                                                           std::ios_base::openmode mode)
+basic_ofstream_dyad<_CharT, _Traits>::basic_ofstream_dyad (
+    const char* filename,
+    std::ios_base::openmode mode)
 {
     m_ctx.init ();
     m_stream = new basic_ofstream (filename, mode);
@@ -434,7 +448,8 @@ bool basic_ofstream_dyad<_CharT, _Traits>::is_open ()
 }
 #else  //-----------------------------------------------------------------------
 template <typename _CharT, typename _Traits>
-basic_ofstream_dyad<_CharT, _Traits>::basic_ofstream_dyad (const dyad_stream_core& ctx)
+basic_ofstream_dyad<_CharT, _Traits>::basic_ofstream_dyad (
+    const dyad_stream_core& ctx)
     : m_ctx (ctx)
 {
     m_stream = std::unique_ptr<basic_ofstream> (new basic_ofstream ());
@@ -448,29 +463,34 @@ basic_ofstream_dyad<_CharT, _Traits>::basic_ofstream_dyad ()
 }
 
 template <typename _CharT, typename _Traits>
-basic_ofstream_dyad<_CharT, _Traits>::basic_ofstream_dyad (const char* filename,
-                                                           std::ios_base::openmode mode)
+basic_ofstream_dyad<_CharT, _Traits>::basic_ofstream_dyad (
+    const char* filename,
+    std::ios_base::openmode mode)
 {
     m_ctx.init ();
-    m_stream = std::unique_ptr<basic_ofstream> (new basic_ofstream (filename, mode));
+    m_stream =
+        std::unique_ptr<basic_ofstream> (new basic_ofstream (filename, mode));
     if ((m_stream != nullptr) && (*m_stream)) {
         m_filename = std::string{filename};
     }
 }
 
 template <typename _CharT, typename _Traits>
-basic_ofstream_dyad<_CharT, _Traits>::basic_ofstream_dyad (const string& filename,
-                                                           std::ios_base::openmode mode)
+basic_ofstream_dyad<_CharT, _Traits>::basic_ofstream_dyad (
+    const string& filename,
+    std::ios_base::openmode mode)
 {
     m_ctx.init ();
-    m_stream = std::unique_ptr<basic_ofstream> (new basic_ofstream (filename, mode));
+    m_stream =
+        std::unique_ptr<basic_ofstream> (new basic_ofstream (filename, mode));
     if ((m_stream != nullptr) && (*m_stream)) {
         m_filename = filename;
     }
 }
 
 template <typename _CharT, typename _Traits>
-basic_ofstream_dyad<_CharT, _Traits>::basic_ofstream_dyad (basic_ofstream_dyad&& rhs)
+basic_ofstream_dyad<_CharT, _Traits>::basic_ofstream_dyad (
+    basic_ofstream_dyad&& rhs)
     : m_stream (std::move (rhs.m_stream)), m_ctx (std::move (rhs.m_ctx))
 {
 }
@@ -478,18 +498,19 @@ basic_ofstream_dyad<_CharT, _Traits>::basic_ofstream_dyad (basic_ofstream_dyad&&
 #if (__cplusplus >= 201703L) && __has_include(<filesystem>)
 template <typename _CharT, typename _Traits>
 template <typename _Path, typename _Require>
-basic_ofstream_dyad<_CharT, _Traits>::basic_ofstream_dyad (const _Path& filepath,
-                                                           std::ios_base::openmode mode)
+basic_ofstream_dyad<_CharT, _Traits>::basic_ofstream_dyad (
+    const _Path& filepath,
+    std::ios_base::openmode mode)
 {
     m_ctx.init ();
-    m_stream =
-        std::unique_ptr<basic_ofstream> (new basic_ofstream (filepath.c_str (), mode));
+    m_stream = std::unique_ptr<basic_ofstream> (
+        new basic_ofstream (filepath.c_str (), mode));
 }
 #endif  // c++17 filesystem
 
 template <typename _CharT, typename _Traits>
-basic_ofstream_dyad<_CharT, _Traits>& basic_ofstream_dyad<_CharT, _Traits>::operator= (
-    basic_ofstream_dyad&& rhs)
+basic_ofstream_dyad<_CharT, _Traits>& basic_ofstream_dyad<_CharT, _Traits>::
+operator= (basic_ofstream_dyad&& rhs)
 {
     m_stream = std::move (rhs.m_stream);
     m_ctx = std::move (rhs.m_ctx);
@@ -580,8 +601,8 @@ std::filebuf* basic_ofstream_dyad<_CharT, _Traits>::rdbuf () const
 }
 
 template <typename _CharT, typename _Traits>
-std::basic_ofstream<_CharT, _Traits>& basic_ofstream_dyad<_CharT,
-                                                          _Traits>::get_stream ()
+std::basic_ofstream<_CharT, _Traits>& basic_ofstream_dyad<_CharT, _Traits>::
+    get_stream ()
 {
     if (m_stream == nullptr) {
         // TODO: throw
@@ -666,9 +687,11 @@ class basic_fstream_dyad
 using fstream_dyad = basic_fstream_dyad<char>;
 using wfstream_dyad = basic_fstream_dyad<wchar_t>;
 
-#if __cplusplus < 201103L  //----------------------------------------------------
+#if __cplusplus \
+    < 201103L  //----------------------------------------------------
 template <typename _CharT, typename _Traits>
-basic_fstream_dyad<_CharT, _Traits>::basic_fstream_dyad (const dyad_stream_core& ctx)
+basic_fstream_dyad<_CharT, _Traits>::basic_fstream_dyad (
+    const dyad_stream_core& ctx)
     : m_ctx (ctx)
 {
     m_stream = new basic_fstream ();
@@ -682,8 +705,9 @@ basic_fstream_dyad<_CharT, _Traits>::basic_fstream_dyad ()
 }
 
 template <typename _CharT, typename _Traits>
-basic_fstream_dyad<_CharT, _Traits>::basic_fstream_dyad (const char* filename,
-                                                         std::ios_base::openmode mode)
+basic_fstream_dyad<_CharT, _Traits>::basic_fstream_dyad (
+    const char* filename,
+    std::ios_base::openmode mode)
 {
     m_ctx.init ();
     m_ctx.open_sync (filename);
@@ -700,7 +724,8 @@ bool basic_fstream_dyad<_CharT, _Traits>::is_open ()
 }
 #else  //-----------------------------------------------------------------------
 template <typename _CharT, typename _Traits>
-basic_fstream_dyad<_CharT, _Traits>::basic_fstream_dyad (const dyad_stream_core& ctx)
+basic_fstream_dyad<_CharT, _Traits>::basic_fstream_dyad (
+    const dyad_stream_core& ctx)
     : m_ctx (ctx)
 {
     m_stream = std::unique_ptr<basic_fstream> (new basic_fstream ());
@@ -714,31 +739,36 @@ basic_fstream_dyad<_CharT, _Traits>::basic_fstream_dyad ()
 }
 
 template <typename _CharT, typename _Traits>
-basic_fstream_dyad<_CharT, _Traits>::basic_fstream_dyad (const char* filename,
-                                                         std::ios_base::openmode mode)
+basic_fstream_dyad<_CharT, _Traits>::basic_fstream_dyad (
+    const char* filename,
+    std::ios_base::openmode mode)
 {
     m_ctx.init ();
     m_ctx.open_sync (filename);
-    m_stream = std::unique_ptr<basic_fstream> (new basic_fstream (filename, mode));
+    m_stream =
+        std::unique_ptr<basic_fstream> (new basic_fstream (filename, mode));
     if ((m_stream != nullptr) && (*m_stream)) {
         m_filename = std::string{filename};
     }
 }
 
 template <typename _CharT, typename _Traits>
-basic_fstream_dyad<_CharT, _Traits>::basic_fstream_dyad (const string& filename,
-                                                         std::ios_base::openmode mode)
+basic_fstream_dyad<_CharT, _Traits>::basic_fstream_dyad (
+    const string& filename,
+    std::ios_base::openmode mode)
 {
     m_ctx.init ();
     m_ctx.open_sync (filename.c_str ());
-    m_stream = std::unique_ptr<basic_fstream> (new basic_fstream (filename, mode));
+    m_stream =
+        std::unique_ptr<basic_fstream> (new basic_fstream (filename, mode));
     if ((m_stream != nullptr) && (*m_stream)) {
         m_filename = filename;
     }
 }
 
 template <typename _CharT, typename _Traits>
-basic_fstream_dyad<_CharT, _Traits>::basic_fstream_dyad (basic_fstream_dyad&& rhs)
+basic_fstream_dyad<_CharT, _Traits>::basic_fstream_dyad (
+    basic_fstream_dyad&& rhs)
     : m_stream (std::move (rhs.m_stream)), m_ctx (std::move (rhs.m_ctx))
 {
 }
@@ -746,19 +776,20 @@ basic_fstream_dyad<_CharT, _Traits>::basic_fstream_dyad (basic_fstream_dyad&& rh
 #if (__cplusplus >= 201703L) && __has_include(<filesystem>)
 template <typename _CharT, typename _Traits>
 template <typename _Path, typename _Require>
-basic_fstream_dyad<_CharT, _Traits>::basic_fstream_dyad (const _Path& filepath,
-                                                         std::ios_base::openmode mode)
+basic_fstream_dyad<_CharT, _Traits>::basic_fstream_dyad (
+    const _Path& filepath,
+    std::ios_base::openmode mode)
 {
     m_ctx.init ();
     m_ctx.open_sync (filepath.c_str ());
-    m_stream =
-        std::unique_ptr<basic_fstream> (new basic_fstream (filepath.c_str (), mode));
+    m_stream = std::unique_ptr<basic_fstream> (
+        new basic_fstream (filepath.c_str (), mode));
 }
 #endif  // c++17 filesystem
 
 template <typename _CharT, typename _Traits>
-basic_fstream_dyad<_CharT, _Traits>& basic_fstream_dyad<_CharT, _Traits>::operator= (
-    basic_fstream_dyad&& rhs)
+basic_fstream_dyad<_CharT, _Traits>& basic_fstream_dyad<_CharT, _Traits>::
+operator= (basic_fstream_dyad&& rhs)
 {
     m_stream = std::move (rhs.m_stream);
     m_ctx = std::move (rhs.m_ctx);
@@ -850,7 +881,8 @@ std::filebuf* basic_fstream_dyad<_CharT, _Traits>::rdbuf () const
 }
 
 template <typename _CharT, typename _Traits>
-std::basic_fstream<_CharT, _Traits>& basic_fstream_dyad<_CharT, _Traits>::get_stream ()
+std::basic_fstream<_CharT, _Traits>& basic_fstream_dyad<_CharT,
+                                                        _Traits>::get_stream ()
 {
     if (m_stream == nullptr) {
         // TODO: throw

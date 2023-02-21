@@ -50,7 +50,10 @@ bool producer (const flist_t& flist, bool buffered_io, unsigned usec)
     return true;
 }
 
-bool consumer (const flist_t& flist, bool buffered_io, unsigned usec, bool verify)
+bool consumer (const flist_t& flist,
+               bool buffered_io,
+               unsigned usec,
+               bool verify)
 {
     int rc = 0;
 
@@ -58,7 +61,8 @@ bool consumer (const flist_t& flist, bool buffered_io, unsigned usec, bool verif
         for (const auto& f : flist) {
             rc = test_cons_io_buf (f.first.c_str (), f.second, (int)verify);
             if (rc != 0) {
-                std::cerr << "Consumer error with " << f.first.c_str () << std::endl;
+                std::cerr << "Consumer error with " << f.first.c_str ()
+                          << std::endl;
                 break;
             }
             usleep (static_cast<useconds_t> (usec));
@@ -67,7 +71,8 @@ bool consumer (const flist_t& flist, bool buffered_io, unsigned usec, bool verif
         for (const auto& f : flist) {
             rc = test_cons_io (f.first.c_str (), f.second, (int)verify);
             if (rc != 0) {
-                std::cerr << "Consumer error with " << f.first.c_str () << std::endl;
+                std::cerr << "Consumer error with " << f.first.c_str ()
+                          << std::endl;
                 break;
             }
             usleep (static_cast<useconds_t> (usec));
@@ -84,10 +89,8 @@ void mkpath (const std::string& path)
     const mode_t m = (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH | S_ISGID);
     int rc = 0;
     if ((rc = mkdir_as_needed (path.c_str (), m)) < 0) {
-        fprintf (stderr,
-                 "Directory %s cannot be created. error code (%d)\n",
-                 path.c_str (),
-                 rc);
+        fprintf (stderr, "Directory %s cannot be created. error code (%d)\n",
+                 path.c_str (), rc);
         exit (1);
     }
 }

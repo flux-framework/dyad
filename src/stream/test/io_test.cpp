@@ -48,7 +48,8 @@ bool consumer (const flist_t& flist, unsigned usec, bool verify)
     for (const auto& f : flist) {
         rc = test_cons_io_stream (f.first, f.second, verify);
         if (rc != 0) {
-            std::cerr << "Consumer error with " << f.first.c_str () << std::endl;
+            std::cerr << "Consumer error with " << f.first.c_str ()
+                      << std::endl;
             break;
         }
         usleep (static_cast<useconds_t> (usec));
@@ -64,10 +65,8 @@ void mkpath (const std::string& path)
     const mode_t m = (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH | S_ISGID);
     int rc = 0;
     if ((rc = mkdir_as_needed (path.c_str (), m)) < 0) {
-        fprintf (stderr,
-                 "Directory %s cannot be created. error code (%d)\n",
-                 path.c_str (),
-                 rc);
+        fprintf (stderr, "Directory %s cannot be created. error code (%d)\n",
+                 path.c_str (), rc);
         exit (1);
     }
 }

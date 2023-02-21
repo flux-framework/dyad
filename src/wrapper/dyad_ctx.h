@@ -26,13 +26,13 @@ struct dyad_sync_ctx_t {
     // Indicate if the storage associated with the managed path is shared
     // (i.e. visible to all ranks)
     bool shared_storage;
-    bool sync_started;          // barrier at the beginning for synchronized start
-    unsigned int key_depth;     // The depth of the key hierarchy for path
-    unsigned int key_bins;      // The number of bins used in key hashing
-    uint32_t rank;              // Flux rank
+    bool sync_started;       // barrier at the beginning for synchronized start
+    unsigned int key_depth;  // The depth of the key hierarchy for path
+    unsigned int key_bins;   // The number of bins used in key hashing
+    uint32_t rank;           // Flux rank
     const char* kvs_namespace;  // The KVS namespace of the sharing context
-} dyad_sync_ctx_t_default =
-    {NULL, false, false, false, true, false, false, 3u, 1024u, 0u, NULL};
+} dyad_sync_ctx_t_default = {NULL,  false, false, false, true, false,
+                             false, 3u,    1024u, 0u,    NULL};
 
 typedef struct dyad_sync_ctx_t dyad_sync_ctx_t;
 

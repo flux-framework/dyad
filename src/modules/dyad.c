@@ -141,7 +141,8 @@ dyad_fetch_request_cb (flux_t *h,
 
 #if DYAD_SPIN_WAIT
     if (!get_stat (fullpath, 1000U, 1000L)) {
-        FLUX_LOG_ERR (h, "DYAD_MOD: Failed to access info on \"%s\".\n", fullpath);
+        FLUX_LOG_ERR (h, "DYAD_MOD: Failed to access info on \"%s\".\n",
+                      fullpath);
         // goto error;
     }
 #endif  // DYAD_SPIN_WAIT
@@ -173,7 +174,8 @@ done:
     if (flux_respond_raw (h, msg, inbuf, inlen) < 0) {
         FLUX_LOG_ERR (h, "DYAD_MOD: %s: flux_respond", __FUNCTION__);
     } else {
-        FLUX_LOG_INFO (h, "DYAD_MOD: dyad_fetch_request_cb() served %s\n", fullpath);
+        FLUX_LOG_INFO (h, "DYAD_MOD: dyad_fetch_request_cb() served %s\n",
+                       fullpath);
     }
     // TODO: check if flux_respond_raw deallocates inbuf.
     // If not, deallocate it here
@@ -195,9 +197,10 @@ static int dyad_open (flux_t *h)
     return rc;
 }
 
-static const struct flux_msg_handler_spec htab[] =
-    {{FLUX_MSGTYPE_REQUEST, "dyad.fetch", dyad_fetch_request_cb, 0},
-     FLUX_MSGHANDLER_TABLE_END};
+static const struct flux_msg_handler_spec htab[] = {{FLUX_MSGTYPE_REQUEST,
+                                                     "dyad.fetch",
+                                                     dyad_fetch_request_cb, 0},
+                                                    FLUX_MSGHANDLER_TABLE_END};
 
 int mod_main (flux_t *h, int argc, char **argv)
 {
@@ -215,7 +218,8 @@ int mod_main (flux_t *h, int argc, char **argv)
         FLUX_LOG_ERR (ctx->h,
                       "DYAD_MOD: Missing argument. "
                       "Requires a local dyad path specified.\n");
-        fprintf (stderr, "Missing argument. Requires a local dyad path specified.\n");
+        fprintf (stderr,
+                 "Missing argument. Requires a local dyad path specified.\n");
         goto error;
     }
     (ctx->dyad_path) = argv[0];
@@ -230,7 +234,8 @@ int mod_main (flux_t *h, int argc, char **argv)
     FLUX_LOG_INFO (ctx->h, "dyad module begins using \"%s\"\n", argv[0]);
 
     if (flux_msg_handler_addvec (ctx->h, htab, (void *)h, &ctx->handlers) < 0) {
-        FLUX_LOG_ERR (ctx->h, "flux_msg_handler_addvec: %s\n", strerror (errno));
+        FLUX_LOG_ERR (ctx->h, "flux_msg_handler_addvec: %s\n",
+                      strerror (errno));
         goto error;
     }
 

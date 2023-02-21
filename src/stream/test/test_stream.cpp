@@ -59,7 +59,8 @@ int main (int argc, char** argv)
 {
     if (argc != 5) {
         std::cout << "Usage: " << argv[0]
-                  << " dyad_path file read(0)/write(1) use_open_close" << std::endl;
+                  << " dyad_path file read(0)/write(1) use_open_close"
+                  << std::endl;
         return 0;
     }
 

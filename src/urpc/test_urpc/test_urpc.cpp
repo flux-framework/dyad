@@ -19,7 +19,8 @@ int main (int argc, char **argv)
 {
     if ((argc != 4) && (argc != 5)) {
         std::cout << "Usage: " << argv[0]
-                  << " command_str is_json(0|1) server_rank [stdout_result_file]"
+                  << " command_str is_json(0|1) server_rank "
+                     "[stdout_result_file]"
                   << std::endl;
         return EXIT_FAILURE;
     }
@@ -35,8 +36,8 @@ int main (int argc, char **argv)
 
     setenv ("URPC_CLIENT_DEBUG", "1", 0);
 
-    std::cout << "Running '" << cmd << "' on the flux broker of rank " << server_rank
-              << std::endl;
+    std::cout << "Running '" << cmd << "' on the flux broker of rank "
+              << server_rank << std::endl;
     std::cout << "Result will be written into " << result << " at rank "
               << urpc_get_my_rank () << std::endl;
 

@@ -45,9 +45,7 @@ int mkdir_of_path (const char* path)
     const mode_t m = (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH | S_ISGID);
     if (mkdir_as_needed (upper_dir, m) < 0) {
         char errmsg[PATH_MAX + 256] = {'\0'};
-        snprintf (errmsg,
-                  PATH_MAX + 256,
-                  "Directory %s cannot be created.\n",
+        snprintf (errmsg, PATH_MAX + 256, "Directory %s cannot be created.\n",
                   upper_dir);
         perror (errmsg);
         return -1;
@@ -242,11 +240,8 @@ check_read (const char* buf, size_t sz, const char* line)
     size_t j = 0ul;
     for (; i < sz; ++i) {
         if (buffer[j] != buf[i]) {
-            fprintf (stderr,
-                     "error at %lu th character: %c != %c \n",
-                     i,
-                     buffer[j],
-                     buf[i]);
+            fprintf (stderr, "error at %lu th character: %c != %c \n", i,
+                     buffer[j], buf[i]);
             return -2;
         }
         if (++j == buf_sz)

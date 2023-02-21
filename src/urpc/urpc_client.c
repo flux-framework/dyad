@@ -94,10 +94,9 @@ uint32_t urpc_get_service_rank (const char *service_name)
     /*
         flux_future_t *f1 = NULL;
 
-        f1 = flux_kvs_lookup (ctx->h, ctx->ns, FLUX_KVS_WAITCREATE, service_name);
-        if (f1 == NULL) {
-            FLUX_LOG_ERR ("flux_kvs_lookup(%s) failed.\n", topic);
-            goto done;
+        f1 = flux_kvs_lookup (ctx->h, ctx->ns, FLUX_KVS_WAITCREATE,
+       service_name); if (f1 == NULL) { FLUX_LOG_ERR ("flux_kvs_lookup(%s)
+       failed.\n", topic); goto done;
         }
     */
     return service_rank;
@@ -110,7 +109,8 @@ static int
 urpc_rpc_pack (flux_future_t **ft, uint32_t rank, const char *cmd)
 {
     // Send the request to execute a command
-    if (!(*ft = flux_rpc_pack (ctx->h, "urpc.exec", rank, 0, "{s:s}", "cmd", cmd))) {
+    if (!(*ft = flux_rpc_pack (ctx->h, "urpc.exec", rank, 0, "{s:s}", "cmd",
+                               cmd))) {
         FLUX_LOG_ERR ("flux_rpc_pack({urpc.exec %s})", cmd);
         return -1;
     }
@@ -175,7 +175,8 @@ int urpc_client (uint32_t server_rank, const char *cmd, const char *file_path, i
 
     if ((file_path != NULL) && (strlen (file_path) > 0u)) {
         // Set output file path
-        strncpy (file_path_copy, file_path, PATH_MAX);  // dirname modifies the arg
+        strncpy (file_path_copy, file_path,
+                 PATH_MAX);  // dirname modifies the arg
 
         // Create the directory as needed
         // TODO: Need to be consistent with the mode at the source

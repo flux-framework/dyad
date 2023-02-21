@@ -74,11 +74,8 @@ static int check_read (const char* buf, size_t sz, const char* line)
     size_t j = 0ul;
     for (; i < sz; ++i) {
         if (buffer[j] != buf[i]) {
-            fprintf (stderr,
-                     "error at %lu th character: %c != %c \n",
-                     i,
-                     buffer[j],
-                     buf[i]);
+            fprintf (stderr, "error at %lu th character: %c != %c \n", i,
+                     buffer[j], buf[i]);
             return -2;
         }
         if (++j == buf_sz)
