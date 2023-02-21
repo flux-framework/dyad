@@ -1,5 +1,5 @@
 lib_LTLIBRARIES = libdyad_sync.la
-libdyad_sync_la_SOURCES = wrapper.c # wrapper.h
+libdyad_sync_la_SOURCES = wrapper.c
 libdyad_sync_la_LIBADD = $(top_builddir)/src/core/libdyad_core.la
 libdyad_sync_la_CPPFLAGS = -DDYAD_CHECK=1 -I$(top_builddir)/src/utils -I$(top_builddir)/src/core
 # if PERFFLOW
