@@ -144,14 +144,14 @@ void dyad_sync_init (void)
     }
 
     dyad_rc_t rc = dyad_init (debug,
-                        check,
-                        shared_storage,
-                        key_depth,
-                        key_bins,
-                        kvs_namespace,
-                        prod_managed_path,
-                        cons_managed_path,
-                        &ctx);
+                              check,
+                              shared_storage,
+                              key_depth,
+                              key_bins,
+                              kvs_namespace,
+                              prod_managed_path,
+                              cons_managed_path,
+                              &ctx);
 
     if (DYAD_IS_ERROR (rc)) {
         DYAD_LOG_ERR (ctx, "Could not initialize DYAD!\n");

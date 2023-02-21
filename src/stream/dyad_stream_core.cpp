@@ -116,14 +116,14 @@ void dyad_stream_core::init ()
     }
 
     dyad_rc_t rc = dyad_init (debug,
-                        check,
-                        shared_storage,
-                        key_depth,
-                        key_bins,
-                        kvs_namespace,
-                        prod_managed_path,
-                        cons_managed_path,
-                        &m_ctx);
+                              check,
+                              shared_storage,
+                              key_depth,
+                              key_bins,
+                              kvs_namespace,
+                              prod_managed_path,
+                              cons_managed_path,
+                              &m_ctx);
 
     // TODO figure out if we want to error if init fails
     m_initialized = true;
@@ -134,14 +134,14 @@ void dyad_stream_core::init (const dyad_params &p)
 {
     DPRINTF (m_ctx, "DYAD_WRAPPER: Initializeing DYAD wrapper\n");
     dyad_rc_t rc = dyad_init (p.m_debug,
-                        false,
-                        p.m_shared_storage,
-                        p.m_key_depth,
-                        p.m_key_bins,
-                        p.m_kvs_namespace.c_str (),
-                        p.m_prod_managed_path.c_str (),
-                        p.m_cons_managed_path.c_str (),
-                        &m_ctx);
+                              false,
+                              p.m_shared_storage,
+                              p.m_key_depth,
+                              p.m_key_bins,
+                              p.m_kvs_namespace.c_str (),
+                              p.m_prod_managed_path.c_str (),
+                              p.m_cons_managed_path.c_str (),
+                              &m_ctx);
     // TODO figure out if we want to error if init fails
     m_initialized = true;
     log_info ("Stream core is initialized by parameters");

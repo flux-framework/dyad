@@ -8,21 +8,25 @@
  * SPDX-License-Identifier: LGPL-3.0
 \************************************************************/
 
-#include <cstdlib>
-#include <cstdio>
-#include "io_test.hpp"
 #include <unistd.h>
+
+#include <cstdio>
+#include <cstdlib>
+
+#include "io_test.hpp"
 
 std::vector<double> t_prod;
 std::vector<double> t_iter;
 
 void print_times (std::vector<double>& times, const std::string& tag);
 
-int main (int argc, char *argv[])
+int main (int argc, char* argv[])
 {
     if ((argc < 4) || (argc > 8)) {
-        fprintf (stderr, "Usage: %s dyad_path buffered_IO(0|1) context "
-                         "[iter [numfiles size [usec]]]\n", argv[0]);
+        fprintf (stderr,
+                 "Usage: %s dyad_path buffered_IO(0|1) context "
+                 "[iter [numfiles size [usec]]]\n",
+                 argv[0]);
         return EXIT_FAILURE;
     }
 
@@ -30,7 +34,7 @@ int main (int argc, char *argv[])
     const std::string dyad_path = get_dyad_path (argv[1]);
     mkpath (dyad_path);
     // Whether to use open/close or fopen/fclose
-    const bool buffered_io = static_cast<bool>(atoi (argv[2]));
+    const bool buffered_io = static_cast<bool> (atoi (argv[2]));
     // The name of the sharing context that uniquely identifies
     // the sharing between producers and consumers. Within this
     // a file name should not be reused.
@@ -46,12 +50,12 @@ int main (int argc, char *argv[])
         max_iter = atoi (argv[4]);
     }
     if (argc > 6) {
-        num_files = static_cast<size_t>(atoi (argv[5]));
-        file_size = static_cast<size_t>(atoi (argv[6]));
+        num_files = static_cast<size_t> (atoi (argv[5]));
+        file_size = static_cast<size_t> (atoi (argv[6]));
         fixed_size_files = ((num_files > 0u) && (file_size > 0u));
     }
     if (argc > 7) {
-        usec = static_cast<unsigned>(atoi (argv[7]));
+        usec = static_cast<unsigned> (atoi (argv[7]));
         if (usec > 1000000) {
             fprintf (stderr, "usec value must not be larger than 1000000\n");
         }
@@ -68,8 +72,7 @@ int main (int argc, char *argv[])
     setenv ("DYAD_PATH_PRODUCER", dyad_path.c_str (), 1);
     setenv ("DYAD_KIND_PRODUCER", "1", 1);
 
-    for (int iter = 0; iter < max_iter; iter ++)
-    {
+    for (int iter = 0; iter < max_iter; iter++) {
         double t1 = get_time ();
         // Prepare inital dataset
         data_path = get_data_path (dyad_path, context, iter);
@@ -100,7 +103,7 @@ int main (int argc, char *argv[])
 void print_times (std::vector<double>& times, const std::string& tag)
 {
     printf ("%s", tag.c_str ());
-    for (size_t i = 0ul; i < times.size (); i ++) {
+    for (size_t i = 0ul; i < times.size (); i++) {
         printf ("\t%f", times[i]);
     }
     printf ("\n");

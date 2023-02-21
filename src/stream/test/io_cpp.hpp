@@ -24,5 +24,4 @@ __attribute__((annotate("@critical_path()")))
 #endif
 int test_cons_io_stream (const std::string& pf, const size_t sz, const bool verify);
 
-
-#endif // IO_CPP_HPP
+#endif  // IO_CPP_HPP

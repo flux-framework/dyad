@@ -94,14 +94,14 @@ typedef struct dyad_kvs_response dyad_kvs_response_t;
  * @return An integer error code (values TBD)
  */
 dyad_rc_t dyad_init (bool debug,
-               bool check,
-               bool shared_storage,
-               unsigned int key_depth,
-               unsigned int key_bins,
-               const char* kvs_namespace,
-               const char* prod_managed_path,
-               const char* cons_managed_path,
-               dyad_ctx_t** ctx);
+                     bool check,
+                     bool shared_storage,
+                     unsigned int key_depth,
+                     unsigned int key_bins,
+                     const char* kvs_namespace,
+                     const char* prod_managed_path,
+                     const char* cons_managed_path,
+                     dyad_ctx_t** ctx);
 
 /**
  * @brief Wrapper function that performs all the common tasks needed
@@ -112,9 +112,10 @@ dyad_rc_t dyad_init (bool debug,
  * @return An integer error code (values TBD)
  */
 #if DYAD_PERFFLOW
-__attribute__((annotate("@critical_path()")))
+__attribute__ ((annotate ("@critical_path()")))
 #endif
-dyad_rc_t dyad_produce(dyad_ctx_t* ctx, const char* fname);
+dyad_rc_t
+dyad_produce (dyad_ctx_t* ctx, const char* fname);
 
 /**
  * @brief Wrapper function that performs all the common tasks needed
@@ -125,9 +126,10 @@ dyad_rc_t dyad_produce(dyad_ctx_t* ctx, const char* fname);
  * @return An integer error code (values TBD)
  */
 #if DYAD_PERFFLOW
-__attribute__((annotate("@critical_path()")))
+__attribute__ ((annotate ("@critical_path()")))
 #endif
-dyad_rc_t dyad_consume(dyad_ctx_t* ctx, const char* fname);
+dyad_rc_t
+dyad_consume (dyad_ctx_t* ctx, const char* fname);
 
 /**
  * @brief Finalizes the DYAD instance and deallocates the context

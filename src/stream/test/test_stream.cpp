@@ -20,7 +20,7 @@ void producer_open (dyad::dyad_stream_core& dyad, const std::string& filename)
     ofs_dyad.open (filename);
     std::ofstream& ofs = ofs_dyad.get_stream ();
     ofs << "test stream with explicit open() and close()." << std::endl;
-    ofs_dyad.close();
+    ofs_dyad.close ();
 }
 
 void consumer_open (dyad::dyad_stream_core& dyad, const std::string& filename)
@@ -59,15 +59,14 @@ int main (int argc, char** argv)
 {
     if (argc != 5) {
         std::cout << "Usage: " << argv[0]
-                  << " dyad_path file read(0)/write(1) use_open_close"
-                  << std::endl;
+                  << " dyad_path file read(0)/write(1) use_open_close" << std::endl;
         return 0;
     }
 
     std::string dyad_path = argv[1];
     std::string filename = argv[2];
-    bool writemode = static_cast<bool>(atoi(argv[3]));
-    bool use_open_close = static_cast<bool>(atoi(argv[4]));
+    bool writemode = static_cast<bool> (atoi (argv[3]));
+    bool use_open_close = static_cast<bool> (atoi (argv[4]));
 
     dyad::dyad_params dparams;
     dparams.m_dyad_path_cons = dyad_path;
@@ -91,7 +90,7 @@ int main (int argc, char** argv)
         if (writemode) {
             producer (dyad, filename);
         } else {
-            consumer( dyad, filename);
+            consumer (dyad, filename);
         }
     }
 

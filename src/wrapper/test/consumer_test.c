@@ -8,14 +8,15 @@
  * SPDX-License-Identifier: LGPL-3.0
 \************************************************************/
 
-#include <stdlib.h>
-#include <unistd.h>
+#include <errno.h>
 #include <fcntl.h>
-#include <string.h>
 #include <linux/limits.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
-#include <errno.h>
+#include <unistd.h>
+
 #include "../../common/libtap/tap.h"
 #include "../../common/utils.h"
 
@@ -35,7 +36,7 @@ void test_open_valid_path (const char *dyad_path)
 
     setenv ("DYAD_SYNC_HEALTH", "test", 1);
 
-    char path[PATH_MAX+1] = {'\0'};
+    char path[PATH_MAX + 1] = {'\0'};
     strncpy (path, dyad_path, PATH_MAX);
     strncat (path, "data1.txt", PATH_MAX);
     fd = open (path, O_RDONLY);
@@ -54,13 +55,13 @@ void test_fopen_valid_path (const char *dyad_path)
 
     setenv ("DYAD_SYNC_HEALTH", "test", 1);
 
-    char path[PATH_MAX+1] = {'\0'};
+    char path[PATH_MAX + 1] = {'\0'};
     strncpy (path, dyad_path, PATH_MAX);
     strncat (path, "data2.txt", PATH_MAX);
     fptr = fopen (path, "r");
 
     if (fptr == NULL) {
-       fprintf (stderr, "Cannot open file %s: %s\n", path, strerror (errno));
+        fprintf (stderr, "Cannot open file %s: %s\n", path, strerror (errno));
     }
 
     ok ((fptr != NULL) && (dyad_sync_health () == 0), "consumer: fopen sync");
@@ -74,12 +75,12 @@ int main (int argc, char *argv[])
 {
     plan (4);
 
-    const char* dyad_path = ".";
+    const char *dyad_path = ".";
     if (argc > 1) {
         dyad_path = argv[1];
     }
 
-    char path[PATH_MAX+1] = {'\0'};
+    char path[PATH_MAX + 1] = {'\0'};
     strncpy (path, dyad_path, PATH_MAX);
     size_t dyad_path_len = strlen (dyad_path);
 
@@ -90,7 +91,7 @@ int main (int argc, char *argv[])
 
     if (dyad_path[dyad_path_len - 1] != '/') {
         path[dyad_path_len] = '/';
-        path[dyad_path_len+1] = '\0';
+        path[dyad_path_len + 1] = '\0';
     }
 
     const mode_t m = (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH | S_ISGID);

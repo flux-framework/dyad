@@ -108,7 +108,7 @@ __attribute__ ((annotate ("@critical_path()"))) static dyad_rc_t publish_via_flu
     const char* restrict upath)
 #else
 static inline dyad_rc_t publish_via_flux (const dyad_ctx_t* restrict ctx,
-                                    const char* restrict upath)
+                                          const char* restrict upath)
 #endif
 {
     dyad_rc_t rc = 0;
@@ -159,7 +159,8 @@ __attribute__ ((annotate ("@critical_path()"))) static dyad_rc_t dyad_commit (
     const dyad_ctx_t* restrict ctx,
     const char* restrict fname)
 #else
-static inline dyad_rc_t dyad_commit (dyad_ctx_t* restrict ctx, const char* restrict fname)
+static inline dyad_rc_t dyad_commit (dyad_ctx_t* restrict ctx,
+                                     const char* restrict fname)
 #endif
 {
     dyad_rc_t rc = 0;
@@ -201,9 +202,9 @@ __attribute__ ((annotate ("@critical_path()"))) static dyad_rc_t dyad_kvs_lookup
     flux_future_t** f)
 #else
 static inline dyad_rc_t dyad_kvs_lookup (const dyad_ctx_t* ctx,
-                                   const char* restrict kvs_topic,
-                                   uint32_t* owner_rank,
-                                   flux_future_t** f)
+                                         const char* restrict kvs_topic,
+                                         uint32_t* owner_rank,
+                                         flux_future_t** f)
 #endif
 {
     dyad_rc_t rc = 0;
@@ -237,8 +238,8 @@ __attribute__ ((annotate ("@critical_path()"))) static dyad_rc_t dyad_fetch (
     dyad_kvs_response_t** restrict resp)
 #else
 static inline dyad_rc_t dyad_fetch (const dyad_ctx_t* restrict ctx,
-                              const char* restrict fname,
-                              dyad_kvs_response_t** restrict resp)
+                                    const char* restrict fname,
+                                    dyad_kvs_response_t** restrict resp)
 #endif
 {
     dyad_rc_t rc = 0;
@@ -316,10 +317,10 @@ __attribute__ ((annotate ("@critical_path()"))) static dyad_rc_t dyad_rpc_get (
     flux_future_t** f)
 #else
 static inline dyad_rc_t dyad_rpc_get (const dyad_ctx_t* ctx,
-                                const dyad_kvs_response_t* restrict kvs_data,
-                                const char** file_data,
-                                int* file_len,
-                                flux_future_t** f)
+                                      const dyad_kvs_response_t* restrict kvs_data,
+                                      const char** file_data,
+                                      int* file_len,
+                                      flux_future_t** f)
 #endif
 {
     dyad_rc_t rc = 0;
@@ -360,8 +361,8 @@ __attribute__ ((annotate ("@critical_path()"))) static dyad_rc_t dyad_pull (
     const dyad_kvs_response_t* restrict kvs_data)
 #else
 static inline dyad_rc_t dyad_pull (const dyad_ctx_t* restrict ctx,
-                             const char* restrict fname,
-                             const dyad_kvs_response_t* restrict kvs_data)
+                                   const char* restrict fname,
+                                   const dyad_kvs_response_t* restrict kvs_data)
 #endif
 {
     dyad_rc_t rc = 0;
@@ -434,14 +435,14 @@ pull_done:
 }
 
 dyad_rc_t dyad_init (bool debug,
-               bool check,
-               bool shared_storage,
-               unsigned int key_depth,
-               unsigned int key_bins,
-               const char* kvs_namespace,
-               const char* prod_managed_path,
-               const char* cons_managed_path,
-               dyad_ctx_t** ctx)
+                     bool check,
+                     bool shared_storage,
+                     unsigned int key_depth,
+                     unsigned int key_bins,
+                     const char* kvs_namespace,
+                     const char* prod_managed_path,
+                     const char* cons_managed_path,
+                     dyad_ctx_t** ctx)
 {
     // If ctx is NULL, we won't be able to return a dyad_ctx_t
     // to the user. In that case, print an error and return
@@ -533,9 +534,7 @@ dyad_rc_t dyad_init (bool debug,
             *ctx = NULL;
             return DYAD_RC_NOCTX;
         }
-        strncpy ((*ctx)->prod_managed_path,
-                 prod_managed_path,
-                 prod_path_len + 1);
+        strncpy ((*ctx)->prod_managed_path, prod_managed_path, prod_path_len + 1);
     }
     // If the consumer-managed path is provided, copy it into
     // the dyad_ctx_t object
@@ -553,9 +552,7 @@ dyad_rc_t dyad_init (bool debug,
             *ctx = NULL;
             return DYAD_RC_NOCTX;
         }
-        strncpy ((*ctx)->cons_managed_path,
-                 cons_managed_path,
-                 cons_path_len + 1);
+        strncpy ((*ctx)->cons_managed_path, cons_managed_path, cons_path_len + 1);
     }
     // Initialization is now complete!
     // Set reenter and initialized to indicate this.
