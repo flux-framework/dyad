@@ -115,7 +115,7 @@ void dyad_stream_core::init ()
         prod_managed_path = NULL;
     }
 
-    int rc = dyad_init (debug,
+    dyad_rc_t rc = dyad_init (debug,
                         check,
                         shared_storage,
                         key_depth,
@@ -133,7 +133,7 @@ void dyad_stream_core::init ()
 void dyad_stream_core::init (const dyad_params &p)
 {
     DPRINTF (m_ctx, "DYAD_WRAPPER: Initializeing DYAD wrapper\n");
-    int rc = dyad_init (p.m_debug,
+    dyad_rc_t rc = dyad_init (p.m_debug,
                         false,
                         p.m_shared_storage,
                         p.m_key_depth,
@@ -179,13 +179,11 @@ bool dyad_stream_core::open_sync (const char *path)
         return true;
     }
 
-    int rc = 0;
-
     if (!is_dyad_consumer ()) {
         return true;
     }
 
-    rc = dyad_consume (m_ctx, path);
+    dyad_rc_t rc = dyad_consume (m_ctx, path);
 
     if (DYAD_IS_ERROR (rc)) {
         DPRINTF (m_ctx, "DYAD_SYNC OPEN: failed sync (\"%s\").\n", path);
@@ -204,13 +202,11 @@ bool dyad_stream_core::close_sync (const char *path)
         return true;
     }
 
-    int rc = 0;
-
     if (!is_dyad_producer ()) {
         return true;
     }
 
-    rc = dyad_produce (m_ctx, path);
+    dyad_rc_t rc = dyad_produce (m_ctx, path);
 
     if (DYAD_IS_ERROR (rc)) {
         DPRINTF (m_ctx, "DYAD_SYNC CLOSE: failed sync (\"%s\").\n", path);

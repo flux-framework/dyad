@@ -93,7 +93,7 @@ typedef struct dyad_kvs_response dyad_kvs_response_t;
  *
  * @return An integer error code (values TBD)
  */
-int dyad_init (bool debug,
+dyad_rc_t dyad_init (bool debug,
                bool check,
                bool shared_storage,
                unsigned int key_depth,
@@ -114,7 +114,7 @@ int dyad_init (bool debug,
 #if DYAD_PERFFLOW
 __attribute__((annotate("@critical_path()")))
 #endif
-int dyad_produce(dyad_ctx_t* ctx, const char* fname);
+dyad_rc_t dyad_produce(dyad_ctx_t* ctx, const char* fname);
 
 /**
  * @brief Wrapper function that performs all the common tasks needed
@@ -127,7 +127,7 @@ int dyad_produce(dyad_ctx_t* ctx, const char* fname);
 #if DYAD_PERFFLOW
 __attribute__((annotate("@critical_path()")))
 #endif
-int dyad_consume(dyad_ctx_t* ctx, const char* fname);
+dyad_rc_t dyad_consume(dyad_ctx_t* ctx, const char* fname);
 
 /**
  * @brief Finalizes the DYAD instance and deallocates the context
@@ -135,7 +135,7 @@ int dyad_consume(dyad_ctx_t* ctx, const char* fname);
  *
  * @return An integer error code (values TBD)
  */
-int dyad_finalize (dyad_ctx_t** ctx);
+dyad_rc_t dyad_finalize (dyad_ctx_t** ctx);
 
 #if DYAD_SYNC_DIR
 int dyad_sync_directory (dyad_ctx_t* ctx, const char* path);

@@ -39,7 +39,12 @@ using namespace std;  // std::clock ()
 #include <unistd.h>
 
 #include "utils.h"
-#include "wrapper.h"
+// #include "wrapper.h"
+#include "dyad_core.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 __thread dyad_ctx_t *ctx = NULL;
 // static void dyad_sync_init (void) __attribute__((constructor));
@@ -138,7 +143,7 @@ void dyad_sync_init (void)
         prod_managed_path = NULL;
     }
 
-    int rc = dyad_init (debug,
+    dyad_rc_t rc = dyad_init (debug,
                         check,
                         shared_storage,
                         key_depth,
@@ -233,7 +238,7 @@ int open (const char *path, int oflag, ...)
     }
 
     IPRINTF (ctx, "DYAD_SYNC: enters open sync (\"%s\").\n", path);
-    int rc = dyad_consume (ctx, path);
+    dyad_rc_t rc = dyad_consume (ctx, path);
     if (DYAD_IS_ERROR (rc)) {
         DPRINTF (ctx, "DYAD_SYNC: failed open sync (\"%s\").\n", path);
         goto real_call;
@@ -273,7 +278,7 @@ FILE *fopen (const char *path, const char *mode)
     }
 
     IPRINTF (ctx, "DYAD_SYNC: enters fopen sync (\"%s\").\n", path);
-    int rc = dyad_consume (ctx, path);
+    dyad_rc_t rc = dyad_consume (ctx, path);
     if (DYAD_IS_ERROR (rc)) {
         DPRINTF (ctx, "DYAD_SYNC: failed fopen sync (\"%s\").\n", path);
         goto real_call;
@@ -357,7 +362,7 @@ real_call:;  // semicolon here to avoid the error
             DPRINTF (ctx, "Failed close (\"%s\").: %s\n", path, strerror (errno));
         }
         IPRINTF (ctx, "DYAD_SYNC: enters close sync (\"%s\").\n", path);
-        int dyad_rc = dyad_produce (ctx, path);
+        dyad_rc_t dyad_rc = dyad_produce (ctx, path);
         if (DYAD_IS_ERROR (dyad_rc)) {
             DPRINTF (ctx, "DYAD_SYNC: failed close sync (\"%s\").\n", path);
         }
@@ -443,7 +448,7 @@ real_call:;
             DPRINTF (ctx, "Failed fclose (\"%s\").\n", path);
         }
         IPRINTF (ctx, "DYAD_SYNC: enters fclose sync (\"%s\").\n", path);
-        int dyad_rc = dyad_produce (ctx, path);
+        dyad_rc_t dyad_rc = dyad_produce (ctx, path);
         if (DYAD_IS_ERROR (dyad_rc)) {
             DPRINTF (ctx, "DYAD_SYNC: failed fclose sync (\"%s\").\n", path);
         }
@@ -454,6 +459,10 @@ real_call:;
 
     return rc;
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 /*
  * vi: ts=4 sw=4 expandtab
