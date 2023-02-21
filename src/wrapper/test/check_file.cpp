@@ -8,17 +8,18 @@
  * SPDX-License-Identifier: LGPL-3.0
 \************************************************************/
 
-#include <iostream>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
+#include <errno.h>
 #include <fcntl.h>
-#include <string.h>
 #include <limits.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
-#include <errno.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+#include <iostream>
+
 #include "flist.hpp"
 
 static void fill_buf (char* buffer, size_t buf_sz, const char* line)
@@ -35,7 +36,7 @@ static void fill_buf (char* buffer, size_t buf_sz, const char* line)
     // One is for terminating null charactor at the end of the buffer.
     // Another is for a newline character with which we will replace the null
     // placed by the sprintf ().
-    const size_t e_buf_sz = buf_sz - 1ul; // effective buffer size
+    const size_t e_buf_sz = buf_sz - 1ul;  // effective buffer size
     char* bp = buffer;
     const char* bp_end = bp + e_buf_sz;
     unsigned int i = 0u;
@@ -46,38 +47,39 @@ static void fill_buf (char* buffer, size_t buf_sz, const char* line)
     }
 
     // set the last character in the buffer as the terminating null character
-    buffer [e_buf_sz] = '\0';
+    buffer[e_buf_sz] = '\0';
     if (e_buf_sz == 1ul) {
-        buffer [0] = '\n';
+        buffer[0] = '\n';
     }
 
     // The sprintf set the last character in the effective
     if (e_buf_sz >= 2ul) {
-        if (buffer [e_buf_sz - 2] != '\n') {
-            buffer [e_buf_sz-1] = '\n';
+        if (buffer[e_buf_sz - 2] != '\n') {
+            buffer[e_buf_sz - 1] = '\n';
         } else {
-            buffer [e_buf_sz-1] = '\n';
-            buffer [e_buf_sz-2] = ' ';
+            buffer[e_buf_sz - 1] = '\n';
+            buffer[e_buf_sz - 2] = ' ';
         }
     }
 }
 
 static int check_read (const char* buf, size_t sz, const char* line)
 {
-    char buffer [PATH_MAX + 1] = {'\0'};
+    char buffer[PATH_MAX + 1] = {'\0'};
     const size_t buf_sz = PATH_MAX;
-    const size_t fill_sz = ((buf_sz < sz)? buf_sz : sz) + 1ul;
+    const size_t fill_sz = ((buf_sz < sz) ? buf_sz : sz) + 1ul;
     fill_buf (buffer, fill_sz, line);
 
     size_t i = 0ul;
     size_t j = 0ul;
-    for (; i < sz ; ++i) {
+    for (; i < sz; ++i) {
         if (buffer[j] != buf[i]) {
-            fprintf (stderr, "error at %lu th character: %c != %c \n",
-                     i, buffer[j], buf[i]);
+            fprintf (stderr, "error at %lu th character: %c != %c \n", i,
+                     buffer[j], buf[i]);
             return -2;
         }
-        if (++j == buf_sz) j = 0ul;
+        if (++j == buf_sz)
+            j = 0ul;
     }
 
     return 0;
@@ -85,17 +87,18 @@ static int check_read (const char* buf, size_t sz, const char* line)
 
 static int consume_fd (int ifd, size_t sz, int verify)
 {
-    char* buf = (char*) malloc (sz+1);
-    if (buf == NULL) return -1;
+    char* buf = (char*)malloc (sz + 1);
+    if (buf == NULL)
+        return -1;
 
-    memset (buf, 0, sz+1);
+    memset (buf, 0, sz + 1);
     ssize_t n = read (ifd, buf, sz);
 
-    if (((ssize_t) sz) != n) {
+    if (((ssize_t)sz) != n) {
         free (buf);
         return -1;
     }
-    int rc = ((verify != 0)? check_read (buf, sz, "test produce_fd") : 0);
+    int rc = ((verify != 0) ? check_read (buf, sz, "test produce_fd") : 0);
 
     free (buf);
     return rc;
@@ -103,10 +106,11 @@ static int consume_fd (int ifd, size_t sz, int verify)
 
 static int consume_fp (FILE* ifp, size_t sz, int verify)
 {
-    char* buf = (char*) malloc (sz+1);
-    if (buf == NULL) return -1;
+    char* buf = (char*)malloc (sz + 1);
+    if (buf == NULL)
+        return -1;
 
-    memset (buf, 0, sz+1);
+    memset (buf, 0, sz + 1);
     size_t n = fread (buf, 1, sz, ifp);
 
     if (n != sz) {
@@ -114,7 +118,7 @@ static int consume_fp (FILE* ifp, size_t sz, int verify)
         fprintf (stderr, " read %lu bytes instead of %lu\n", n, sz);
         return -1;
     }
-    int rc = ((verify != 0)? check_read (buf, sz, "test produce_fp") : 0);
+    int rc = ((verify != 0) ? check_read (buf, sz, "test produce_fp") : 0);
 
     free (buf);
     return rc;
@@ -126,7 +130,7 @@ int test_cons_io (const char* pf, size_t sz, int verify)
     int rc = 0;
 
     // Create upper directory of the file if it does not exist yet.
-    //mkdir_of_path (pf);
+    // mkdir_of_path (pf);
 
     fd = open (pf, O_RDONLY);
     if (fd < 0) {
@@ -158,10 +162,10 @@ int test_cons_io (const char* pf, size_t sz, int verify)
 int test_cons_io_buf (const char* pf, size_t sz, int verify)
 {
     int rc = -1;
-    FILE *fptr = NULL;
+    FILE* fptr = NULL;
 
     // Create upper directory of the file if it does not exist yet.
-    //mkdir_of_path (pf);
+    // mkdir_of_path (pf);
 
     fptr = fopen (pf, "r");
     if (fptr == NULL) {
@@ -197,7 +201,7 @@ int main (int argc, char** argv)
         return EXIT_FAILURE;
     }
     std::string data_path = argv[1];
-    bool is_fp = static_cast<bool>(atoi (argv[2]));
+    bool is_fp = static_cast<bool> (atoi (argv[2]));
 
     flist_t flist;
     set_flist (data_path, flist);

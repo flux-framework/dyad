@@ -65,7 +65,7 @@ int main (int argc, char** argv)
     size_t items_read;
     for (int32_t seed = 0; seed < num_transfers; seed++) {
         // Clear val_buf to be safe
-        memset (val_buf, 0, VAL_BUF_SIZE);
+        std::memset (val_buf, 0, VAL_BUF_SIZE);
         // Generate the file name
         full_path = cpp_fpath + "/data" + std::to_string (seed) + ".txt";
         /********************************************

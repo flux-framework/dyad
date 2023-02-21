@@ -161,9 +161,10 @@ fi
 ########################
 AC_CONFIG_FILES([Makefile
                  src/Makefile
-                 src/common/Makefile
-                 src/common/libtap/Makefile
-                 src/lib/Makefile
+                 src/utils/Makefile
+                 src/utils/libtap/Makefile
+                 src/core/Makefile
+                 src/stream/Makefile
                  src/modules/Makefile
                  src/wrapper/Makefile])
 

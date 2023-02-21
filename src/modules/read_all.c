@@ -10,11 +10,11 @@
 
 #if HAVE_CONFIG_H
 #include "config.h"
-#endif // HAVE_CONFIG_H
+#endif  // HAVE_CONFIG_H
 
+#include <errno.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <errno.h>
 
 #include "read_all.h"
 
@@ -22,15 +22,15 @@ ssize_t write_all (int fd, const void *buf, size_t len)
 {
     ssize_t n = 0;
     ssize_t count = 0;
-    char* buf_pos = NULL;
+    char *buf_pos = NULL;
 
     if (fd < 0 || (buf == NULL && len != 0)) {
         errno = EINVAL;
         return -1;
     }
-    while ((size_t) count < len) {
-        buf_pos = (char*) buf + count;
-        if ((n = write (fd, (void*) buf_pos, len - count)) < 0)
+    while ((size_t)count < len) {
+        buf_pos = (char *)buf + count;
+        if ((n = write (fd, (void *)buf_pos, len - count)) < 0)
             return -1;
         count += n;
     }
@@ -46,7 +46,7 @@ ssize_t read_all (int fd, void **bufp)
     ssize_t count = 0;
     void *new_buf = NULL;
     int saved_errno = errno;
-    char* buf_pos = NULL;
+    char *buf_pos = NULL;
 
     if (fd < 0 || !bufp) {
         errno = EINVAL;
@@ -55,16 +55,16 @@ ssize_t read_all (int fd, void **bufp)
     do {
         if (len - count == 0) {
             len += chunksize;
-            if (!(new_buf = realloc (buf, len+1)))
+            if (!(new_buf = realloc (buf, len + 1)))
                 goto error;
             buf = new_buf;
         }
-        buf_pos = (char*) buf + count;
-        if ((n = read (fd, (void*) buf_pos, len - count)) < 0)
+        buf_pos = (char *)buf + count;
+        if ((n = read (fd, (void *)buf_pos, len - count)) < 0)
             goto error;
         count += n;
     } while (n != 0);
-    ((char*)buf)[count] = '\0';
+    ((char *)buf)[count] = '\0';
     *bufp = buf;
     return count;
 error:

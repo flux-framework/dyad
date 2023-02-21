@@ -9,67 +9,78 @@
 \************************************************************/
 
 #include "io_test.hpp"
-#include <cstdlib>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
+
 #include <fcntl.h>
-#include <cstring>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+#include <cerrno>
 #include <climits>
 #include <cstdio>
-#include <sys/stat.h>
-#include <cerrno>
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
+
 #include "../../common/utils.h"
 #include "io_c.h"
-#include <iostream>
 
 bool producer (const flist_t& flist, bool buffered_io, unsigned usec)
 {
     int rc = -1;
 
     if (buffered_io) {
-        for (const auto& f: flist) {
-            usleep(static_cast<useconds_t>(usec));
+        for (const auto& f : flist) {
+            usleep (static_cast<useconds_t> (usec));
             rc = test_prod_io_buf (f.first.c_str (), f.second);
-            if (rc != 0) break;
+            if (rc != 0)
+                break;
         }
     } else {
-        for (const auto& f: flist) {
-            usleep(static_cast<useconds_t>(usec));
+        for (const auto& f : flist) {
+            usleep (static_cast<useconds_t> (usec));
             rc = test_prod_io (f.first.c_str (), f.second);
-            if (rc != 0) break;
+            if (rc != 0)
+                break;
         }
     }
 
-    if (rc != 0) return false;
+    if (rc != 0)
+        return false;
     return true;
 }
 
-bool consumer (const flist_t& flist, bool buffered_io, unsigned usec, bool verify)
+bool consumer (const flist_t& flist,
+               bool buffered_io,
+               unsigned usec,
+               bool verify)
 {
     int rc = 0;
 
     if (buffered_io) {
-        for (const auto& f: flist) {
-            rc = test_cons_io_buf (f.first.c_str (), f.second, (int) verify);
+        for (const auto& f : flist) {
+            rc = test_cons_io_buf (f.first.c_str (), f.second, (int)verify);
             if (rc != 0) {
-                std::cerr << "Consumer error with " << f.first.c_str () << std::endl;
+                std::cerr << "Consumer error with " << f.first.c_str ()
+                          << std::endl;
                 break;
             }
-            usleep(static_cast<useconds_t>(usec));
+            usleep (static_cast<useconds_t> (usec));
         }
     } else {
-        for (const auto& f: flist) {
-            rc = test_cons_io (f.first.c_str (), f.second, (int) verify);
+        for (const auto& f : flist) {
+            rc = test_cons_io (f.first.c_str (), f.second, (int)verify);
             if (rc != 0) {
-                std::cerr << "Consumer error with " << f.first.c_str () << std::endl;
+                std::cerr << "Consumer error with " << f.first.c_str ()
+                          << std::endl;
                 break;
             }
-            usleep(static_cast<useconds_t>(usec));
+            usleep (static_cast<useconds_t> (usec));
         }
     }
 
-    if (rc != 0) return false;
+    if (rc != 0)
+        return false;
     return true;
 }
 
@@ -84,7 +95,7 @@ void mkpath (const std::string& path)
     }
 }
 
-std::string get_dyad_path (char *path)
+std::string get_dyad_path (char* path)
 {
     std::string dyad_path = std::string (path);
     if (dyad_path.empty ()) {
@@ -102,8 +113,8 @@ std::string get_data_path (const std::string& dyad_path,
                            const std::string& context,
                            int iter)
 {
-    const auto context_iter = ((context != "")?
-                               context + '-' + std::to_string (iter) + '/' :
-                               std::to_string (iter) + '/');
+    const auto context_iter =
+        ((context != "") ? context + '-' + std::to_string (iter) + '/'
+                         : std::to_string (iter) + '/');
     return dyad_path + context_iter;
 }

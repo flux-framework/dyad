@@ -4,7 +4,6 @@
 #include <fstream>
 #include <iostream>
 #include <string>
-#include <cstring> // For memset
 
 /**
  * Write the spcified file and record it in for transfer with DYAD

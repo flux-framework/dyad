@@ -8,21 +8,23 @@
  * SPDX-License-Identifier: LGPL-3.0
 \************************************************************/
 
-#include <cstdlib>
-#include <cstdio>
-#include "../../common/utils.h"
 #include <mpi.h>
-#include "io_test.hpp"
 
-#include <algorithm> // shuffle
+#include <algorithm>  // shuffle
+#include <cstdio>
+#include <cstdlib>
 #include <random>
 #include <vector>
+
+#include "../../common/utils.h"
+#include "io_test.hpp"
 
 using rng_t = std::minstd_rand;
 rng_t rngen;
 
-rng_t& get_rngen () {
-  return ::rngen;
+rng_t& get_rngen ()
+{
+    return ::rngen;
 }
 
 #include <chrono>
@@ -33,7 +35,6 @@ std::vector<double> t_prod_sync;
 std::vector<double> t_cons_sync;
 std::vector<double> t_iter;
 
-
 int get_partner (int my_rank, int num_ranks, bool randomize = false);
 void print_times (std::vector<double>& times, const std::string& tag);
 double mpi_sync_io ();
@@ -43,23 +44,23 @@ struct Pairing {
     void set_partner ();
     void set_role (const std::string& dyad_path);
 
-    int m_my_rank; ///< my rank
+    int m_my_rank;  ///< my rank
     int m_num_ranks;
-    int m_partner; ///< Partner rank
-    int m_prod_rank; ///< Producer rank
-    bool m_randomize; ///< Whether to pair randomly
-    bool m_is_producer; ///< Am I producer
-    bool m_is_consumer; ///< Am I consumer
+    int m_partner;       ///< Partner rank
+    int m_prod_rank;     ///< Producer rank
+    bool m_randomize;    ///< Whether to pair randomly
+    bool m_is_producer;  ///< Am I producer
+    bool m_is_consumer;  ///< Am I consumer
 };
 
 Pairing::Pairing (int my_rank, int num_ranks, bool randomize)
-  : m_my_rank (my_rank),
-    m_num_ranks (num_ranks),
-    m_partner (my_rank),
-    m_prod_rank (my_rank),
-    m_randomize (randomize),
-    m_is_producer (true),
-    m_is_consumer (true)
+    : m_my_rank (my_rank),
+      m_num_ranks (num_ranks),
+      m_partner (my_rank),
+      m_prod_rank (my_rank),
+      m_randomize (randomize),
+      m_is_producer (true),
+      m_is_consumer (true)
 {
     if ((m_my_rank < 0) || (m_num_ranks <= 0) || (m_num_ranks % 2 != 0)) {
         fprintf (stderr, "Invalid rank %d / %d\n", m_my_rank, m_num_ranks);
@@ -74,22 +75,24 @@ void Pairing::set_partner ()
     m_partner = get_partner (m_my_rank, m_num_ranks, m_randomize);
 
     if (m_randomize) {
-        int tmp = static_cast<int>(get_rngen ()()) // differentiate iterations
-                + (m_my_rank + m_partner) % 3 // differentiate pairs
-                + static_cast<int>(m_partner > m_my_rank); // differentiate this and its partner
-        m_is_consumer = static_cast<bool>(tmp % 2);
+        int tmp =
+            static_cast<int> (get_rngen () ())  // differentiate iterations
+            + (m_my_rank + m_partner) % 3       // differentiate pairs
+            + static_cast<int> (
+                m_partner > m_my_rank);  // differentiate this and its partner
+        m_is_consumer = static_cast<bool> (tmp % 2);
         m_is_producer = ((m_my_rank == m_partner) || !m_is_consumer);
     } else {
         m_is_consumer = (m_partner >= m_my_rank);
         m_is_producer = (m_partner <= m_my_rank);
     }
 
-    m_prod_rank = m_is_consumer? m_partner : m_my_rank;
+    m_prod_rank = m_is_consumer ? m_partner : m_my_rank;
 }
 
 void Pairing::set_role (const std::string& dyad_path)
 {
-    if (m_is_consumer ) {
+    if (m_is_consumer) {
         setenv ("DYAD_PATH_CONSUMER", dyad_path.c_str (), 1);
         setenv ("DYAD_KIND_CONSUMER", "1", 1);
     } else {
@@ -98,39 +101,39 @@ void Pairing::set_role (const std::string& dyad_path)
     }
 }
 
-
-
-int main (int argc, char *argv[])
+int main (int argc, char* argv[])
 {
     int rank = -1;
     int num_ranks = 0;
 
-    MPI_Init (&argc,&argv);
+    MPI_Init (&argc, &argv);
     MPI_Comm_rank (MPI_COMM_WORLD, &rank);
     MPI_Comm_size (MPI_COMM_WORLD, &num_ranks);
 
     if ((argc < 6) || (argc > 11)) {
-        fprintf (stderr, "Usage: %s dyad_path buffered_IO(0|1) context "
-                         "verify(0|1) explicit_sync(0|1) randomize(0|seed) "
-                         "[iter [numfiles size [usec]]]\n", argv[0]);
+        fprintf (stderr,
+                 "Usage: %s dyad_path buffered_IO(0|1) context "
+                 "verify(0|1) explicit_sync(0|1) randomize(0|seed) "
+                 "[iter [numfiles size [usec]]]\n",
+                 argv[0]);
         return EXIT_FAILURE;
     }
 
     // Root directory under which shared files are located
     const std::string dyad_path = get_dyad_path (argv[1]);
     // Whether to use open/close or fopen/fclose
-    const bool buffered_io = static_cast<bool>(atoi (argv[2]));
+    const bool buffered_io = static_cast<bool> (atoi (argv[2]));
     // The name of the sharing context that uniquely identifies
     // the sharing between producers and consumers. Within this
     // a file name should not be reused.
     const std::string context = argv[3];
     // verify if the bytes read are identical to what have been written
-    const bool verify = static_cast<bool>(atoi (argv[4]));
+    const bool verify = static_cast<bool> (atoi (argv[4]));
     // Whether to use Dyad interception (implicit) or MPI sync (explicit)
-    const bool explicit_sync = static_cast<bool>(atoi (argv[5]));
+    const bool explicit_sync = static_cast<bool> (atoi (argv[5]));
     const unsigned seed = atoi (argv[6]);
     // Whether to randomize pairing
-    const bool randomize = static_cast<bool>(seed);
+    const bool randomize = static_cast<bool> (seed);
 
     int max_iter = 1;
     size_t num_files = 0u;
@@ -142,12 +145,12 @@ int main (int argc, char *argv[])
         max_iter = atoi (argv[7]);
     }
     if (argc > 9) {
-        num_files = static_cast<size_t>(atoi (argv[8]));
-        file_size = static_cast<size_t>(atoi (argv[9]));
+        num_files = static_cast<size_t> (atoi (argv[8]));
+        file_size = static_cast<size_t> (atoi (argv[9]));
         fixed_size_files = ((num_files > 0u) && (file_size > 0u));
     }
     if (argc > 10) {
-        usec = static_cast<unsigned>(atoi (argv[10]));
+        usec = static_cast<unsigned> (atoi (argv[10]));
         if (usec > 1000000) {
             fprintf (stderr, "usec value must not be larger than 1000000\n");
         }
@@ -167,7 +170,7 @@ int main (int argc, char *argv[])
     printf ("usec: %u\n", usec);
 #endif
 
-    if (rank == 0) { // in case of using a shared storage
+    if (rank == 0) {  // in case of using a shared storage
         mkpath (dyad_path);
     }
     MPI_Barrier (MPI_COMM_WORLD);
@@ -191,12 +194,12 @@ int main (int argc, char *argv[])
 
     flist_t flist;
 
-    for (int iter = 0; iter < max_iter; iter ++)
-    {
-        Pairing p(rank, num_ranks, randomize);
-        const std::string ctx = (context.empty()?
-            std::to_string (p.m_prod_rank) :
-            (context + "-" + std::to_string (p.m_prod_rank)));
+    for (int iter = 0; iter < max_iter; iter++) {
+        Pairing p (rank, num_ranks, randomize);
+        const std::string ctx =
+            (context.empty ()
+                 ? std::to_string (p.m_prod_rank)
+                 : (context + "-" + std::to_string (p.m_prod_rank)));
 
 #if 0
         printf ("Iter %d\t%s %d paired with %d\n", iter,
@@ -214,7 +217,7 @@ int main (int argc, char *argv[])
         // files.
         std::string data_path = get_data_path (dyad_path, ctx, iter);
         if (!explicit_sync) {
-            p.set_role(dyad_path);
+            p.set_role (dyad_path);
         }
 
         if (!explicit_sync || p.m_is_producer) {
@@ -228,7 +231,7 @@ int main (int argc, char *argv[])
             set_flist (data_path, flist);
         }
 
-        if (p.m_is_producer) { // producer
+        if (p.m_is_producer) {  // producer
             double t3 = get_time ();
             if (!producer (flist, buffered_io, usec)) {
                 return EXIT_FAILURE;
@@ -237,7 +240,7 @@ int main (int argc, char *argv[])
             if (explicit_sync) {
                 t_prod_sync[iter] = mpi_sync_io ();
             }
-        } else if (p.m_is_consumer) { // consumer
+        } else if (p.m_is_consumer) {  // consumer
             if (explicit_sync) {
                 t_cons_sync[iter] = mpi_sync_io ();
             }
@@ -286,18 +289,18 @@ int get_partner (int my_rank, int num_ranks, bool randomize)
     if (randomize) {
         std::shuffle (ranks.begin (), ranks.end (), get_rngen ());
 
-        for (unsigned int i = 0; i < ranks.size (); i ++) {
+        for (unsigned int i = 0; i < ranks.size (); i++) {
             if (my_rank == ranks[i]) {
                 if (i % 2 == 0) {
-                    partner = ranks[i+1];
+                    partner = ranks[i + 1];
                 } else {
-                    partner = ranks[i-1];
+                    partner = ranks[i - 1];
                 }
                 break;
             }
         }
     } else {
-        partner = (my_rank + ranks.size ()/2) % ranks.size ();
+        partner = (my_rank + ranks.size () / 2) % ranks.size ();
     }
 
     return partner;
@@ -306,7 +309,7 @@ int get_partner (int my_rank, int num_ranks, bool randomize)
 void print_times (std::vector<double>& times, const std::string& tag)
 {
     printf ("%s", tag.c_str ());
-    for (size_t i = 0ul; i < times.size (); i ++) {
+    for (size_t i = 0ul; i < times.size (); i++) {
         printf ("\t%f", times[i]);
     }
     printf ("\n");
@@ -315,14 +318,13 @@ void print_times (std::vector<double>& times, const std::string& tag)
 double mpi_sync_io ()
 {
     double t1 = get_time ();
-  #if 1
+#if 1
     MPI_Barrier (MPI_COMM_WORLD);
-  #else
+#else
     int sendbuf = 1;
     int recvbuf = 0;
-    MPI_Allreduce (&sendbuf, &recvbuf, 1,
-                  MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-  #endif
+    MPI_Allreduce (&sendbuf, &recvbuf, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+#endif
 
     return (get_time () - t1);
 }

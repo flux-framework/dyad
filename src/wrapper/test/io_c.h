@@ -41,4 +41,4 @@ int test_cons_io_buf (const char* pf, const size_t sz, int verify);
 };
 #endif
 
-#endif // IO_C_H
+#endif  // IO_C_H

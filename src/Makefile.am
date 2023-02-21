@@ -1,1 +1,1 @@
-SUBDIRS = common modules wrapper lib
+SUBDIRS = utils modules core wrapper stream

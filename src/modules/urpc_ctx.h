@@ -11,17 +11,16 @@
 #ifndef URPC_SERVER_CTX_H
 #define URPC_SERVER_CTX_H
 
-#include <stdbool.h>
 #include <flux/core.h>
+#include <stdbool.h>
 
 struct urpc_server_ctx {
     flux_t *h;
     bool debug;
     flux_msg_handler_t **handlers;
     const char *urpc_cfg_file;
-} urpc_server_ctx_default =
-    {NULL, false, NULL, NULL};
+} urpc_server_ctx_default = {NULL, false, NULL, NULL};
 
 typedef struct urpc_server_ctx urpc_server_ctx_t;
 
-#endif // URPC_SERVER_CTX_H
+#endif  // URPC_SERVER_CTX_H
