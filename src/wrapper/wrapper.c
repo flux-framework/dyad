@@ -47,8 +47,8 @@ extern "C" {
 #endif
 
 __thread dyad_ctx_t *ctx = NULL;
-// static void dyad_sync_init (void) __attribute__((constructor));
-static void dyad_sync_fini (void) __attribute__ ((destructor));
+// static void dyad_wrapper_init (void) __attribute__((constructor));
+static void dyad_wrapper_fini (void) __attribute__ ((destructor));
 
 #if DYAD_SYNC_DIR
 int sync_directory (const char *path);
@@ -84,7 +84,7 @@ static inline int is_wronly (int fd)
  *                                                                           *
  *****************************************************************************/
 
-void dyad_sync_init (void)
+void dyad_wrapper_init (void)
 {
     char *e = NULL;
 
@@ -97,11 +97,10 @@ void dyad_sync_init (void)
     char *prod_managed_path = NULL;
     char *cons_managed_path = NULL;
 
-    DPRINTF (ctx, "DYAD_WRAPPER: Initializeing DYAD wrapper\n");
-
     if ((e = getenv ("DYAD_SYNC_DEBUG"))) {
         debug = true;
         enable_debug_dyad_utils ();
+        fprintf (stderr, "DYAD_WRAPPER: Initializeing DYAD wrapper\n");
     } else {
         debug = false;
         disable_debug_dyad_utils ();
@@ -160,50 +159,20 @@ void dyad_sync_init (void)
                    (ctx->check) ? "true" : "false");
     DYAD_LOG_INFO (ctx, "DYAD_KEY_DEPTH=%u\n", ctx->key_depth);
     DYAD_LOG_INFO (ctx, "DYAD_KEY_BINS=%u\n", ctx->key_bins);
-
-#if DYAD_SYNC_START
-    ctx->sync_started = false;
-    if ((e = getenv ("DYAD_SYNC_START")) && (atoi (e) > 0)) {
-        DYAD_LOG_INFO (ctx, "Before barrier %u\n", ctx->rank);
-        flux_future_t *fb;
-        if (!(fb = flux_barrier (ctx->h, "sync_start", atoi (e))))
-            DYAD_LOG_ERR (ctx, "flux_barrier failed for %d ranks\n", atoi (e));
-        if (flux_future_get (fb, NULL) < 0)
-            DYAD_LOG_ERR (ctx, "flux_future_get for barrir failed\n");
-        DYAD_LOG_INFO (ctx, "After barrier %u\n", ctx->rank);
-        flux_future_destroy (fb);
-
-        ctx->sync_started = true;
-        struct timespec t_now;
-        clock_gettime (CLOCK_REALTIME, &t_now);
-        char tbuf[100];
-        strftime (tbuf, sizeof (tbuf), "%D %T", gmtime (&(t_now.tv_sec)));
-        printf ("DYAD synchronized start at %s.%09ld\n", tbuf, t_now.tv_nsec);
-    }
-#endif  // DYAD_SYNC_START
 }
 
-void dyad_sync_fini ()
+void dyad_wrapper_fini ()
 {
     if (ctx == NULL) {
         return;
     }
-#if DYAD_SYNC_START
-    if (ctx->sync_started) {
-        struct timespec t_now;
-        clock_gettime (CLOCK_REALTIME, &t_now);
-        char tbuf[100];
-        strftime (tbuf, sizeof (tbuf), "%D %T", gmtime (&(t_now.tv_sec)));
-        printf ("DYAD stops at %s.%09ld\n", tbuf, t_now.tv_nsec);
-    }
-#endif  // DYAD_SYNC_START
     dyad_finalize (&ctx);
 }
 
 int open (const char *path, int oflag, ...)
 {
     if (ctx == NULL) {
-        dyad_sync_init ();
+        dyad_wrapper_init ();
     }
     char *error = NULL;
     typedef int (*open_ptr_t) (const char *, int, mode_t, ...);
@@ -250,7 +219,7 @@ real_call:;
 FILE *fopen (const char *path, const char *mode)
 {
     if (ctx == NULL) {
-        dyad_sync_init ();
+        dyad_wrapper_init ();
     }
     char *error = NULL;
     typedef FILE *(*fopen_ptr_t) (const char *, const char *);
@@ -288,7 +257,7 @@ real_call:
 int close (int fd)
 {
     if (ctx == NULL) {
-        dyad_sync_init ();
+        dyad_wrapper_init ();
     }
     bool to_sync = false;
     char *error = NULL;
@@ -377,7 +346,7 @@ real_call:;  // semicolon here to avoid the error
 int fclose (FILE *fp)
 {
     if (ctx == NULL) {
-        dyad_sync_init ();
+        dyad_wrapper_init ();
     }
     bool to_sync = false;
     char *error = NULL;
