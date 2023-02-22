@@ -455,23 +455,21 @@ dyad_rc_t dyad_init (bool debug,
     // If it is not NULL, that means the dyad_ctx_t object
     // has either been allocated or fully initialized.
     // If it's initialized, simply print a message and
-    // return DYAD_OK. Otherwise, initialize the dyad_ctx_t
-    // object with dyad_ctx_default and return DYAD_OK.
+    // return DYAD_OK.
     if (*ctx != NULL) {
         if ((*ctx)->initialized) {
             // TODO Indicate already initialized
             DPRINTF ((*ctx), "DYAD context already initialized\n");
-        } else {
-            **ctx = dyad_ctx_default;
+            return DYAD_RC_OK;
         }
-        return DYAD_RC_OK;
-    }
-    // Allocate the dyad_ctx_t object and make sure the allocation
-    // worked successfully
-    *ctx = (dyad_ctx_t*)malloc (sizeof (struct dyad_ctx));
-    if (*ctx == NULL) {
-        fprintf (stderr, "Could not allocate DYAD context!\n");
-        return DYAD_RC_NOCTX;
+    } else {
+        // Allocate the dyad_ctx_t object and make sure the allocation
+        // worked successfully
+        *ctx = (dyad_ctx_t*)malloc (sizeof (struct dyad_ctx));
+        if (*ctx == NULL) {
+            fprintf (stderr, "Could not allocate DYAD context!\n");
+            return DYAD_RC_NOCTX;
+        }
     }
     // Set the initial contents of the dyad_ctx_t object
     // to dyad_ctx_default.
