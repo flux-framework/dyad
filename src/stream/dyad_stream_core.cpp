@@ -42,7 +42,8 @@ namespace dyad
  *                                                                           *
  *****************************************************************************/
 
-dyad_stream_core::dyad_stream_core () : m_ctx (NULL), m_initialized (false)
+dyad_stream_core::dyad_stream_core ()
+  : m_ctx (NULL), m_initialized (false), m_is_prod (false), m_is_cons (false)
 {
 }
 
@@ -109,13 +110,17 @@ void dyad_stream_core::init ()
 
     if ((e = getenv (DYAD_PATH_CONS_ENV))) {
         cons_managed_path = e;
+        m_is_cons = (strlen (cons_managed_path) != 0);
     } else {
         cons_managed_path = NULL;
+        m_is_cons = false;
     }
     if ((e = getenv (DYAD_PATH_PROD_ENV))) {
         prod_managed_path = e;
+        m_is_prod = (strlen (prod_managed_path) != 0);
     } else {
         prod_managed_path = NULL;
+        m_is_prod = false;
     }
 
     dyad_rc_t rc =
@@ -158,14 +163,12 @@ void dyad_stream_core::log_info (const std::string &msg_head) const
 
 bool dyad_stream_core::is_dyad_producer ()
 {
-    return m_ctx->prod_managed_path != NULL
-           && strlen (m_ctx->prod_managed_path) != 0;
+    return m_is_prod;
 }
 
 bool dyad_stream_core::is_dyad_consumer ()
 {
-    return m_ctx->cons_managed_path != NULL
-           && strlen (m_ctx->cons_managed_path) != 0;
+    return m_is_cons;
 }
 
 bool dyad_stream_core::open_sync (const char *path)

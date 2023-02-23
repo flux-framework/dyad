@@ -46,6 +46,8 @@ class dyad_stream_core {
    private:
     dyad_ctx *m_ctx;
     bool m_initialized;
+    bool m_is_prod;
+    bool m_is_cons;
 };
 
 }  // end of namespace dyad
