@@ -188,8 +188,8 @@ bool basic_ifstream_dyad<_CharT, _Traits>::is_open ()
 template <typename _CharT, typename _Traits>
 basic_ifstream_dyad<_CharT, _Traits>::basic_ifstream_dyad (
     const dyad_stream_core& core)
+    : m_core (core)
 {
-    m_core.init ();
     m_stream = std::unique_ptr<basic_ifstream> (new basic_ifstream ());
 }
 
@@ -254,7 +254,7 @@ basic_ifstream_dyad<_CharT, _Traits>& basic_ifstream_dyad<_CharT, _Traits>::
 operator= (basic_ifstream_dyad&& rhs)
 {
     m_stream = std::move (rhs.m_stream);
-    m_core = std::move (rhs.core);
+    m_core = std::move (rhs.m_core);
     return (*this);
 }
 

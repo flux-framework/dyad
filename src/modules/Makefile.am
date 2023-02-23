@@ -1,8 +1,8 @@
 lib_LTLIBRARIES = dyad.la
 dyad_la_SOURCES = dyad.c read_all.c dyad_ctx.h read_all.h
-dyad_la_LDFLAGS = -module -avoid-version -no-undefined
+dyad_la_LDFLAGS = $(AM_LDFLAGS) -module -avoid-version -no-undefined
 dyad_la_LIBADD = $(top_builddir)/src/utils/libutils.la $(FLUX_CORE_LIBS)
-dyad_la_CPPFLAGS = $(FLUX_CORE_CFLAGS) -I$(top_builddir)/src/utils
+dyad_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_builddir)/src/utils $(FLUX_CORE_CFLAGS)
 if PERFFLOW
 dyad_la_LIBADD += $(PERFFLOW_LIBS)
 dyad_la_CPPFLAGS += $(PERFFLOW_PLUGIN_CPPFLAGS) $(PERFFLOW_CFLAGS) -DDYAD_PERFFLOW=1
@@ -25,3 +25,6 @@ urpc_la_LIBADD += $(PERFFLOW_LIBS)
 urpc_la_CPPFLAGS += $(PERFFLOW_PLUGIN_CPPFLAGS) $(PERFFLOW_CFLAGS) -DDYAD_PERFFLOW=1
 endif
 endif
+
+install-exec-hook:
+	@(cd $(DESTDIR)$(libdir) && $(RM) dyad.la dyad.a)

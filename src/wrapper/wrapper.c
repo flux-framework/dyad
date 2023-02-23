@@ -171,13 +171,14 @@ void dyad_wrapper_fini ()
 
 int open (const char *path, int oflag, ...)
 {
-    if (ctx == NULL) {
-        dyad_wrapper_init ();
-    }
     char *error = NULL;
     typedef int (*open_ptr_t) (const char *, int, mode_t, ...);
     open_ptr_t func_ptr = NULL;
     int mode = 0;
+
+    if (ctx == NULL) {
+        dyad_wrapper_init ();
+    }
 
     if (oflag & O_CREAT) {
         va_list arg;
@@ -255,15 +256,16 @@ real_call:
 
 int close (int fd)
 {
-    if (ctx == NULL) {
-        dyad_wrapper_init ();
-    }
     bool to_sync = false;
     char *error = NULL;
     typedef int (*close_ptr_t) (int);
     close_ptr_t func_ptr = NULL;
     char path[PATH_MAX + 1] = {'\0'};
     int rc = 0;
+
+    if (ctx == NULL) {
+        dyad_wrapper_init ();
+    }
 
     func_ptr = (close_ptr_t)dlsym (RTLD_NEXT, "close");
     if ((error = dlerror ())) {
@@ -343,9 +345,6 @@ real_call:;  // semicolon here to avoid the error
 
 int fclose (FILE *fp)
 {
-    if (ctx == NULL) {
-        dyad_wrapper_init ();
-    }
     bool to_sync = false;
     char *error = NULL;
     typedef int (*fclose_ptr_t) (FILE *);
@@ -353,6 +352,10 @@ int fclose (FILE *fp)
     char path[PATH_MAX + 1] = {'\0'};
     int rc = 0;
     int fd = 0;
+
+    if (ctx == NULL) {
+        dyad_wrapper_init ();
+    }
 
     func_ptr = (fclose_ptr_t)dlsym (RTLD_NEXT, "fclose");
     if ((error = dlerror ())) {
