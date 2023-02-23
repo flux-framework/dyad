@@ -1,5 +1,5 @@
-#ifndef __DYAD_CORE_CLIENT_H__
-#define __DYAD_CORE_CLIENT_H__
+#ifndef DYAD_CORE_DYAD_CORE_H
+#define DYAD_CORE_DYAD_CORE_H
 
 // Includes <flux/core.h>
 #include "dyad_envs.h"
@@ -145,4 +145,4 @@ int dyad_sync_directory (dyad_ctx_t* ctx, const char* path);
 }
 #endif
 
-#endif /* __DYAD_CORE_CLIENT_H__ */
+#endif /* DYAD_CORE_DYAD_CORE */

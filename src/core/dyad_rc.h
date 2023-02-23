@@ -1,5 +1,5 @@
-#ifndef __DYAD_CORE_DYAD_ERR_H__
-#define __DYAD_CORE_DYAD_ERR_H__
+#ifndef DYAD_CORE_DYAD_RC_H
+#define DYAD_CORE_DYAD_RC_H
 
 enum dyad_core_return_codes {
     DYAD_RC_OK = 0,               // Operation worked correctly
@@ -18,4 +18,4 @@ typedef enum dyad_core_return_codes dyad_rc_t;
 
 #define DYAD_IS_ERROR(code) ((code) < 0)
 
-#endif
+#endif  // DYAD_CORE_DYAD_RC_H

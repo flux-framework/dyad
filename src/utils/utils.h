@@ -8,8 +8,8 @@
  * SPDX-License-Identifier: LGPL-3.0
 \************************************************************/
 
-#ifndef DYAD_UTILS_H
-#define DYAD_UTILS_H
+#ifndef DYAD_UTILS_UTILS_H
+#define DYAD_UTILS_UTILS_H
 
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
@@ -88,4 +88,4 @@ int sync_containing_dir (const char* path);
 };
 #endif  // defined(__cplusplus)
 
-#endif  // DYAD_UTILS_H
+#endif  // DYAD_UTILS_UTILS_H

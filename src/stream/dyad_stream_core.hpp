@@ -8,8 +8,8 @@
  * SPDX-License-Identifier: LGPL-3.0
 \************************************************************/
 
-#ifndef DYAD_STREAM_CORE_HPP
-#define DYAD_STREAM_CORE_HPP
+#ifndef DYAD_STREAM_DYAD_STREAM_CORE_HPP
+#define DYAD_STREAM_DYAD_STREAM_CORE_HPP
 
 #include <iostream>
 #include <string>
@@ -52,4 +52,4 @@ class dyad_stream_core
 };
 
 }  // end of namespace dyad
-#endif  // DYAD_STREAM_CORE_HPP
+#endif  // DYAD_STREAM_DYAD_STREAM_CORE_HPP

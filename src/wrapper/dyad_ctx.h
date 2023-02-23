@@ -8,8 +8,8 @@
  * SPDX-License-Identifier: LGPL-3.0
 \************************************************************/
 
-#ifndef DYAD_SYNC_CTX_H
-#define DYAD_SYNC_CTX_H
+#ifndef DYAD_WRAPPER_DYAD_CTX_H
+#define DYAD_WRAPPER_DYAD_CTX_H
 
 #if !defined(__cplusplus)
 #include <stdbool.h>
@@ -36,4 +36,4 @@ struct dyad_sync_ctx_t {
 
 typedef struct dyad_sync_ctx_t dyad_sync_ctx_t;
 
-#endif  // DYAD_SYNC_CTX_H
+#endif  // DYAD_WRAPPER_DYAD_CTX_H

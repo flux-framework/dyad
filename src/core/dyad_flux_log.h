@@ -1,5 +1,5 @@
-#ifndef __DYAD_CORE_DYAD_FLUX_LOG_H__
-#define __DYAD_CORE_DYAD_FLUX_LOG_H__
+#ifndef DYAD_CORE_DYAD_FLUX_LOG_H
+#define DYAD_CORE_DYAD_FLUX_LOG_H
 
 #include <flux/core.h>
 
@@ -24,4 +24,4 @@
 #define FLUX_LOG_ERR(flux_ctx, ...) flux_log_error (flux_ctx, __VA_ARGS__)
 #endif
 
-#endif /* __DYAD_CORE_DYAD_FLUX_LOG_H__ */
+#endif /* DYAD_CORE_DYAD_FLUX_LOG_H */
