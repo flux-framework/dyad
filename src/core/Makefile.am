@@ -7,4 +7,4 @@ libdyad_core_la_LIBADD += $(PERFFLOW_LIBS)
 libdyad_core_la_CPPFLAGS += $(PERFFLOW_PLUGIN_CPPFLAGS) $(PERFFLOW_CFLAGS) -DDYAD_PERFFLOW=1
 endif
 
-include_HEADERS = dyad_core.h dyad_err.h dyad_flux_log.h
+include_HEADERS = dyad_core.h dyad_rc.h dyad_flux_log.h

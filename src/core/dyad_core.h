@@ -3,7 +3,7 @@
 
 // Includes <flux/core.h>
 #include "dyad_envs.h"
-#include "dyad_err.h"
+#include "dyad_rc.h"
 #include "dyad_flux_log.h"
 
 #ifdef __cplusplus

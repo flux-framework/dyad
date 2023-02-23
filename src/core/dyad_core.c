@@ -2,7 +2,6 @@
 #include <unistd.h>
 
 #include "dyad_core.h"
-#include "dyad_err.h"
 #include "dyad_flux_log.h"
 #include "murmur3.h"
 #include "utils.h"
