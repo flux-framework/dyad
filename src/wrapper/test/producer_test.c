@@ -20,11 +20,12 @@
 
 #include "../../common/libtap/tap.h"
 #include "../../common/utils.h"
+#include "../../core/dyad_envs.h"
 
 int dyad_sync_health ()
 {
     char *e = NULL;
-    if ((e = getenv ("DYAD_SYNC_HEALTH"))) {
+    if ((e = getenv (DYAD_SYNC_HEALTH_ENV))) {
         if (!strcmp ("ok", e))
             return 0;
     }
@@ -67,7 +68,7 @@ void test_open_valid_path (const char *dyad_path)
     int fd = -1;
     int rc = 0;
 
-    setenv ("DYAD_SYNC_HEALTH", "test", 1);
+    setenv (DYAD_SYNC_HEALTH_ENV, "test", 1);
 
     char path[PATH_MAX + 1] = {'\0'};
     strncpy (path, dyad_path, PATH_MAX);
@@ -79,7 +80,7 @@ void test_open_valid_path (const char *dyad_path)
     rc = produce_fd (fd, "open()");
     ok (rc == 0, "producer: created a file.");
 
-    setenv ("DYAD_SYNC_HEALTH", "test", 1);
+    setenv (DYAD_SYNC_HEALTH_ENV, "test", 1);
     close (fd);
     ok ((dyad_sync_health () == 0), "producer: close sync");
 }
@@ -89,7 +90,7 @@ void test_fopen_valid_path (const char *dyad_path)
     int rc = -1;
     FILE *fptr = NULL;
 
-    setenv ("DYAD_SYNC_HEALTH", "test", 1);
+    setenv (DYAD_SYNC_HEALTH_ENV, "test", 1);
 
     char path[PATH_MAX + 1] = {'\0'};
     strncpy (path, dyad_path, PATH_MAX);
@@ -102,7 +103,7 @@ void test_fopen_valid_path (const char *dyad_path)
     rc = produce_fp (fptr, "fopen()");
     ok (rc == 0, "producer: created a file.");
 
-    setenv ("DYAD_SYNC_HEALTH", "test", 1);
+    setenv (DYAD_SYNC_HEALTH_ENV, "test", 1);
     // rc = fflush (fptr);
     rc = fclose (fptr);
     ok ((rc == 0) && (dyad_sync_health () == 0), "producer: fclose sync");
@@ -136,8 +137,7 @@ int main (int argc, char *argv[])
         fprintf (stderr, "Directory %s cannot be created.\n", path);
     }
 
-    setenv ("DYAD_KIND_PRODUCER", "1", 1);
-    setenv ("DYAD_PATH_PRODUCER", path, 1);
+    setenv (DYAD_PATH_PRODUCER_ENV, path, 1);
 
     test_open_valid_path (path);
 

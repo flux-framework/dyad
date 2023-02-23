@@ -2,6 +2,7 @@
 #define __DYAD_CORE_CLIENT_H__
 
 // Includes <flux/core.h>
+#include "dyad_envs.h"
 #include "dyad_err.h"
 #include "dyad_flux_log.h"
 
@@ -20,9 +21,6 @@
  *                                                                           *
  *****************************************************************************/
 
-#define DYAD_PATH_PROD_ENV "DYAD_PATH_PRODUCER"
-#define DYAD_PATH_CONS_ENV "DYAD_PATH_CONSUMER"
-#define DYAD_CHECK_ENV "DYAD_SYNC_HEALTH"
 // Now defined in src/utils/utils.h
 //#define DYAD_PATH_DELIM    "/"
 

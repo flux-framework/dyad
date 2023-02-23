@@ -1,8 +1,7 @@
-#include "dyad_core.h"
-
 #include <libgen.h>
 #include <unistd.h>
 
+#include "dyad_core.h"
 #include "dyad_err.h"
 #include "dyad_flux_log.h"
 #include "murmur3.h"
@@ -72,7 +71,8 @@ static int gen_path_key (const char* str,
 
 #if DYAD_PERFFLOW
 __attribute__ ((annotate ("@critical_path()")))
-static dyad_rc_t dyad_kvs_commit (const dyad_ctx_t* ctx, flux_kvs_txn_t* txn)
+static dyad_rc_t dyad_kvs_commit (const dyad_ctx_t* ctx,
+                                  flux_kvs_txn_t* txn)
 #else
 static inline dyad_rc_t dyad_kvs_commit (const dyad_ctx_t* ctx,
                                          flux_kvs_txn_t* txn)
@@ -311,11 +311,12 @@ fetch_done:;
 
 #if DYAD_PERFFLOW
 __attribute__ ((annotate ("@critical_path()")))
-static dyad_rc_t dyad_rpc_get (const dyad_ctx_t* ctx,
-                               const dyad_kvs_response_t* restrict kvs_data,
-                               const char** file_data,
-                               int* file_len,
-                               flux_future_t** f)
+static dyad_rc_t dyad_rpc_get (
+    const dyad_ctx_t* ctx,
+    const dyad_kvs_response_t* restrict kvs_data,
+    const char** file_data,
+    int* file_len,
+    flux_future_t** f)
 #else
 static inline dyad_rc_t dyad_rpc_get (
     const dyad_ctx_t* ctx,
@@ -391,8 +392,9 @@ static inline dyad_rc_t dyad_pull (const dyad_ctx_t* restrict ctx,
     odir = dirname (file_path_copy);
     if ((strncmp (odir, ".", strlen (".")) != 0)
         && (mkdir_as_needed (odir, m) < 0)) {
-        DYAD_LOG_ERR (ctx, "Cannot create needed directories for pulled "
-                           "file\n");
+        DYAD_LOG_ERR (ctx,
+                      "Cannot create needed directories for pulled "
+                      "file\n");
         rc = DYAD_RC_BADFIO;
         goto pull_done;
     }

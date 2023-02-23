@@ -22,7 +22,8 @@ struct dyad_ctx;
 
 namespace dyad
 {
-class dyad_stream_core {
+class dyad_stream_core
+{
    public:
     dyad_stream_core ();
 
