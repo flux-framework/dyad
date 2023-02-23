@@ -22,11 +22,8 @@ struct dyad_ctx;
 
 namespace dyad
 {
-struct dyad_stream_core {
-    dyad_ctx *m_ctx;
-
-    bool m_initialized;
-
+class dyad_stream_core {
+   public:
     dyad_stream_core ();
 
     ~dyad_stream_core ();
@@ -42,6 +39,10 @@ struct dyad_stream_core {
 
     bool open_sync (const char *path);
     bool close_sync (const char *path);
+
+   private:
+    dyad_ctx *m_ctx;
+    bool m_initialized;
 };
 
 }  // end of namespace dyad

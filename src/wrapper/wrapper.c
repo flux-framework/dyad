@@ -96,6 +96,7 @@ void dyad_wrapper_init (void)
     char *kvs_namespace = NULL;
     char *prod_managed_path = NULL;
     char *cons_managed_path = NULL;
+    dyad_rc_t rc = DYAD_RC_OK;
 
     if ((e = getenv ("DYAD_SYNC_DEBUG"))) {
         debug = true;
@@ -142,9 +143,8 @@ void dyad_wrapper_init (void)
         prod_managed_path = NULL;
     }
 
-    dyad_rc_t rc =
-        dyad_init (debug, check, shared_storage, key_depth, key_bins,
-                   kvs_namespace, prod_managed_path, cons_managed_path, &ctx);
+    rc = dyad_init (debug, check, shared_storage, key_depth, key_bins,
+                    kvs_namespace, prod_managed_path, cons_managed_path, &ctx);
 
     if (DYAD_IS_ERROR (rc)) {
         DYAD_LOG_ERR (ctx, "Could not initialize DYAD!\n");
@@ -204,8 +204,7 @@ int open (const char *path, int oflag, ...)
     }
 
     IPRINTF (ctx, "DYAD_SYNC: enters open sync (\"%s\").\n", path);
-    dyad_rc_t rc = dyad_consume (ctx, path);
-    if (DYAD_IS_ERROR (rc)) {
+    if (DYAD_IS_ERROR (dyad_consume (ctx, path))) {
         DPRINTF (ctx, "DYAD_SYNC: failed open sync (\"%s\").\n", path);
         goto real_call;
     }
@@ -218,12 +217,13 @@ real_call:;
 
 FILE *fopen (const char *path, const char *mode)
 {
-    if (ctx == NULL) {
-        dyad_wrapper_init ();
-    }
     char *error = NULL;
     typedef FILE *(*fopen_ptr_t) (const char *, const char *);
     fopen_ptr_t func_ptr = NULL;
+
+    if (ctx == NULL) {
+        dyad_sync_init ();
+    }
 
     func_ptr = (fopen_ptr_t)dlsym (RTLD_NEXT, "fopen");
     if ((error = dlerror ())) {
@@ -243,8 +243,7 @@ FILE *fopen (const char *path, const char *mode)
     }
 
     IPRINTF (ctx, "DYAD_SYNC: enters fopen sync (\"%s\").\n", path);
-    dyad_rc_t rc = dyad_consume (ctx, path);
-    if (DYAD_IS_ERROR (rc)) {
+    if (DYAD_IS_ERROR (dyad_consume (ctx, path))) {
         DPRINTF (ctx, "DYAD_SYNC: failed fopen sync (\"%s\").\n", path);
         goto real_call;
     }
@@ -331,8 +330,7 @@ real_call:;  // semicolon here to avoid the error
                      strerror (errno));
         }
         IPRINTF (ctx, "DYAD_SYNC: enters close sync (\"%s\").\n", path);
-        dyad_rc_t dyad_rc = dyad_produce (ctx, path);
-        if (DYAD_IS_ERROR (dyad_rc)) {
+        if (DYAD_IS_ERROR (dyad_produce (ctx, path))) {
             DPRINTF (ctx, "DYAD_SYNC: failed close sync (\"%s\").\n", path);
         }
         IPRINTF (ctx, "DYAD_SYNC: exits close sync (\"%s\").\n", path);
@@ -420,8 +418,7 @@ real_call:;
             DPRINTF (ctx, "Failed fclose (\"%s\").\n", path);
         }
         IPRINTF (ctx, "DYAD_SYNC: enters fclose sync (\"%s\").\n", path);
-        dyad_rc_t dyad_rc = dyad_produce (ctx, path);
-        if (DYAD_IS_ERROR (dyad_rc)) {
+        if (DYAD_IS_ERROR (dyad_produce (ctx, path))) {
             DPRINTF (ctx, "DYAD_SYNC: failed fclose sync (\"%s\").\n", path);
         }
         IPRINTF (ctx, "DYAD_SYNC: exits fclose sync (\"%s\").\n", path);
