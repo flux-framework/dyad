@@ -73,11 +73,14 @@ void dyad_stream_core::init ()
     const char *cons_managed_path = NULL;
     const char *prod_managed_path = NULL;
 
-    DPRINTF (m_ctx, "DYAD_WRAPPER: Initializeing DYAD wrapper\n");
+    if (m_initialized) {
+        return;
+    }
 
     if ((e = getenv ("DYAD_SYNC_DEBUG")) && (atoi (e) != 0)) {
         debug = true;
         enable_debug_dyad_utils ();
+        fprintf (stderr, "DYAD_WRAPPER: Initializeing DYAD wrapper\n");
     } else {
         debug = false;
         disable_debug_dyad_utils ();
@@ -209,6 +212,16 @@ bool dyad_stream_core::close_sync (const char *path)
 
     IPRINTF (m_ctx, "DYAD_SYNC CLOSE: exists sync (\"%s\").\n", path);
     return true;
+}
+
+void dyad_stream_core::set_initialized ()
+{
+    m_initialized = true;
+}
+
+bool dyad_stream_core::chk_initialized () const
+{
+    return m_initialized;
 }
 
 }  // end of namespace dyad

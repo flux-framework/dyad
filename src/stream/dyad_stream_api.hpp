@@ -343,7 +343,7 @@ template <typename _CharT, typename _Traits>
 void basic_ifstream_dyad<_CharT, _Traits>::init (const dyad_stream_core& core)
 {
     m_core = core;
-    m_core.m_initialized = true;
+    m_core.set_initialized ();
     m_core.log_info ("Stream core state is set");
 }
 
@@ -614,7 +614,7 @@ template <typename _CharT, typename _Traits>
 void basic_ofstream_dyad<_CharT, _Traits>::init (const dyad_stream_core& core)
 {
     m_core = core;
-    m_core.m_initialized = true;
+    m_core.set_initialized ();
     m_core.log_info ("Stream core state is set");
 }
 
@@ -894,7 +894,7 @@ template <typename _CharT, typename _Traits>
 void basic_fstream_dyad<_CharT, _Traits>::init (const dyad_stream_core& core)
 {
     m_core = core;
-    m_core.m_initialized = true;
+    m_core.set_initialized ();
     m_core.log_info ("Stream core state is set");
 }
 

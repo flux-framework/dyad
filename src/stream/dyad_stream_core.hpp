@@ -40,6 +40,9 @@ class dyad_stream_core {
     bool open_sync (const char *path);
     bool close_sync (const char *path);
 
+    void set_initialized ();
+    bool chk_initialized () const;
+
    private:
     dyad_ctx *m_ctx;
     bool m_initialized;
