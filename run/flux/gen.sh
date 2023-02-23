@@ -90,7 +90,7 @@ do
       cp -RP ${DYAD_MOD_PATH} .
       pushd $(basename ${DYAD_MOD_PATH}) > /dev/null
       ln -sfn ${DYAD_INSTALL_PATH}/src/modules/dyad.so dyad.so
-      ln -sfn ${DYAD_INSTALL_PATH}/src/wrapper/libdyad_sync.so
+      ln -sfn ${DYAD_INSTALL_PATH}/src/wrapper/dyad_wrapper.so
       popd > /dev/null
 
       cp -RP ${DYAD_APP_PATH} .

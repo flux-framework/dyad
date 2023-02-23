@@ -1,15 +1,15 @@
-lib_LTLIBRARIES = libdyad_sync.la
-libdyad_sync_la_SOURCES = wrapper.c
-libdyad_sync_la_LDFLAGS = $(AM_LDFLAGS) -avoid-version -no-undefined -shared
-libdyad_sync_la_LIBADD = $(top_builddir)/src/core/libdyad_core.la
-libdyad_sync_la_CPPFLAGS = -I$(top_builddir)/src/utils -I$(top_builddir)/src/core $(FLUX_CORE_CFLAGS)
+lib_LTLIBRARIES = dyad_wrapper.la
+dyad_wrapper_la_SOURCES = wrapper.c
+dyad_wrapper_la_LDFLAGS = $(AM_LDFLAGS) -module -avoid-version -no-undefined -shared
+dyad_wrapper_la_LIBADD = $(top_builddir)/src/core/libdyad_core.la
+dyad_wrapper_la_CPPFLAGS = -I$(top_builddir)/src/utils -I$(top_builddir)/src/core $(FLUX_CORE_CFLAGS)
 
 install-exec-hook:
-	@(cd $(DESTDIR)$(libdir) && $(RM) libdyad_sync.la)
+	@(cd $(DESTDIR)$(libdir) && $(RM) dyad_wrapper.la)
 
 # if PERFFLOW
-# libdyad_sync_la_LIBADD += $(PERFFLOW_LIBS)
-# libdyad_sync_la_CPPFLAGS += $(PERFFLOW_PLUGIN_CPPFLAGS) $(PERFFLOW_CFLAGS) -DDYAD_PERFFLOW=1
+# dyad_wrapper_la_LIBADD += $(PERFFLOW_LIBS)
+# dyad_wrapper_la_CPPFLAGS += $(PERFFLOW_PLUGIN_CPPFLAGS) $(PERFFLOW_CFLAGS) -DDYAD_PERFFLOW=1
 # endif
 
 bin_PROGRAMS = flux_barrier

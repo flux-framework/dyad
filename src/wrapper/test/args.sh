@@ -316,7 +316,7 @@ done
 
 # Set dyad wrapper path
 if [ "${DYAD_WRAPPER}" == "" ] ; then
-    DYAD_WRAPPER=../libdyad_sync.so
+    DYAD_WRAPPER=../dyad_wrapper.so
 fi
 
 # Set dyad module path
