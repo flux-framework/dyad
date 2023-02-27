@@ -8,8 +8,8 @@
  * SPDX-License-Identifier: LGPL-3.0
 \************************************************************/
 
-#ifndef DYAD_MODULES_READ_ALL_H
-#define DYAD_MODULES_READ_ALL_H
+#ifndef UTILS_READ_ALL_H
+#define UTILS_READ_ALL_H
 
 #include <sys/types.h>
 
@@ -22,11 +22,10 @@ ssize_t write_all (int fd, const void *buf, size_t len);
 #if DYAD_PERFFLOW
 __attribute__ ((annotate ("@critical_path()")))
 #endif
-ssize_t
-read_all (int fd, void **bufp);
+ssize_t read_all (int fd, void **bufp);
 
 #if defined(__cplusplus)
 };
 #endif  // defined(__cplusplus)
 
-#endif /* !DYAD_MODULES_READ_ALL_H */
+#endif /* UTILS_READ_ALL_H */

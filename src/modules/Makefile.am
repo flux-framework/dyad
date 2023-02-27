@@ -1,13 +1,33 @@
 lib_LTLIBRARIES = dyad.la
-dyad_la_SOURCES = dyad.c read_all.c dyad_ctx.h read_all.h
+dyad_la_SOURCES = \
+	dtl/dyad_mod_dtl.c \
+	dtl/dyad_mod_dtl.h \
+	dtl/flux_mod_dtl.c \
+	dtl/flux_mod_dtl.h \
+	dtl/ucx_mod_dtl.c \
+	dtl/ucx_mod_dtl.h \
+	dyad.c \
+	dyad_flux_log.h
 dyad_la_LDFLAGS = \
 	$(AM_LDFLAGS) \
 	-module \
 	-avoid-version \
 	-no-undefined \
-	-export-symbols-regex '^mod_(name|main)$$'
-dyad_la_LIBADD = $(top_builddir)/src/utils/libutils.la $(FLUX_CORE_LIBS)
-dyad_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_builddir)/src/utils $(FLUX_CORE_CFLAGS)
+	-shared \
+	-export-symbols-regex '^mod_(name|main)$$' \
+    -Wl,-rpath,'$(UCX_LIBDIR)'
+dyad_la_LIBADD = \
+	$(top_builddir)/src/utils/libutils.la \
+    $(UCX_LIBS) \
+	$(JANSSON_LIBS) \
+	$(FLUX_CORE_LIBS)
+dyad_la_CPPFLAGS = \
+	$(AM_CPPFLAGS) \
+	-I$(top_srcdir)/src/utils \
+	-I$(top_srcdir)/src/utils/base64 \
+	$(UCX_CFLAGS) \
+	$(JANSSON_CFLAGS) \
+	$(FLUX_CORE_CFLAGS)
 if PERFFLOW
 dyad_la_LIBADD += $(PERFFLOW_LIBS)
 dyad_la_CPPFLAGS += $(PERFFLOW_PLUGIN_CPPFLAGS) $(PERFFLOW_CFLAGS) -DDYAD_PERFFLOW=1
@@ -15,7 +35,7 @@ endif
 
 if URPC
 lib_LTLIBRARIES += urpc.la
-urpc_la_SOURCES = read_all.c urpc.c urpc_ctx.h
+urpc_la_SOURCES = urpc.c urpc_ctx.h
 # TODO replace current LDFLAGS rule with this one once libb64 is required
 # urpc_la_LDFLAGS = -module -avoid-version -no-undefined -L$(LIBB64_DIR)/src
 urpc_la_LDFLAGS = -module -avoid-version -no-undefined
@@ -32,4 +52,4 @@ endif
 endif
 
 install-exec-hook:
-	@(cd $(DESTDIR)$(libdir) && $(RM) dyad.la dyad.a)
+	@(cd $(DESTDIR)$(libdir) && $(RM) dyad.la)

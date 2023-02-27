@@ -230,6 +230,7 @@ bool cmp_canonical_path_prefix (const char* __restrict__ prefix,
                                 char* __restrict__ upath,
                                 const size_t upath_capacity)
 {
+    printf ("Checking if there is overlap between prefix and upath\n");
     {
         const char* const upath_end = upath + upath_capacity;
         bool no_overlap =
@@ -243,10 +244,12 @@ bool cmp_canonical_path_prefix (const char* __restrict__ prefix,
     }
 
     // Only works when there are no multiple absolute paths via hardlinks
+    printf ("Create tmp strings on stack\n");
     char can_prefix[PATH_MAX] = {'\0'};  // canonical form of the managed path
     char can_path[PATH_MAX] = {'\0'};    // canonical form of the given path
 
     // The path prefix needs to translate to a real path
+    printf ("Calling realpath for prefix\n");
     if (!realpath (prefix, can_prefix)) {
         IPRINTF ("DYAD UTIL: error in realpath for %s\n", prefix);
         IPRINTF ("DYAD UTIL: %s\n", strerror (errno));
@@ -258,25 +261,32 @@ bool cmp_canonical_path_prefix (const char* __restrict__ prefix,
 
     // See if the prefix of the path in question matches that of either the
     // dyad managed path or its canonical form when the path is not a real one.
+    printf ("Calling realpath for path\n");
     if (!realpath (path, can_path)) {
         IPRINTF ("DYAD UTIL: %s is NOT a realpath.\n", path);
+        printf ("Since path isn't a realpath, calling cmp_prefix\n");
         if (!cmp_prefix (prefix, path, DYAD_PATH_DELIM, &upath_len)) {
             match = cmp_prefix (can_prefix, path, DYAD_PATH_DELIM, &upath_len);
         } else {
             match = true;
         }
+        printf ("Calling extract_user_path\n");
         extract_user_path (path, upath, upath_len);
         return match;
     }
 
     // For a real path, see if the prefix of either the path or its canonical
     // form matches the managed path.
+    printf ("Calling cmp_prefix on can_prefix and can_path\n");
     match = cmp_prefix (can_prefix, can_path, DYAD_PATH_DELIM, &upath_len);
     if (upath_len + 1 > upath_capacity) {
+        printf ("upath_len too big for upath_capacity\n");
         return false;
     }
+    printf ("Calling extract_user_path\n");
     extract_user_path (can_path, upath, upath_len);
 
+    printf ("Finished with cmp_canonical_path_prefix\n");
     return match;
 }
 

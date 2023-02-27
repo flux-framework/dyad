@@ -75,15 +75,47 @@ AC_ARG_ENABLE([perfflow],
 # TODO Add support for libb64 back once base64 encoding/decoding is fully complete
 # AC_ARG_VAR([LIBB64_DIR], [root directory for libb64])
 
+#############################################
+# Define PKG_CHECK_VAR if it does not exist #
+#############################################
+
+# Macro is copied from https://github.com/pkgconf/pkgconf/blob/master/pkg.m4
+# with minor modifications to change comments from using 'dnl' to '#'
+m4_ifndef([PKG_CHECK_VAR], [
+# PKG_CHECK_VAR(VARIABLE, MODULE, CONFIG-VARIABLE,
+# [ACTION-IF-FOUND], [ACTION-IF-NOT-FOUND])
+# -------------------------------------------
+# Since: 0.28
+#
+# Retrieves the value of the pkg-config variable for the given module.
+AC_DEFUN([PKG_CHECK_VAR],
+[AC_REQUIRE([PKG_PROG_PKG_CONFIG])dnl
+AC_ARG_VAR([$1], [value of $3 for $2, overriding pkg-config])dnl
+_PKG_CONFIG([$1], [variable="][$3]["], [$2])
+AS_VAR_COPY([$1], [pkg_cv_][$1])
+AS_VAR_IF([$1], [""], [$5], [$4])dnl
+])# End of PKG_CHECK_VAR
+])
+
 ########################
 # Checks for libraries #
 ########################
 # Check for the dl library (specifically, the "dlsym" function)
 AC_CHECK_LIB([dl], [dlsym])
-# FIXME: Replace 'main' with a function in '-ldyad_fstream':
-# AC_CHECK_LIB([dyad_fstream], [main])
-# FIXME: Replace 'main' with a function in '-ltap':
-# AC_CHECK_LIB([tap], [main])
+# Check for UCX v1.6.0 or higher (Required)
+# TODO: make UCX optional based on a new AC_ARG_ENABLE flag
+PKG_CHECK_MODULES([UCX],
+    [ucx >= 1.6.0]
+)
+PKG_CHECK_VAR([UCX_LIBDIR],
+    [ucx >= 1.6.0],
+    [libdir],
+    [],
+    [AC_MSG_FAILURE([Could not find libdir for UCX])]
+)
+AS_IF([test "x$UCX_LIBDIR" = "x"],
+    [AC_MSG_FAILURE([check_var succeeded, but value is incorrect])]
+)
 # Find and get info for Flux-Core using pkg-config
 AX_FLUX_CORE
 PKG_CHECK_MODULES([JANSSON],
@@ -162,6 +194,7 @@ fi
 AC_CONFIG_FILES([Makefile
                  src/Makefile
                  src/utils/Makefile
+                 src/utils/base64/Makefile
                  src/utils/libtap/Makefile
                  src/core/Makefile
                  src/stream/Makefile
