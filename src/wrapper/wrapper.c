@@ -86,68 +86,15 @@ static inline int is_wronly (int fd)
 
 void dyad_wrapper_init (void)
 {
-    char *e = NULL;
-
-    bool debug = false;
-    bool check = false;
-    bool shared_storage = false;
-    unsigned int key_depth = 0;
-    unsigned int key_bins = 0;
-    char *kvs_namespace = NULL;
-    char *prod_managed_path = NULL;
-    char *cons_managed_path = NULL;
     dyad_rc_t rc = DYAD_RC_OK;
 
-    if ((e = getenv (DYAD_SYNC_DEBUG_ENV))) {
-        debug = true;
-        enable_debug_dyad_utils ();
-        fprintf (stderr, "DYAD_WRAPPER: Initializeing DYAD wrapper\n");
-    } else {
-        debug = false;
-        disable_debug_dyad_utils ();
-    }
-
-    if ((e = getenv (DYAD_SYNC_CHECK_ENV)))
-        check = true;
-    else
-        check = false;
-
-    if ((e = getenv (DYAD_SHARED_STORAGE_ENV)) && (atoi (e) != 0))
-        shared_storage = true;
-    else
-        shared_storage = false;
-
-    if ((e = getenv (DYAD_KEY_DEPTH_ENV)))
-        key_depth = atoi (e);
-    else
-        key_depth = 2;
-
-    if ((e = getenv (DYAD_KEY_BINS_ENV)))
-        key_bins = atoi (e);
-    else
-        key_bins = 256;
-
-    if ((e = getenv (DYAD_KVS_NAMESPACE_ENV)))
-        kvs_namespace = e;
-    else
-        kvs_namespace = NULL;
-
-    if ((e = getenv (DYAD_PATH_CONSUMER_ENV))) {
-        cons_managed_path = e;
-    } else {
-        cons_managed_path = NULL;
-    }
-    if ((e = getenv (DYAD_PATH_PRODUCER_ENV))) {
-        prod_managed_path = e;
-    } else {
-        prod_managed_path = NULL;
-    }
-
-    rc = dyad_init (debug, check, shared_storage, key_depth, key_bins,
-                    kvs_namespace, prod_managed_path, cons_managed_path, &ctx);
+    rc = dyad_init_env (&ctx);
 
     if (DYAD_IS_ERROR (rc)) {
-        DYAD_LOG_ERR (ctx, "Could not initialize DYAD!\n");
+        fprintf(stderr, "Failed to initialize DYAD (code = %d)\n", rc);
+        if (ctx != NULL) {
+            dyad_wrapper_fini();
+        }
         ctx = NULL;
         return;
     }

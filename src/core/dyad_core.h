@@ -5,6 +5,7 @@
 #include "dyad_envs.h"
 #include "dyad_rc.h"
 #include "dyad_flux_log.h"
+#include "dyad_dtl_defs.h"
 
 #ifdef __cplusplus
 #include <cstdio>
@@ -33,6 +34,7 @@ extern "C" {
  */
 struct dyad_ctx {
     flux_t* h;                // the Flux handle for DYAD
+    dyad_dtl_t *dtl_handle;   // Opaque handle to DTL info
     bool debug;               // if true, perform debug logging
     bool check;               // if true, perform some check logging
     bool reenter;             // if false, do not recursively enter DYAD
@@ -99,7 +101,15 @@ dyad_rc_t dyad_init (bool debug,
                      const char* kvs_namespace,
                      const char* prod_managed_path,
                      const char* cons_managed_path,
+                     dyad_dtl_mode_t dtl_mode,
                      dyad_ctx_t** ctx);
+
+/**
+ * @brief Intialize the DYAD context using environment variables
+ * @param[out] ctx the newly initialized context
+ * @return An error code
+ */
+dyad_rc_t dyad_init_env (dyad_ctx_t** ctx);
 
 /**
  * @brief Wrapper function that performs all the common tasks needed
@@ -112,8 +122,7 @@ dyad_rc_t dyad_init (bool debug,
 #if DYAD_PERFFLOW
 __attribute__ ((annotate ("@critical_path()")))
 #endif
-dyad_rc_t
-dyad_produce (dyad_ctx_t* ctx, const char* fname);
+dyad_rc_t dyad_produce (dyad_ctx_t* ctx, const char* fname);
 
 /**
  * @brief Wrapper function that performs all the common tasks needed
@@ -126,8 +135,7 @@ dyad_produce (dyad_ctx_t* ctx, const char* fname);
 #if DYAD_PERFFLOW
 __attribute__ ((annotate ("@critical_path()")))
 #endif
-dyad_rc_t
-dyad_consume (dyad_ctx_t* ctx, const char* fname);
+dyad_rc_t dyad_consume (dyad_ctx_t* ctx, const char* fname);
 
 /**
  * @brief Finalizes the DYAD instance and deallocates the context
