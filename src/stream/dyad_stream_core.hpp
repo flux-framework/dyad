@@ -8,8 +8,8 @@
  * SPDX-License-Identifier: LGPL-3.0
 \************************************************************/
 
-#ifndef DYAD_STREAM_CORE_HPP
-#define DYAD_STREAM_CORE_HPP
+#ifndef DYAD_STREAM_DYAD_STREAM_CORE_HPP
+#define DYAD_STREAM_DYAD_STREAM_CORE_HPP
 
 #include <iostream>
 #include <string>
@@ -22,11 +22,9 @@ struct dyad_ctx;
 
 namespace dyad
 {
-struct dyad_stream_core {
-    dyad_ctx *m_ctx;
-
-    bool m_initialized;
-
+class dyad_stream_core
+{
+   public:
     dyad_stream_core ();
 
     ~dyad_stream_core ();
@@ -42,7 +40,16 @@ struct dyad_stream_core {
 
     bool open_sync (const char *path);
     bool close_sync (const char *path);
+
+    void set_initialized ();
+    bool chk_initialized () const;
+
+   private:
+    dyad_ctx *m_ctx;
+    bool m_initialized;
+    bool m_is_prod;
+    bool m_is_cons;
 };
 
 }  // end of namespace dyad
-#endif  // DYAD_STREAM_CORE_HPP
+#endif  // DYAD_STREAM_DYAD_STREAM_CORE_HPP

@@ -8,8 +8,8 @@
  * SPDX-License-Identifier: LGPL-3.0
 \************************************************************/
 
-#ifndef DYAD_MOD_CTX_H
-#define DYAD_MOD_CTX_H
+#ifndef DYAD_MODULES_DYAD_CTX_H
+#define DYAD_MODULES_DYAD_CTX_H
 
 #include <flux/core.h>
 #include <stdbool.h>
@@ -23,4 +23,4 @@ struct dyad_mod_ctx {
 
 typedef struct dyad_mod_ctx dyad_mod_ctx_t;
 
-#endif  // DYAD_MOD_CTX_H
+#endif  // DYAD_MODULES_DYAD_CTX_H

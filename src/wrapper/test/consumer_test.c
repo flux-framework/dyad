@@ -19,11 +19,12 @@
 
 #include "../../common/libtap/tap.h"
 #include "../../common/utils.h"
+#include "../../core/dyad_envs.h"
 
 int dyad_sync_health ()
 {
     char *e = NULL;
-    if ((e = getenv ("DYAD_SYNC_HEALTH"))) {
+    if ((e = getenv (DYAD_SYNC_HEALTH_ENV))) {
         if (!strcmp ("ok", e))
             return 0;
     }
@@ -34,7 +35,7 @@ void test_open_valid_path (const char *dyad_path)
 {
     int fd = -1;
 
-    setenv ("DYAD_SYNC_HEALTH", "test", 1);
+    setenv (DYAD_SYNC_HEALTH_ENV, "test", 1);
 
     char path[PATH_MAX + 1] = {'\0'};
     strncpy (path, dyad_path, PATH_MAX);
@@ -43,7 +44,7 @@ void test_open_valid_path (const char *dyad_path)
 
     ok (!(fd < 0) && (dyad_sync_health () == 0), "consumer: open sync");
 
-    setenv ("DYAD_SYNC_HEALTH", "test", 1);
+    setenv (DYAD_SYNC_HEALTH_ENV, "test", 1);
     close (fd);
     ok ((dyad_sync_health () == 0), "consumer: close sync");
 }
@@ -53,7 +54,7 @@ void test_fopen_valid_path (const char *dyad_path)
     int rc = -1;
     FILE *fptr = NULL;
 
-    setenv ("DYAD_SYNC_HEALTH", "test", 1);
+    setenv (DYAD_SYNC_HEALTH_ENV, "test", 1);
 
     char path[PATH_MAX + 1] = {'\0'};
     strncpy (path, dyad_path, PATH_MAX);
@@ -66,7 +67,7 @@ void test_fopen_valid_path (const char *dyad_path)
 
     ok ((fptr != NULL) && (dyad_sync_health () == 0), "consumer: fopen sync");
 
-    setenv ("DYAD_SYNC_HEALTH", "test", 1);
+    setenv (DYAD_SYNC_HEALTH_ENV, "test", 1);
     rc = fclose (fptr);
     ok ((rc == 0) && (dyad_sync_health () == 0), "consumer: fclose sync");
 }
@@ -99,9 +100,8 @@ int main (int argc, char *argv[])
         fprintf (stderr, "Directory %s cannot be created.\n", path);
     }
 
-    setenv ("DYAD_KIND_CONSUMER", "1", 1);
-    setenv ("DYAD_PATH_CONSUMER", path, 1);
-    setenv ("DYAD_SYNC_CHECK", "1", 1);
+    setenv (DYAD_PATH_CONSUMER_ENV, path, 1);
+    setenv (DYAD_SYNC_CHECK_ENV, "1", 1);
 
     test_open_valid_path (path);
 

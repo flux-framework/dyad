@@ -70,8 +70,8 @@ int main (int argc, char** argv)
     bool use_open_close = static_cast<bool> (atoi (argv[4]));
 
     dyad::dyad_params dparams;
-    dparams.m_dyad_path_cons = dyad_path;
-    dparams.m_dyad_path_prod = dyad_path;
+    dparams.m_cons_managed_path = dyad_path;
+    dparams.m_prod_managed_path = dyad_path;
     dparams.m_debug = true;
     dparams.m_shared_storage = false;
     dparams.m_kvs_namespace = "test";

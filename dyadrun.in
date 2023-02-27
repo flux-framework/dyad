@@ -156,9 +156,6 @@ fi
 if test $use_sync_check -ne 0; then
     export DYAD_SYNC_CHECK=1
 fi
-if test $use_sync_start -ne 0; then
-    export DYAD_SYNC_START=1
-fi
 if test $use_shared_storage -ne 0; then
     export DYAD_SHARED_STORAGE=1
 fi

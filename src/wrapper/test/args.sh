@@ -81,7 +81,6 @@ RAND=0     # Whether to randomize producer-consumer pairing in combined
            # test. Use 0 to disable random pairing, or a positive integer
            # to seed the RNG used in random pairing.
 CHECK=0    # Consumer verifies if the contents of files are correct
-DYAD_SYNC_START=0 # Number of user tasks to synchronize the startup
 
 # Misc. parameters and variables
 VERBOSE=0  # Print parameter setup
@@ -286,16 +285,6 @@ while :; do
                 exit 1
             fi
             ;;
-        --sync_start)
-            # Barrier before starting
-            if [ -n "${2}" ]; then
-                DYAD_SYNC_START=${2}
-                shift
-            else
-                echo "\"${1}\" option requires an argument that is the number of tasks" >&2
-                exit 1
-            fi
-            ;;
         -c|--check)
             # Consumer verifies if the contents of files are correct
             CHECK=1
@@ -380,10 +369,6 @@ if [ "${DYAD_SHARED_FS}" == "1" ] ; then
     DYAD_OPT="${DYAD_OPT=} DYAD_SHARED_STORAGE=1"
 fi
 
-if [ ${DYAD_SYNC_START} -gt 0 ] ; then
-    DYAD_OPT="${DYAD_OPT=} DYAD_SYNC_START=${DYAD_SYNC_START}"
-fi
-
 # Set PRELOAD
 if [ "${SYNC}" == "0" ] ; then
     if [ "${LD_PRELOAD}" != "" ] ; then
@@ -439,9 +424,6 @@ function print_all_vars {
     else
         print_var NUM_FILES
         print_var FILE_SIZE
-    fi
-    if [ ${DYAD_SYNC_START} -gt 0 ] ; then
-        print_var DYAD_SYNC_START
     fi
     echo ""
     echo "----------------------"

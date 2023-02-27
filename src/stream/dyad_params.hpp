@@ -8,8 +8,8 @@
  * SPDX-License-Identifier: LGPL-3.0
 \************************************************************/
 
-#ifndef DYAD_PARAMS_HPP
-#define DYAD_PARAMS_HPP
+#ifndef DYAD_STREAM_DYAD_PARAMS_HPP
+#define DYAD_STREAM_DYAD_PARAMS_HPP
 
 #include <string>
 
@@ -46,4 +46,4 @@ struct dyad_params {
 };
 
 }  // end of namespace dyad
-#endif  // DYAD_PARAMS_HPP
+#endif  // DYAD_STREAM_DYAD_PARAMS_HPP

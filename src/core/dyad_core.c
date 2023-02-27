@@ -1,9 +1,7 @@
-#include "dyad_core.h"
-
 #include <libgen.h>
 #include <unistd.h>
 
-#include "dyad_err.h"
+#include "dyad_core.h"
 #include "dyad_flux_log.h"
 #include "murmur3.h"
 #include "utils.h"
@@ -72,7 +70,8 @@ static int gen_path_key (const char* str,
 
 #if DYAD_PERFFLOW
 __attribute__ ((annotate ("@critical_path()")))
-static dyad_rc_t dyad_kvs_commit (const dyad_ctx_t* ctx, flux_kvs_txn_t* txn)
+static dyad_rc_t dyad_kvs_commit (const dyad_ctx_t* ctx,
+                                  flux_kvs_txn_t* txn)
 #else
 static inline dyad_rc_t dyad_kvs_commit (const dyad_ctx_t* ctx,
                                          flux_kvs_txn_t* txn)
@@ -311,11 +310,12 @@ fetch_done:;
 
 #if DYAD_PERFFLOW
 __attribute__ ((annotate ("@critical_path()")))
-static dyad_rc_t dyad_rpc_get (const dyad_ctx_t* ctx,
-                               const dyad_kvs_response_t* restrict kvs_data,
-                               const char** file_data,
-                               int* file_len,
-                               flux_future_t** f)
+static dyad_rc_t dyad_rpc_get (
+    const dyad_ctx_t* ctx,
+    const dyad_kvs_response_t* restrict kvs_data,
+    const char** file_data,
+    int* file_len,
+    flux_future_t** f)
 #else
 static inline dyad_rc_t dyad_rpc_get (
     const dyad_ctx_t* ctx,
@@ -391,8 +391,9 @@ static inline dyad_rc_t dyad_pull (const dyad_ctx_t* restrict ctx,
     odir = dirname (file_path_copy);
     if ((strncmp (odir, ".", strlen (".")) != 0)
         && (mkdir_as_needed (odir, m) < 0)) {
-        DYAD_LOG_ERR (ctx, "Cannot create needed directories for pulled "
-                           "file\n");
+        DYAD_LOG_ERR (ctx,
+                      "Cannot create needed directories for pulled "
+                      "file\n");
         rc = DYAD_RC_BADFIO;
         goto pull_done;
     }
@@ -455,23 +456,21 @@ dyad_rc_t dyad_init (bool debug,
     // If it is not NULL, that means the dyad_ctx_t object
     // has either been allocated or fully initialized.
     // If it's initialized, simply print a message and
-    // return DYAD_OK. Otherwise, initialize the dyad_ctx_t
-    // object with dyad_ctx_default and return DYAD_OK.
+    // return DYAD_OK.
     if (*ctx != NULL) {
         if ((*ctx)->initialized) {
             // TODO Indicate already initialized
             DPRINTF ((*ctx), "DYAD context already initialized\n");
-        } else {
-            **ctx = dyad_ctx_default;
+            return DYAD_RC_OK;
         }
-        return DYAD_RC_OK;
-    }
-    // Allocate the dyad_ctx_t object and make sure the allocation
-    // worked successfully
-    *ctx = (dyad_ctx_t*)malloc (sizeof (struct dyad_ctx));
-    if (*ctx == NULL) {
-        fprintf (stderr, "Could not allocate DYAD context!\n");
-        return DYAD_RC_NOCTX;
+    } else {
+        // Allocate the dyad_ctx_t object and make sure the allocation
+        // worked successfully
+        *ctx = (dyad_ctx_t*)malloc (sizeof (struct dyad_ctx));
+        if (*ctx == NULL) {
+            fprintf (stderr, "Could not allocate DYAD context!\n");
+            return DYAD_RC_NOCTX;
+        }
     }
     // Set the initial contents of the dyad_ctx_t object
     // to dyad_ctx_default.

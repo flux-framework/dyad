@@ -8,9 +8,8 @@
  * SPDX-License-Identifier: LGPL-3.0
 \************************************************************/
 
-#include "dyad_stream_core.hpp"
-
 #include "dyad_core.h"
+#include "dyad_stream_core.hpp"
 #include "murmur3.h"
 #include "utils.h"
 
@@ -42,7 +41,8 @@ namespace dyad
  *                                                                           *
  *****************************************************************************/
 
-dyad_stream_core::dyad_stream_core () : m_ctx (NULL), m_initialized (false)
+dyad_stream_core::dyad_stream_core ()
+    : m_ctx (NULL), m_initialized (false), m_is_prod (false), m_is_cons (false)
 {
 }
 
@@ -73,46 +73,53 @@ void dyad_stream_core::init ()
     const char *cons_managed_path = NULL;
     const char *prod_managed_path = NULL;
 
-    DPRINTF (m_ctx, "DYAD_WRAPPER: Initializeing DYAD wrapper\n");
+    if (m_initialized) {
+        return;
+    }
 
-    if ((e = getenv ("DYAD_SYNC_DEBUG")) && (atoi (e) != 0)) {
+    if ((e = getenv (DYAD_SYNC_DEBUG_ENV)) && (atoi (e) != 0)) {
         debug = true;
         enable_debug_dyad_utils ();
+        fprintf (stderr, "DYAD_WRAPPER: Initializeing DYAD wrapper\n");
     } else {
         debug = false;
         disable_debug_dyad_utils ();
     }
 
-    if ((e = getenv ("DYAD_SHARED_STORAGE")) && (atoi (e) != 0))
+    if ((e = getenv (DYAD_SHARED_STORAGE_ENV)) && (atoi (e) != 0))
         shared_storage = true;
     else
         shared_storage = false;
 
-    if ((e = getenv ("DYAD_KEY_DEPTH")))
+    if ((e = getenv (DYAD_KEY_DEPTH_ENV)))
         key_depth = atoi (e);
     else
         key_depth = 2;
 
-    if ((e = getenv ("DYAD_KEY_BINS")))
+    if ((e = getenv (DYAD_KEY_BINS_ENV)))
         key_bins = atoi (e);
     else
         key_bins = 256;
 
-    if ((e = getenv ("DYAD_KVS_NAMESPACE"))) {
+    if ((e = getenv (DYAD_KVS_NAMESPACE_ENV))) {
         kvs_namespace = e;
     } else {
         kvs_namespace = NULL;
     }
 
-    if ((e = getenv (DYAD_PATH_CONS_ENV))) {
+    if ((e = getenv (DYAD_PATH_CONSUMER_ENV))) {
         cons_managed_path = e;
+        m_is_cons = (strlen (cons_managed_path) != 0);
     } else {
         cons_managed_path = NULL;
+        m_is_cons = false;
     }
-    if ((e = getenv (DYAD_PATH_PROD_ENV))) {
+    if ((e = getenv (DYAD_PATH_PRODUCER_ENV))) {
         prod_managed_path = e;
+        m_is_prod = (strlen (prod_managed_path) != 0);
     } else {
         prod_managed_path = NULL;
+        m_is_prod = false;
     }
 
     dyad_rc_t rc =
@@ -140,29 +147,28 @@ void dyad_stream_core::init (const dyad_params &p)
 void dyad_stream_core::log_info (const std::string &msg_head) const
 {
     DYAD_LOG_INFO (m_ctx, "=== %s ===\n", msg_head.c_str ());
-    DYAD_LOG_INFO (m_ctx, "%s=%s\n", DYAD_PATH_CONS_ENV,
+    DYAD_LOG_INFO (m_ctx, "%s=%s\n", DYAD_PATH_CONSUMER_ENV,
                    m_ctx->cons_managed_path);
-    DYAD_LOG_INFO (m_ctx, "%s=%s\n", DYAD_PATH_PROD_ENV,
+    DYAD_LOG_INFO (m_ctx, "%s=%s\n", DYAD_PATH_PRODUCER_ENV,
                    m_ctx->prod_managed_path);
-    DYAD_LOG_INFO (m_ctx, "DYAD_SYNC_DEBUG=%s\n",
+    DYAD_LOG_INFO (m_ctx, "%s=%s\n", DYAD_SYNC_DEBUG_ENV,
                    (m_ctx->debug) ? "true" : "false");
-    DYAD_LOG_INFO (m_ctx, "DYAD_SHARED_STORAGE=%s\n",
+    DYAD_LOG_INFO (m_ctx, "%s=%s\n", DYAD_SHARED_STORAGE_ENV,
                    (m_ctx->shared_storage) ? "true" : "false");
-    DYAD_LOG_INFO (m_ctx, "DYAD_KEY_DEPTH=%u\n", m_ctx->key_depth);
-    DYAD_LOG_INFO (m_ctx, "DYAD_KEY_BINS=%u\n", m_ctx->key_bins);
-    DYAD_LOG_INFO (m_ctx, "FLUX_KVS_NAMESPACE=%s\n", m_ctx->kvs_namespace);
+    DYAD_LOG_INFO (m_ctx, "%s=%u\n", DYAD_KEY_DEPTH_ENV, m_ctx->key_depth);
+    DYAD_LOG_INFO (m_ctx, "%s=%u\n", DYAD_KEY_BINS_ENV, m_ctx->key_bins);
+    DYAD_LOG_INFO (m_ctx, "%s=%s\n", DYAD_KVS_NAMESPACE_ENV,
+                   m_ctx->kvs_namespace);
 }
 
 bool dyad_stream_core::is_dyad_producer ()
 {
-    return m_ctx->prod_managed_path != NULL
-           && strlen (m_ctx->prod_managed_path) != 0;
+    return m_is_prod;
 }
 
 bool dyad_stream_core::is_dyad_consumer ()
 {
-    return m_ctx->cons_managed_path != NULL
-           && strlen (m_ctx->cons_managed_path) != 0;
+    return m_is_cons;
 }
 
 bool dyad_stream_core::open_sync (const char *path)
@@ -209,6 +215,16 @@ bool dyad_stream_core::close_sync (const char *path)
 
     IPRINTF (m_ctx, "DYAD_SYNC CLOSE: exists sync (\"%s\").\n", path);
     return true;
+}
+
+void dyad_stream_core::set_initialized ()
+{
+    m_initialized = true;
+}
+
+bool dyad_stream_core::chk_initialized () const
+{
+    return m_initialized;
 }
 
 }  // end of namespace dyad
