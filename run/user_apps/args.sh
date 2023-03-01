@@ -361,7 +361,7 @@ fi
 
 # Set dyad wrapper path
 if [ "${DYAD_WRAPPER}" == "" ] ; then
-    DYAD_WRAPPER=${SPECROOT}/dyad/libdyad_sync.so
+    DYAD_WRAPPER=${SPECROOT}/dyad/dyad_wrapper.so
 fi
 
 # Set dyad module path

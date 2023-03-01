@@ -52,7 +52,7 @@ do
     export DYAD_ARGS_PARSER_PATH=${SPECROOT}/user_apps/args.sh
     ${LAUNCHER} ${SPECROOT}/user_apps/step_prod${ext_barrier}.sh \
                 --workspace ${WORKSPACE} --specroot ${SPECROOT} \
-                --wpath ${DYAD_INSTALL_PATH}/src/wrapper/libdyad_sync.so \
+                --wpath ${DYAD_INSTALL_PATH}/src/wrapper/dyad_wrapper.so \
                 --kvs_namespace ${KVS_NS} --context ${CONTEXT} \
                 --depth ${DYAD_KVS_DEPTH} --bins ${DYAD_KVS_BINS} \
                 --sync ${SYNC} ${SHARED_FS} --iter ${ITER} \
@@ -67,7 +67,7 @@ do
     export DYAD_ARGS_PARSER_PATH=${SPECROOT}/user_apps/args.sh
     ${LAUNCHER} ${SPECROOT}/user_apps/step_cons${ext_barrier}.sh \
                 --workspace ${WORKSPACE} --specroot ${SPECROOT} \
-                --wpath ${DYAD_INSTALL_PATH}/src/wrapper/libdyad_sync.so \
+                --wpath ${DYAD_INSTALL_PATH}/src/wrapper/dyad_wrapper.so \
                 --kvs_namespace ${KVS_NS} --context ${CONTEXT} \
                 --depth ${DYAD_KVS_DEPTH} --bins ${DYAD_KVS_BINS} \
                 --sync ${SYNC} ${SHARED_FS} --iter ${ITER} \

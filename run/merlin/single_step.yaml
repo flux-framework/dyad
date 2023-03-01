@@ -56,7 +56,7 @@ study:
       date +"%T.%3N" >> $(WORKSPACE)/time.$(CONTEXT).txt
       $(LAUNCHER) $(SPECROOT)/user_apps/single_step.sh \
                   --workspace $(WORKSPACE) --specroot $(SPECROOT) \
-                  --wpath $(DYAD_INSTALL_PATH)/src/wrapper/libdyad_sync.so \
+                  --wpath $(DYAD_INSTALL_PATH)/src/wrapper/dyad_wrapper.so \
                   --kvs_namespace $(KVS_NS) --context $(CONTEXT) \
                   --depth $(DYAD_KVS_DEPTH) --bins $(DYAD_KVS_BINS) \
                   --sync $(SYNC) --iter $(ITER) \

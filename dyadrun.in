@@ -166,12 +166,12 @@ fi
 if test $should_preload -ne 0; then
     lib_dir_opts=""
     if test ! -z $DYAD_ROOT; then
-        lib_dir_opts="$lib_dir_opts $DYAD_ROOT/lib/libdyad_sync.so"
+        lib_dir_opts="$lib_dir_opts $DYAD_ROOT/lib/dyad_wrapper.so"
     fi
     if test ! -z $DYAD_LIBRARYDIR; then
-        lib_dir_opts="$lib_dir_opts $DYAD_LIBRARYDIR/libdyad_sync.so"
+        lib_dir_opts="$lib_dir_opts $DYAD_LIBRARYDIR/dyad_wrapper.so"
     fi
-    lib_dir_opts="$lib_dir_opts $DYAD_INSTALL_LIB/libdyad_sync.so"
+    lib_dir_opts="$lib_dir_opts $DYAD_INSTALL_LIB/dyad_wrapper.so"
     preload_found=0
     for ldir in $lib_dir_opts; do
         if test -f $ldir; then
@@ -181,7 +181,7 @@ if test $should_preload -ne 0; then
         fi
     done
     if test $preload_found -ne 1; then
-        echo "ERROR: Could not find libdyad_sync.so!"
+        echo "ERROR: Could not find dyad_wrapper.so!"
         echo "       Checked the following locations: $lib_dir_opts"
         exit -1
     fi

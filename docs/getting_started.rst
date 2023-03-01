@@ -110,7 +110,7 @@ simply adding the following before the shell command that launches their applica
 
 .. code-block:: shell
 
-   $ LD_PRELOAD=path/to/libdyad_sync.so
+   $ LD_PRELOAD=path/to/dyad_wrapper.so
 
 Once preloaded, DYAD's C API will intercept the :code:`open` and :code:`fopen` functions when consuming
 files and the :code:`close` and :code:`fclose` functions when producing files. As a result,
