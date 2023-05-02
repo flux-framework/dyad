@@ -47,7 +47,7 @@ extern "C" {
 #endif
 
 static __thread dyad_ctx_t *ctx = NULL;
-// static void dyad_wrapper_init (void) __attribute__((constructor));
+static void dyad_wrapper_init (void) __attribute__((constructor));
 static void dyad_wrapper_fini (void) __attribute__ ((destructor));
 
 #if DYAD_SYNC_DIR
@@ -92,10 +92,8 @@ void dyad_wrapper_init (void)
 
     if (DYAD_IS_ERROR (rc)) {
         fprintf(stderr, "Failed to initialize DYAD (code = %d)\n", rc);
-        if (ctx != NULL) {
-            dyad_wrapper_fini();
-        }
-        ctx = NULL;
+        ctx->initialized = false;
+        ctx->reenter = false;
         return;
     }
 
@@ -123,9 +121,9 @@ int open (const char *path, int oflag, ...)
     open_ptr_t func_ptr = NULL;
     int mode = 0;
 
-    if (ctx == NULL) {
-        dyad_wrapper_init ();
-    }
+    // if (ctx == NULL) {
+    //     dyad_wrapper_init ();
+    // }
 
     if (oflag & O_CREAT) {
         va_list arg;
@@ -169,9 +167,9 @@ FILE *fopen (const char *path, const char *mode)
     typedef FILE *(*fopen_ptr_t) (const char *, const char *);
     fopen_ptr_t func_ptr = NULL;
 
-    if (ctx == NULL) {
-        dyad_wrapper_init ();
-    }
+    // if (ctx == NULL) {
+    //     dyad_wrapper_init ();
+    // }
 
     func_ptr = (fopen_ptr_t)dlsym (RTLD_NEXT, "fopen");
     if ((error = dlerror ())) {
@@ -210,9 +208,9 @@ int close (int fd)
     char path[PATH_MAX + 1] = {'\0'};
     int rc = 0;
 
-    if (ctx == NULL) {
-        dyad_wrapper_init ();
-    }
+    // if (ctx == NULL) {
+    //     dyad_wrapper_init ();
+    // }
 
     func_ptr = (close_ptr_t)dlsym (RTLD_NEXT, "close");
     if ((error = dlerror ())) {
@@ -300,9 +298,9 @@ int fclose (FILE *fp)
     int rc = 0;
     int fd = 0;
 
-    if (ctx == NULL) {
-        dyad_wrapper_init ();
-    }
+    // if (ctx == NULL) {
+    //     dyad_wrapper_init ();
+    // }
 
     func_ptr = (fclose_ptr_t)dlsym (RTLD_NEXT, "fclose");
     if ((error = dlerror ())) {

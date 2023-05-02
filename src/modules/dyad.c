@@ -229,11 +229,16 @@ static const struct flux_msg_handler_spec htab[] = {{FLUX_MSGTYPE_REQUEST,
 
 void usage()
 {
-    fprintf(stderr, "Usage: flux exec -r all flux module load dyad.so <PRODUCER_PATH> <DTL_MODE>\n\n");
-    fprintf(stderr, "DTL_MODE Values:\n");
-    fprintf(stderr, "================\n");
-    fprintf(stderr, " * FLUX_RPC: use Flux's RPC response mechanism to send data to consumer\n");
-    fprintf(stderr, " * UCX: use UCX to send data to consumer\n");
+    fprintf(stderr, "Usage: flux exec -r all flux module load dyad.so <PRODUCER_PATH> [DTL_MODE] [--debug | -d]\n\n");
+    fprintf(stderr, "Required Arguments:\n");
+    fprintf(stderr, "===================\n");
+    fprintf(stderr, " * PRODUCER_PATH: the producer-managed path that the module should track\n\n");
+    fprintf(stderr, "Optional Arguments:\n");
+    fprintf(stderr, "===================\n");
+    fprintf(stderr, " * DTL_MODE: a valid data transport layer (DTL) mode. Can be one of the following values\n");
+    fprintf(stderr, "   * UCX (default): use UCX to send data to consumer\n");
+    fprintf(stderr, "   * FLUX_RPC: use Flux's RPC response mechanism to send data to consumer\n");
+    fprintf(stderr, " * --debug | -d: if provided, add debugging log messages\n");
 }
 
 int mod_main (flux_t *h, int argc, char **argv)
@@ -250,8 +255,6 @@ int mod_main (flux_t *h, int argc, char **argv)
     }
 
     ctx = getctx (h);
-
-    FLUX_LOG_INFO (h, "Received %d cmd line args\n", argc);
 
     if (argc < 1) {
         FLUX_LOG_ERR (ctx->h,
@@ -291,7 +294,6 @@ int mod_main (flux_t *h, int argc, char **argv)
         goto mod_error;
     }
 
-    fprintf (stderr, "dyad module begins using \"%s\"\n", argv[0]);
     FLUX_LOG_INFO (ctx->h, "dyad module begins using \"%s\"\n", argv[0]);
 
     if (flux_msg_handler_addvec (ctx->h, htab, (void *)h, &ctx->handlers) < 0) {
