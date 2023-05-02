@@ -64,7 +64,7 @@ int dyad_mod_ucx_dtl_init(flux_t *h, bool debug, dyad_mod_ucx_dtl_t **dtl_handle
         UCP_PARAM_FIELD_REQUEST_SIZE |
         UCP_PARAM_FIELD_REQUEST_INIT;
     ucp_params.features = UCP_FEATURE_TAG |
-        UCP_FEATURE_RMA |
+        // UCP_FEATURE_RMA |
         UCP_FEATURE_WAKEUP;
     ucp_params.request_size = sizeof(struct mod_request);
     ucp_params.request_init = dyad_mod_ucx_request_init;
@@ -231,7 +231,7 @@ int dyad_mod_ucx_dtl_send(dyad_mod_ucx_dtl_t *dtl_handle, void *buf, size_t bufl
     FLUX_LOG_INFO (dtl_handle->h, "Processing UCP send request\n");
     if (UCS_PTR_IS_ERR(stat_ptr))
     {
-        FLUX_LOG_INFO (dtl_handle->h, "Error occured in UCP send\n");
+        FLUX_LOG_ERR (dtl_handle->h, "Error occured in UCP send\n");
         status = UCS_PTR_STATUS(stat_ptr);
     }
     else if (UCS_PTR_IS_PTR(stat_ptr))

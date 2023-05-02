@@ -107,7 +107,6 @@ dyad_rc_t dyad_dtl_ucx_init(flux_t *h, const char *kvs_namespace,
     ucs_status_t status;
     ucp_worker_attr_t worker_attrs;
 
-    printf ("Allocating UCX DTL handle\n");
     *dtl_handle = malloc(sizeof(struct dyad_dtl_ucx));
     if (*dtl_handle == NULL)
     {
@@ -127,7 +126,6 @@ dyad_rc_t dyad_dtl_ucx_init(flux_t *h, const char *kvs_namespace,
 
     // Read the UCX configuration
     FLUX_LOG_INFO ((*dtl_handle)->h, "Reading UCP config\n");
-    printf ("Calling ucp_config_read\n");
     status = ucp_config_read (NULL, NULL, &config);
     if (UCX_STATUS_FAIL(status))
     {
@@ -148,20 +146,18 @@ dyad_rc_t dyad_dtl_ucx_init(flux_t *h, const char *kvs_namespace,
                             UCP_PARAM_FIELD_REQUEST_SIZE |
                             UCP_PARAM_FIELD_REQUEST_INIT;
     ucx_params.features = UCP_FEATURE_TAG |
-                          UCP_FEATURE_RMA |
+                          // UCP_FEATURE_RMA |
                           UCP_FEATURE_WAKEUP;
     ucx_params.request_size = sizeof(struct ucx_request);
     ucx_params.request_init = dyad_ucx_request_init;
 
     // Initialize UCX
     FLUX_LOG_INFO ((*dtl_handle)->h, "Initializing UCP\n");
-    printf ("Calling ucp_init\n");
     status = ucp_init(&ucx_params, config, &(*dtl_handle)->ucx_ctx);
 
     // If in debug mode, print the configuration of UCX to stderr
     if (debug)
     {
-        printf ("Calling ucp_config_print\n");
         ucp_config_print(
             config,
             stderr,
@@ -170,7 +166,6 @@ dyad_rc_t dyad_dtl_ucx_init(flux_t *h, const char *kvs_namespace,
         );
     }
     // Release the config
-    printf ("Calling ucp_config_release\n");
     ucp_config_release(config);
     // Log an error if UCX initialization failed
     if (UCX_STATUS_FAIL(status))
@@ -192,7 +187,6 @@ dyad_rc_t dyad_dtl_ucx_init(flux_t *h, const char *kvs_namespace,
 
     // Create the worker and log an error if that fails
     FLUX_LOG_INFO ((*dtl_handle)->h, "Creating UCP worker\n");
-    printf ("Calling ucp_worker_create\n");
     status = ucp_worker_create(
         (*dtl_handle)->ucx_ctx,
         &worker_params,
@@ -207,7 +201,6 @@ dyad_rc_t dyad_dtl_ucx_init(flux_t *h, const char *kvs_namespace,
     // Query the worker for its address
     worker_attrs.field_mask = UCP_WORKER_ATTR_FIELD_ADDRESS;
     FLUX_LOG_INFO ((*dtl_handle)->h, "Get address of UCP worker\n");
-    printf ("Calling ucp_worker_query\n");
     status = ucp_worker_query(
         (*dtl_handle)->ucx_worker,
         &worker_attrs
@@ -321,11 +314,9 @@ dyad_rc_t dyad_dtl_ucx_recv(dyad_dtl_ucx_t *dtl_handle,
     dyad_ucx_request_t* req = NULL;
     // Use 'ucp_worker_wait' to poll the worker until
     // the tag recv event that we're looking for comes in.
-    FLUX_LOG_INFO (dtl_handle->h, "Starting UCP polling for incoming data\n");
+    FLUX_LOG_INFO (dtl_handle->h, "Poll UCP for incoming data\n");
     do {
-        FLUX_LOG_INFO (dtl_handle->h, "Progress UCP worker\n");
         ucp_worker_progress (dtl_handle->ucx_worker);
-        FLUX_LOG_INFO (dtl_handle->h, "Probe the UCP worker for messages on tag %lu\n", dtl_handle->comm_tag);
         msg = ucp_tag_probe_nb(
             dtl_handle->ucx_worker,
             dtl_handle->comm_tag,
@@ -336,6 +327,10 @@ dyad_rc_t dyad_dtl_ucx_recv(dyad_dtl_ucx_t *dtl_handle,
             &msg_info
         );
     } while (msg == NULL);
+    // TODO: This version of the polling code is not supposed to spin-lock, unlike the code above.
+    // Currently, it does not work. Once it starts working, we can replace the code above
+    // with a version of this code.
+    //
     // while (true)
     // {
     //     // Probe the tag recv event at the top
@@ -456,14 +451,12 @@ dyad_rc_t dyad_dtl_ucx_finalize(dyad_dtl_ucx_t *dtl_handle)
     if (dtl_handle != NULL)
     {
         FLUX_LOG_INFO (dtl_handle->h, "Finalizing UCX DTL\n");
-        FLUX_LOG_INFO (dtl_handle->h, "Releasing KVS Namespace\n");
         // KVS namespace string should be released by the
         // DYAD context, so it is not released here
         dtl_handle->kvs_namespace = NULL;
         // Release consumer address if not already released
         if (dtl_handle->consumer_address != NULL)
         {
-            FLUX_LOG_INFO (dtl_handle->h, "Releasing worker address\n");
             ucp_worker_release_address(
                 dtl_handle->ucx_worker,
                 dtl_handle->consumer_address
@@ -472,20 +465,16 @@ dyad_rc_t dyad_dtl_ucx_finalize(dyad_dtl_ucx_t *dtl_handle)
         }
         // Release worker if not already released
         if (dtl_handle->ucx_worker != NULL)
-       {
-            FLUX_LOG_INFO (dtl_handle->h, "Releasing worker\n");
+        {
             ucp_worker_destroy(dtl_handle->ucx_worker);
             dtl_handle->ucx_worker = NULL;
-            FLUX_LOG_INFO (dtl_handle->h, "Worker released\n");
         }
         // Release context if not already released
         if (dtl_handle->ucx_ctx != NULL)
         {
-            FLUX_LOG_INFO (dtl_handle->h, "Releasing context\n");
             ucp_cleanup(dtl_handle->ucx_ctx);
             dtl_handle->ucx_ctx = NULL;
         }
-        FLUX_LOG_INFO (dtl_handle->h, "Releasing Flux handle\n");
         // Flux handle should be released by the
         // DYAD context, so it is not released here
         dtl_handle->h = NULL;
