@@ -170,6 +170,7 @@ static void dyad_fetch_request_cb (flux_t *h,
         goto fetch_error;
     }
     close (fd);
+    FLUX_LOG_INFO (h, "Is inbuf NULL? -> %i\n", (int) (inbuf == NULL));
 
     FLUX_LOG_INFO (h, "Establish DTL connection with consumer");
     if (dyad_mod_dtl_establish_connection (ctx->dtl_handle) < 0) {
@@ -246,7 +247,7 @@ int mod_main (flux_t *h, int argc, char **argv)
     const mode_t m = (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH | S_ISGID);
     dyad_mod_ctx_t *ctx = NULL;
     size_t flag_len = 0;
-    dyad_mod_dtl_mode_t dtl_mode = DYAD_DTL_FLUX_RPC;
+    dyad_mod_dtl_mode_t dtl_mode = DYAD_DTL_UCX;
     bool debug = false;
 
     if (!h) {
