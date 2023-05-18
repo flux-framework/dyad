@@ -375,6 +375,7 @@ dyad_rc_t dyad_dtl_ucx_recv(dyad_dtl_ucx_t *dtl_handle,
     // The metadata retrived from the probed tag recv event contains
     // the size of the data to be sent.
     // So, use that size to allocate a buffer
+    FLUX_LOG_INFO (dtl_handle->h, "Got message with tag %lu and size %lu\n", msg_info.sender_tag, msg_info.length);
     *buflen = msg_info.length;
     *buf = malloc(*buflen);
     // If allocation fails, log an error

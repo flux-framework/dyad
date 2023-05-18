@@ -659,7 +659,7 @@ dyad_rc_t dyad_init_env (dyad_ctx_t **ctx)
     char *prod_managed_path = NULL;
     char *cons_managed_path = NULL;
     size_t dtl_mode_env_len = 0;
-    dyad_dtl_mode_t dtl_mode = DYAD_DTL_FLUX_RPC;
+    dyad_dtl_mode_t dtl_mode = DYAD_DTL_UCX;
 
     if ((e = getenv (DYAD_SYNC_DEBUG_ENV))) {
         debug = true;
