@@ -115,28 +115,33 @@ int main (int argc, char** argv)
 {
     int rank;
     int n_ranks;
+    bool is_managed_local = false;
     unsigned seed = 0u;
     unsigned n_epochs = 3u;
     int rc = 0;
     std::string list_name;
     std::string managed_dir;
 
-    if ((argc != 3) && (argc != 4) && (argc != 5)) {
-        cout << "usage: " << argv[0] << " list_file managed_dir [n_epochs [seed]]"
+    if ((argc < 4) || (argc > 6)) {
+        cout << "usage: " << argv[0] << " list_file managed_dir is_local [n_epochs [seed]]"
              << endl;
-        cout << "   if seed is not given, a random seed is used" << endl;
+        cout << "   list_file: constains a list of files to be generated and used," << endl
+             << "              one per line, without managed_dir prefix." << endl;
+        cout << "   is_local: indicates if the managed_dir is local (1) or shared (0)" << endl;
+        cout << "   seed: if not given, a random seed is used" << endl;
         return EXIT_SUCCESS;
     }
 
     list_name = argv[1];
     managed_dir = argv[2];
+    is_managed_local = static_cast<bool> (atoi (argv[3]));
 
-    if (argc == 4) {
-        n_epochs = static_cast<unsigned> (atoi (argv[3]));
+    if (argc > 4) {
+        n_epochs = static_cast<unsigned> (atoi (argv[4]));
     }
 
-    if (argc == 5) {
-        seed = static_cast<unsigned> (atoi (argv[4]));
+    if (argc > 5) {
+        seed = static_cast<unsigned> (atoi (argv[5]));
     }
 
     std::vector<std::string> flist;
@@ -155,7 +160,17 @@ int main (int argc, char** argv)
         return rc;
     }
 
-    if (rank == 0) {  // if directory is local, everyone should do
+    if (is_managed_local) { // if directory is local, everyone should create
+        mode_t m = (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH | S_ISGID);
+        int c = mkdir_as_needed (managed_dir.c_str (), m);
+        if (c < 0) {
+            cout << "Rank " << rank
+                 << " could not create directory: '" << managed_dir << "'" << endl;
+            MPI_Abort (MPI_COMM_WORLD, errno);
+            return EXIT_FAILURE;
+        }
+    }
+    else if (rank == 0) {
         mode_t m = (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH | S_ISGID);
         int c = mkdir_as_needed (managed_dir.c_str (), m);
         if (c < 0) {
