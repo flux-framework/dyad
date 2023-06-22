@@ -46,7 +46,7 @@ using namespace std;  // std::clock ()
 extern "C" {
 #endif
 
-__thread dyad_ctx_t *ctx = NULL;
+static __thread dyad_ctx_t *ctx = NULL;
 // static void dyad_wrapper_init (void) __attribute__((constructor));
 static void dyad_wrapper_fini (void) __attribute__ ((destructor));
 
