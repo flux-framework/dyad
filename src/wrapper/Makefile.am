@@ -7,9 +7,17 @@ dyad_wrapper_la_LDFLAGS = \
 	-avoid-version \
 	-no-undefined \
 	-shared \
-	-export-symbols wrapper.sym
-dyad_wrapper_la_LIBADD = $(top_builddir)/src/core/libdyad_core.la
-dyad_wrapper_la_CPPFLAGS = -I$(top_srcdir)/src/utils -I$(top_srcdir)/src/core $(FLUX_CORE_CFLAGS)
+	# -export-symbols wrapper.sym
+dyad_wrapper_la_LIBADD = \
+	$(top_builddir)/src/utils/libutils.la \
+	$(top_builddir)/src/core/libdyad_core.la
+dyad_wrapper_la_CPPFLAGS = \
+	-I$(top_srcdir)/src/utils \
+	-I$(top_srcdir)/src/core \
+	-I$(top_srcdir)/src/dtl \
+	$(FLUX_CORE_CFLAGS) \
+	-DBUILDING_DYAD \
+	-fvisibility=hidden
 
 install-exec-hook:
 	@(cd $(DESTDIR)$(libdir) && $(RM) dyad_wrapper.la)

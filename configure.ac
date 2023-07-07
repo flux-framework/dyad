@@ -185,7 +185,8 @@ AC_CHECK_FUNCS( \
 # Add any necessary compilation flags #
 #######################################
 if test "x$enable_debug" = xyes; then
-    CPPFLAGS="$CPPFLAGS -DDYAD_FULL_DEBUG=1 -DDYAD_LOGGING_ON=1"
+    CFLAGS="$CFLAGS -DDYAD_FULL_DEBUG=1 -DDYAD_LOGGING_ON=1"
+    CXXFLAGS="$CXXFLAGS -DDYAD_FULL_DEBUG=1 -DDYAD_LOGGING_ON=1"
 fi
 
 ########################
@@ -196,6 +197,7 @@ AC_CONFIG_FILES([Makefile
                  src/utils/Makefile
                  src/utils/base64/Makefile
                  src/utils/libtap/Makefile
+                 src/dtl/Makefile
                  src/core/Makefile
                  src/stream/Makefile
                  src/modules/Makefile

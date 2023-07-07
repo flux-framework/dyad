@@ -2,9 +2,18 @@
 #ifndef CCAN_BASE64_H
 #define CCAN_BASE64_H
 
+#ifdef __cplusplus
+#include <cstddef>
+#else
 #include <stddef.h>
 #include <stdbool.h>
+#endif
+
 #include <sys/types.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * base64_maps_t - structure to hold maps for encode/decode
@@ -236,6 +245,8 @@ ssize_t base64_decode_tail(char dest[3], const char *src, size_t srclen)
 
 /* end rfc4648 functions */
 
-
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* CCAN_BASE64_H */

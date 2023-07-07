@@ -21,7 +21,7 @@
 #include <cstring>
 #include <ctime>
 using namespace std;  // std::clock ()
-//#include <cstdbool> // c++11
+// #include <cstdbool> // c++11
 #else
 #include <errno.h>
 #include <limits.h>
@@ -109,8 +109,7 @@ static int
 urpc_rpc_pack (flux_future_t **ft, uint32_t rank, const char *cmd)
 {
     // Send the request to execute a command
-    if (!(*ft = flux_rpc_pack (ctx->h, "urpc.exec", rank, 0, "{s:s}", "cmd",
-                               cmd))) {
+    if (!(*ft = flux_rpc_pack (ctx->h, "urpc.exec", rank, 0, "{s:s}", "cmd", cmd))) {
         FLUX_LOG_ERR ("flux_rpc_pack({urpc.exec %s})", cmd);
         return -1;
     }
