@@ -723,12 +723,12 @@ dyad_rc_t dyad_init_env (dyad_ctx_t **ctx)
         } else {
             if (debug) {
                 fprintf (stderr, "Invalid DTL mode provided through %s. \
-                        Defaulting the FLUX_RPC\n", DYAD_DTL_MODE_ENV);
+                        Defaulting to UCX\n", DYAD_DTL_MODE_ENV);
             }
-            dtl_mode = DYAD_DTL_FLUX_RPC;
+            dtl_mode = DYAD_DTL_UCX;
         }
     } else {
-        dtl_mode = DYAD_DTL_FLUX_RPC;
+        dtl_mode = DYAD_DTL_UCX;
     }
     if (debug)
         fprintf (stderr, "DYAD_CORE: retrieved configuration from environment. Now initializing DYAD\n");
