@@ -1,0 +1,31 @@
+name: Compilation Testing for DYAD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  compile:
+    strategy:
+      matrix:
+        flux-images:
+          - latest
+          - focal
+          - focal-v0.48.0
+          - focal-v0.47.0
+          - focal-v0.46.1
+    runs-on: ubuntu-20.04 # Docker-based jobs must run on Ubuntu
+    container: strategy.flux-images
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Run autogen
+        run: ./autogen.sh
+
+      - name: Configure build
+        run: ./configure --enable-dyad-debug CC=gcc CXX=g++
+
+      - name: Build DYAD
+        run: make -j
