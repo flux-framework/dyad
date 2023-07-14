@@ -1,11 +1,11 @@
 #ifndef DYAD_CORE_DYAD_CORE_H
 #define DYAD_CORE_DYAD_CORE_H
 
-// Includes <flux/core.h>
 #include "dyad_envs.h"
 #include "dyad_rc.h"
+// Includes <flux/core.h>
 #include "dyad_flux_log.h"
-#include "dyad_dtl_defs.h"
+#include "dyad_dtl.h"
 
 #ifdef __cplusplus
 #include <cstdio>
@@ -33,22 +33,22 @@ extern "C" {
  * @struct dyad_ctx
  */
 struct dyad_ctx {
-    flux_t* h;                // the Flux handle for DYAD
-    dyad_dtl_t *dtl_handle;   // Opaque handle to DTL info
-    bool debug;               // if true, perform debug logging
-    bool check;               // if true, perform some check logging
-    bool reenter;             // if false, do not recursively enter DYAD
-    bool initialized;         // if true, DYAD is initialized
-    bool shared_storage;      // if true, the managed path is shared
-    bool sync_started;        // TODO
-    unsigned int key_depth;   // Depth of bins for the Flux KVS
-    unsigned int key_bins;    // Number of bins for the Flux KVS
-    uint32_t rank;            // Flux rank for DYAD
-    char* kvs_namespace;      // Flux KVS namespace for DYAD
-    char* prod_managed_path;  // producer path managed by DYAD
-    char* cons_managed_path;  // consumer path managed by DYAD
+    flux_t* h;                     // the Flux handle for DYAD
+    struct dyad_dtl *dtl_handle;   // Opaque handle to DTL info
+    bool debug;                    // if true, perform debug logging
+    bool check;                    // if true, perform some check logging
+    bool reenter;                  // if false, do not recursively enter DYAD
+    bool initialized;              // if true, DYAD is initialized
+    bool shared_storage;           // if true, the managed path is shared
+    bool sync_started;             // TODO
+    unsigned int key_depth;        // Depth of bins for the Flux KVS
+    unsigned int key_bins;         // Number of bins for the Flux KVS
+    uint32_t rank;                 // Flux rank for DYAD
+    char* kvs_namespace;           // Flux KVS namespace for DYAD
+    char* prod_managed_path;       // producer path managed by DYAD
+    char* cons_managed_path;       // consumer path managed by DYAD
 };
-extern const struct dyad_ctx dyad_ctx_default;
+DYAD_DLL_EXPORTED extern const struct dyad_ctx dyad_ctx_default;
 typedef struct dyad_ctx dyad_ctx_t;
 
 struct dyad_kvs_response {
@@ -93,7 +93,7 @@ typedef struct dyad_kvs_response dyad_kvs_response_t;
  *
  * @return An integer error code (values TBD)
  */
-dyad_rc_t dyad_init (bool debug,
+DYAD_DLL_EXPORTED dyad_rc_t dyad_init (bool debug,
                      bool check,
                      bool shared_storage,
                      unsigned int key_depth,
@@ -109,7 +109,7 @@ dyad_rc_t dyad_init (bool debug,
  * @param[out] ctx the newly initialized context
  * @return An error code
  */
-dyad_rc_t dyad_init_env (dyad_ctx_t** ctx);
+DYAD_DLL_EXPORTED dyad_rc_t dyad_init_env (dyad_ctx_t** ctx);
 
 /**
  * @brief Wrapper function that performs all the common tasks needed
@@ -122,7 +122,7 @@ dyad_rc_t dyad_init_env (dyad_ctx_t** ctx);
 #if DYAD_PERFFLOW
 __attribute__ ((annotate ("@critical_path()")))
 #endif
-dyad_rc_t dyad_produce (dyad_ctx_t* ctx, const char* fname);
+DYAD_DLL_EXPORTED dyad_rc_t dyad_produce (dyad_ctx_t* ctx, const char* fname);
 
 /**
  * @brief Wrapper function that performs all the common tasks needed
@@ -135,7 +135,7 @@ dyad_rc_t dyad_produce (dyad_ctx_t* ctx, const char* fname);
 #if DYAD_PERFFLOW
 __attribute__ ((annotate ("@critical_path()")))
 #endif
-dyad_rc_t dyad_consume (dyad_ctx_t* ctx, const char* fname);
+DYAD_DLL_EXPORTED dyad_rc_t dyad_consume (dyad_ctx_t* ctx, const char* fname);
 
 /**
  * @brief Finalizes the DYAD instance and deallocates the context
@@ -143,10 +143,10 @@ dyad_rc_t dyad_consume (dyad_ctx_t* ctx, const char* fname);
  *
  * @return An integer error code (values TBD)
  */
-dyad_rc_t dyad_finalize (dyad_ctx_t** ctx);
+DYAD_DLL_EXPORTED dyad_rc_t dyad_finalize (dyad_ctx_t** ctx);
 
 #if DYAD_SYNC_DIR
-int dyad_sync_directory (dyad_ctx_t* ctx, const char* path);
+DYAD_DLL_EXPORTED int dyad_sync_directory (dyad_ctx_t* ctx, const char* path);
 #endif
 
 #ifdef __cplusplus

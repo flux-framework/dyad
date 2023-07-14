@@ -47,7 +47,7 @@ extern "C" {
 #endif
 
 static __thread dyad_ctx_t *ctx = NULL;
-static void dyad_wrapper_init (void) __attribute__((constructor));
+static void dyad_wrapper_init (void) __attribute__ ((constructor));
 static void dyad_wrapper_fini (void) __attribute__ ((destructor));
 
 #if DYAD_SYNC_DIR
@@ -114,7 +114,7 @@ void dyad_wrapper_fini ()
     dyad_finalize (&ctx);
 }
 
-int open (const char *path, int oflag, ...)
+DYAD_DLL_EXPORTED int open (const char *path, int oflag, ...)
 {
     char *error = NULL;
     typedef int (*open_ptr_t) (const char *, int, mode_t, ...);
@@ -161,7 +161,7 @@ real_call:;
     return (func_ptr (path, oflag, mode));
 }
 
-FILE *fopen (const char *path, const char *mode)
+DYAD_DLL_EXPORTED FILE *fopen (const char *path, const char *mode)
 {
     char *error = NULL;
     typedef FILE *(*fopen_ptr_t) (const char *, const char *);
@@ -199,7 +199,7 @@ real_call:
     return (func_ptr (path, mode));
 }
 
-int close (int fd)
+DYAD_DLL_EXPORTED int close (int fd)
 {
     bool to_sync = false;
     char *error = NULL;
@@ -288,7 +288,7 @@ real_call:;  // semicolon here to avoid the error
     return rc;
 }
 
-int fclose (FILE *fp)
+DYAD_DLL_EXPORTED int fclose (FILE *fp)
 {
     bool to_sync = false;
     char *error = NULL;

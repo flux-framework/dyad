@@ -1,6 +1,12 @@
 #ifndef DYAD_CORE_DYAD_RC_H
 #define DYAD_CORE_DYAD_RC_H
 
+#if BUILDING_DYAD
+#define DYAD_DLL_EXPORTED __attribute__((__visibility__("default")))
+#else
+#define DYAD_DLL_EXPORTED
+#endif
+
 enum dyad_core_return_codes {
     DYAD_RC_OK = 0,               // Operation worked correctly
     DYAD_RC_SYSFAIL = -1,         // Some sys call or C standard

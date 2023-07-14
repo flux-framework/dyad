@@ -1,1 +1,1 @@
-SUBDIRS = utils modules core wrapper stream
+SUBDIRS = utils dtl modules core wrapper stream

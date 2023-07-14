@@ -1,13 +1,10 @@
-#include <libgen.h>
-#include <unistd.h>
-
 #include "dyad_core.h"
-#include "dyad_dtl_defs.h"
-#include "dyad_flux_log.h"
-#include "dyad_rc.h"
-#include "dtl/dyad_dtl.h"
 #include "murmur3.h"
 #include "utils.h"
+#include "dyad_dtl_impl.h"
+
+#include <libgen.h>
+#include <unistd.h>
 
 #ifdef __cplusplus
 #include <climits>
@@ -337,7 +334,7 @@ static inline dyad_rc_t dyad_get_data (
     flux_future_t *f;
     json_t* rpc_payload;
     DYAD_LOG_INFO (ctx, "Packing payload for RPC to DYAD module");
-    rc = dyad_dtl_rpc_pack (
+    rc = ctx->dtl_handle->rpc_pack (
         ctx->dtl_handle,
         kvs_data->fpath,
         kvs_data->owner_rank,
@@ -364,28 +361,34 @@ static inline dyad_rc_t dyad_get_data (
         goto get_done;
     }
     DYAD_LOG_INFO (ctx, "Receive RPC response from DYAD module");
-    rc = dyad_dtl_recv_rpc_response(ctx->dtl_handle, f);
+    rc = ctx->dtl_handle->rpc_recv_response (
+        ctx->dtl_handle,
+        f
+    );
     if (DYAD_IS_ERROR(rc))
     {
         DYAD_LOG_ERR(ctx, "Cannot receive and/or parse the RPC response\n");
         goto get_done;
     }
     DYAD_LOG_INFO (ctx, "Establish DTL connection with DYAD module");
-    rc = dyad_dtl_establish_connection (
-        ctx->dtl_handle
+    rc = ctx->dtl_handle->establish_connection (
+        ctx->dtl_handle,
+        DYAD_COMM_RECV
     );
     if (DYAD_IS_ERROR(rc)) {
         DYAD_LOG_ERR (ctx, "Cannot establish connection with DYAD module on broker %u\n", kvs_data->owner_rank);
         goto get_done;
     }
     DYAD_LOG_INFO (ctx, "Receive file data via DTL");
-    rc = dyad_dtl_recv (
+    rc = ctx->dtl_handle->recv (
         ctx->dtl_handle,
         (void**) file_data,
         file_len
     );
     DYAD_LOG_INFO (ctx, "Close DTL connection with DYAD module");
-    dyad_dtl_close_connection (ctx->dtl_handle);
+    ctx->dtl_handle->close_connection (
+        ctx->dtl_handle
+    );
     if (DYAD_IS_ERROR(rc))
     {
         DYAD_LOG_ERR (ctx, "Cannot receive data from producer module\n");
@@ -587,11 +590,10 @@ dyad_rc_t dyad_init (bool debug,
     // If an error occurs, log it and return an error
     FLUX_LOG_INFO ((*ctx)->h, "DYAD_CORE: inintializing DYAD DTL");
     rc = dyad_dtl_init(
+        &(*ctx)->dtl_handle,
         dtl_mode,
         (*ctx)->h,
-        (*ctx)->kvs_namespace,
-        (*ctx)->debug,
-        &(*ctx)->dtl_handle
+        (*ctx)->debug
     );
     if (DYAD_IS_ERROR(rc))
     {
