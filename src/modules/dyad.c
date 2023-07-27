@@ -85,6 +85,10 @@ static dyad_mod_ctx_t *getctx (flux_t *h)
 
     if (!ctx) {
         ctx = (dyad_mod_ctx_t *) malloc (sizeof (*ctx));
+        if (ctx == NULL) {
+            FLUX_LOG_ERR (h, "DYAD_MOD: could not allocate memory for context");
+            goto getctx_error;
+        }
         ctx->h = h;
         ctx->debug = false;
         ctx->handlers = NULL;

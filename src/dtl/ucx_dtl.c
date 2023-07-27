@@ -77,12 +77,12 @@ static ucs_status_t dyad_ucx_request_wait(dyad_dtl_ucx_t *dtl_handle,
         // that minimize the size of the worker's event queue.
         // In other words, prior UCX calls should mean that this loop only runs
         // a couple of times at most.
-        while (request->completed != 1)
-        {
+        do {
             ucp_worker_progress(dtl_handle->ucx_worker);
-        }
-        // Get the final status of the communication operation
-        final_request_status = ucp_request_check_status(request);
+            // usleep(100);
+            // Get the final status of the communication operation
+            final_request_status = ucp_request_check_status(request);
+        } while (final_request_status == UCS_INPROGRESS);
         // Free and deallocate the request object
         ucp_request_free(request);
         return final_request_status;
@@ -350,6 +350,10 @@ dyad_rc_t dyad_dtl_ucx_rpc_unpack (dyad_dtl_t* self, const flux_msg_t* msg, char
     FLUX_LOG_INFO (dtl_handle->h, "Decoding consumer UCP address using base64\n");
     dtl_handle->addr_len = base64_decoded_length(enc_addr_len);
     dtl_handle->consumer_address = (ucp_address_t*) malloc(dtl_handle->addr_len);
+    if (dtl_handle->consumer_address == NULL) {
+        FLUX_LOG_ERR (dtl_handle->h, "Could not allocate memory for consumer address");
+        return DYAD_RC_SYSFAIL;
+    }
     decoded_len = base64_decode_using_maps (&base64_maps_rfc4648,
             (char*)dtl_handle->consumer_address, dtl_handle->addr_len,
             enc_addr, enc_addr_len);
