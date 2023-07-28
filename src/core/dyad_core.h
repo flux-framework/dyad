@@ -16,6 +16,12 @@
 #include <stdlib.h>
 #endif
 
+#include "dyad_envs.h"
+#include "dyad_rc.h"
+// Includes <flux/core.h>
+#include "dyad_flux_log.h"
+#include "dyad_dtl.h"
+
 /*****************************************************************************
  *                                                                           *
  *                          DYAD Macro Definitions                           *

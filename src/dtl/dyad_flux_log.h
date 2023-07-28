@@ -1,10 +1,6 @@
 #ifndef DYAD_CORE_DYAD_FLUX_LOG_H
 #define DYAD_CORE_DYAD_FLUX_LOG_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <flux/core.h>
 
 #ifdef __cplusplus
@@ -30,7 +26,7 @@ extern "C" {
 #define FLUX_LOG_INFO(flux_ctx, ...) flux_log (flux_ctx, LOG_INFO, __VA_ARGS__)
 #define FLUX_LOG_ERR(flux_ctx, ...) flux_log_error (flux_ctx, __VA_ARGS__)
 #endif
-    
+
 #ifdef __cplusplus
 }
 #endif
