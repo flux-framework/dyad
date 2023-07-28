@@ -1,5 +1,9 @@
 #include "dyad_core.h"
 
+#if HAVE_CALIPER
+#include <caliper/cali.h>
+#endif
+
 #include <libgen.h>
 #include <unistd.h>
 
@@ -90,6 +94,9 @@ __attribute__ ((annotate ("@critical_path()"))) static dyad_rc_t dyad_kvs_commit
 static inline dyad_rc_t dyad_kvs_commit (const dyad_ctx_t* ctx, flux_kvs_txn_t* txn)
 #endif
 {
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION
+#endif
     flux_future_t* f = NULL;
     DYAD_LOG_INFO (ctx, "Committing transaction to KVS\n");
     // Commit the transaction to the Flux KVS
@@ -97,6 +104,9 @@ static inline dyad_rc_t dyad_kvs_commit (const dyad_ctx_t* ctx, flux_kvs_txn_t* 
     // If the commit failed, log an error and return DYAD_BADCOMMIT
     if (f == NULL) {
         DYAD_LOG_ERR (ctx, "Could not commit transaction to Flux KVS\n");
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END
+#endif
         return DYAD_RC_BADCOMMIT;
     }
     // If the commit is pending, wait for it to complete
@@ -104,6 +114,9 @@ static inline dyad_rc_t dyad_kvs_commit (const dyad_ctx_t* ctx, flux_kvs_txn_t* 
     // Once the commit is complete, destroy the future and transaction
     flux_future_destroy (f);
     f = NULL;
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION_END
+#endif
     return DYAD_RC_OK;
 }
 
@@ -116,6 +129,9 @@ static inline dyad_rc_t publish_via_flux (const dyad_ctx_t* restrict ctx,
                                           const char* restrict upath)
 #endif
 {
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION
+#endif
     dyad_rc_t rc = DYAD_RC_OK;
     flux_kvs_txn_t* txn = NULL;
     const size_t topic_len = PATH_MAX;
@@ -154,6 +170,9 @@ publish_done:;
     if (txn != NULL) {
         flux_kvs_txn_destroy (txn);
     }
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION_END
+#endif
     return rc;
 }
 
@@ -166,6 +185,9 @@ static inline dyad_rc_t dyad_commit (dyad_ctx_t* restrict ctx,
                                      const char* restrict fname)
 #endif
 {
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION
+#endif
     dyad_rc_t rc = DYAD_RC_OK;
     char upath[PATH_MAX];
     memset (upath, 0, PATH_MAX);
@@ -194,6 +216,9 @@ commit_done:;
     if (rc == DYAD_RC_OK && (ctx && ctx->check)) {
         setenv (DYAD_CHECK_ENV, "ok", 1);
     }
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION_END
+#endif
     return rc;
 }
 
@@ -210,6 +235,9 @@ static inline dyad_rc_t dyad_kvs_lookup (const dyad_ctx_t* ctx,
                                          flux_future_t** f)
 #endif
 {
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION
+#endif
     dyad_rc_t rc = DYAD_RC_OK;
     // Lookup information about the desired file (represented by kvs_topic)
     // from the Flux KVS. If there is no information, wait for it to be
@@ -221,6 +249,9 @@ static inline dyad_rc_t dyad_kvs_lookup (const dyad_ctx_t* ctx,
     // If the KVS lookup failed, log an error and return DYAD_BADLOOKUP
     if (*f == NULL) {
         DYAD_LOG_ERR (ctx, "KVS lookup failed!\n");
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END
+#endif
         return DYAD_RC_BADLOOKUP;
     }
     // Extract the rank of the producer from the KVS response
@@ -229,8 +260,14 @@ static inline dyad_rc_t dyad_kvs_lookup (const dyad_ctx_t* ctx,
     // If the extraction did not work, log an error and return DYAD_BADFETCH
     if (rc < 0) {
         DYAD_LOG_ERR (ctx, "Could not unpack owner's rank from KVS response\n");
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END
+#endif
         return DYAD_RC_BADFETCH;
     }
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION_END
+#endif
     return DYAD_RC_OK;
 }
 
@@ -245,6 +282,9 @@ static inline dyad_rc_t dyad_fetch (const dyad_ctx_t* restrict ctx,
                                     dyad_kvs_response_t** restrict resp)
 #endif
 {
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION
+#endif
     dyad_rc_t rc = DYAD_RC_OK;
     char upath[PATH_MAX];
     uint32_t owner_rank = 0;
@@ -258,6 +298,9 @@ static inline dyad_rc_t dyad_fetch (const dyad_ctx_t* restrict ctx,
     // This relative path will be stored in upath
     if (!cmp_canonical_path_prefix (ctx->cons_managed_path, fname, upath, PATH_MAX)) {
         DYAD_LOG_INFO (ctx, "%s is not in the Consumer's managed path\n", fname);
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END
+#endif
         return DYAD_RC_OK;
     }
     DYAD_LOG_INFO (ctx,
@@ -319,6 +362,9 @@ fetch_done:;
         flux_future_destroy (f);
         f = NULL;
     }
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION_END
+#endif
     return rc;
 }
 
@@ -335,6 +381,9 @@ static inline dyad_rc_t dyad_get_data (const dyad_ctx_t* ctx,
                                        size_t* file_len)
 #endif
 {
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION
+#endif
     dyad_rc_t rc = DYAD_RC_OK;
     dyad_rc_t final_rc = DYAD_RC_OK;
     flux_future_t* f;
@@ -412,6 +461,9 @@ get_done:;
     }
     DYAD_LOG_INFO (ctx, "Destroy the Flux future for the RPC\n");
     flux_future_destroy (f);
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION_END
+#endif
     return rc;
 }
 
@@ -424,6 +476,9 @@ static inline dyad_rc_t dyad_pull (const dyad_ctx_t* restrict ctx,
                                    const dyad_kvs_response_t* restrict kvs_data)
 #endif
 {
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION
+#endif
     dyad_rc_t rc = DYAD_RC_OK;
     const char* file_data = NULL;
     size_t file_len = 0;
@@ -489,6 +544,9 @@ pull_done:
     // DYAD_CHECK_ENV environment variable to "ok"
     if (rc == DYAD_RC_OK && (ctx && ctx->check))
         setenv (DYAD_CHECK_ENV, "ok", 1);
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION_END
+#endif
     return rc;
 }
 
@@ -503,6 +561,9 @@ dyad_rc_t dyad_init (bool debug,
                      dyad_dtl_mode_t dtl_mode,
                      dyad_ctx_t** ctx)
 {
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION
+#endif
     dyad_rc_t rc = DYAD_RC_OK;
     // If ctx is NULL, we won't be able to return a dyad_ctx_t
     // to the user. In that case, print an error and return
@@ -512,6 +573,9 @@ dyad_rc_t dyad_init (bool debug,
                  "'ctx' argument to dyad_init is NULL! This prevents us from "
                  "returning "
                  "a dyad_ctx_t object!\n");
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END
+#endif
         return DYAD_RC_NOCTX;
     }
     // Check if the actual dyad_ctx_t object is not NULL.
@@ -523,6 +587,9 @@ dyad_rc_t dyad_init (bool debug,
         if ((*ctx)->initialized) {
             // TODO Indicate already initialized
             DPRINTF ((*ctx), "DYAD context already initialized\n");
+#if HAVE_CALIPER
+            CALI_MARK_FUNCTION_END
+#endif
             return DYAD_RC_OK;
         }
     } else {
@@ -531,6 +598,9 @@ dyad_rc_t dyad_init (bool debug,
         *ctx = (dyad_ctx_t*)malloc (sizeof (struct dyad_ctx));
         if (*ctx == NULL) {
             fprintf (stderr, "Could not allocate DYAD context!\n");
+#if HAVE_CALIPER
+            CALI_MARK_FUNCTION_END
+#endif
             return DYAD_RC_NOCTX;
         }
     }
@@ -543,6 +613,9 @@ dyad_rc_t dyad_init (bool debug,
         fprintf (stderr,
                  "Warning: no managed path provided! DYAD will not do "
                  "anything!\n");
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END
+#endif
         return DYAD_RC_OK;
     }
     // Set the values in dyad_ctx_t that don't need allocation
@@ -556,6 +629,9 @@ dyad_rc_t dyad_init (bool debug,
     (*ctx)->h = flux_open (NULL, 0);
     if ((*ctx)->h == NULL) {
         fprintf (stderr, "Could not open Flux handle!\n");
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END
+#endif
         return DYAD_RC_FLUXFAIL;
     }
     // Get the rank of the Flux broker corresponding
@@ -563,6 +639,9 @@ dyad_rc_t dyad_init (bool debug,
     FLUX_LOG_INFO ((*ctx)->h, "DYAD_CORE: getting Flux rank");
     if (flux_get_rank ((*ctx)->h, &((*ctx)->rank)) < 0) {
         FLUX_LOG_ERR ((*ctx)->h, "Could not get Flux rank!\n");
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END
+#endif
         return DYAD_RC_FLUXFAIL;
     }
     // If the namespace is provided, copy it into the dyad_ctx_t object
@@ -570,6 +649,9 @@ dyad_rc_t dyad_init (bool debug,
     if (kvs_namespace == NULL) {
         FLUX_LOG_ERR ((*ctx)->h, "No KVS namespace provided!\n");
         // TODO see if we want a different return val
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END
+#endif
         return DYAD_RC_NOCTX;
     }
     const size_t namespace_len = strlen (kvs_namespace);
@@ -578,6 +660,9 @@ dyad_rc_t dyad_init (bool debug,
         FLUX_LOG_ERR ((*ctx)->h, "Could not allocate buffer for KVS namespace!\n");
         free (*ctx);
         *ctx = NULL;
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END
+#endif
         return DYAD_RC_NOCTX;
     }
     strncpy ((*ctx)->kvs_namespace, kvs_namespace, namespace_len + 1);
@@ -587,6 +672,9 @@ dyad_rc_t dyad_init (bool debug,
     rc = dyad_dtl_init (&(*ctx)->dtl_handle, dtl_mode, (*ctx)->h, (*ctx)->debug);
     if (DYAD_IS_ERROR (rc)) {
         FLUX_LOG_ERR ((*ctx)->h, "Cannot initialize the DTL\n");
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END
+#endif
         return rc;
     }
     // If the producer-managed path is provided, copy it into
@@ -604,6 +692,9 @@ dyad_rc_t dyad_init (bool debug,
             free ((*ctx)->kvs_namespace);
             free (*ctx);
             *ctx = NULL;
+#if HAVE_CALIPER
+            CALI_MARK_FUNCTION_END
+#endif
             return DYAD_RC_NOCTX;
         }
         strncpy ((*ctx)->prod_managed_path, prod_managed_path, prod_path_len + 1);
@@ -624,6 +715,9 @@ dyad_rc_t dyad_init (bool debug,
             free ((*ctx)->prod_managed_path);
             free (*ctx);
             *ctx = NULL;
+#if HAVE_CALIPER
+            CALI_MARK_FUNCTION_END
+#endif
             return DYAD_RC_NOCTX;
         }
         strncpy ((*ctx)->cons_managed_path, cons_managed_path, cons_path_len + 1);
@@ -633,12 +727,18 @@ dyad_rc_t dyad_init (bool debug,
     (*ctx)->reenter = true;
     (*ctx)->initialized = true;
     // TODO Print logging info
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION_END
+#endif
     return DYAD_RC_OK;
 }
 
 dyad_rc_t dyad_init_env (dyad_ctx_t** ctx)
 {
-    char* e = NULL;
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION
+#endif
+    char *e = NULL;
     bool debug = false;
     bool check = false;
     bool shared_storage = false;
@@ -649,6 +749,7 @@ dyad_rc_t dyad_init_env (dyad_ctx_t** ctx)
     char* cons_managed_path = NULL;
     size_t dtl_mode_env_len = 0;
     dyad_dtl_mode_t dtl_mode = DYAD_DTL_UCX;
+    dyad_rc_t rc = DYAD_RC_OK;
 
     if ((e = getenv (DYAD_SYNC_DEBUG_ENV))) {
         debug = true;
@@ -727,7 +828,7 @@ dyad_rc_t dyad_init_env (dyad_ctx_t** ctx)
         fprintf (stderr,
                  "DYAD_CORE: retrieved configuration from environment. Now "
                  "initializing DYAD\n");
-    return dyad_init (debug,
+    rc = dyad_init (debug,
                       check,
                       shared_storage,
                       key_depth,
@@ -737,36 +838,65 @@ dyad_rc_t dyad_init_env (dyad_ctx_t** ctx)
                       cons_managed_path,
                       dtl_mode,
                       ctx);
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION_END
+#endif
+    return rc;
 }
 
 dyad_rc_t dyad_produce (dyad_ctx_t* ctx, const char* fname)
 {
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION
+    dyad_rc_t rc = DYAD_RC_OK;
+#endif
     // If the context is not defined, then it is not valid.
     // So, return DYAD_NOCTX
     if (!ctx || !ctx->h) {
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END
+#endif
         return DYAD_RC_NOCTX;
     }
     // If the producer-managed path is NULL or empty, then the context is not
     // valid for a producer operation. So, return DYAD_BADMANAGEDPATH
     if (ctx->prod_managed_path == NULL || strlen (ctx->prod_managed_path) == 0) {
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END
+#endif
         return DYAD_RC_BADMANAGEDPATH;
     }
     // If the context is valid, call dyad_commit to perform
     // the producer operation
+#if HAVE_CALIPER
+    rc = dyad_commit (ctx, fname);
+    CALI_MARK_FUNCTION_END
+    return rc;
+#else
     return dyad_commit (ctx, fname);
+#endif
 }
 
 dyad_rc_t dyad_consume (dyad_ctx_t* ctx, const char* fname)
 {
-    int rc = 0;
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION
+#endif
+    dyad_rc_t rc = DYAD_RC_OK;
     // If the context is not defined, then it is not valid.
     // So, return DYAD_NOCTX
     if (!ctx || !ctx->h) {
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END
+#endif
         return DYAD_RC_NOCTX;
     }
     // If the consumer-managed path is NULL or empty, then the context is not
     // valid for a consumer operation. So, return DYAD_BADMANAGEDPATH
     if (ctx->cons_managed_path == NULL || strlen (ctx->cons_managed_path) == 0) {
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END
+#endif
         return DYAD_RC_BADMANAGEDPATH;
     }
     // Set reenter to false to avoid recursively performing
@@ -811,12 +941,21 @@ dyad_rc_t dyad_consume (dyad_ctx_t* ctx, const char* fname)
 consume_done:;
     // Set reenter to true to allow additional intercepting
     ctx->reenter = true;
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION_END
+#endif
     return rc;
 }
 
 int dyad_finalize (dyad_ctx_t** ctx)
 {
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION
+#endif
     if (ctx == NULL || *ctx == NULL) {
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END
+#endif
         return DYAD_RC_OK;
     }
     dyad_dtl_finalize (&(*ctx)->dtl_handle);
@@ -838,6 +977,9 @@ int dyad_finalize (dyad_ctx_t** ctx)
     }
     free (*ctx);
     *ctx = NULL;
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION_END
+#endif
     return DYAD_RC_OK;
 }
 
@@ -847,6 +989,9 @@ __attribute__((annotate("@critical_path()")))
 #endif
 int dyad_sync_directory(dyad_ctx_t* restrict ctx, const char* restrict path)
 {  // Flush new directory entry https://lwn.net/Articles/457671/
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION
+#endif
     char path_copy[PATH_MAX + 1];
     int odir_fd = -1;
     char* odir = NULL;
@@ -876,6 +1021,9 @@ int dyad_sync_directory(dyad_ctx_t* restrict ctx, const char* restrict path)
     }
     if (ctx != NULL)
         ctx->reenter = reenter;
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION_END
+#endif
     return rc;
 }
 #endif

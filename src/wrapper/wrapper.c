@@ -38,6 +38,10 @@ using namespace std;  // std::clock ()
 #include <libgen.h>  // dirname
 #include <unistd.h>
 
+#if HAVE_CALIPER
+#include <caliper/cali.h>
+#endif
+
 #include "utils.h"
 // #include "wrapper.h"
 #include "dyad_core.h"
@@ -86,6 +90,9 @@ static inline int is_wronly (int fd)
 
 void dyad_wrapper_init (void)
 {
+#if HAVE_CALIPER
+    CALI_MARK_BEGIN("dyad_wrapper_init");
+#endif
     dyad_rc_t rc = DYAD_RC_OK;
 
     rc = dyad_init_env (&ctx);
@@ -94,6 +101,9 @@ void dyad_wrapper_init (void)
         fprintf (stderr, "Failed to initialize DYAD (code = %d)\n", rc);
         ctx->initialized = false;
         ctx->reenter = false;
+#if HAVE_CALIPER
+        CALI_MARK_END("dyad_wrapper_init");
+#endif
         return;
     }
 
@@ -108,18 +118,33 @@ void dyad_wrapper_init (void)
                    (ctx->check) ? "true" : "false");
     DYAD_LOG_INFO (ctx, "%s=%u\n", DYAD_KEY_DEPTH_ENV, ctx->key_depth);
     DYAD_LOG_INFO (ctx, "%s=%u\n", DYAD_KEY_BINS_ENV, ctx->key_bins);
+#if HAVE_CALIPER
+    CALI_MARK_END("dyad_wrapper_init");
+#endif
 }
 
 void dyad_wrapper_fini ()
 {
+#if HAVE_CALIPER
+    CALI_MARK_BEGIN("dyad_wrapper_fini");
+#endif
     if (ctx == NULL) {
+#if HAVE_CALIPER
+        CALI_MARK_END("dyad_wrapper_fini");
+#endif
         return;
     }
     dyad_finalize (&ctx);
+#if HAVE_CALIPER
+    CALI_MARK_END("dyad_wrapper_fini");
+#endif
 }
 
 DYAD_DLL_EXPORTED int open (const char *path, int oflag, ...)
 {
+#if HAVE_CALIPER
+    CALI_MARK_BEGIN("dyad_open_wrapper");
+#endif
     char *error = NULL;
     typedef int (*open_ptr_t) (const char *, int, mode_t, ...);
     open_ptr_t func_ptr = NULL;
@@ -139,6 +164,9 @@ DYAD_DLL_EXPORTED int open (const char *path, int oflag, ...)
     func_ptr = (open_ptr_t)dlsym (RTLD_NEXT, "open");
     if ((error = dlerror ())) {
         DPRINTF (ctx, "DYAD_SYNC: error in dlsym: %s\n", error);
+#if HAVE_CALIPER
+        CALI_MARK_END("dyad_open_wrapper");
+#endif
         return -1;
     }
 
@@ -160,12 +188,17 @@ DYAD_DLL_EXPORTED int open (const char *path, int oflag, ...)
     IPRINTF (ctx, "DYAD_SYNC: exists open sync (\"%s\").\n", path);
 
 real_call:;
-
+#if HAVE_CALIPER
+    CALI_MARK_END("dyad_open_wrapper");
+#endif
     return (func_ptr (path, oflag, mode));
 }
 
 DYAD_DLL_EXPORTED FILE *fopen (const char *path, const char *mode)
 {
+#if HAVE_CALIPER
+    CALI_MARK_BEGIN("dyad_fopen_wrapper");
+#endif
     char *error = NULL;
     typedef FILE *(*fopen_ptr_t) (const char *, const char *);
     fopen_ptr_t func_ptr = NULL;
@@ -177,6 +210,9 @@ DYAD_DLL_EXPORTED FILE *fopen (const char *path, const char *mode)
     func_ptr = (fopen_ptr_t)dlsym (RTLD_NEXT, "fopen");
     if ((error = dlerror ())) {
         DPRINTF (ctx, "DYAD_SYNC: error in dlsym: %s\n", error);
+#if HAVE_CALIPER
+        CALI_MARK_END("dyad_fopen_wrapper");
+#endif
         return NULL;
     }
 
@@ -200,11 +236,17 @@ DYAD_DLL_EXPORTED FILE *fopen (const char *path, const char *mode)
     IPRINTF (ctx, "DYAD_SYNC: exits fopen sync (\"%s\").\n", path);
 
 real_call:
+#if HAVE_CALIPER
+    CALI_MARK_END("dyad_fopen_wrapper");
+#endif
     return (func_ptr (path, mode));
 }
 
 DYAD_DLL_EXPORTED int close (int fd)
 {
+#if HAVE_CALIPER
+    CALI_MARK_BEGIN("dyad_close_wrapper");
+#endif
     bool to_sync = false;
     char *error = NULL;
     typedef int (*close_ptr_t) (int);
@@ -219,6 +261,9 @@ DYAD_DLL_EXPORTED int close (int fd)
     func_ptr = (close_ptr_t)dlsym (RTLD_NEXT, "close");
     if ((error = dlerror ())) {
         DPRINTF (ctx, "DYAD_SYNC: error in dlsym: %s\n", error);
+#if HAVE_CALIPER
+        CALI_MARK_END("dyad_close_wrapper");
+#endif
         return -1;  // return the failure code
     }
 
@@ -286,11 +331,17 @@ real_call:;  // semicolon here to avoid the error
         rc = func_ptr (fd);
     }
 
+#if HAVE_CALIPER
+    CALI_MARK_END("dyad_close_wrapper");
+#endif
     return rc;
 }
 
 DYAD_DLL_EXPORTED int fclose (FILE *fp)
 {
+#if HAVE_CALIPER
+    CALI_MARK_BEGIN("dyad_fclose_wrapper");
+#endif
     bool to_sync = false;
     char *error = NULL;
     typedef int (*fclose_ptr_t) (FILE *);
@@ -306,6 +357,9 @@ DYAD_DLL_EXPORTED int fclose (FILE *fp)
     func_ptr = (fclose_ptr_t)dlsym (RTLD_NEXT, "fclose");
     if ((error = dlerror ())) {
         DPRINTF (ctx, "DYAD_SYNC: error in dlsym: %s\n", error);
+#if HAVE_CALIPER
+        CALI_MARK_END("dyad_fclose_wrapper");
+#endif
         return EOF;  // return the failure code
     }
 
@@ -373,6 +427,9 @@ real_call:;
         rc = func_ptr (fp);
     }
 
+#if HAVE_CALIPER
+    CALI_MARK_END("dyad_fclose_wrapper");
+#endif
     return rc;
 }
 

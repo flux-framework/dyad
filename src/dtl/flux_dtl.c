@@ -1,13 +1,23 @@
 #include "flux_dtl.h"
 
+#if HAVE_CALIPER
+#include <caliper/cali.h>
+#endif
+
 dyad_rc_t dyad_dtl_flux_init (dyad_dtl_t* self,
                               dyad_dtl_mode_t mode,
                               flux_t* h,
                               bool debug)
 {
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION;
+#endif
     self->private.flux_dtl_handle = malloc (sizeof (struct dyad_dtl_flux));
     if (self->private.flux_dtl_handle == NULL) {
         FLUX_LOG_ERR (h, "Cannot allocate the Flux DTL handle\n");
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END;
+#endif
         return DYAD_RC_SYSFAIL;
     }
     self->private.flux_dtl_handle->h = h;
@@ -24,6 +34,9 @@ dyad_rc_t dyad_dtl_flux_init (dyad_dtl_t* self,
     self->recv = dyad_dtl_flux_recv;
     self->close_connection = dyad_dtl_flux_close_connection;
 
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION_END;
+#endif
     return DYAD_RC_OK;
 }
 
@@ -32,12 +45,21 @@ dyad_rc_t dyad_dtl_flux_rpc_pack (dyad_dtl_t* restrict self,
                                   uint32_t producer_rank,
                                   json_t** restrict packed_obj)
 {
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION;
+#endif
     dyad_dtl_flux_t* dtl_handle = self->private.flux_dtl_handle;
     *packed_obj = json_pack ("{s:s}", "upath", upath);
     if (*packed_obj == NULL) {
         FLUX_LOG_ERR (dtl_handle->h, "Could not pack upath for Flux DTL\n");
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END;
+#endif
         return DYAD_RC_BADPACK;
     }
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION_END;
+#endif
     return DYAD_RC_OK;
 }
 
@@ -45,15 +67,24 @@ dyad_rc_t dyad_dtl_flux_rpc_unpack (dyad_dtl_t* self,
                                     const flux_msg_t* msg,
                                     char** upath)
 {
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION;
+#endif
     int rc = 0;
     rc = flux_request_unpack (msg, NULL, "{s:s}", "upath", upath);
     if (FLUX_IS_ERROR (rc)) {
         FLUX_LOG_ERR (self->private.flux_dtl_handle->h,
                       "Could not unpack Flux message from consumer\n");
         // TODO create new RC for this
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END;
+#endif
         return DYAD_RC_BADUNPACK;
     }
     self->private.flux_dtl_handle->msg = msg;
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION_END;
+#endif
     return DYAD_RC_OK;
 }
 
@@ -76,6 +107,9 @@ dyad_rc_t dyad_dtl_flux_establish_connection (dyad_dtl_t* self,
 
 dyad_rc_t dyad_dtl_flux_send (dyad_dtl_t* self, void* buf, size_t buflen)
 {
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION;
+#endif
     int errcode = 0;
     FLUX_LOG_INFO (self->private.flux_dtl_handle->h,
                    "Send data to consumer using a Flux RPC response");
@@ -87,17 +121,26 @@ dyad_rc_t dyad_dtl_flux_send (dyad_dtl_t* self, void* buf, size_t buflen)
         FLUX_LOG_ERR (self->private.flux_dtl_handle->h,
                       "Could not send Flux RPC response containing file "
                       "contents\n");
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END;
+#endif
         return DYAD_RC_FLUXFAIL;
     }
     if (self->private.flux_dtl_handle->debug) {
         FLUX_LOG_INFO (self->private.flux_dtl_handle->h,
                        "Successfully sent file contents to consumer\n");
     }
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION_END;
+#endif
     return DYAD_RC_OK;
 }
 
 dyad_rc_t dyad_dtl_flux_recv (dyad_dtl_t* self, void** buf, size_t* buflen)
 {
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION;
+#endif
     int rc = 0;
     errno = 0;
     dyad_dtl_flux_t* dtl_handle = self->private.flux_dtl_handle;
@@ -106,15 +149,27 @@ dyad_rc_t dyad_dtl_flux_recv (dyad_dtl_t* self, void** buf, size_t* buflen)
         FLUX_LOG_ERR (dtl_handle->h,
                       "Cannot get data using RPC without a Flux future\n");
         // TODO create new RC for this
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END;
+#endif
         return DYAD_RC_FLUXFAIL;
     }
     rc = flux_rpc_get_raw (dtl_handle->f, (const void**)buf, (int*)buflen);
     if (rc < 0) {
         FLUX_LOG_ERR (dtl_handle->h, "Could not get file data from Flux RPC\n");
         if (errno == ENODATA)
+#if HAVE_CALIPER
+            CALI_MARK_FUNCTION_END;
+#endif
             return DYAD_RC_RPC_FINISHED;
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END;
+#endif
         return DYAD_RC_BADRPC;
     }
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION_END;
+#endif
     return DYAD_RC_OK;
 }
 

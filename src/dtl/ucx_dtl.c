@@ -6,6 +6,9 @@
 #include <string.h>
 
 #include "base64.h"
+#if HAVE_CALIPER
+#include <caliper/cali.h>
+#endif
 
 extern const base64_maps_t base64_maps_rfc4648;
 
@@ -70,6 +73,9 @@ void dyad_ucx_ep_err_handler (void* arg, ucp_ep_h ep, ucs_status_t status)
 static ucs_status_t dyad_ucx_request_wait (dyad_dtl_ucx_t* dtl_handle,
                                            dyad_ucx_request_t* request)
 {
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION;
+#endif
     ucs_status_t final_request_status = UCS_OK;
     // If 'request' is actually a request handle, this means the communication
     // operation is scheduled, but not yet completed.
@@ -87,23 +93,29 @@ static ucs_status_t dyad_ucx_request_wait (dyad_dtl_ucx_t* dtl_handle,
             final_request_status = ucp_request_check_status (request);
         } while (final_request_status == UCS_INPROGRESS);
         // Free and deallocate the request object
+<<<<<<< HEAD
         ucp_request_free (request);
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END;
+#endif
         return final_request_status;
     }
     // If 'request' is actually a UCX error, this means the communication
     // operation immediately failed. In that case, we simply grab the
     // 'ucs_status_t' object for the error.
     else if (UCS_PTR_IS_ERR (request)) {
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END;
+#endif
         return UCS_PTR_STATUS (request);
     }
     // If 'request' is neither a request handle nor an error, then
     // the communication operation immediately completed successfully.
     // So, we simply set the status to UCS_OK
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION_END;
+#endif
     return UCS_OK;
-}
-
-static inline dyad_rc_t dyad_dtl_ucx_finalize_impl (dyad_dtl_ucx_t** dtl_handle)
-{
 }
 
 dyad_rc_t dyad_dtl_ucx_init (dyad_dtl_t* self,
@@ -111,6 +123,9 @@ dyad_rc_t dyad_dtl_ucx_init (dyad_dtl_t* self,
                              flux_t* h,
                              bool debug)
 {
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION;
+#endif
     ucp_params_t ucx_params;
     ucp_worker_params_t worker_params;
     ucp_config_t* config;
@@ -121,6 +136,9 @@ dyad_rc_t dyad_dtl_ucx_init (dyad_dtl_t* self,
     self->private.ucx_dtl_handle = malloc (sizeof (struct dyad_dtl_ucx));
     if (self->private.ucx_dtl_handle == NULL) {
         FLUX_LOG_ERR (h, "Could not allocate UCX DTL context\n");
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END;
+#endif
         return DYAD_RC_SYSFAIL;
     }
     dtl_handle = self->private.ucx_dtl_handle;
@@ -220,12 +238,18 @@ dyad_rc_t dyad_dtl_ucx_init (dyad_dtl_t* self,
     self->recv = dyad_dtl_ucx_recv;
     self->close_connection = dyad_dtl_ucx_close_connection;
 
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION_END;
+#endif
     return DYAD_RC_OK;
 
 error:;
     // If an error occured, finalize the DTL handle and
     // return a failing error code
     dyad_dtl_ucx_finalize (&self);
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION_END;
+#endif
     return DYAD_RC_UCXINIT_FAIL;
 }
 
@@ -234,12 +258,18 @@ dyad_rc_t dyad_dtl_ucx_rpc_pack (dyad_dtl_t* restrict self,
                                  uint32_t producer_rank,
                                  json_t** restrict packed_obj)
 {
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION;
+#endif
     size_t enc_len = 0;
     char* enc_buf = NULL;
     ssize_t enc_size = 0;
     dyad_dtl_ucx_t* dtl_handle = self->private.ucx_dtl_handle;
     if (dtl_handle->consumer_address == NULL) {
         // TODO log error
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END;
+#endif
         return DYAD_RC_BADPACK;
     }
     FLUX_LOG_INFO (dtl_handle->h, "Encode UCP address using base64\n");
@@ -249,6 +279,9 @@ dyad_rc_t dyad_dtl_ucx_rpc_pack (dyad_dtl_t* restrict self,
     enc_buf = malloc (enc_len + 1);
     if (enc_buf == NULL) {
         FLUX_LOG_ERR (dtl_handle->h, "Could not allocate buffer for packed address\n");
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END;
+#endif
         return DYAD_RC_SYSFAIL;
     }
     // consumer_address is casted to const char* to avoid warnings
@@ -262,6 +295,9 @@ dyad_rc_t dyad_dtl_ucx_rpc_pack (dyad_dtl_t* restrict self,
     if (enc_size < 0) {
         // TODO log error
         free (enc_buf);
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END;
+#endif
         return DYAD_RC_BADPACK;
     }
     FLUX_LOG_INFO (dtl_handle->h, "Creating UCP tag for tag matching\n");
@@ -272,6 +308,9 @@ dyad_rc_t dyad_dtl_ucx_rpc_pack (dyad_dtl_t* restrict self,
     uint32_t consumer_rank = 0;
     if (flux_get_rank (dtl_handle->h, &consumer_rank) < 0) {
         FLUX_LOG_ERR (dtl_handle->h, "Cannot get consumer rank\n");
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END;
+#endif
         return DYAD_RC_FLUXFAIL;
     }
     // The tag is a 64 bit unsigned integer consisting of the
@@ -295,8 +334,14 @@ dyad_rc_t dyad_dtl_ucx_rpc_pack (dyad_dtl_t* restrict self,
     // If the packing failed, log an error
     if (*packed_obj == NULL) {
         FLUX_LOG_ERR (dtl_handle->h, "Could not pack upath and UCX address for RPC\n");
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END;
+#endif
         return DYAD_RC_BADPACK;
     }
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION_END;
+#endif
     return DYAD_RC_OK;
 }
 
@@ -304,6 +349,9 @@ dyad_rc_t dyad_dtl_ucx_rpc_unpack (dyad_dtl_t* self,
                                    const flux_msg_t* msg,
                                    char** upath)
 {
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION;
+#endif
     char* enc_addr = NULL;
     size_t enc_addr_len = 0;
     int errcode = 0;
@@ -326,6 +374,9 @@ dyad_rc_t dyad_dtl_ucx_rpc_unpack (dyad_dtl_t* self,
                                    &enc_addr_len);
     if (errcode < 0) {
         FLUX_LOG_ERR (dtl_handle->h, "Could not unpack Flux message from consumer!\n");
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END;
+#endif
         return DYAD_RC_BADUNPACK;
     }
     dtl_handle->comm_tag = ((uint64_t)tag_prod << 32) | (uint64_t)tag_cons;
@@ -338,6 +389,9 @@ dyad_rc_t dyad_dtl_ucx_rpc_unpack (dyad_dtl_t* self,
     dtl_handle->consumer_address = (ucp_address_t*)malloc (dtl_handle->addr_len);
     if (dtl_handle->consumer_address == NULL) {
         FLUX_LOG_ERR (dtl_handle->h, "Could not allocate memory for consumer address");
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END;
+#endif
         return DYAD_RC_SYSFAIL;
     }
     decoded_len = base64_decode_using_maps (&base64_maps_rfc4648,
@@ -350,6 +404,9 @@ dyad_rc_t dyad_dtl_ucx_rpc_unpack (dyad_dtl_t* self,
         free (dtl_handle->consumer_address);
         dtl_handle->consumer_address = NULL;
         dtl_handle->addr_len = 0;
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END;
+#endif
         return DYAD_RC_BAD_B64DECODE;
     }
     return DYAD_RC_OK;
@@ -368,6 +425,9 @@ dyad_rc_t dyad_dtl_ucx_rpc_recv_response (dyad_dtl_t* self, flux_future_t* f)
 dyad_rc_t dyad_dtl_ucx_establish_connection (dyad_dtl_t* self,
                                              dyad_dtl_comm_mode_t comm_mode)
 {
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION;
+#endif
     ucp_ep_params_t params;
     ucs_status_t status = UCS_OK;
     dyad_dtl_ucx_t* dtl_handle = self->private.ucx_dtl_handle;
@@ -387,26 +447,41 @@ dyad_rc_t dyad_dtl_ucx_establish_connection (dyad_dtl_t* self,
             FLUX_LOG_ERR (dtl_handle->h,
                           "ucp_ep_create failed with status %d\n",
                           (int)status);
+#if HAVE_CALIPER
+            CALI_MARK_FUNCTION_END;
+#endif
             return DYAD_RC_UCXCOMM_FAIL;
         }
         if (dtl_handle->debug) {
             ucp_ep_print_info (dtl_handle->ep, stderr);
         }
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END;
+#endif
         return DYAD_RC_OK;
     } else if (comm_mode == DYAD_COMM_RECV) {
         FLUX_LOG_INFO (dtl_handle->h,
                        "No explicit connection establishment needed for UCX "
                        "receiver\n");
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END;
+#endif
         return DYAD_RC_OK;
     } else {
         FLUX_LOG_ERR (dtl_handle->h, "Invalid communication mode: %d\n", comm_mode);
         // TODO create new RC for this
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END;
+#endif
         return DYAD_RC_BAD_COMM_MODE;
     }
 }
 
 dyad_rc_t dyad_dtl_ucx_send (dyad_dtl_t* self, void* buf, size_t buflen)
 {
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION;
+#endif
     ucs_status_ptr_t stat_ptr;
     ucs_status_t status = UCS_OK;
     dyad_ucx_request_t* req = NULL;
@@ -415,6 +490,9 @@ dyad_rc_t dyad_dtl_ucx_send (dyad_dtl_t* self, void* buf, size_t buflen)
         FLUX_LOG_INFO (dtl_handle->h,
                        "UCP endpoint was not created prior to invoking "
                        "send!\n");
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END;
+#endif
         return DYAD_RC_UCXCOMM_FAIL;
     }
     // ucp_tag_send_sync_nbx is the prefered version of this send since UCX 1.9
@@ -447,14 +525,23 @@ dyad_rc_t dyad_dtl_ucx_send (dyad_dtl_t* self, void* buf, size_t buflen)
         FLUX_LOG_ERR (dtl_handle->h,
                       "UCP Tag Send failed (status = %d)!\n",
                       (int)status);
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END;
+#endif
         return DYAD_RC_UCXCOMM_FAIL;
     }
     FLUX_LOG_INFO (dtl_handle->h, "Data send with UCP succeeded\n");
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION_END;
+#endif
     return DYAD_RC_OK;
 }
 
 dyad_rc_t dyad_dtl_ucx_recv (dyad_dtl_t* self, void** buf, size_t* buflen)
 {
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION;
+#endif
     ucs_status_t status = UCS_OK;
     ucp_tag_message_h msg = NULL;
     ucp_tag_recv_info_t msg_info;
@@ -530,6 +617,9 @@ dyad_rc_t dyad_dtl_ucx_recv (dyad_dtl_t* self, void** buf, size_t* buflen)
     // If allocation fails, log an error
     if (*buf == NULL) {
         FLUX_LOG_ERR (dtl_handle->h, "Could not allocate memory for file\n");
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END;
+#endif
         return DYAD_RC_SYSFAIL;
     }
     FLUX_LOG_INFO (dtl_handle->h, "Receive data using async UCX operation\n");
@@ -569,15 +659,24 @@ dyad_rc_t dyad_dtl_ucx_recv (dyad_dtl_t* self, void** buf, size_t* buflen)
         FLUX_LOG_ERR (dtl_handle->h, "UCX recv failed!\n");
         free (*buf);
         *buf = NULL;
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END;
+#endif
         return DYAD_RC_UCXCOMM_FAIL;
     }
     FLUX_LOG_INFO (dtl_handle->h, "Data receive using UCX is successful\n");
     FLUX_LOG_INFO (dtl_handle->h, "Received %lu bytes from producer\n", *buflen);
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION_END;
+#endif
     return DYAD_RC_OK;
 }
 
 dyad_rc_t dyad_dtl_ucx_close_connection (dyad_dtl_t* self)
 {
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION;
+#endif
     ucs_status_t status = UCS_OK;
     ucs_status_ptr_t stat_ptr;
     dyad_dtl_ucx_t* dtl_handle = self->private.ucx_dtl_handle;
@@ -639,6 +738,9 @@ dyad_rc_t dyad_dtl_ucx_close_connection (dyad_dtl_t* self)
             dtl_handle->comm_tag = 0;
         }
         FLUX_LOG_INFO (dtl_handle->h, "UCP endpoint close successful\n");
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END;
+#endif
         return DYAD_RC_OK;
     } else if (dtl_handle->curr_comm_mode == DYAD_COMM_RECV) {
         // Since we're using tag send/recv, there's no need
@@ -647,21 +749,33 @@ dyad_rc_t dyad_dtl_ucx_close_connection (dyad_dtl_t* self)
         // be valid for DYAD because DYAD won't send a file from
         // one node to the same node).
         dtl_handle->comm_tag = 0;
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END;
+#endif
         return DYAD_RC_OK;
     } else {
         FLUX_LOG_ERR (dtl_handle->h,
                       "Somehow, an invalid comm mode reached "
                       "'close_connection'\n");
         // TODO create new RC for this case
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END;
+#endif
         return DYAD_RC_BAD_COMM_MODE;
     }
 }
 
 dyad_rc_t dyad_dtl_ucx_finalize (dyad_dtl_t** self)
 {
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION;
+#endif
     dyad_dtl_ucx_t* dtl_handle = NULL;
     dyad_rc_t rc = DYAD_RC_OK;
     if (self == NULL || *self == NULL || (*self)->private.ucx_dtl_handle == NULL) {
+#if HAVE_CALIPER
+        CALI_MARK_FUNCTION_END;
+#endif
         return DYAD_RC_OK;
     }
     dtl_handle = (*self)->private.ucx_dtl_handle;
@@ -692,5 +806,8 @@ dyad_rc_t dyad_dtl_ucx_finalize (dyad_dtl_t** self)
     // Free the handle and set to NULL to prevent double free
     free (dtl_handle);
     (*self)->private.ucx_dtl_handle = NULL;
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION_END;
+#endif
     return DYAD_RC_OK;
 }

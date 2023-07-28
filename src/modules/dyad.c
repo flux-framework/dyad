@@ -35,6 +35,10 @@
 #include "read_all.h"
 #include "utils.h"
 
+#if HAVE_CALIPER
+#include <caliper/cali.h>
+#endif
+
 #define TIME_DIFF(Tstart, Tend)                                                \
     ((double)(1000000000L * ((Tend).tv_sec - (Tstart).tv_sec) + (Tend).tv_nsec \
               - (Tstart).tv_nsec)                                              \
@@ -56,14 +60,23 @@ static void dyad_mod_fini (void) __attribute__ ((destructor));
 
 void dyad_mod_fini (void)
 {
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION;
+#endif
     flux_t *h = flux_open (NULL, 0);
 
     if (h != NULL) {
     }
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION_END;
+#endif
 }
 
 static void freectx (void *arg)
 {
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION;
+#endif
     dyad_mod_ctx_t *ctx = (dyad_mod_ctx_t *)arg;
     flux_msg_handler_delvec (ctx->handlers);
     if (ctx->dtl_handle != NULL) {
@@ -71,10 +84,16 @@ static void freectx (void *arg)
         ctx->dtl_handle = NULL;
     }
     free (ctx);
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION_END;
+#endif
 }
 
 static dyad_mod_ctx_t *getctx (flux_t *h)
 {
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION;
+#endif
     dyad_mod_ctx_t *ctx = (dyad_mod_ctx_t *)flux_aux_get (h, "dyad");
 
     if (!ctx) {
@@ -97,9 +116,15 @@ static dyad_mod_ctx_t *getctx (flux_t *h)
     goto getctx_done;
 
 getctx_error:;
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION_END;
+#endif
     return NULL;
 
 getctx_done:
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION_END;
+#endif
     return ctx;
 }
 
@@ -113,6 +138,9 @@ dyad_fetch_request_cb (flux_t *h,
                        const flux_msg_t *msg,
                        void *arg)
 {
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION;
+#endif
     FLUX_LOG_INFO (h, "Launched callback for dyad.fetch\n");
     dyad_mod_ctx_t *ctx = getctx (h);
     ssize_t inlen = 0;
@@ -200,6 +228,9 @@ dyad_fetch_request_cb (flux_t *h,
     }
     errno = saved_errno;
     FLUX_LOG_INFO (h, "Finished dyad.fetch module invocation\n");
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION_END;
+#endif
     return;
 
 fetch_error:
@@ -208,11 +239,17 @@ fetch_error:
         FLUX_LOG_ERR (h, "DYAD_MOD: %s: flux_respond_error", __FUNCTION__);
     }
     errno = saved_errno;
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION_END;
+#endif
     return;
 }
 
 static dyad_rc_t dyad_open (flux_t *h, dyad_dtl_mode_t dtl_mode, bool debug)
 {
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION;
+#endif
     dyad_mod_ctx_t *ctx = getctx (h);
     dyad_rc_t rc = 0;
     char *e = NULL;
@@ -220,6 +257,9 @@ static dyad_rc_t dyad_open (flux_t *h, dyad_dtl_mode_t dtl_mode, bool debug)
     ctx->debug = debug;
     rc = dyad_dtl_init (&(ctx->dtl_handle), dtl_mode, h, ctx->debug);
 
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION_END;
+#endif
     return rc;
 }
 
@@ -251,6 +291,9 @@ void usage ()
 
 DYAD_DLL_EXPORTED int mod_main (flux_t *h, int argc, char **argv)
 {
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION;
+#endif
     const mode_t m = (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH | S_ISGID);
     dyad_mod_ctx_t *ctx = NULL;
     size_t flag_len = 0;
@@ -318,9 +361,15 @@ DYAD_DLL_EXPORTED int mod_main (flux_t *h, int argc, char **argv)
     goto mod_done;
 
 mod_error:;
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION_END;
+#endif
     return EXIT_FAILURE;
 
 mod_done:;
+#if HAVE_CALIPER
+    CALI_MARK_FUNCTION_END;
+#endif
     return EXIT_SUCCESS;
 }
 

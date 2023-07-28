@@ -34,6 +34,10 @@ using namespace std;  // std::clock ()
 #include <libgen.h>  // dirname
 #include <unistd.h>
 
+#if HAVE_CALIPER
+#include <caliper/cali.h>
+#endif
+
 namespace dyad
 {
 /*****************************************************************************
@@ -54,6 +58,9 @@ dyad_stream_core::~dyad_stream_core ()
 
 void dyad_stream_core::finalize ()
 {
+#if HAVE_CALIPER
+    CALI_CXX_MARK_FUNCTION;
+#endif
     if (m_ctx != NULL) {
         dyad_finalize (&m_ctx);
         m_ctx = NULL;
@@ -63,6 +70,9 @@ void dyad_stream_core::finalize ()
 
 void dyad_stream_core::init ()
 {
+#if HAVE_CALIPER
+    CALI_CXX_MARK_FUNCTION;
+#endif
     char *e = NULL;
 
     if (m_initialized) {
@@ -89,6 +99,9 @@ void dyad_stream_core::init ()
 
 void dyad_stream_core::init (const dyad_params &p)
 {
+#if HAVE_CALIPER
+    CALI_CXX_MARK_FUNCTION;
+#endif
     DPRINTF (m_ctx, "DYAD_WRAPPER: Initializeing DYAD wrapper\n");
     dyad_rc_t rc = dyad_init (p.m_debug,
                               false,
@@ -135,6 +148,9 @@ bool dyad_stream_core::is_dyad_consumer ()
 
 bool dyad_stream_core::open_sync (const char *path)
 {
+#if HAVE_CALIPER
+    CALI_CXX_MARK_FUNCTION;
+#endif
     IPRINTF (m_ctx, "DYAD_SYNC OPEN: enters sync (\"%s\").\n", path);
     if (!m_initialized) {
         // TODO log
@@ -158,6 +174,9 @@ bool dyad_stream_core::open_sync (const char *path)
 
 bool dyad_stream_core::close_sync (const char *path)
 {
+#if HAVE_CALIPER
+    CALI_CXX_MARK_FUNCTION;
+#endif
     IPRINTF (m_ctx, "DYAD_SYNC CLOSE: enters sync (\"%s\").\n", path);
     if (!m_initialized) {
         // TODO log
