@@ -10,7 +10,7 @@ dyad_rc_t dyad_dtl_flux_init (dyad_dtl_t* self,
                               bool debug)
 {
 #if HAVE_CALIPER
-    CALI_MARK_FUNCTION;
+    CALI_MARK_FUNCTION_BEGIN;
 #endif
     self->private.flux_dtl_handle = malloc (sizeof (struct dyad_dtl_flux));
     if (self->private.flux_dtl_handle == NULL) {
@@ -46,7 +46,7 @@ dyad_rc_t dyad_dtl_flux_rpc_pack (dyad_dtl_t* restrict self,
                                   json_t** restrict packed_obj)
 {
 #if HAVE_CALIPER
-    CALI_MARK_FUNCTION;
+    CALI_MARK_FUNCTION_BEGIN;
 #endif
     dyad_dtl_flux_t* dtl_handle = self->private.flux_dtl_handle;
     *packed_obj = json_pack ("{s:s}", "upath", upath);
@@ -68,7 +68,7 @@ dyad_rc_t dyad_dtl_flux_rpc_unpack (dyad_dtl_t* self,
                                     char** upath)
 {
 #if HAVE_CALIPER
-    CALI_MARK_FUNCTION;
+    CALI_MARK_FUNCTION_BEGIN;
 #endif
     int rc = 0;
     rc = flux_request_unpack (msg, NULL, "{s:s}", "upath", upath);
@@ -108,7 +108,7 @@ dyad_rc_t dyad_dtl_flux_establish_connection (dyad_dtl_t* self,
 dyad_rc_t dyad_dtl_flux_send (dyad_dtl_t* self, void* buf, size_t buflen)
 {
 #if HAVE_CALIPER
-    CALI_MARK_FUNCTION;
+    CALI_MARK_FUNCTION_BEGIN;
 #endif
     int errcode = 0;
     FLUX_LOG_INFO (self->private.flux_dtl_handle->h,
@@ -139,7 +139,7 @@ dyad_rc_t dyad_dtl_flux_send (dyad_dtl_t* self, void* buf, size_t buflen)
 dyad_rc_t dyad_dtl_flux_recv (dyad_dtl_t* self, void** buf, size_t* buflen)
 {
 #if HAVE_CALIPER
-    CALI_MARK_FUNCTION;
+    CALI_MARK_FUNCTION_BEGIN;
 #endif
     int rc = 0;
     errno = 0;

@@ -74,7 +74,7 @@ static ucs_status_t dyad_ucx_request_wait (dyad_dtl_ucx_t* dtl_handle,
                                            dyad_ucx_request_t* request)
 {
 #if HAVE_CALIPER
-    CALI_MARK_FUNCTION;
+    CALI_MARK_FUNCTION_BEGIN;
 #endif
     ucs_status_t final_request_status = UCS_OK;
     // If 'request' is actually a request handle, this means the communication
@@ -93,7 +93,6 @@ static ucs_status_t dyad_ucx_request_wait (dyad_dtl_ucx_t* dtl_handle,
             final_request_status = ucp_request_check_status (request);
         } while (final_request_status == UCS_INPROGRESS);
         // Free and deallocate the request object
-<<<<<<< HEAD
         ucp_request_free (request);
 #if HAVE_CALIPER
         CALI_MARK_FUNCTION_END;
@@ -124,7 +123,7 @@ dyad_rc_t dyad_dtl_ucx_init (dyad_dtl_t* self,
                              bool debug)
 {
 #if HAVE_CALIPER
-    CALI_MARK_FUNCTION;
+    CALI_MARK_FUNCTION_BEGIN;
 #endif
     ucp_params_t ucx_params;
     ucp_worker_params_t worker_params;
@@ -259,7 +258,7 @@ dyad_rc_t dyad_dtl_ucx_rpc_pack (dyad_dtl_t* restrict self,
                                  json_t** restrict packed_obj)
 {
 #if HAVE_CALIPER
-    CALI_MARK_FUNCTION;
+    CALI_MARK_FUNCTION_BEGIN;
 #endif
     size_t enc_len = 0;
     char* enc_buf = NULL;
@@ -350,7 +349,7 @@ dyad_rc_t dyad_dtl_ucx_rpc_unpack (dyad_dtl_t* self,
                                    char** upath)
 {
 #if HAVE_CALIPER
-    CALI_MARK_FUNCTION;
+    CALI_MARK_FUNCTION_BEGIN;
 #endif
     char* enc_addr = NULL;
     size_t enc_addr_len = 0;
@@ -426,7 +425,7 @@ dyad_rc_t dyad_dtl_ucx_establish_connection (dyad_dtl_t* self,
                                              dyad_dtl_comm_mode_t comm_mode)
 {
 #if HAVE_CALIPER
-    CALI_MARK_FUNCTION;
+    CALI_MARK_FUNCTION_BEGIN;
 #endif
     ucp_ep_params_t params;
     ucs_status_t status = UCS_OK;
@@ -480,7 +479,7 @@ dyad_rc_t dyad_dtl_ucx_establish_connection (dyad_dtl_t* self,
 dyad_rc_t dyad_dtl_ucx_send (dyad_dtl_t* self, void* buf, size_t buflen)
 {
 #if HAVE_CALIPER
-    CALI_MARK_FUNCTION;
+    CALI_MARK_FUNCTION_BEGIN;
 #endif
     ucs_status_ptr_t stat_ptr;
     ucs_status_t status = UCS_OK;
@@ -540,7 +539,7 @@ dyad_rc_t dyad_dtl_ucx_send (dyad_dtl_t* self, void* buf, size_t buflen)
 dyad_rc_t dyad_dtl_ucx_recv (dyad_dtl_t* self, void** buf, size_t* buflen)
 {
 #if HAVE_CALIPER
-    CALI_MARK_FUNCTION;
+    CALI_MARK_FUNCTION_BEGIN;
 #endif
     ucs_status_t status = UCS_OK;
     ucp_tag_message_h msg = NULL;
@@ -675,7 +674,7 @@ dyad_rc_t dyad_dtl_ucx_recv (dyad_dtl_t* self, void** buf, size_t* buflen)
 dyad_rc_t dyad_dtl_ucx_close_connection (dyad_dtl_t* self)
 {
 #if HAVE_CALIPER
-    CALI_MARK_FUNCTION;
+    CALI_MARK_FUNCTION_BEGIN;
 #endif
     ucs_status_t status = UCS_OK;
     ucs_status_ptr_t stat_ptr;
@@ -768,7 +767,7 @@ dyad_rc_t dyad_dtl_ucx_close_connection (dyad_dtl_t* self)
 dyad_rc_t dyad_dtl_ucx_finalize (dyad_dtl_t** self)
 {
 #if HAVE_CALIPER
-    CALI_MARK_FUNCTION;
+    CALI_MARK_FUNCTION_BEGIN;
 #endif
     dyad_dtl_ucx_t* dtl_handle = NULL;
     dyad_rc_t rc = DYAD_RC_OK;

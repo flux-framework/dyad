@@ -13,13 +13,13 @@ dyad_rc_t dyad_dtl_init (dyad_dtl_t **dtl_handle,
                          bool debug)
 {
 #if HAVE_CALIPER
-    CALI_MARK_FUNCTION;
+    CALI_MARK_FUNCTION_BEGIN;
 #endif
     dyad_rc_t rc = DYAD_RC_OK;
     *dtl_handle = malloc (sizeof (struct dyad_dtl));
     if (*dtl_handle == NULL) {
 #if HAVE_CALIPER
-        CALI_MARK_FUNCTION_FUNCTION_END;
+        CALI_MARK_FUNCTION_END;
 #endif
         return DYAD_RC_SYSFAIL;
     }
@@ -28,29 +28,29 @@ dyad_rc_t dyad_dtl_init (dyad_dtl_t **dtl_handle,
         rc = dyad_dtl_ucx_init (*dtl_handle, mode, h, debug);
         if (DYAD_IS_ERROR (rc)) {
 #if HAVE_CALIPER
-            CALI_MARK_FUNCTION_FUNCTION_END;
+            CALI_MARK_FUNCTION_END;
 #endif
             return rc;
         }
 #if HAVE_CALIPER
-        CALI_MARK_FUNCTION_FUNCTION_END;
+        CALI_MARK_FUNCTION_END;
 #endif
         return DYAD_RC_OK;
     } else if (mode == DYAD_DTL_FLUX_RPC) {
         rc = dyad_dtl_flux_init (*dtl_handle, mode, h, debug);
         if (DYAD_IS_ERROR (rc)) {
 #if HAVE_CALIPER
-            CALI_MARK_FUNCTION_FUNCTION_END;
+            CALI_MARK_FUNCTION_END;
 #endif
             return rc;
         }
 #if HAVE_CALIPER
-        CALI_MARK_FUNCTION_FUNCTION_END;
+        CALI_MARK_FUNCTION_END;
 #endif
         return DYAD_RC_OK;
     }
 #if HAVE_CALIPER
-    CALI_MARK_FUNCTION_FUNCTION_END;
+    CALI_MARK_FUNCTION_END;
 #endif
     return DYAD_RC_BADDTLMODE;
 }
@@ -58,7 +58,7 @@ dyad_rc_t dyad_dtl_init (dyad_dtl_t **dtl_handle,
 dyad_rc_t dyad_dtl_finalize (dyad_dtl_t **dtl_handle)
 {
 #if HAVE_CALIPER
-    CALI_MARK_FUNCTION;
+    CALI_MARK_FUNCTION_BEGIN;
 #endif
     dyad_rc_t rc = DYAD_RC_OK;
     if (dtl_handle == NULL || *dtl_handle == NULL)
@@ -67,7 +67,7 @@ dyad_rc_t dyad_dtl_finalize (dyad_dtl_t **dtl_handle)
         // this function should be treated as a no-op, and we
         // should return DYAD_RC_OK to indicate no error has occured
 #if HAVE_CALIPER
-        CALI_MARK_FUNCTION_FUNCTION_END;
+        CALI_MARK_FUNCTION_END;
 #endif
         return DYAD_RC_OK;
     if ((*dtl_handle)->mode == DYAD_DTL_UCX) {
@@ -75,7 +75,7 @@ dyad_rc_t dyad_dtl_finalize (dyad_dtl_t **dtl_handle)
             rc = dyad_dtl_ucx_finalize (dtl_handle);
             if (DYAD_IS_ERROR (rc)) {
 #if HAVE_CALIPER
-                CALI_MARK_FUNCTION_FUNCTION_END;
+                CALI_MARK_FUNCTION_END;
 #endif
                 return rc;
             }
@@ -85,21 +85,21 @@ dyad_rc_t dyad_dtl_finalize (dyad_dtl_t **dtl_handle)
             rc = dyad_dtl_flux_finalize (dtl_handle);
             if (DYAD_IS_ERROR (rc)) {
 #if HAVE_CALIPER
-                CALI_MARK_FUNCTION_FUNCTION_END;
+                CALI_MARK_FUNCTION_END;
 #endif
                 return rc;
             }
         }
     } else {
 #if HAVE_CALIPER
-        CALI_MARK_FUNCTION_FUNCTION_END;
+        CALI_MARK_FUNCTION_END;
 #endif
         return DYAD_RC_BADDTLMODE;
     }
     free (*dtl_handle);
     *dtl_handle = NULL;
 #if HAVE_CALIPER
-    CALI_MARK_FUNCTION_FUNCTION_END;
+    CALI_MARK_FUNCTION_END;
 #endif
     return DYAD_RC_OK;
 }

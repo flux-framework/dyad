@@ -61,7 +61,7 @@ static void dyad_mod_fini (void) __attribute__ ((destructor));
 void dyad_mod_fini (void)
 {
 #if HAVE_CALIPER
-    CALI_MARK_FUNCTION;
+    CALI_MARK_FUNCTION_BEGIN;
 #endif
     flux_t *h = flux_open (NULL, 0);
 
@@ -75,7 +75,7 @@ void dyad_mod_fini (void)
 static void freectx (void *arg)
 {
 #if HAVE_CALIPER
-    CALI_MARK_FUNCTION;
+    CALI_MARK_FUNCTION_BEGIN;
 #endif
     dyad_mod_ctx_t *ctx = (dyad_mod_ctx_t *)arg;
     flux_msg_handler_delvec (ctx->handlers);
@@ -92,7 +92,7 @@ static void freectx (void *arg)
 static dyad_mod_ctx_t *getctx (flux_t *h)
 {
 #if HAVE_CALIPER
-    CALI_MARK_FUNCTION;
+    CALI_MARK_FUNCTION_BEGIN;
 #endif
     dyad_mod_ctx_t *ctx = (dyad_mod_ctx_t *)flux_aux_get (h, "dyad");
 
@@ -139,7 +139,7 @@ dyad_fetch_request_cb (flux_t *h,
                        void *arg)
 {
 #if HAVE_CALIPER
-    CALI_MARK_FUNCTION;
+    CALI_MARK_FUNCTION_BEGIN;
 #endif
     FLUX_LOG_INFO (h, "Launched callback for dyad.fetch\n");
     dyad_mod_ctx_t *ctx = getctx (h);
@@ -248,7 +248,7 @@ fetch_error:
 static dyad_rc_t dyad_open (flux_t *h, dyad_dtl_mode_t dtl_mode, bool debug)
 {
 #if HAVE_CALIPER
-    CALI_MARK_FUNCTION;
+    CALI_MARK_FUNCTION_BEGIN;
 #endif
     dyad_mod_ctx_t *ctx = getctx (h);
     dyad_rc_t rc = 0;
@@ -292,7 +292,7 @@ void usage ()
 DYAD_DLL_EXPORTED int mod_main (flux_t *h, int argc, char **argv)
 {
 #if HAVE_CALIPER
-    CALI_MARK_FUNCTION;
+    CALI_MARK_FUNCTION_BEGIN;
 #endif
     const mode_t m = (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH | S_ISGID);
     dyad_mod_ctx_t *ctx = NULL;
