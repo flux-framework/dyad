@@ -143,6 +143,7 @@ fi
 if test "$enable_caliper" = "yes"; then
     PKG_CHECK_MODULES([CALIPER], [caliper], [], [])
     CFLAGS="${CFLAGS} ${CALIPER_CFLAGS} "
+    CXXFLAGS="${CXXFLAGS} ${CALIPER_CFLAGS} "
     # Do not use CALIPER_LIBS, only link to libcaliper-stub
     LIBS="${LIBS} ${CALIPER_LIBS} -lrt "
     AC_DEFINE([HAVE_CALIPER], [1], [Define if you have libcaliper])
