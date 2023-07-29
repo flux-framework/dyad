@@ -326,7 +326,7 @@ dyad_rc_t dyad_dtl_ucx_rpc_unpack (dyad_dtl_t* self,
                                    &enc_addr_len);
     if (errcode < 0) {
         FLUX_LOG_ERR (dtl_handle->h, "Could not unpack Flux message from consumer!\n");
-        return -1;
+        return DYAD_RC_BADUNPACK;
     }
     dtl_handle->comm_tag = ((uint64_t)tag_prod << 32) | (uint64_t)tag_cons;
     FLUX_LOG_INFO (dtl_handle->h, "Obtained upath from RPC payload: %s\n", upath);
@@ -350,7 +350,7 @@ dyad_rc_t dyad_dtl_ucx_rpc_unpack (dyad_dtl_t* self,
         free (dtl_handle->consumer_address);
         dtl_handle->consumer_address = NULL;
         dtl_handle->addr_len = 0;
-        return -1;
+        return DYAD_RC_BAD_B64DECODE;
     }
     return DYAD_RC_OK;
 }
@@ -387,7 +387,7 @@ dyad_rc_t dyad_dtl_ucx_establish_connection (dyad_dtl_t* self,
             FLUX_LOG_ERR (dtl_handle->h,
                           "ucp_ep_create failed with status %d\n",
                           (int)status);
-            return -1;
+            return DYAD_RC_UCXCOMM_FAIL;
         }
         if (dtl_handle->debug) {
             ucp_ep_print_info (dtl_handle->ep, stderr);
@@ -401,7 +401,7 @@ dyad_rc_t dyad_dtl_ucx_establish_connection (dyad_dtl_t* self,
     } else {
         FLUX_LOG_ERR (dtl_handle->h, "Invalid communication mode: %d\n", comm_mode);
         // TODO create new RC for this
-        return -1;
+        return DYAD_RC_BAD_COMM_MODE;
     }
 }
 
@@ -653,7 +653,7 @@ dyad_rc_t dyad_dtl_ucx_close_connection (dyad_dtl_t* self)
                       "Somehow, an invalid comm mode reached "
                       "'close_connection'\n");
         // TODO create new RC for this case
-        return -1;
+        return DYAD_RC_BAD_COMM_MODE;
     }
 }
 
