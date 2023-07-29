@@ -1,7 +1,6 @@
 lib_LTLIBRARIES = dyad.la
 dyad_la_SOURCES = \
-	dyad.c \
-	dyad_flux_log.h
+	dyad.c
 dyad_la_LDFLAGS = \
 	$(AM_LDFLAGS) \
 	-module \

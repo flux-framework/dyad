@@ -186,6 +186,7 @@ AC_CHECK_FUNCS( \
 #######################################
 if test "x$enable_debug" = xyes; then
     CFLAGS="$CFLAGS -DDYAD_FULL_DEBUG=1 -DDYAD_LOGGING_ON=1"
+    CXXFLAGS="$CXXFLAGS -DDYAD_FULL_DEBUG=1 -DDYAD_LOGGING_ON=1"
 fi
 
 ########################

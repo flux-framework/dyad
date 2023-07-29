@@ -3,6 +3,10 @@
 
 #include <flux/core.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #if !defined(DYAD_LOGGING_ON) || (DYAD_LOGGING_ON == 0)
 #define DYAD_LOG_INFO(dyad_ctx, ...) \
     do {                             \
@@ -22,6 +26,10 @@
 #define DYAD_LOG_ERR(dyad_ctx, ...) flux_log_error (dyad_ctx->h, __VA_ARGS__)
 #define FLUX_LOG_INFO(flux_ctx, ...) flux_log (flux_ctx, LOG_INFO, __VA_ARGS__)
 #define FLUX_LOG_ERR(flux_ctx, ...) flux_log_error (flux_ctx, __VA_ARGS__)
+#endif
+    
+#ifdef __cplusplus
+}
 #endif
 
 #endif /* DYAD_CORE_DYAD_FLUX_LOG_H */

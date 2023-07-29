@@ -32,14 +32,15 @@ enum dyad_dtl_comm_mode {
     DYAD_COMM_NONE = 0, // Sanity check value for when connection isn't established
     DYAD_COMM_RECV = 1, // DTL connection will only receive data
     DYAD_COMM_SEND = 2, // DTL connection will only send data
+    DYAD_COMM_END = 3
 };
 typedef enum dyad_dtl_comm_mode dyad_dtl_comm_mode_t;
 
 struct dyad_dtl {
     dyad_dtl_private_t private;
     dyad_dtl_mode_t mode;
-    dyad_rc_t (*rpc_pack)(struct dyad_dtl* self, const char* upath,
-                          uint32_t producer_rank, json_t** packed_obj);
+    dyad_rc_t (*rpc_pack)(struct dyad_dtl* restrict self, const char* restrict upath,
+                          uint32_t producer_rank, json_t** restrict packed_obj);
     dyad_rc_t (*rpc_unpack)(struct dyad_dtl* self,
                             const flux_msg_t* packed_obj, char** upath);
     dyad_rc_t (*rpc_respond)(struct dyad_dtl* self, const flux_msg_t* orig_msg);

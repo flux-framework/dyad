@@ -7,6 +7,10 @@
 #define DYAD_DLL_EXPORTED
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum dyad_core_return_codes {
     DYAD_RC_OK = 0,               // Operation worked correctly
     DYAD_RC_SYSFAIL = -1,         // Some sys call or C standard
@@ -33,5 +37,9 @@ enum dyad_core_return_codes {
 typedef enum dyad_core_return_codes dyad_rc_t;
 
 #define DYAD_IS_ERROR(code) ((code) < 0)
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  // DYAD_CORE_DYAD_RC_H

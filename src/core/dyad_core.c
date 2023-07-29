@@ -22,7 +22,6 @@ const struct dyad_ctx dyad_ctx_default = {
     false,  // reenter
     true,   // initialized
     false,  // shared_storage
-    false,  // sync_started
     3u,     // key_depth
     1024u,  // key_bins
     0u,     // rank
@@ -30,6 +29,12 @@ const struct dyad_ctx dyad_ctx_default = {
     NULL,   // prod_managed_path
     NULL    // cons_managed_path
 };
+
+struct dyad_kvs_response {
+    char* fpath;
+    uint32_t owner_rank;
+};
+typedef struct dyad_kvs_response dyad_kvs_response_t;
 
 static int gen_path_key (const char* str,
                          char* path_key,
@@ -847,7 +852,7 @@ int dyad_finalize (dyad_ctx_t** ctx)
 #if DYAD_PERFFLOW
 __attribute__((annotate("@critical_path()")))
 #endif
-int dyad_sync_directory(dyad_ctx_t* ctx, const char* path)
+int dyad_sync_directory(dyad_ctx_t* restrict ctx, const char* restrict path)
 {  // Flush new directory entry https://lwn.net/Articles/457671/
     char path_copy[PATH_MAX + 1];
     int odir_fd = -1;

@@ -1,22 +1,32 @@
 #include "flux_dtl.h"
 
-dyad_rc_t dyad_dtl_flux_init (dyad_dtl_flux_t** dtl_handle,
+dyad_rc_t dyad_dtl_flux_init (dyad_dtl_t* dtl_handle,
         dyad_dtl_mode_t mode, flux_t* h, bool debug)
 {
-    *dtl_handle = malloc(sizeof(struct dyad_dtl_flux));
-    if (*dtl_handle == NULL) {
+    self->private.flux_dtl_handle = malloc(sizeof(struct dyad_dtl_flux));
+    if (self->private.flux_dtl_handle == NULL) {
         FLUX_LOG_ERR (h, "Cannot allocate the Flux DTL handle\n");
         return DYAD_RC_SYSFAIL;
     }
-    (*dtl_handle)->h = h;
-    (*dtl_handle)->debug = debug;
-    (*dtl_handle)->f = NULL;
-    (*dtl_handle)->msg = NULL;
+    self->private.flux_dtl_handle->h = h;
+    self->private.flux_dtl_handle->debug = debug;
+    self->private.flux_dtl_handle->f = NULL;
+    self->private.flux_dtl_handle->msg = NULL;
+    
+    self->rpc_pack = dyad_dtl_flux_rpc_pack;
+    self->rpc_unpack = dyad_dtl_flux_rpc_unpack;
+    self->rpc_respond = dyad_dtl_flux_rpc_respond;
+    self->rpc_recv_response = dyad_dtl_flux_rpc_recv_response;
+    self->establish_connection = dyad_dtl_flux_establish_connection;
+    self->send = dyad_dtl_flux_send;
+    self->recv = dyad_dtl_flux_recv;
+    self->close_connection = dyad_dtl_flux_close_connection;
+    
     return DYAD_RC_OK;
 }
 
-dyad_rc_t dyad_dtl_flux_rpc_pack (dyad_dtl_t* self, const char* upath,
-        uint32_t producer_rank, json_t** packed_obj)
+dyad_rc_t dyad_dtl_flux_rpc_pack (dyad_dtl_t* restrict self, const char* restrict upath,
+        uint32_t producer_rank, json_t** restrict packed_obj)
 {
     dyad_dtl_flux_t* dtl_handle = self->private.flux_dtl_handle;
     *packed_obj = json_pack(

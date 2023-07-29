@@ -40,7 +40,6 @@ struct dyad_ctx {
     bool reenter;                  // if false, do not recursively enter DYAD
     bool initialized;              // if true, DYAD is initialized
     bool shared_storage;           // if true, the managed path is shared
-    bool sync_started;             // TODO
     unsigned int key_depth;        // Depth of bins for the Flux KVS
     unsigned int key_bins;         // Number of bins for the Flux KVS
     uint32_t rank;                 // Flux rank for DYAD
@@ -50,12 +49,6 @@ struct dyad_ctx {
 };
 DYAD_DLL_EXPORTED extern const struct dyad_ctx dyad_ctx_default;
 typedef struct dyad_ctx dyad_ctx_t;
-
-struct dyad_kvs_response {
-    char* fpath;
-    uint32_t owner_rank;
-};
-typedef struct dyad_kvs_response dyad_kvs_response_t;
 
 // Debug message
 #ifndef DPRINTF

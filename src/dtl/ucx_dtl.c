@@ -102,33 +102,9 @@ static ucs_status_t dyad_ucx_request_wait(dyad_dtl_ucx_t *dtl_handle,
 
 static inline dyad_rc_t dyad_dtl_ucx_finalize_impl (dyad_dtl_ucx_t **dtl_handle)
 {
-    // Release consumer address if not already released
-    if ((*dtl_handle)->consumer_address != NULL) {
-        ucp_worker_release_address(
-            (*dtl_handle)->ucx_worker,
-            (*dtl_handle)->consumer_address
-        );
-        (*dtl_handle)->consumer_address = NULL;
-    }
-    // Release worker if not already released
-    if ((*dtl_handle)->ucx_worker != NULL) {
-        ucp_worker_destroy((*dtl_handle)->ucx_worker);
-        (*dtl_handle)->ucx_worker = NULL;
-    }
-    // Release context if not already released
-    if ((*dtl_handle)->ucx_ctx != NULL) {
-        ucp_cleanup((*dtl_handle)->ucx_ctx);
-        (*dtl_handle)->ucx_ctx = NULL;
-    }
-    // Flux handle should be released by the
-    // DYAD context, so it is not released here
-    (*dtl_handle)->h = NULL;
-    // Free the handle and set to NULL to prevent double free
-    free(*dtl_handle);
-    return DYAD_RC_OK;
 }
 
-dyad_rc_t dyad_dtl_ucx_init(dyad_dtl_ucx_t** dtl_handle, dyad_dtl_mode_t mode,
+dyad_rc_t dyad_dtl_ucx_init(dyad_dtl_t* self, dyad_dtl_mode_t mode,
         flux_t *h, bool debug)
 {
     ucp_params_t ucx_params;
@@ -136,29 +112,31 @@ dyad_rc_t dyad_dtl_ucx_init(dyad_dtl_ucx_t** dtl_handle, dyad_dtl_mode_t mode,
     ucp_config_t *config;
     ucs_status_t status;
     ucp_worker_attr_t worker_attrs;
+    dyad_dtl_ucx_t* dtl_handle = NULL;
 
-    *dtl_handle = malloc(sizeof(struct dyad_dtl_ucx));
-    if (*dtl_handle == NULL) {
+    self->private.ucx_dtl_handle = malloc(sizeof(struct dyad_dtl_ucx));
+    if (self->private.ucx_dtl_handle == NULL) {
         FLUX_LOG_ERR (h, "Could not allocate UCX DTL context\n");
         return DYAD_RC_SYSFAIL;
     }
+    dtl_handle = self->private.ucx_dtl_handle;
     // Allocation/Freeing of the Flux handle should be
     // handled by the DYAD context
-    (*dtl_handle)->h = h;
-    (*dtl_handle)->debug = debug;
-    (*dtl_handle)->ucx_ctx = NULL;
-    (*dtl_handle)->ucx_worker = NULL;
-    (*dtl_handle)->ep = NULL;
-    (*dtl_handle)->curr_comm_mode = DYAD_COMM_NONE;
-    (*dtl_handle)->consumer_address = NULL;
-    (*dtl_handle)->addr_len = 0;
-    (*dtl_handle)->comm_tag = 0;
+    dtl_handle->h = h;
+    dtl_handle->debug = debug;
+    dtl_handle->ucx_ctx = NULL;
+    dtl_handle->ucx_worker = NULL;
+    dtl_handle->ep = NULL;
+    dtl_handle->curr_comm_mode = DYAD_COMM_NONE;
+    dtl_handle->consumer_address = NULL;
+    dtl_handle->addr_len = 0;
+    dtl_handle->comm_tag = 0;
 
     // Read the UCX configuration
-    FLUX_LOG_INFO ((*dtl_handle)->h, "Reading UCP config\n");
+    FLUX_LOG_INFO (dtl_handle->h, "Reading UCP config\n");
     status = ucp_config_read (NULL, NULL, &config);
     if (UCX_STATUS_FAIL(status)) {
-        FLUX_LOG_ERR ((*dtl_handle)->h, "Could not read the UCX config\n");
+        FLUX_LOG_ERR (dtl_handle->h, "Could not read the UCX config\n");
         goto error;
     }
 
@@ -181,8 +159,8 @@ dyad_rc_t dyad_dtl_ucx_init(dyad_dtl_ucx_t** dtl_handle, dyad_dtl_mode_t mode,
     ucx_params.request_init = dyad_ucx_request_init;
 
     // Initialize UCX
-    FLUX_LOG_INFO ((*dtl_handle)->h, "Initializing UCP\n");
-    status = ucp_init(&ucx_params, config, &(*dtl_handle)->ucx_ctx);
+    FLUX_LOG_INFO (dtl_handle->h, "Initializing UCP\n");
+    status = ucp_init(&ucx_params, config, &dtl_handle->ucx_ctx);
 
     // If in debug mode, print the configuration of UCX to stderr
     if (debug) {
@@ -213,42 +191,51 @@ dyad_rc_t dyad_dtl_ucx_init(dyad_dtl_ucx_t** dtl_handle, dyad_dtl_mode_t mode,
     worker_params.events = UCP_WAKEUP_TAG_RECV;
 
     // Create the worker and log an error if that fails
-    FLUX_LOG_INFO ((*dtl_handle)->h, "Creating UCP worker\n");
+    FLUX_LOG_INFO (dtl_handle->h, "Creating UCP worker\n");
     status = ucp_worker_create(
-        (*dtl_handle)->ucx_ctx,
+        dtl_handle->ucx_ctx,
         &worker_params,
-        &(*dtl_handle)->ucx_worker
+        &(dtl_handle->ucx_worker)
     );
     if (UCX_STATUS_FAIL(status)) {
-        FLUX_LOG_ERR (h, "ucp_worker_create failed (status = %d)!\n", status);
+        FLUX_LOG_ERR (dtl_handle->h, "ucp_worker_create failed (status = %d)!\n", status);
         goto error;
     }
 
     // Query the worker for its address
     worker_attrs.field_mask = UCP_WORKER_ATTR_FIELD_ADDRESS;
-    FLUX_LOG_INFO ((*dtl_handle)->h, "Get address of UCP worker\n");
+    FLUX_LOG_INFO (dtl_handle->h, "Get address of UCP worker\n");
     status = ucp_worker_query(
-        (*dtl_handle)->ucx_worker,
+        dtl_handle->ucx_worker,
         &worker_attrs
     );
     if (UCX_STATUS_FAIL(status)) {
         FLUX_LOG_ERR (h, "Cannot get UCX worker address (status = %d)!\n", status);
         goto error;
     }
-    (*dtl_handle)->consumer_address = worker_attrs.address;
-    (*dtl_handle)->addr_len = worker_attrs.address_length;
+    dtl_handle->consumer_address = worker_attrs.address;
+    dtl_handle->addr_len = worker_attrs.address_length;
+    
+    self->rpc_pack = dyad_dtl_ucx_rpc_pack;
+    self->rpc_unpack = dyad_dtl_ucx_rpc_unpack;
+    self->rpc_respond = dyad_dtl_ucx_rpc_respond;
+    self->rpc_recv_response = dyad_dtl_ucx_rpc_recv_response;
+    self->establish_connection = dyad_dtl_ucx_establish_connection;
+    self->send = dyad_dtl_ucx_send;
+    self->recv = dyad_dtl_ucx_recv;
+    self->close_connection = dyad_dtl_ucx_close_connection;
 
     return DYAD_RC_OK;
 
 error:;
     // If an error occured, finalize the DTL handle and
     // return a failing error code
-    dyad_dtl_ucx_finalize_impl(dtl_handle);
+    dyad_dtl_ucx_finalize (&self);
     return DYAD_RC_UCXINIT_FAIL;
 }
 
-dyad_rc_t dyad_dtl_ucx_rpc_pack(dyad_dtl_t *self, const char *upath,
-        uint32_t producer_rank, json_t **packed_obj)
+dyad_rc_t dyad_dtl_ucx_rpc_pack(dyad_dtl_t* restrict self, const char* restrict upath,
+        uint32_t producer_rank, json_t** restrict packed_obj)
 {
     size_t enc_len = 0;
     char* enc_buf = NULL;
@@ -693,7 +680,29 @@ dyad_rc_t dyad_dtl_ucx_finalize(dyad_dtl_t **self)
         dyad_dtl_ucx_close_connection (*self);
         dtl_handle->ep = NULL;
     }
-    rc = dyad_dtl_ucx_finalize_impl (&dtl_handle);
+    // Release consumer address if not already released
+    if (dtl_handle->consumer_address != NULL) {
+        ucp_worker_release_address(
+            dtl_handle->ucx_worker,
+            dtl_handle->consumer_address
+        );
+        dtl_handle->consumer_address = NULL;
+    }
+    // Release worker if not already released
+    if (dtl_handle->ucx_worker != NULL) {
+        ucp_worker_destroy(dtl_handle->ucx_worker);
+        dtl_handle->ucx_worker = NULL;
+    }
+    // Release context if not already released
+    if (dtl_handle->ucx_ctx != NULL) {
+        ucp_cleanup(dtl_handle->ucx_ctx);
+        dtl_handle->ucx_ctx = NULL;
+    }
+    // Flux handle should be released by the
+    // DYAD context, so it is not released here
+    dtl_handle->h = NULL;
+    // Free the handle and set to NULL to prevent double free
+    free(dtl_handle);
     (*self)->private.ucx_dtl_handle = NULL;
-    return rc;
+    return DYAD_RC_OK;
 }

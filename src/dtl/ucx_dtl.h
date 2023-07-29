@@ -21,11 +21,11 @@ struct dyad_dtl_ucx {
 
 typedef struct dyad_dtl_ucx dyad_dtl_ucx_t;
 
-dyad_rc_t dyad_dtl_ucx_init (dyad_dtl_ucx_t **dtl_handle,
+dyad_rc_t dyad_dtl_ucx_init (dyad_dtl_t *self,
         dyad_dtl_mode_t mode, flux_t *h, bool debug);
 
-dyad_rc_t dyad_dtl_ucx_rpc_pack (dyad_dtl_t* self, const char* upath,
-        uint32_t producer_rank, json_t** packed_obj);
+dyad_rc_t dyad_dtl_ucx_rpc_pack (dyad_dtl_t* restrict self, const char* restrict upath,
+        uint32_t producer_rank, json_t** restrict packed_obj);
 
 dyad_rc_t dyad_dtl_ucx_rpc_unpack (dyad_dtl_t* self,
         const flux_msg_t* msg, char** upath);
