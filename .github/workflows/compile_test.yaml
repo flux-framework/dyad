@@ -10,14 +10,21 @@ jobs:
   compile:
     strategy:
       matrix:
-        flux-images:
-          - latest
+        base-os:
           - focal
-          - focal-v0.48.0
-          - focal-v0.47.0
-          - focal-v0.46.1
+          - fedora38
+          - fedora35
+          - el8
+          - el7
+        flux-version:
+          - v0.52.0
+          - v0.51.0
+          - v0.50.0
+          - v0.49.0
+          - v0.48.0
     runs-on: ubuntu-20.04 # Docker-based jobs must run on Ubuntu
-    container: strategy.flux-images
+    if: ${{ matrix.base-os != 'fedora38' || contains(fromJSON('["v0.52.0", "v0.51.0"]'), matrix.flux-version) }}
+    container: fluxrm/flux-core:${{ matrix.base-os }}-${{ matrix.flux-version }}
     steps:
       - uses: actions/checkout@v2
 
@@ -25,7 +32,7 @@ jobs:
         run: ./autogen.sh
 
       - name: Configure build
-        run: ./configure --enable-dyad-debug CC=gcc CXX=g++
+        run: ./configure --enable-dyad-debug
 
       - name: Build DYAD
         run: make -j
