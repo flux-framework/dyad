@@ -25,18 +25,23 @@ enum dyad_core_return_codes {
     DYAD_RC_BADFIO = -9,           // File I/O failed
     DYAD_RC_BADMANAGEDPATH = -10,  // Cons or Prod Manged Path is bad
     DYAD_RC_BADDTLMODE = -11,      // Invalid DYAD DTL mode provided
-    DYAD_RC_BADPACK = -12,         // JSON RPC payload packing failed
-    DYAD_RC_UCXINIT_FAIL = -13,    // UCX initialization failed
-    DYAD_RC_UCXWAIT_FAIL = -14,    // UCX wait (either custom or
+    DYAD_RC_BADPACK = -12,         // JSON packing failed
+    DYAD_RC_BADUNPACK = -13,       // JSON unpacking failed
+    DYAD_RC_UCXINIT_FAIL = -14,    // UCX initialization failed
+    DYAD_RC_UCXWAIT_FAIL = -15,    // UCX wait (either custom or
                                    // 'ucp_worker_wait') failed
-    DYAD_RC_UCXCOMM_FAIL = -15,    // UCX communication routine failed
-    DYAD_RC_RPC_FINISHED = -16,    // The Flux RPC responded with ENODATA (i.e.,
+    DYAD_RC_UCXCOMM_FAIL = -16,    // UCX communication routine failed
+    DYAD_RC_RPC_FINISHED = -17,    // The Flux RPC responded with ENODATA (i.e.,
                                    // end of stream) sooner than expected
+    DYAD_RC_BAD_B64DECODE = -18,   // Decoding of data w/ base64 failed
+    DYAD_RC_BAD_COMM_MODE = -19,   // Invalid comm mode provided to DTL
 };
 
 typedef enum dyad_core_return_codes dyad_rc_t;
 
 #define DYAD_IS_ERROR(code) ((code) < 0)
+
+#define FLUX_IS_ERROR(code) ((code) < 0)
 
 #ifdef __cplusplus
 }

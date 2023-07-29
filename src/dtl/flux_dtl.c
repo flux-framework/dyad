@@ -45,13 +45,13 @@ dyad_rc_t dyad_dtl_flux_rpc_unpack (dyad_dtl_t* self,
                                     const flux_msg_t* msg,
                                     char** upath)
 {
-    int errcode = 0;
-    errcode = flux_request_unpack (msg, NULL, "{s:s}", "upath", upath);
-    if (errcode < 0) {
+    int rc = 0;
+    rc = flux_request_unpack (msg, NULL, "{s:s}", "upath", upath);
+    if (FLUX_IS_ERROR (rc)) {
         FLUX_LOG_ERR (self->private.flux_dtl_handle->h,
                       "Could not unpack Flux message from consumer\n");
         // TODO create new RC for this
-        return -1;
+        return DYAD_RC_BADUNPACK;
     }
     self->private.flux_dtl_handle->msg = msg;
     return DYAD_RC_OK;
@@ -106,7 +106,7 @@ dyad_rc_t dyad_dtl_flux_recv (dyad_dtl_t* self, void** buf, size_t* buflen)
         FLUX_LOG_ERR (dtl_handle->h,
                       "Cannot get data using RPC without a Flux future\n");
         // TODO create new RC for this
-        return -1;
+        return DYAD_RC_FLUXFAIL;
     }
     rc = flux_rpc_get_raw (dtl_handle->f, (const void**)buf, (int*)buflen);
     if (rc < 0) {
