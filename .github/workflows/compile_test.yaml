@@ -32,7 +32,7 @@ jobs:
         run: ./autogen.sh
 
       - name: Configure build
-        run: ./configure --enable-dyad-debug CC=$(which gcc) CXX=$(which g++)
+        run: ./configure --enable-dyad-debug
 
       - name: Build DYAD
         run: make -j
