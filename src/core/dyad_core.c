@@ -718,10 +718,10 @@ dyad_rc_t dyad_init_env (dyad_ctx_t** ctx)
                         Defaulting to UCX\n",
                          DYAD_DTL_MODE_ENV);
             }
-            dtl_mode = DYAD_DTL_UCX;
+            dtl_mode = DYAD_DTL_DEFAULT;
         }
     } else {
-        dtl_mode = DYAD_DTL_UCX;
+        dtl_mode = DYAD_DTL_DEFAULT;
     }
     if (debug)
         fprintf (stderr,
