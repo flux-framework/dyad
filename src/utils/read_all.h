@@ -22,10 +22,11 @@ ssize_t write_all (int fd, const void *buf, size_t len);
 #if DYAD_PERFFLOW
 __attribute__ ((annotate ("@critical_path()")))
 #endif
-ssize_t read_all (int fd, void **bufp);
+ssize_t
+read_all (int fd, void **bufp);
 
 #if defined(__cplusplus)
 };
 #endif  // defined(__cplusplus)
 
-#endif /* UTILS_READ_ALL_H */
+#endif  /* UTILS_READ_ALL_H */

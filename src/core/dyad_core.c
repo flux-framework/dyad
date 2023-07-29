@@ -1,10 +1,11 @@
 #include "dyad_core.h"
-#include "murmur3.h"
-#include "utils.h"
-#include "dyad_dtl_impl.h"
 
 #include <libgen.h>
 #include <unistd.h>
+
+#include "dyad_dtl_impl.h"
+#include "murmur3.h"
+#include "utils.h"
 
 #ifdef __cplusplus
 #include <climits>
@@ -42,9 +43,16 @@ static int gen_path_key (const char* str,
                          const uint32_t depth,
                          const uint32_t width)
 {
-    static const uint32_t seeds[10] = {104677u, 104681u, 104683u, 104693u,
-                                       104701u, 104707u, 104711u, 104717u,
-                                       104723u, 104729u};
+    static const uint32_t seeds[10] = {104677u,
+                                       104681u,
+                                       104683u,
+                                       104693u,
+                                       104701u,
+                                       104707u,
+                                       104711u,
+                                       104717u,
+                                       104723u,
+                                       104729u};
 
     uint32_t seed = 57u;
     uint32_t hash[4] = {0u};  // Output for the hash
@@ -75,12 +83,11 @@ static int gen_path_key (const char* str,
 }
 
 #if DYAD_PERFFLOW
-__attribute__ ((annotate ("@critical_path()")))
-static dyad_rc_t dyad_kvs_commit (const dyad_ctx_t* ctx,
-                                  flux_kvs_txn_t* txn)
+__attribute__ ((annotate ("@critical_path()"))) static dyad_rc_t dyad_kvs_commit (
+    const dyad_ctx_t* ctx,
+    flux_kvs_txn_t* txn)
 #else
-static inline dyad_rc_t dyad_kvs_commit (const dyad_ctx_t* ctx,
-                                         flux_kvs_txn_t* txn)
+static inline dyad_rc_t dyad_kvs_commit (const dyad_ctx_t* ctx, flux_kvs_txn_t* txn)
 #endif
 {
     flux_future_t* f = NULL;
@@ -101,9 +108,9 @@ static inline dyad_rc_t dyad_kvs_commit (const dyad_ctx_t* ctx,
 }
 
 #if DYAD_PERFFLOW
-__attribute__ ((annotate ("@critical_path()")))
-static dyad_rc_t publish_via_flux (const dyad_ctx_t* restrict ctx,
-                                   const char* restrict upath)
+__attribute__ ((annotate ("@critical_path()"))) static dyad_rc_t publish_via_flux (
+    const dyad_ctx_t* restrict ctx,
+    const char* restrict upath)
 #else
 static inline dyad_rc_t publish_via_flux (const dyad_ctx_t* restrict ctx,
                                           const char* restrict upath)
@@ -151,9 +158,9 @@ publish_done:;
 }
 
 #if DYAD_PERFFLOW
-__attribute__ ((annotate ("@critical_path()")))
-static dyad_rc_t dyad_commit (const dyad_ctx_t* restrict ctx,
-                              const char* restrict fname)
+__attribute__ ((annotate ("@critical_path()"))) static dyad_rc_t dyad_commit (
+    const dyad_ctx_t* restrict ctx,
+    const char* restrict fname)
 #else
 static inline dyad_rc_t dyad_commit (dyad_ctx_t* restrict ctx,
                                      const char* restrict fname)
@@ -165,10 +172,8 @@ static inline dyad_rc_t dyad_commit (dyad_ctx_t* restrict ctx,
     // Extract the path to the file specified by fname relative to the
     // producer-managed path
     // This relative path will be stored in upath
-    if (!cmp_canonical_path_prefix (ctx->prod_managed_path, fname, upath,
-                                    PATH_MAX)) {
-        DYAD_LOG_INFO (ctx, "%s is not in the Producer's managed path\n",
-                       fname);
+    if (!cmp_canonical_path_prefix (ctx->prod_managed_path, fname, upath, PATH_MAX)) {
+        DYAD_LOG_INFO (ctx, "%s is not in the Producer's managed path\n", fname);
         rc = DYAD_RC_OK;
         goto commit_done;
     }
@@ -193,11 +198,11 @@ commit_done:;
 }
 
 #if DYAD_PERFFLOW
-__attribute__ ((annotate ("@critical_path()")))
-static dyad_rc_t dyad_kvs_lookup (const dyad_ctx_t* ctx,
-                                  const char* restrict kvs_topic,
-                                  uint32_t* owner_rank,
-                                  flux_future_t** f)
+__attribute__ ((annotate ("@critical_path()"))) static dyad_rc_t dyad_kvs_lookup (
+    const dyad_ctx_t* ctx,
+    const char* restrict kvs_topic,
+    uint32_t* owner_rank,
+    flux_future_t** f)
 #else
 static inline dyad_rc_t dyad_kvs_lookup (const dyad_ctx_t* ctx,
                                          const char* restrict kvs_topic,
@@ -209,10 +214,10 @@ static inline dyad_rc_t dyad_kvs_lookup (const dyad_ctx_t* ctx,
     // Lookup information about the desired file (represented by kvs_topic)
     // from the Flux KVS. If there is no information, wait for it to be
     // made available
-    DYAD_LOG_INFO (ctx, "Retrieving information from KVS under the key %s\n",
+    DYAD_LOG_INFO (ctx,
+                   "Retrieving information from KVS under the key %s\n",
                    kvs_topic);
-    *f = flux_kvs_lookup (ctx->h, ctx->kvs_namespace, FLUX_KVS_WAITCREATE,
-                          kvs_topic);
+    *f = flux_kvs_lookup (ctx->h, ctx->kvs_namespace, FLUX_KVS_WAITCREATE, kvs_topic);
     // If the KVS lookup failed, log an error and return DYAD_BADLOOKUP
     if (*f == NULL) {
         DYAD_LOG_ERR (ctx, "KVS lookup failed!\n");
@@ -230,10 +235,10 @@ static inline dyad_rc_t dyad_kvs_lookup (const dyad_ctx_t* ctx,
 }
 
 #if DYAD_PERFFLOW
-__attribute__ ((annotate ("@critical_path()")))
-static dyad_rc_t dyad_fetch (const dyad_ctx_t* restrict ctx,
-                             const char* restrict fname,
-                             dyad_kvs_response_t** restrict resp)
+__attribute__ ((annotate ("@critical_path()"))) static dyad_rc_t dyad_fetch (
+    const dyad_ctx_t* restrict ctx,
+    const char* restrict fname,
+    dyad_kvs_response_t** restrict resp)
 #else
 static inline dyad_rc_t dyad_fetch (const dyad_ctx_t* restrict ctx,
                                     const char* restrict fname,
@@ -251,10 +256,8 @@ static inline dyad_rc_t dyad_fetch (const dyad_ctx_t* restrict ctx,
     // Extract the path to the file specified by fname relative to the
     // consumer-managed path
     // This relative path will be stored in upath
-    if (!cmp_canonical_path_prefix (ctx->cons_managed_path, fname, upath,
-                                    PATH_MAX)) {
-        DYAD_LOG_INFO (ctx, "%s is not in the Consumer's managed path\n",
-                       fname);
+    if (!cmp_canonical_path_prefix (ctx->cons_managed_path, fname, upath, PATH_MAX)) {
+        DYAD_LOG_INFO (ctx, "%s is not in the Consumer's managed path\n", fname);
         return DYAD_RC_OK;
     }
     DYAD_LOG_INFO (ctx,
@@ -291,8 +294,7 @@ static inline dyad_rc_t dyad_fetch (const dyad_ctx_t* restrict ctx,
     // Allocate and populate the dyad_kvs_response_t object.
     // If an error occurs, log it and return the appropriate
     // return code
-    DYAD_LOG_INFO (ctx,
-                   "Creating KVS response object to store retrieved data\n");
+    DYAD_LOG_INFO (ctx, "Creating KVS response object to store retrieved data\n");
     *resp = malloc (sizeof (struct dyad_kvs_response));
     if (*resp == NULL) {
         DYAD_LOG_ERR (ctx, "Cannot allocate a dyad_kvs_response_t object!\n");
@@ -300,10 +302,11 @@ static inline dyad_rc_t dyad_fetch (const dyad_ctx_t* restrict ctx,
         goto fetch_done;
     }
     (*resp)->fpath = malloc (strlen (upath) + 1);
-    if ((*resp)->fpath == NULL)
-    {
-        DYAD_LOG_ERR (ctx, "Cannot allocate a buffer for the file path in the dyad_kvs_response_t object\n");
-        free(*resp);
+    if ((*resp)->fpath == NULL) {
+        DYAD_LOG_ERR (ctx,
+                      "Cannot allocate a buffer for the file path in the "
+                      "dyad_kvs_response_t object\n");
+        free (*resp);
         rc = DYAD_RC_BADRESPONSE;
         goto fetch_done;
     }
@@ -320,82 +323,65 @@ fetch_done:;
 }
 
 #if DYAD_PERFFLOW
-__attribute__ ((annotate ("@critical_path()")))
-static dyad_rc_t dyad_get_data (
+__attribute__ ((annotate ("@critical_path()"))) static dyad_rc_t dyad_get_data (
     const dyad_ctx_t* ctx,
     const dyad_kvs_response_t* restrict kvs_data,
     const char** file_data,
     size_t* file_len)
 #else
-static inline dyad_rc_t dyad_get_data (
-    const dyad_ctx_t* ctx,
-    const dyad_kvs_response_t* restrict kvs_data,
-    const char** file_data,
-    size_t* file_len)
+static inline dyad_rc_t dyad_get_data (const dyad_ctx_t* ctx,
+                                       const dyad_kvs_response_t* restrict kvs_data,
+                                       const char** file_data,
+                                       size_t* file_len)
 #endif
 {
     dyad_rc_t rc = DYAD_RC_OK;
     dyad_rc_t final_rc = DYAD_RC_OK;
-    flux_future_t *f;
+    flux_future_t* f;
     json_t* rpc_payload;
     DYAD_LOG_INFO (ctx, "Packing payload for RPC to DYAD module");
-    rc = ctx->dtl_handle->rpc_pack (
-        ctx->dtl_handle,
-        kvs_data->fpath,
-        kvs_data->owner_rank,
-        &rpc_payload
-    );
-    if (DYAD_IS_ERROR(rc))
-    {
-        DYAD_LOG_ERR(ctx, "Cannot create JSON payload for Flux RPC to DYAD module\n");
+    rc = ctx->dtl_handle->rpc_pack (ctx->dtl_handle,
+                                    kvs_data->fpath,
+                                    kvs_data->owner_rank,
+                                    &rpc_payload);
+    if (DYAD_IS_ERROR (rc)) {
+        DYAD_LOG_ERR (ctx,
+                      "Cannot create JSON payload for Flux RPC to DYAD "
+                      "module\n");
         goto get_done;
     }
     DYAD_LOG_INFO (ctx, "Sending payload for RPC to DYAD module");
-    f = flux_rpc_pack (
-        ctx->h,
-        "dyad.fetch",
-        kvs_data->owner_rank,
-        FLUX_RPC_STREAMING,
-        "o",
-        rpc_payload
-    );
-    if (f == NULL)
-    {
-        DYAD_LOG_ERR(ctx, "Cannot send RPC to producer module\n");
+    f = flux_rpc_pack (ctx->h,
+                       "dyad.fetch",
+                       kvs_data->owner_rank,
+                       FLUX_RPC_STREAMING,
+                       "o",
+                       rpc_payload);
+    if (f == NULL) {
+        DYAD_LOG_ERR (ctx, "Cannot send RPC to producer module\n");
         rc = DYAD_RC_BADRPC;
         goto get_done;
     }
     DYAD_LOG_INFO (ctx, "Receive RPC response from DYAD module");
-    rc = ctx->dtl_handle->rpc_recv_response (
-        ctx->dtl_handle,
-        f
-    );
-    if (DYAD_IS_ERROR(rc))
-    {
-        DYAD_LOG_ERR(ctx, "Cannot receive and/or parse the RPC response\n");
+    rc = ctx->dtl_handle->rpc_recv_response (ctx->dtl_handle, f);
+    if (DYAD_IS_ERROR (rc)) {
+        DYAD_LOG_ERR (ctx, "Cannot receive and/or parse the RPC response\n");
         goto get_done;
     }
     DYAD_LOG_INFO (ctx, "Establish DTL connection with DYAD module");
-    rc = ctx->dtl_handle->establish_connection (
-        ctx->dtl_handle,
-        DYAD_COMM_RECV
-    );
-    if (DYAD_IS_ERROR(rc)) {
-        DYAD_LOG_ERR (ctx, "Cannot establish connection with DYAD module on broker %u\n", kvs_data->owner_rank);
+    rc = ctx->dtl_handle->establish_connection (ctx->dtl_handle, DYAD_COMM_RECV);
+    if (DYAD_IS_ERROR (rc)) {
+        DYAD_LOG_ERR (ctx,
+                      "Cannot establish connection with DYAD module on broker "
+                      "%u\n",
+                      kvs_data->owner_rank);
         goto get_done;
     }
     DYAD_LOG_INFO (ctx, "Receive file data via DTL");
-    rc = ctx->dtl_handle->recv (
-        ctx->dtl_handle,
-        (void**) file_data,
-        file_len
-    );
+    rc = ctx->dtl_handle->recv (ctx->dtl_handle, (void**)file_data, file_len);
     DYAD_LOG_INFO (ctx, "Close DTL connection with DYAD module");
-    ctx->dtl_handle->close_connection (
-        ctx->dtl_handle
-    );
-    if (DYAD_IS_ERROR(rc))
-    {
+    ctx->dtl_handle->close_connection (ctx->dtl_handle);
+    if (DYAD_IS_ERROR (rc)) {
         DYAD_LOG_ERR (ctx, "Cannot receive data from producer module\n");
         goto get_done;
     }
@@ -403,18 +389,24 @@ static inline dyad_rc_t dyad_get_data (
     rc = DYAD_RC_OK;
 
 get_done:;
-    // There are two return codes that have special meaning when coming from the DTL:
+    // There are two return codes that have special meaning when coming from the
+    // DTL:
     //  * DYAD_RC_RPC_FINISHED: occurs when an ENODATA error occurs
     //  * DYAD_RC_BADRPC: occurs when a previous RPC operation fails
-    // In either of these cases, we do not need to wait for the end of stream because
-    // the RPC is already completely messed up.
-    // If we do not have either of these cases, we will wait for one more RPC message.
-    // If everything went well in the module, this last message will set errno to ENODATA (i.e., end of stream).
-    // Otherwise, something went wrong, so we'll return DYAD_RC_BADRPC.
+    // In either of these cases, we do not need to wait for the end of stream
+    // because the RPC is already completely messed up. If we do not have either
+    // of these cases, we will wait for one more RPC message. If everything went
+    // well in the module, this last message will set errno to ENODATA (i.e.,
+    // end of stream). Otherwise, something went wrong, so we'll return
+    // DYAD_RC_BADRPC.
     DYAD_LOG_INFO (ctx, "Wait for end-of-stream message from module\n");
     if (rc != DYAD_RC_RPC_FINISHED && rc != DYAD_RC_BADRPC) {
         if (!(flux_rpc_get (f, NULL) < 0 && errno == ENODATA)) {
-            DYAD_LOG_ERR (ctx, "An error occured at end of getting data! Either the module sent too many responses, or the module failed with a bad error (errno = %d)\n", errno);
+            DYAD_LOG_ERR (ctx,
+                          "An error occured at end of getting data! Either the "
+                          "module sent too many responses, or the module "
+                          "failed with a bad error (errno = %d)\n",
+                          errno);
             rc = DYAD_RC_BADRPC;
         }
     }
@@ -424,9 +416,9 @@ get_done:;
 }
 
 #if DYAD_PERFFLOW
-__attribute__ ((annotate ("@critical_path()")))
-static dyad_rc_t dyad_pull (const dyad_ctx_t* restrict ctx,
-                            const dyad_kvs_response_t* restrict kvs_data)
+__attribute__ ((annotate ("@critical_path()"))) static dyad_rc_t dyad_pull (
+    const dyad_ctx_t* restrict ctx,
+    const dyad_kvs_response_t* restrict kvs_data)
 #else
 static inline dyad_rc_t dyad_pull (const dyad_ctx_t* restrict ctx,
                                    const dyad_kvs_response_t* restrict kvs_data)
@@ -447,7 +439,7 @@ static inline dyad_rc_t dyad_pull (const dyad_ctx_t* restrict ctx,
     // Call dyad_get_data to dispatch a RPC to the producer's Flux broker
     // and retrieve the data associated with the file
     rc = dyad_get_data (ctx, kvs_data, &file_data, &file_len);
-    if (DYAD_IS_ERROR(rc)) {
+    if (DYAD_IS_ERROR (rc)) {
         goto pull_done;
     }
 
@@ -460,8 +452,7 @@ static inline dyad_rc_t dyad_pull (const dyad_ctx_t* restrict ctx,
     // Create the directory as needed
     // TODO: Need to be consistent with the mode at the source
     odir = dirname (file_path_copy);
-    if ((strncmp (odir, ".", strlen (".")) != 0)
-        && (mkdir_as_needed (odir, m) < 0)) {
+    if ((strncmp (odir, ".", strlen (".")) != 0) && (mkdir_as_needed (odir, m) < 0)) {
         DYAD_LOG_ERR (ctx,
                       "Cannot create needed directories for pulled "
                       "file\n");
@@ -492,7 +483,7 @@ static inline dyad_rc_t dyad_pull (const dyad_ctx_t* restrict ctx,
 
 pull_done:
     if (file_data != NULL) {
-        free(file_data);
+        free (file_data);
     }
     // If "check" is set and the operation was successful, set the
     // DYAD_CHECK_ENV environment variable to "ok"
@@ -584,8 +575,7 @@ dyad_rc_t dyad_init (bool debug,
     const size_t namespace_len = strlen (kvs_namespace);
     (*ctx)->kvs_namespace = (char*)malloc (namespace_len + 1);
     if ((*ctx)->kvs_namespace == NULL) {
-        FLUX_LOG_ERR ((*ctx)->h,
-                      "Could not allocate buffer for KVS namespace!\n");
+        FLUX_LOG_ERR ((*ctx)->h, "Could not allocate buffer for KVS namespace!\n");
         free (*ctx);
         *ctx = NULL;
         return DYAD_RC_NOCTX;
@@ -594,14 +584,8 @@ dyad_rc_t dyad_init (bool debug,
     // Initialize the DTL based on the value of dtl_mode
     // If an error occurs, log it and return an error
     FLUX_LOG_INFO ((*ctx)->h, "DYAD_CORE: inintializing DYAD DTL");
-    rc = dyad_dtl_init(
-        &(*ctx)->dtl_handle,
-        dtl_mode,
-        (*ctx)->h,
-        (*ctx)->debug
-    );
-    if (DYAD_IS_ERROR(rc))
-    {
+    rc = dyad_dtl_init (&(*ctx)->dtl_handle, dtl_mode, (*ctx)->h, (*ctx)->debug);
+    if (DYAD_IS_ERROR (rc)) {
         FLUX_LOG_ERR ((*ctx)->h, "Cannot initialize the DTL\n");
         return rc;
     }
@@ -622,8 +606,7 @@ dyad_rc_t dyad_init (bool debug,
             *ctx = NULL;
             return DYAD_RC_NOCTX;
         }
-        strncpy ((*ctx)->prod_managed_path, prod_managed_path,
-                 prod_path_len + 1);
+        strncpy ((*ctx)->prod_managed_path, prod_managed_path, prod_path_len + 1);
     }
     // If the consumer-managed path is provided, copy it into
     // the dyad_ctx_t object
@@ -643,8 +626,7 @@ dyad_rc_t dyad_init (bool debug,
             *ctx = NULL;
             return DYAD_RC_NOCTX;
         }
-        strncpy ((*ctx)->cons_managed_path, cons_managed_path,
-                 cons_path_len + 1);
+        strncpy ((*ctx)->cons_managed_path, cons_managed_path, cons_path_len + 1);
     }
     // Initialization is now complete!
     // Set reenter and initialized to indicate this.
@@ -654,17 +636,17 @@ dyad_rc_t dyad_init (bool debug,
     return DYAD_RC_OK;
 }
 
-dyad_rc_t dyad_init_env (dyad_ctx_t **ctx)
+dyad_rc_t dyad_init_env (dyad_ctx_t** ctx)
 {
-    char *e = NULL;
+    char* e = NULL;
     bool debug = false;
     bool check = false;
     bool shared_storage = false;
     unsigned int key_depth = 0;
     unsigned int key_bins = 0;
-    char *kvs_namespace = NULL;
-    char *prod_managed_path = NULL;
-    char *cons_managed_path = NULL;
+    char* kvs_namespace = NULL;
+    char* prod_managed_path = NULL;
+    char* cons_managed_path = NULL;
     size_t dtl_mode_env_len = 0;
     dyad_dtl_mode_t dtl_mode = DYAD_DTL_UCX;
 
@@ -677,7 +659,9 @@ dyad_rc_t dyad_init_env (dyad_ctx_t **ctx)
     }
 
     if (debug)
-        fprintf (stderr, "DYAD_CORE: Initializing with environment variables\n");
+        fprintf (stderr,
+                 "DYAD_CORE: Initializing with environment "
+                 "variables\n");
 
     if ((e = getenv (DYAD_SYNC_CHECK_ENV))) {
         check = true;
@@ -729,8 +713,10 @@ dyad_rc_t dyad_init_env (dyad_ctx_t **ctx)
             dtl_mode = DYAD_DTL_UCX;
         } else {
             if (debug) {
-                fprintf (stderr, "Invalid DTL mode provided through %s. \
-                        Defaulting to UCX\n", DYAD_DTL_MODE_ENV);
+                fprintf (stderr,
+                         "Invalid DTL mode provided through %s. \
+                        Defaulting to UCX\n",
+                         DYAD_DTL_MODE_ENV);
             }
             dtl_mode = DYAD_DTL_UCX;
         }
@@ -738,10 +724,19 @@ dyad_rc_t dyad_init_env (dyad_ctx_t **ctx)
         dtl_mode = DYAD_DTL_UCX;
     }
     if (debug)
-        fprintf (stderr, "DYAD_CORE: retrieved configuration from environment. Now initializing DYAD\n");
-    return dyad_init (debug, check, shared_storage, key_depth, key_bins,
-                      kvs_namespace, prod_managed_path, cons_managed_path,
-                      dtl_mode, ctx);
+        fprintf (stderr,
+                 "DYAD_CORE: retrieved configuration from environment. Now "
+                 "initializing DYAD\n");
+    return dyad_init (debug,
+                      check,
+                      shared_storage,
+                      key_depth,
+                      key_bins,
+                      kvs_namespace,
+                      prod_managed_path,
+                      cons_managed_path,
+                      dtl_mode,
+                      ctx);
 }
 
 dyad_rc_t dyad_produce (dyad_ctx_t* ctx, const char* fname)
@@ -753,8 +748,7 @@ dyad_rc_t dyad_produce (dyad_ctx_t* ctx, const char* fname)
     }
     // If the producer-managed path is NULL or empty, then the context is not
     // valid for a producer operation. So, return DYAD_BADMANAGEDPATH
-    if (ctx->prod_managed_path == NULL
-        || strlen (ctx->prod_managed_path) == 0) {
+    if (ctx->prod_managed_path == NULL || strlen (ctx->prod_managed_path) == 0) {
         return DYAD_RC_BADMANAGEDPATH;
     }
     // If the context is valid, call dyad_commit to perform
@@ -772,8 +766,7 @@ dyad_rc_t dyad_consume (dyad_ctx_t* ctx, const char* fname)
     }
     // If the consumer-managed path is NULL or empty, then the context is not
     // valid for a consumer operation. So, return DYAD_BADMANAGEDPATH
-    if (ctx->cons_managed_path == NULL
-        || strlen (ctx->cons_managed_path) == 0) {
+    if (ctx->cons_managed_path == NULL || strlen (ctx->cons_managed_path) == 0) {
         return DYAD_RC_BADMANAGEDPATH;
     }
     // Set reenter to false to avoid recursively performing

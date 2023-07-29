@@ -1,10 +1,12 @@
 #include "dyad_dtl_impl.h"
 
-#include "ucx_dtl.h"
 #include "flux_dtl.h"
+#include "ucx_dtl.h"
 
-dyad_rc_t dyad_dtl_init(dyad_dtl_t **dtl_handle,
-        dyad_dtl_mode_t mode, flux_t *h, bool debug)
+dyad_rc_t dyad_dtl_init (dyad_dtl_t **dtl_handle,
+                         dyad_dtl_mode_t mode,
+                         flux_t *h,
+                         bool debug)
 {
     dyad_rc_t rc = DYAD_RC_OK;
     *dtl_handle = malloc (sizeof (struct dyad_dtl));
@@ -13,24 +15,14 @@ dyad_rc_t dyad_dtl_init(dyad_dtl_t **dtl_handle,
     }
     (*dtl_handle)->mode = mode;
     if (mode == DYAD_DTL_UCX) {
-        rc = dyad_dtl_ucx_init (
-            *dtl_handle,
-            mode,
-            h,
-            debug
-        );
-        if (DYAD_IS_ERROR(rc)) {
+        rc = dyad_dtl_ucx_init (*dtl_handle, mode, h, debug);
+        if (DYAD_IS_ERROR (rc)) {
             return rc;
         }
         return DYAD_RC_OK;
     } else if (mode == DYAD_DTL_FLUX_RPC) {
-        rc = dyad_dtl_flux_init (
-            *dtl_handle,
-            mode,
-            h,
-            debug
-        );
-        if (DYAD_IS_ERROR(rc)) {
+        rc = dyad_dtl_flux_init (*dtl_handle, mode, h, debug);
+        if (DYAD_IS_ERROR (rc)) {
             return rc;
         }
         return DYAD_RC_OK;
@@ -38,7 +30,7 @@ dyad_rc_t dyad_dtl_init(dyad_dtl_t **dtl_handle,
     return DYAD_RC_BADDTLMODE;
 }
 
-dyad_rc_t dyad_dtl_finalize(dyad_dtl_t **dtl_handle)
+dyad_rc_t dyad_dtl_finalize (dyad_dtl_t **dtl_handle)
 {
     dyad_rc_t rc = DYAD_RC_OK;
     if (dtl_handle == NULL || *dtl_handle == NULL)
@@ -50,14 +42,14 @@ dyad_rc_t dyad_dtl_finalize(dyad_dtl_t **dtl_handle)
     if ((*dtl_handle)->mode == DYAD_DTL_UCX) {
         if ((*dtl_handle)->private.ucx_dtl_handle != NULL) {
             rc = dyad_dtl_ucx_finalize (dtl_handle);
-            if (DYAD_IS_ERROR(rc)) {
+            if (DYAD_IS_ERROR (rc)) {
                 return rc;
             }
         }
     } else if ((*dtl_handle)->mode == DYAD_DTL_FLUX_RPC) {
         if ((*dtl_handle)->private.flux_dtl_handle != NULL) {
             rc = dyad_dtl_flux_finalize (dtl_handle);
-            if (DYAD_IS_ERROR(rc)) {
+            if (DYAD_IS_ERROR (rc)) {
                 return rc;
             }
         }

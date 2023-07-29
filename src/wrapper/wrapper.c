@@ -21,7 +21,7 @@
 #include <cstring>
 #include <ctime>
 using namespace std;  // std::clock ()
-//#include <cstdbool> // c++11
+// #include <cstdbool> // c++11
 #else
 #include <errno.h>
 #include <limits.h>
@@ -91,16 +91,20 @@ void dyad_wrapper_init (void)
     rc = dyad_init_env (&ctx);
 
     if (DYAD_IS_ERROR (rc)) {
-        fprintf(stderr, "Failed to initialize DYAD (code = %d)\n", rc);
+        fprintf (stderr, "Failed to initialize DYAD (code = %d)\n", rc);
         ctx->initialized = false;
         ctx->reenter = false;
         return;
     }
 
     DYAD_LOG_INFO (ctx, "DYAD Initialized\n");
-    DYAD_LOG_INFO (ctx, "%s=%s\n", DYAD_SYNC_DEBUG_ENV,
+    DYAD_LOG_INFO (ctx,
+                   "%s=%s\n",
+                   DYAD_SYNC_DEBUG_ENV,
                    (ctx->debug) ? "true" : "false");
-    DYAD_LOG_INFO (ctx, "%s=%s\n", DYAD_SYNC_CHECK_ENV,
+    DYAD_LOG_INFO (ctx,
+                   "%s=%s\n",
+                   DYAD_SYNC_CHECK_ENV,
                    (ctx->check) ? "true" : "false");
     DYAD_LOG_INFO (ctx, "%s=%u\n", DYAD_KEY_DEPTH_ENV, ctx->key_depth);
     DYAD_LOG_INFO (ctx, "%s=%u\n", DYAD_KEY_BINS_ENV, ctx->key_bins);
@@ -144,8 +148,7 @@ DYAD_DLL_EXPORTED int open (const char *path, int oflag, ...)
     }
 
     if (!(ctx && ctx->h) || (ctx && !ctx->reenter)) {
-        IPRINTF (ctx, "DYAD_SYNC: open sync not applicable for \"%s\".\n",
-                 path);
+        IPRINTF (ctx, "DYAD_SYNC: open sync not applicable for \"%s\".\n", path);
         goto real_call;
     }
 
@@ -183,7 +186,8 @@ DYAD_DLL_EXPORTED FILE *fopen (const char *path, const char *mode)
     }
 
     if (!(ctx && ctx->h) || (ctx && !ctx->reenter) || !path) {
-        IPRINTF (ctx, "DYAD_SYNC: fopen sync not applicable for \"%s\".\n",
+        IPRINTF (ctx,
+                 "DYAD_SYNC: fopen sync not applicable for \"%s\".\n",
                  ((path) ? path : ""));
         goto real_call;
     }
@@ -221,13 +225,11 @@ DYAD_DLL_EXPORTED int close (int fd)
     if ((fd < 0) || (ctx == NULL) || (ctx->h == NULL) || !ctx->reenter) {
 #if defined(IPRINTF_DEFINED)
         if (ctx == NULL) {
-            IPRINTF (ctx,
-                     "DYAD_SYNC: close sync not applicable. (no context)\n");
+            IPRINTF (ctx, "DYAD_SYNC: close sync not applicable. (no context)\n");
         } else if (ctx->h == NULL) {
             IPRINTF (ctx, "DYAD_SYNC: close sync not applicable. (no flux)\n");
         } else if (!ctx->reenter) {
-            IPRINTF (ctx,
-                     "DYAD_SYNC: close sync not applicable. (no reenter)\n");
+            IPRINTF (ctx, "DYAD_SYNC: close sync not applicable. (no reenter)\n");
         } else if (fd >= 0) {
             IPRINTF (ctx,
                      "DYAD_SYNC: close sync not applicable. (invalid file "
@@ -244,8 +246,7 @@ DYAD_DLL_EXPORTED int close (int fd)
     }
 
     if (get_path (fd, PATH_MAX - 1, path) < 0) {
-        IPRINTF (ctx,
-                 "DYAD_SYNC: unable to obtain file path from a descriptor.\n");
+        IPRINTF (ctx, "DYAD_SYNC: unable to obtain file path from a descriptor.\n");
         to_sync = false;
         goto real_call;
     }
@@ -266,15 +267,15 @@ real_call:;  // semicolon here to avoid the error
     int wronly = is_wronly (fd);
 
     if (wronly == -1) {
-        DPRINTF (ctx, "Failed to check the mode of the file with fcntl: %s\n",
+        DPRINTF (ctx,
+                 "Failed to check the mode of the file with fcntl: %s\n",
                  strerror (errno));
     }
 
     if (to_sync && wronly == 1) {
         rc = func_ptr (fd);
         if (rc != 0) {
-            DPRINTF (ctx, "Failed close (\"%s\").: %s\n", path,
-                     strerror (errno));
+            DPRINTF (ctx, "Failed close (\"%s\").: %s\n", path, strerror (errno));
         }
         IPRINTF (ctx, "DYAD_SYNC: enters close sync (\"%s\").\n", path);
         if (DYAD_IS_ERROR (dyad_produce (ctx, path))) {
@@ -311,13 +312,11 @@ DYAD_DLL_EXPORTED int fclose (FILE *fp)
     if ((fp == NULL) || (ctx == NULL) || (ctx->h == NULL) || !ctx->reenter) {
 #if defined(IPRINTF_DEFINED)
         if (ctx == NULL) {
-            IPRINTF (ctx,
-                     "DYAD_SYNC: fclose sync not applicable. (no context)\n");
+            IPRINTF (ctx, "DYAD_SYNC: fclose sync not applicable. (no context)\n");
         } else if (ctx->h == NULL) {
             IPRINTF (ctx, "DYAD_SYNC: fclose sync not applicable. (no flux)\n");
         } else if (!ctx->reenter) {
-            IPRINTF (ctx,
-                     "DYAD_SYNC: fclose sync not applicable. (no reenter)\n");
+            IPRINTF (ctx, "DYAD_SYNC: fclose sync not applicable. (no reenter)\n");
         } else if (fp == NULL) {
             IPRINTF (ctx,
                      "DYAD_SYNC: fclose sync not applicable. (invalid file "
@@ -334,8 +333,7 @@ DYAD_DLL_EXPORTED int fclose (FILE *fp)
     }
 
     if (get_path (fileno (fp), PATH_MAX - 1, path) < 0) {
-        IPRINTF (ctx,
-                 "DYAD_SYNC: unable to obtain file path from a descriptor.\n");
+        IPRINTF (ctx, "DYAD_SYNC: unable to obtain file path from a descriptor.\n");
         to_sync = false;
         goto real_call;
     }
@@ -356,7 +354,8 @@ real_call:;
     int wronly = is_wronly (fd);
 
     if (wronly == -1) {
-        DPRINTF (ctx, "Failed to check the mode of the file with fcntl: %s\n",
+        DPRINTF (ctx,
+                 "Failed to check the mode of the file with fcntl: %s\n",
                  strerror (errno));
     }
 

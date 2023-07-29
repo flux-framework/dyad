@@ -26,7 +26,7 @@ int urpc_client (uint32_t server_rank,
 }
 #endif  // __cplusplus
 
-#endif /* URPC_CLIENT_H */
+#endif  /* URPC_CLIENT_H */
 
 /*
  * vi: ts=4 sw=4 expandtab
