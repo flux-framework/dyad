@@ -1,6 +1,6 @@
 #include "flux_dtl.h"
 
-dyad_rc_t dyad_dtl_flux_init (dyad_dtl_t* dtl_handle,
+dyad_rc_t dyad_dtl_flux_init (dyad_dtl_t* self,
                               dyad_dtl_mode_t mode,
                               flux_t* h,
                               bool debug)
