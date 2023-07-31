@@ -181,8 +181,7 @@ int urpc_client (uint32_t server_rank, const char *cmd, const char *file_path, i
         // TODO: Need to be consistent with the mode at the source
         odir = dirname (file_path_copy);
         m = (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH | S_ISGID);
-        if ((strncmp (odir, ".", strlen (".")) != 0)
-            && (mkdir_as_needed (odir, m) < 0)) {
+        if ((strncmp (odir, ".", strlen (".")) != 0) && (mkdir_as_needed (odir, m) < 0)) {
             FLUX_LOG_ERR ("Failed to create directory \"%s\".\n", odir);
             goto done;
         }

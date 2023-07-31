@@ -15,6 +15,12 @@
 #include <string.h>
 #endif
 
+#if DYAD_PERFFLOW
+#define DYAD_CORE_FUNC_MODS __attribute__ ((annotate ("@critical_path()"))) static
+#else
+#define DYAD_CORE_FUNC_MODS static inline
+#endif
+
 const struct dyad_ctx dyad_ctx_default = {
     NULL,   // h
     NULL,   // dtl_handle
@@ -82,13 +88,7 @@ static int gen_path_key (const char* str,
     return 0;
 }
 
-#if DYAD_PERFFLOW
-__attribute__ ((annotate ("@critical_path()"))) static dyad_rc_t dyad_kvs_commit (
-    const dyad_ctx_t* ctx,
-    flux_kvs_txn_t* txn)
-#else
-static inline dyad_rc_t dyad_kvs_commit (const dyad_ctx_t* ctx, flux_kvs_txn_t* txn)
-#endif
+DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_commit (const dyad_ctx_t* ctx, flux_kvs_txn_t* txn)
 {
     flux_future_t* f = NULL;
     DYAD_LOG_INFO (ctx, "Committing transaction to KVS\n");
@@ -107,14 +107,8 @@ static inline dyad_rc_t dyad_kvs_commit (const dyad_ctx_t* ctx, flux_kvs_txn_t* 
     return DYAD_RC_OK;
 }
 
-#if DYAD_PERFFLOW
-__attribute__ ((annotate ("@critical_path()"))) static dyad_rc_t publish_via_flux (
-    const dyad_ctx_t* restrict ctx,
-    const char* restrict upath)
-#else
-static inline dyad_rc_t publish_via_flux (const dyad_ctx_t* restrict ctx,
-                                          const char* restrict upath)
-#endif
+DYAD_CORE_FUNC_MODS dyad_rc_t publish_via_flux (const dyad_ctx_t* restrict ctx,
+                                                const char* restrict upath)
 {
     dyad_rc_t rc = DYAD_RC_OK;
     flux_kvs_txn_t* txn = NULL;
@@ -157,14 +151,8 @@ publish_done:;
     return rc;
 }
 
-#if DYAD_PERFFLOW
-__attribute__ ((annotate ("@critical_path()"))) static dyad_rc_t dyad_commit (
-    const dyad_ctx_t* restrict ctx,
-    const char* restrict fname)
-#else
-static inline dyad_rc_t dyad_commit (dyad_ctx_t* restrict ctx,
-                                     const char* restrict fname)
-#endif
+DYAD_CORE_FUNC_MODS dyad_rc_t dyad_commit (dyad_ctx_t* restrict ctx,
+                                           const char* restrict fname)
 {
     dyad_rc_t rc = DYAD_RC_OK;
     char upath[PATH_MAX];
@@ -177,9 +165,7 @@ static inline dyad_rc_t dyad_commit (dyad_ctx_t* restrict ctx,
         rc = DYAD_RC_OK;
         goto commit_done;
     }
-    DYAD_LOG_INFO (ctx,
-                   "Obtained file path relative to producer directory: %s\n",
-                   upath);
+    DYAD_LOG_INFO (ctx, "Obtained file path relative to producer directory: %s\n", upath);
     // Call publish_via_flux to actually store information about the file into
     // the Flux KVS
     // Fence this call with reassignments of reenter so that, if intercepting
@@ -197,26 +183,16 @@ commit_done:;
     return rc;
 }
 
-#if DYAD_PERFFLOW
-__attribute__ ((annotate ("@critical_path()"))) static dyad_rc_t dyad_kvs_lookup (
-    const dyad_ctx_t* ctx,
-    const char* restrict kvs_topic,
-    uint32_t* owner_rank,
-    flux_future_t** f)
-#else
-static inline dyad_rc_t dyad_kvs_lookup (const dyad_ctx_t* ctx,
-                                         const char* restrict kvs_topic,
-                                         uint32_t* owner_rank,
-                                         flux_future_t** f)
-#endif
+DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_lookup (const dyad_ctx_t* ctx,
+                                               const char* restrict kvs_topic,
+                                               uint32_t* owner_rank,
+                                               flux_future_t** f)
 {
     dyad_rc_t rc = DYAD_RC_OK;
     // Lookup information about the desired file (represented by kvs_topic)
     // from the Flux KVS. If there is no information, wait for it to be
     // made available
-    DYAD_LOG_INFO (ctx,
-                   "Retrieving information from KVS under the key %s\n",
-                   kvs_topic);
+    DYAD_LOG_INFO (ctx, "Retrieving information from KVS under the key %s\n", kvs_topic);
     *f = flux_kvs_lookup (ctx->h, ctx->kvs_namespace, FLUX_KVS_WAITCREATE, kvs_topic);
     // If the KVS lookup failed, log an error and return DYAD_BADLOOKUP
     if (*f == NULL) {
@@ -234,16 +210,9 @@ static inline dyad_rc_t dyad_kvs_lookup (const dyad_ctx_t* ctx,
     return DYAD_RC_OK;
 }
 
-#if DYAD_PERFFLOW
-__attribute__ ((annotate ("@critical_path()"))) static dyad_rc_t dyad_fetch (
-    const dyad_ctx_t* restrict ctx,
-    const char* restrict fname,
-    dyad_kvs_response_t** restrict resp)
-#else
-static inline dyad_rc_t dyad_fetch (const dyad_ctx_t* restrict ctx,
-                                    const char* restrict fname,
-                                    dyad_kvs_response_t** restrict resp)
-#endif
+DYAD_CORE_FUNC_MODS dyad_rc_t dyad_fetch (const dyad_ctx_t* restrict ctx,
+                                          const char* restrict fname,
+                                          dyad_kvs_response_t** restrict resp)
 {
     dyad_rc_t rc = DYAD_RC_OK;
     char upath[PATH_MAX];
@@ -260,9 +229,7 @@ static inline dyad_rc_t dyad_fetch (const dyad_ctx_t* restrict ctx,
         DYAD_LOG_INFO (ctx, "%s is not in the Consumer's managed path\n", fname);
         return DYAD_RC_OK;
     }
-    DYAD_LOG_INFO (ctx,
-                   "Obtained file path relative to consumer directory: %s\n",
-                   upath);
+    DYAD_LOG_INFO (ctx, "Obtained file path relative to consumer directory: %s\n", upath);
     // Generate the KVS key from the file path relative to
     // the consumer-managed directory
     gen_path_key (upath, topic, topic_len, ctx->key_depth, ctx->key_bins);
@@ -322,18 +289,10 @@ fetch_done:;
     return rc;
 }
 
-#if DYAD_PERFFLOW
-__attribute__ ((annotate ("@critical_path()"))) static dyad_rc_t dyad_get_data (
-    const dyad_ctx_t* ctx,
-    const dyad_kvs_response_t* restrict kvs_data,
-    const char** file_data,
-    size_t* file_len)
-#else
-static inline dyad_rc_t dyad_get_data (const dyad_ctx_t* ctx,
-                                       const dyad_kvs_response_t* restrict kvs_data,
-                                       const char** file_data,
-                                       size_t* file_len)
-#endif
+DYAD_CORE_FUNC_MODS dyad_rc_t dyad_get_data (const dyad_ctx_t* ctx,
+                                             const dyad_kvs_response_t* restrict kvs_data,
+                                             const char** file_data,
+                                             size_t* file_len)
 {
     dyad_rc_t rc = DYAD_RC_OK;
     dyad_rc_t final_rc = DYAD_RC_OK;
@@ -399,7 +358,9 @@ get_done:;
     // well in the module, this last message will set errno to ENODATA (i.e.,
     // end of stream). Otherwise, something went wrong, so we'll return
     // DYAD_RC_BADRPC.
-    DYAD_LOG_INFO (ctx, "Wait for end-of-stream message from module\n");
+    DYAD_LOG_INFO (ctx,
+                   "Wait for end-of-stream message from module (current RC = %d)\n",
+                   rc);
     if (rc != DYAD_RC_RPC_FINISHED && rc != DYAD_RC_BADRPC) {
         if (!(flux_rpc_get (f, NULL) < 0 && errno == ENODATA)) {
             DYAD_LOG_ERR (ctx,
@@ -415,14 +376,8 @@ get_done:;
     return rc;
 }
 
-#if DYAD_PERFFLOW
-__attribute__ ((annotate ("@critical_path()"))) static dyad_rc_t dyad_pull (
-    const dyad_ctx_t* restrict ctx,
-    const dyad_kvs_response_t* restrict kvs_data)
-#else
-static inline dyad_rc_t dyad_pull (const dyad_ctx_t* restrict ctx,
-                                   const dyad_kvs_response_t* restrict kvs_data)
-#endif
+DYAD_CORE_FUNC_MODS dyad_rc_t dyad_pull (const dyad_ctx_t* restrict ctx,
+                                         const dyad_kvs_response_t* restrict kvs_data)
 {
     dyad_rc_t rc = DYAD_RC_OK;
     const char* file_data = NULL;
@@ -842,10 +797,7 @@ int dyad_finalize (dyad_ctx_t** ctx)
 }
 
 #if DYAD_SYNC_DIR
-#if DYAD_PERFFLOW
-__attribute__((annotate("@critical_path()")))
-#endif
-int dyad_sync_directory(dyad_ctx_t* restrict ctx, const char* restrict path)
+int dyad_sync_directory (dyad_ctx_t* restrict ctx, const char* restrict path)
 {  // Flush new directory entry https://lwn.net/Articles/457671/
     char path_copy[PATH_MAX + 1];
     int odir_fd = -1;

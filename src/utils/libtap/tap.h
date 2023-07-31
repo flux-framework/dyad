@@ -23,11 +23,7 @@ extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
 
-int vok_at_loc (const char *file,
-                int line,
-                int test,
-                const char *fmt,
-                va_list args);
+int vok_at_loc (const char *file, int line, int test, const char *fmt, va_list args);
 int ok_at_loc (const char *file, int line, int test, const char *fmt, ...);
 int is_at_loc (const char *file,
                int line,
@@ -95,8 +91,7 @@ void tap_end_todo (void);
 #ifdef _WIN32
 #define like(...) tap_skip (1, "like is not implemented on Windows")
 #define unlike tap_skip (1, "unlike is not implemented on Windows")
-#define dies_ok_common(...) \
-    tap_skip (1, "Death detection is not supported on Windows")
+#define dies_ok_common(...) tap_skip (1, "Death detection is not supported on Windows")
 #else
 #define like(...) like_at_loc (1, __FILE__, __LINE__, __VA_ARGS__, NULL)
 #define unlike(...) like_at_loc (0, __FILE__, __LINE__, __VA_ARGS__, NULL)

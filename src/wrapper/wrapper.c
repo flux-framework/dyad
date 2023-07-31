@@ -98,14 +98,8 @@ void dyad_wrapper_init (void)
     }
 
     DYAD_LOG_INFO (ctx, "DYAD Initialized\n");
-    DYAD_LOG_INFO (ctx,
-                   "%s=%s\n",
-                   DYAD_SYNC_DEBUG_ENV,
-                   (ctx->debug) ? "true" : "false");
-    DYAD_LOG_INFO (ctx,
-                   "%s=%s\n",
-                   DYAD_SYNC_CHECK_ENV,
-                   (ctx->check) ? "true" : "false");
+    DYAD_LOG_INFO (ctx, "%s=%s\n", DYAD_SYNC_DEBUG_ENV, (ctx->debug) ? "true" : "false");
+    DYAD_LOG_INFO (ctx, "%s=%s\n", DYAD_SYNC_CHECK_ENV, (ctx->check) ? "true" : "false");
     DYAD_LOG_INFO (ctx, "%s=%u\n", DYAD_KEY_DEPTH_ENV, ctx->key_depth);
     DYAD_LOG_INFO (ctx, "%s=%u\n", DYAD_KEY_BINS_ENV, ctx->key_bins);
 }

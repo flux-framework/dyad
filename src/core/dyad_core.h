@@ -112,11 +112,8 @@ DYAD_DLL_EXPORTED dyad_rc_t dyad_init_env (dyad_ctx_t** ctx);
  *
  * @return An integer error code (values TBD)
  */
-#if DYAD_PERFFLOW
-__attribute__ ((annotate ("@critical_path()")))
-#endif
-DYAD_DLL_EXPORTED dyad_rc_t
-dyad_produce (dyad_ctx_t* ctx, const char* fname);
+DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_produce (dyad_ctx_t* ctx,
+                                                            const char* fname);
 
 /**
  * @brief Wrapper function that performs all the common tasks needed
@@ -126,11 +123,8 @@ dyad_produce (dyad_ctx_t* ctx, const char* fname);
  *
  * @return An integer error code (values TBD)
  */
-#if DYAD_PERFFLOW
-__attribute__ ((annotate ("@critical_path()")))
-#endif
-DYAD_DLL_EXPORTED dyad_rc_t
-dyad_consume (dyad_ctx_t* ctx, const char* fname);
+DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_consume (dyad_ctx_t* ctx,
+                                                            const char* fname);
 
 /**
  * @brief Finalizes the DYAD instance and deallocates the context
@@ -141,7 +135,8 @@ dyad_consume (dyad_ctx_t* ctx, const char* fname);
 DYAD_DLL_EXPORTED dyad_rc_t dyad_finalize (dyad_ctx_t** ctx);
 
 #if DYAD_SYNC_DIR
-DYAD_DLL_EXPORTED int dyad_sync_directory (dyad_ctx_t* ctx, const char* path);
+DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED int dyad_sync_directory (dyad_ctx_t* ctx,
+                                                             const char* path);
 #endif
 
 #ifdef __cplusplus

@@ -29,4 +29,4 @@ read_all (int fd, void **bufp);
 };
 #endif  // defined(__cplusplus)
 
-#endif  /* UTILS_READ_ALL_H */
+#endif /* UTILS_READ_ALL_H */

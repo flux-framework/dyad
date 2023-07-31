@@ -30,9 +30,7 @@ dyad_rc_t dyad_dtl_ucx_rpc_pack (dyad_dtl_t* restrict self,
                                  uint32_t producer_rank,
                                  json_t** restrict packed_obj);
 
-dyad_rc_t dyad_dtl_ucx_rpc_unpack (dyad_dtl_t* self,
-                                   const flux_msg_t* msg,
-                                   char** upath);
+dyad_rc_t dyad_dtl_ucx_rpc_unpack (dyad_dtl_t* self, const flux_msg_t* msg, char** upath);
 
 dyad_rc_t dyad_dtl_ucx_rpc_respond (dyad_dtl_t* self, const flux_msg_t* orig_msg);
 

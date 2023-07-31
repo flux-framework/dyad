@@ -194,9 +194,7 @@ dyad_rc_t dyad_dtl_ucx_init (dyad_dtl_t* self,
                                 &worker_params,
                                 &(dtl_handle->ucx_worker));
     if (UCX_STATUS_FAIL (status)) {
-        FLUX_LOG_ERR (dtl_handle->h,
-                      "ucp_worker_create failed (status = %d)!\n",
-                      status);
+        FLUX_LOG_ERR (dtl_handle->h, "ucp_worker_create failed (status = %d)!\n", status);
         goto error;
     }
 
@@ -300,9 +298,7 @@ dyad_rc_t dyad_dtl_ucx_rpc_pack (dyad_dtl_t* restrict self,
     return DYAD_RC_OK;
 }
 
-dyad_rc_t dyad_dtl_ucx_rpc_unpack (dyad_dtl_t* self,
-                                   const flux_msg_t* msg,
-                                   char** upath)
+dyad_rc_t dyad_dtl_ucx_rpc_unpack (dyad_dtl_t* self, const flux_msg_t* msg, char** upath)
 {
     char* enc_addr = NULL;
     size_t enc_addr_len = 0;
@@ -444,9 +440,7 @@ dyad_rc_t dyad_dtl_ucx_send (dyad_dtl_t* self, void* buf, size_t buflen)
     FLUX_LOG_INFO (dtl_handle->h, "Processing UCP send request\n");
     status = dyad_ucx_request_wait (dtl_handle, stat_ptr);
     if (status != UCS_OK) {
-        FLUX_LOG_ERR (dtl_handle->h,
-                      "UCP Tag Send failed (status = %d)!\n",
-                      (int)status);
+        FLUX_LOG_ERR (dtl_handle->h, "UCP Tag Send failed (status = %d)!\n", (int)status);
         return DYAD_RC_UCXCOMM_FAIL;
     }
     FLUX_LOG_INFO (dtl_handle->h, "Data send with UCP succeeded\n");
@@ -543,15 +537,13 @@ dyad_rc_t dyad_dtl_ucx_recv (dyad_dtl_t* self, void** buf, size_t* buflen)
     ucp_request_param_t recv_params;
     // TODO consider enabling UCP_OP_ATTR_FIELD_MEMH to speedup
     // the recv operation if using RMA behind the scenes
-    recv_params.op_attr_mask =
-        UCP_OP_ATTR_FIELD_CALLBACK | UCP_OP_ATTR_FIELD_MEMORY_TYPE;
+    recv_params.op_attr_mask = UCP_OP_ATTR_FIELD_CALLBACK | UCP_OP_ATTR_FIELD_MEMORY_TYPE;
     recv_params.cb.recv = dyad_recv_callback;
     // Constraining to Host memory (as opposed to GPU memory)
     // allows UCX to potentially perform some optimizations
     recv_params.memory_type = UCS_MEMORY_TYPE_HOST;
     // Perform the async recv operation using the probed tag recv event
-    req =
-        ucp_tag_msg_recv_nbx (dtl_handle->ucx_worker, *buf, *buflen, msg, &recv_params);
+    req = ucp_tag_msg_recv_nbx (dtl_handle->ucx_worker, *buf, *buflen, msg, &recv_params);
 #else
     req = ucp_tag_msg_recv_nb (dtl_handle->ucx_worker,
                                *buf,
@@ -672,8 +664,7 @@ dyad_rc_t dyad_dtl_ucx_finalize (dyad_dtl_t** self)
     }
     // Release consumer address if not already released
     if (dtl_handle->consumer_address != NULL) {
-        ucp_worker_release_address (dtl_handle->ucx_worker,
-                                    dtl_handle->consumer_address);
+        ucp_worker_release_address (dtl_handle->ucx_worker, dtl_handle->consumer_address);
         dtl_handle->consumer_address = NULL;
     }
     // Release worker if not already released

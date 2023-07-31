@@ -108,10 +108,7 @@ getctx_done:
 __attribute__ ((annotate ("@critical_path()")))
 #endif
 static void
-dyad_fetch_request_cb (flux_t *h,
-                       flux_msg_handler_t *w,
-                       const flux_msg_t *msg,
-                       void *arg)
+dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, void *arg)
 {
     FLUX_LOG_INFO (h, "Launched callback for dyad.fetch\n");
     dyad_mod_ctx_t *ctx = getctx (h);
@@ -192,7 +189,7 @@ dyad_fetch_request_cb (flux_t *h,
         goto fetch_error;
     }
 
-    FLUX_LOG_INFO (h, "Close RPC message stream with an ENODATA message");
+    FLUX_LOG_INFO (h, "Close RPC message stream with an ENODATA (%d) message", ENODATA);
     if (flux_respond_error (h, msg, ENODATA, NULL) < 0) {
         FLUX_LOG_ERR (h,
                       "DYAD_MOD: %s: flux_respond_error with ENODATA failed\n",
@@ -203,7 +200,7 @@ dyad_fetch_request_cb (flux_t *h,
     return;
 
 fetch_error:
-    FLUX_LOG_INFO (h, "Close RPC message stream with an error (errno = %d)\n", errno);
+    FLUX_LOG_ERR (h, "Close RPC message stream with an error (errno = %d)\n", errno);
     if (flux_respond_error (h, msg, errno, NULL) < 0) {
         FLUX_LOG_ERR (h, "DYAD_MOD: %s: flux_respond_error", __FUNCTION__);
     }

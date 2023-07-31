@@ -139,10 +139,7 @@ void urpc_respond (flux_t *h, const flux_msg_t *msg, const void *inbuf, size_t i
 __attribute__ ((annotate ("@critical_path()")))
 #endif
 static void
-urpc_exec_request_cb (flux_t *h,
-                      flux_msg_handler_t *w,
-                      const flux_msg_t *msg,
-                      void *arg)
+urpc_exec_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, void *arg)
 {
     // urpc_server_ctx_t *ctx = getctx (h);
     ssize_t inlen = 0;
@@ -187,10 +184,7 @@ done:
 __attribute__ ((annotate ("@critical_path()")))
 #endif
 static void
-urpc_execj_request_cb (flux_t *h,
-                       flux_msg_handler_t *w,
-                       const flux_msg_t *msg,
-                       void *arg)
+urpc_execj_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, void *arg)
 {
     // urpc_server_ctx_t *ctx = getctx (h);
     ssize_t inlen = 0;
@@ -222,10 +216,7 @@ urpc_execj_request_cb (flux_t *h,
     }
 
     if (!(jcmd = json_loads (cmd_json, 0, &error))) {
-        FLUX_LOG_ERR (h,
-                      "URPC_MOD: json error on line %d: %s\n",
-                      error.line,
-                      error.text);
+        FLUX_LOG_ERR (h, "URPC_MOD: json error on line %d: %s\n", error.line, error.text);
         goto error;
     }
 

@@ -128,10 +128,7 @@ void MurmurHash3_x86_32 (const void *key, int len, uint32_t seed, void *out)
 
 //-----------------------------------------------------------------------------
 
-void MurmurHash3_x86_128 (const void *key,
-                          const int len,
-                          uint32_t seed,
-                          void *out)
+void MurmurHash3_x86_128 (const void *key, const int len, uint32_t seed, void *out)
 {
     const uint8_t *data = (const uint8_t *)key;
     const int nblocks = len / 16;
@@ -292,10 +289,7 @@ void MurmurHash3_x86_128 (const void *key,
 
 //-----------------------------------------------------------------------------
 
-void MurmurHash3_x64_128 (const void *key,
-                          const int len,
-                          const uint32_t seed,
-                          void *out)
+void MurmurHash3_x64_128 (const void *key, const int len, const uint32_t seed, void *out)
 {
     const uint8_t *data = (const uint8_t *)key;
     const int nblocks = len / 16;

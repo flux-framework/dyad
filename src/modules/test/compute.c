@@ -51,14 +51,12 @@ static int publish_via_flux (FILE *df, flux_t *h, const char *user_path)
         goto done;
     }
     if (flux_kvs_txn_pack (txn, 0, topic, "i", owner_rank) < 0) {
-        fprintf (df, "flux_kvs_txn_pack(\"%s\",\"i\",%u) failed.\n", topic,
-                 owner_rank);
+        fprintf (df, "flux_kvs_txn_pack(\"%s\",\"i\",%u) failed.\n", topic, owner_rank);
         goto done;
     }
 
     if (!(f = flux_kvs_commit (h, getenv ("DYAD_KVS_NAMESPACE"), 0, txn))) {
-        fprintf (df, "flux_kvs_commit(owner rank of %s = %u)\n", user_path,
-                 owner_rank);
+        fprintf (df, "flux_kvs_commit(owner rank of %s = %u)\n", user_path, owner_rank);
         goto done;
     }
 
@@ -109,8 +107,7 @@ int main (int argc, char **argv)
     strncpy (topic, file_name, topic_len);
 
     fprintf (df, "Consumer kvs search for %s\n", file_name);
-    f1 = flux_kvs_lookup (h, getenv ("DYAD_KVS_NAMESPACE"), FLUX_KVS_WAITCREATE,
-                          topic);
+    f1 = flux_kvs_lookup (h, getenv ("DYAD_KVS_NAMESPACE"), FLUX_KVS_WAITCREATE, topic);
     if (f1 == NULL) {
         flux_log_error (h, "flux_kvs_lookup(%s) failed.\n", topic);
         goto done;
@@ -127,7 +124,12 @@ int main (int argc, char **argv)
     fprintf (df, "Owner rank: %u\n", owner_rank);
 
     // Send the request to fetch a file
-    if (!(f2 = flux_rpc_pack (h, "dyad.fetch", owner_rank, 0, "{s:s}", "upath",
+    if (!(f2 = flux_rpc_pack (h,
+                              "dyad.fetch",
+                              owner_rank,
+                              0,
+                              "{s:s}",
+                              "upath",
                               file_name))) {
         flux_log_error (h, "flux_rpc_pack({dyad.fetch %s})", file_name);
         goto done;
@@ -154,8 +156,7 @@ int main (int argc, char **argv)
     // Create the directory as needed
     const char *odir = dirname (file_path_copy);
     const mode_t m = (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH | S_ISGID);
-    if ((strncmp (odir, ".", strlen (".")) != 0)
-        && (mkdir_as_needed (odir, m) < 0)) {
+    if ((strncmp (odir, ".", strlen (".")) != 0) && (mkdir_as_needed (odir, m) < 0)) {
         fprintf (stderr, "Failed to create directory \"%s\".\n", odir);
         goto done;
     }

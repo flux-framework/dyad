@@ -7,6 +7,12 @@
 #define DYAD_DLL_EXPORTED
 #endif
 
+#if DYAD_PERFFLOW
+#define DYAD_PFA_ANNOTATE __attribute__ ((annotate ("@critical_path()")))
+#else
+#define DYAD_PFA_ANNOTATE
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif

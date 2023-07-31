@@ -10,7 +10,7 @@
 
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
-#endif                  // _GNU_SOURCE
+#endif  // _GNU_SOURCE
 
 #include <fcntl.h>      // open
 #include <libgen.h>     // basename dirname
@@ -322,7 +322,7 @@ int mkdir_as_needed (const char* path, const mode_t m)
                 (m & RWX_UGO));
             return 5;  // already exists but with different mode
         }
-        return 1;      // already exists
+        return 1;  // already exists
     }
     IPRINTF ("Creating directory \"%s\"\n", path);
 
@@ -342,7 +342,7 @@ int mkdir_as_needed (const char* path, const mode_t m)
                     (m & RWX_UGO));
                 return 5;  // already exists but with different mode
             }
-            return 1;      // already exists
+            return 1;  // already exists
         }
         DPRINTF ("Cannot create directory \"%s\": %s\n", path, strerror (errno));
         perror ("mkdir_as_needed() ");
@@ -352,7 +352,7 @@ int mkdir_as_needed (const char* path, const mode_t m)
 
 #if DYAD_SYNC_DIR
     sync_containing_dir (path);
-#endif         // DYAD_SYNC_DIR
+#endif  // DYAD_SYNC_DIR
 
     return 0;  // The new directory has been succesfully created
 }
