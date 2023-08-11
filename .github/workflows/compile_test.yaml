@@ -9,23 +9,25 @@ on:
 jobs:
   compile:
     strategy:
+      fail-fast: false
       matrix:
-        base-os:
-          - focal
-          - fedora38
-          - fedora35
-          - el8
-          - el7
-        flux-version:
-          - v0.52.0
-          - v0.51.0
-          - v0.50.0
-          - v0.49.0
-          - v0.48.0
+        os: [focal, fedora38, fedora35, el8, el7]
+        flux: [v0.52.0, v0.51.0, v0.50.0, v0.49.0, v0.48.0]
+        include:
+          - flux: v0.52.0
+          - flux: v0.51.0
+        exclude:
+          - os: fedora38
     runs-on: ubuntu-20.04 # Docker-based jobs must run on Ubuntu
-    if: ${{ matrix.base-os != 'fedora38' || contains(fromJSON('["v0.52.0", "v0.51.0"]'), matrix.flux-version) }}
-    container: fluxrm/flux-core:${{ matrix.base-os }}-${{ matrix.flux-version }}
+    container: fluxrm/flux-core:${{ matrix.os }}-${{ matrix.flux }}
     steps:
+      - name: Test node
+        run: |
+          echo "Checking for a usable node in /__e/node"
+          for f in /__e/node*/bin/node; do
+              echo "Testing: $f --version";
+              $f --version || echo "$f does not work, exit status: $?"
+          done
       - uses: actions/checkout@v2
 
       - name: Run autogen
