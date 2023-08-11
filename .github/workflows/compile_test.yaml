@@ -7,24 +7,42 @@ on:
     branches: [ main ]
 
 jobs:
+  compile-flux:
+    strategy:
+      fail-fast: false
+      matrix:
+        flux: [ 0.52.0, 0.51.0, 0.50.0, 0.49.0, 0.48.0 ]
+    runs-on: ubuntu-20.04 # Docker-based jobs must run on Ubuntu
+    env:
+      FLUX_VERSION: ${{ matrix.flux }}
+    steps:
+      - name: Install Spack
+        uses: kzscisoft/install-spack@v1
+        with:
+            version: develop
+      - name: Install dependencies
+        run: |
+          spack external find
+          spack install flux-core@${FLUX_VERSION}
+      - name: Compile DYAD
+        run: |
+          spack load flux-core@${FLUX_VERSION}
+          ./autogen.sh
+          ./configure --enable-dyad-debug
+          make -j
   compile:
     strategy:
+      fail-fast: false
       matrix:
-        base-os:
-          - focal
-          - fedora38
-          - fedora35
-          - el8
-          - el7
-        flux-version:
-          - v0.52.0
-          - v0.51.0
-          - v0.50.0
-          - v0.49.0
-          - v0.48.0
+        os: [focal, fedora38, fedora35, el8, el7]
+        flux: [v0.52.0, v0.51.0, v0.50.0, v0.49.0, v0.48.0]
+        include:
+          - flux: v0.52.0
+          - flux: v0.51.0
+        exclude:
+          - os: fedora38
     runs-on: ubuntu-20.04 # Docker-based jobs must run on Ubuntu
-    if: ${{ matrix.base-os != 'fedora38' || contains(fromJSON('["v0.52.0", "v0.51.0"]'), matrix.flux-version) }}
-    container: fluxrm/flux-core:${{ matrix.base-os }}-${{ matrix.flux-version }}
+    container: fluxrm/flux-core:${{ matrix.os }}-${{ matrix.flux }}
     steps:
       - uses: actions/checkout@v2
 
