@@ -38,7 +38,7 @@ jobs:
         run: |
           . ${SPACK_DIR}/share/spack/setup-env.sh
           spack load flux-core@${FLUX_VERSION}
-          cd /home/runner/work/dyad
+          cd /home/runner/work/dyad/dyad
           ./autogen.sh
           ./configure --enable-dyad-debug
           make -j
