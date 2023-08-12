@@ -25,9 +25,11 @@ jobs:
           path: ${{ env.SPACK_DIR }}
           key: ${{env.SPACK_DIR }}-${{matrix.flux}}
       - name: Install Spack
+        if: steps.cache-modules.outputs.cache-hit != 'true'
         run: |
           git clone https://github.com/spack/spack.git ${SPACK_DIR}
       - name: Install dependencies
+        if: steps.cache-modules.outputs.cache-hit != 'true'
         run: |
           . ${SPACK_DIR}/share/spack/setup-env.sh
           spack external find
