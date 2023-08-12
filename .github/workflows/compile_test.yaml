@@ -26,6 +26,7 @@ jobs:
           spack install flux-core@${FLUX_VERSION}
       - name: Compile DYAD
         run: |
+          spack load --sh
           spack load flux-core@${FLUX_VERSION}
           ./autogen.sh
           ./configure --enable-dyad-debug
@@ -44,6 +45,13 @@ jobs:
     runs-on: ubuntu-20.04 # Docker-based jobs must run on Ubuntu
     container: fluxrm/flux-core:${{ matrix.os }}-${{ matrix.flux }}
     steps:
+      - name: Test node
+        run: |
+          echo "Checking for a usable node in /__e/node"
+          for f in /__e/node*/bin/node; do
+              echo "Testing: $f --version";
+              $f --version || echo "$f does not work, exit status: $?"
+          done
       - uses: actions/checkout@v2
 
       - name: Run autogen
