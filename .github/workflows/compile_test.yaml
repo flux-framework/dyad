@@ -15,20 +15,28 @@ jobs:
     runs-on: ubuntu-20.04 # Docker-based jobs must run on Ubuntu
     env:
       FLUX_VERSION: ${{ matrix.flux }}
+      SPACK_DIR: "/home/runner/work/spack"
     steps:
-      - name: Install Spack
-        uses: kzscisoft/install-spack@v1
+      - uses: actions/checkout@v3
+      - name: Cache install modules
+        id: cache-modules
+        uses: actions/cache@v2
         with:
-            version: develop
+          path: ${{ env.SPACK_DIR }}
+          key: ${{env.SPACK_DIR }}-${{matrix.flux}}
+      - name: Install Spack
+        run: |
+          git clone https://github.com/spack/spack.git ${SPACK_DIR}
       - name: Install dependencies
         run: |
+          . ${SPACK_DIR}/share/spack/setup-env.sh
           spack external find
           spack install flux-core@${FLUX_VERSION}
       - name: Compile DYAD
         run: |
-          . /home/runner/work/dyad/dyad/.spack/share/spack/setup-env.sh
+          . ${SPACK_DIR}/share/spack/setup-env.sh
           spack load flux-core@${FLUX_VERSION}
-          cd /home/runner/work/dyad/dyad
+          cd /home/runner/work/dyad
           ./autogen.sh
           ./configure --enable-dyad-debug
           make -j
