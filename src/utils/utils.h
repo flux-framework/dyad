@@ -18,7 +18,7 @@
 #define DYAD_PATH_DELIM "/"
 
 #if defined(__cplusplus)
-//#include <cstdbool> // c++11
+// #include <cstdbool> // c++11
 #include <cstddef>
 #else
 #include <stdbool.h>

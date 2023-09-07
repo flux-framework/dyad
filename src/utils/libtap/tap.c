@@ -55,11 +55,7 @@ void tap_plan (int tests, const char *fmt, ...)
     }
 }
 
-int vok_at_loc (const char *file,
-                int line,
-                int test,
-                const char *fmt,
-                va_list args)
+int vok_at_loc (const char *file, int line, int test, const char *fmt, va_list args)
 {
     char *name = vstrdupf (fmt, args);
     if (!test) {
@@ -183,10 +179,7 @@ int cmp_ok_at_loc (const char *file,
     return test;
 }
 
-static int find_mem_diff (const char *a,
-                          const char *b,
-                          size_t n,
-                          size_t *offset)
+static int find_mem_diff (const char *a, const char *b, size_t n, size_t *offset)
 {
     size_t i;
     if (a == b)
@@ -259,13 +252,17 @@ int exit_status ()
     if (expected_tests == NO_PLAN) {
         printf ("1..%d\n", current_test);
     } else if (current_test != expected_tests) {
-        diag ("Looks like you planned %d test%s but ran %d.", expected_tests,
-              expected_tests > 1 ? "s" : "", current_test);
+        diag ("Looks like you planned %d test%s but ran %d.",
+              expected_tests,
+              expected_tests > 1 ? "s" : "",
+              current_test);
         retval = 2;
     }
     if (failed_tests) {
-        diag ("Looks like you failed %d test%s of %d run.", failed_tests,
-              failed_tests > 1 ? "s" : "", current_test);
+        diag ("Looks like you failed %d test%s of %d run.",
+              failed_tests,
+              failed_tests > 1 ? "s" : "",
+              current_test);
         retval = 1;
     }
     return retval;
@@ -327,8 +324,12 @@ int tap_test_died (int status)
     static int *test_died = NULL;
     int prev;
     if (!test_died) {
-        test_died = mmap (0, sizeof (int), PROT_READ | PROT_WRITE,
-                          MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+        test_died = mmap (0,
+                          sizeof (int),
+                          PROT_READ | PROT_WRITE,
+                          MAP_SHARED | MAP_ANONYMOUS,
+                          -1,
+                          0);
         *test_died = 0;
     }
     prev = *test_died;
@@ -351,8 +352,12 @@ int like_at_loc (int for_match,
     if (err) {
         char errbuf[256];
         regerror (err, &re, errbuf, sizeof errbuf);
-        fprintf (stderr, "Unable to compile regex '%s': %s at %s line %d\n",
-                 expected, errbuf, file, line);
+        fprintf (stderr,
+                 "Unable to compile regex '%s': %s at %s line %d\n",
+                 expected,
+                 errbuf,
+                 file,
+                 line);
         exit (255);
     }
     err = regexec (&re, got, 0, NULL, 0);

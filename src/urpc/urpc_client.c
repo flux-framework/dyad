@@ -21,7 +21,7 @@
 #include <cstring>
 #include <ctime>
 using namespace std;  // std::clock ()
-//#include <cstdbool> // c++11
+// #include <cstdbool> // c++11
 #else
 #include <errno.h>
 #include <limits.h>
@@ -109,8 +109,7 @@ static int
 urpc_rpc_pack (flux_future_t **ft, uint32_t rank, const char *cmd)
 {
     // Send the request to execute a command
-    if (!(*ft = flux_rpc_pack (ctx->h, "urpc.exec", rank, 0, "{s:s}", "cmd",
-                               cmd))) {
+    if (!(*ft = flux_rpc_pack (ctx->h, "urpc.exec", rank, 0, "{s:s}", "cmd", cmd))) {
         FLUX_LOG_ERR ("flux_rpc_pack({urpc.exec %s})", cmd);
         return -1;
     }
@@ -182,8 +181,7 @@ int urpc_client (uint32_t server_rank, const char *cmd, const char *file_path, i
         // TODO: Need to be consistent with the mode at the source
         odir = dirname (file_path_copy);
         m = (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH | S_ISGID);
-        if ((strncmp (odir, ".", strlen (".")) != 0)
-            && (mkdir_as_needed (odir, m) < 0)) {
+        if ((strncmp (odir, ".", strlen (".")) != 0) && (mkdir_as_needed (odir, m) < 0)) {
             FLUX_LOG_ERR ("Failed to create directory \"%s\".\n", odir);
             goto done;
         }

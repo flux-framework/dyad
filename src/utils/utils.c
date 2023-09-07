@@ -26,7 +26,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
-//#include <cstdbool> // c++11
+// #include <cstdbool> // c++11
 #else
 #include <errno.h>
 #include <limits.h>  // PATH_MAX
@@ -94,8 +94,7 @@ char* concat_str (char* __restrict__ str,
 
     bool con_end = false;
     if ((connector != NULL) && (str_len_org >= con_len)) {
-        con_end =
-            (strncmp (str + str_len_org - con_len, connector, con_len) == 0);
+        con_end = (strncmp (str + str_len_org - con_len, connector, con_len) == 0);
     }
     const size_t str_len = (con_end ? (str_len_org - con_len) : str_len_org);
 
@@ -160,11 +159,9 @@ bool cmp_prefix (const char* __restrict__ prefix,
     {
         const char* const u_len_end = ((const char*)u_len) + sizeof (size_t);
         bool no_overlap =
-            ((prefix + strlen (prefix) <= (char*)u_len)
-             || (u_len_end <= prefix))
+            ((prefix + strlen (prefix) <= (char*)u_len) || (u_len_end <= prefix))
             && ((full + strlen (full) <= (char*)u_len) || (u_len_end <= full))
-            && ((delim + strlen (delim) <= (char*)u_len)
-                || (u_len_end <= delim));
+            && ((delim + strlen (delim) <= (char*)u_len) || (u_len_end <= delim));
 
         if (!no_overlap) {
             DPRINTF ("DYAD UTIL: buffers overlap.\n");
@@ -232,9 +229,8 @@ bool cmp_canonical_path_prefix (const char* __restrict__ prefix,
 {
     {
         const char* const upath_end = upath + upath_capacity;
-        bool no_overlap =
-            ((prefix + strlen (prefix) <= upath) || (upath_end <= prefix))
-            && ((path + strlen (path) <= upath) || (upath_end <= path));
+        bool no_overlap = ((prefix + strlen (prefix) <= upath) || (upath_end <= prefix))
+                          && ((path + strlen (path) <= upath) || (upath_end <= path));
 
         if (!no_overlap) {
             DPRINTF ("DYAD UTIL: buffers overlap\n");
@@ -321,7 +317,9 @@ int mkdir_as_needed (const char* path, const mode_t m)
                 "Directory \"%s\" already exists with "
                 "different permission bits %o from "
                 "the requested %o\n",
-                path, (sb.st_mode & RWX_UGO), (m & RWX_UGO));
+                path,
+                (sb.st_mode & RWX_UGO),
+                (m & RWX_UGO));
             return 5;  // already exists but with different mode
         }
         return 1;  // already exists
@@ -339,13 +337,14 @@ int mkdir_as_needed (const char* path, const mode_t m)
                     "Directory \"%s\" already exists with "
                     "different permission bits %o from "
                     "the requested %o\n",
-                    path, (sb.st_mode & RWX_UGO), (m & RWX_UGO));
+                    path,
+                    (sb.st_mode & RWX_UGO),
+                    (m & RWX_UGO));
                 return 5;  // already exists but with different mode
             }
             return 1;  // already exists
         }
-        DPRINTF ("Cannot create directory \"%s\": %s\n", path,
-                 strerror (errno));
+        DPRINTF ("Cannot create directory \"%s\": %s\n", path, strerror (errno));
         perror ("mkdir_as_needed() ");
         return -1;
     }
@@ -371,11 +370,11 @@ int get_path (const int fd, const size_t max_size, char* path)
     ssize_t rc = readlink (proclink, path, max_size);
     if (rc < (ssize_t)0) {
         IPRINTF ("DYAD UTIL: error reading the file link (%s): %s\n",
-                 strerror (errno), proclink);
+                 strerror (errno),
+                 proclink);
         return -1;
     } else if ((size_t)rc == max_size) {
-        IPRINTF ("DYAD UTIL: truncation might have happend with %s\n",
-                 proclink);
+        IPRINTF ("DYAD UTIL: truncation might have happend with %s\n", proclink);
     }
     path[max_size + 1] = '\0';
 
@@ -446,7 +445,9 @@ int sync_containing_dir (const char* path)
 
     if (dir_fd < 0) {
         char errmsg[PATH_MAX + 256] = {'\0'};
-        snprintf (errmsg, PATH_MAX + 256, "Failed to open directory %s\n",
+        snprintf (errmsg,
+                  PATH_MAX + 256,
+                  "Failed to open directory %s\n",
                   containing_dir);
         perror (errmsg);
         return -1;  // exit (SYS_ERR);
@@ -454,16 +455,14 @@ int sync_containing_dir (const char* path)
 
     if (fsync (dir_fd) < 0) {
         char errmsg[PATH_MAX + 256] = {'\0'};
-        snprintf (errmsg, PATH_MAX + 256, "Failed to fsync %s\n",
-                  containing_dir);
+        snprintf (errmsg, PATH_MAX + 256, "Failed to fsync %s\n", containing_dir);
         perror (errmsg);
         return -1;  // exit (SYS_ERR);
     }
 
     if (close (dir_fd) < 0) {
         char errmsg[PATH_MAX + 256] = {'\0'};
-        snprintf (errmsg, PATH_MAX + 256, "Failed to close %s\n",
-                  containing_dir);
+        snprintf (errmsg, PATH_MAX + 256, "Failed to close %s\n", containing_dir);
         perror (errmsg);
         return -1;  // exit (SYS_ERR);
     }

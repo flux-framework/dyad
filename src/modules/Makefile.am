@@ -1,21 +1,40 @@
 lib_LTLIBRARIES = dyad.la
-dyad_la_SOURCES = dyad.c read_all.c dyad_ctx.h read_all.h
+dyad_la_SOURCES = \
+	dyad.c
 dyad_la_LDFLAGS = \
 	$(AM_LDFLAGS) \
 	-module \
 	-avoid-version \
 	-no-undefined \
-	-export-symbols-regex '^mod_(name|main)$$'
-dyad_la_LIBADD = $(top_builddir)/src/utils/libutils.la $(FLUX_CORE_LIBS)
-dyad_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(top_builddir)/src/utils $(FLUX_CORE_CFLAGS)
+	--disable-static \
+	-shared \
+	-export-dynamic \
+    -Wl,-rpath,'$(UCX_LIBDIR)'
+dyad_la_LIBADD = \
+	$(top_builddir)/src/dtl/libdyad_dtl.la \
+    $(UCX_LIBS) \
+	$(JANSSON_LIBS) \
+	$(FLUX_CORE_LIBS)
+dyad_la_CFLAGS = \
+	$(AM_CFLAGS) \
+	-I$(top_srcdir)/src/utils \
+	-I$(top_srcdir)/src/utils/base64 \
+	-I$(top_srcdir)/src/dtl \
+	$(UCX_CFLAGS) \
+	$(JANSSON_CFLAGS) \
+	$(FLUX_CORE_CFLAGS) \
+	-DBUILDING_DYAD \
+	-fvisibility=hidden
+dyad_la_CPPFLAGS =
 if PERFFLOW
 dyad_la_LIBADD += $(PERFFLOW_LIBS)
-dyad_la_CPPFLAGS += $(PERFFLOW_PLUGIN_CPPFLAGS) $(PERFFLOW_CFLAGS) -DDYAD_PERFFLOW=1
+dyad_la_CFLAGS += $(PERFFLOW_CFLAGS) -DDYAD_PERFFLOW=1
+dyad_la_CPPFLAGS += $(PERFFLOW_PLUGIN_CPPFLAGS)
 endif
 
 if URPC
 lib_LTLIBRARIES += urpc.la
-urpc_la_SOURCES = read_all.c urpc.c urpc_ctx.h
+urpc_la_SOURCES = urpc.c urpc_ctx.h
 # TODO replace current LDFLAGS rule with this one once libb64 is required
 # urpc_la_LDFLAGS = -module -avoid-version -no-undefined -L$(LIBB64_DIR)/src
 urpc_la_LDFLAGS = -module -avoid-version -no-undefined
@@ -24,12 +43,14 @@ urpc_la_LIBADD = $(top_builddir)/src/utils/libutils.la $(FLUX_CORE_LIBS) $(JANSS
 # urpc_la_LIBS = -lb64
 # TODO replace current CPPFLAGS rule with this one once libb64 is required
 # urpc_la_CPPFLAGS = $(FLUX_CORE_CFLAGS) $(JANSSON_CFLAGS) -I$(LIBB64_DIR)/include -I$(top_builddir)/src/common
-urpc_la_CPPFLAGS = $(FLUX_CORE_CFLAGS) $(JANSSON_CFLAGS) -I$(top_builddir)/src/utils
+urpc_la_CFLAGS = $(FLUX_CORE_CFLAGS) $(JANSSON_CFLAGS) -I$(top_builddir)/src/utils
+urpc_la_CPPFLAGS =
 if PERFFLOW
 urpc_la_LIBADD += $(PERFFLOW_LIBS)
-urpc_la_CPPFLAGS += $(PERFFLOW_PLUGIN_CPPFLAGS) $(PERFFLOW_CFLAGS) -DDYAD_PERFFLOW=1
+urpc_la_CFLAGS += $(PERFFLOW_CFLAGS) -DDYAD_PERFFLOW=1
+urpc_la_CPPFLAGS += $(PERFFLOW_PLUGIN_CPPFLAGS)
 endif
 endif
 
 install-exec-hook:
-	@(cd $(DESTDIR)$(libdir) && $(RM) dyad.la dyad.a)
+	@(cd $(DESTDIR)$(libdir) && $(RM) dyad.la)
