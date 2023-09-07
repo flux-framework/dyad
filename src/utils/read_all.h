@@ -8,8 +8,8 @@
  * SPDX-License-Identifier: LGPL-3.0
 \************************************************************/
 
-#ifndef UTILS_READ_ALL_H
-#define UTILS_READ_ALL_H
+#ifndef DYAD_UTILS_READ_ALL_H
+#define DYAD_UTILS_READ_ALL_H
 
 #include <sys/types.h>
 
@@ -29,4 +29,4 @@ read_all (int fd, void **bufp);
 };
 #endif  // defined(__cplusplus)
 
-#endif /* UTILS_READ_ALL_H */
+#endif /* DYAD_UTILS_READ_ALL_H */

@@ -1,5 +1,5 @@
-#ifndef DYAD_DTL_IMPL_H
-#define DYAD_DTL_IMPL_H
+#ifndef DYAD_DTL_DYAD_DTL_IMPL_H
+#define DYAD_DTL_DYAD_DTL_IMPL_H
 
 #include <flux/core.h>
 #include <jansson.h>
@@ -15,6 +15,8 @@ extern "C" {
 #else
 #include <stdint.h>
 #endif
+
+const char* dyad_dtl_rpc_name = "dyad.fetch";
 
 // Forward declarations of DTL contexts for the underlying implementations
 struct dyad_dtl_ucx;
@@ -67,4 +69,4 @@ dyad_rc_t dyad_dtl_finalize (dyad_dtl_t** dtl_handle);
 }
 #endif
 
-#endif /* DYAD_DTL_IMPL_H */
+#endif /* DYAD_DTL_DYAD_DTL_IMPL_H */

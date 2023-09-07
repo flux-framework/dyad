@@ -1,5 +1,5 @@
-#ifndef DYAD_CORE_DYAD_FLUX_LOG_H
-#define DYAD_CORE_DYAD_FLUX_LOG_H
+#ifndef DYAD_DTL_DYAD_FLUX_LOG_H
+#define DYAD_DTL_DYAD_FLUX_LOG_H
 
 #include <flux/core.h>
 
@@ -31,4 +31,4 @@ extern "C" {
 }
 #endif
 
-#endif /* DYAD_CORE_DYAD_FLUX_LOG_H */
+#endif /* DYAD_DTL_DYAD_FLUX_LOG_H */

@@ -311,7 +311,7 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_get_data (const dyad_ctx_t* ctx,
     }
     DYAD_LOG_INFO (ctx, "Sending payload for RPC to DYAD module");
     f = flux_rpc_pack (ctx->h,
-                       "dyad.fetch",
+                       dyad_dtl_rpc_name,
                        kvs_data->owner_rank,
                        FLUX_RPC_STREAMING,
                        "o",

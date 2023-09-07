@@ -6,8 +6,7 @@ dyad_wrapper_la_LDFLAGS = \
 	-module \
 	-avoid-version \
 	-no-undefined \
-	-shared \
-	# -export-symbols wrapper.sym
+	-shared
 dyad_wrapper_la_LIBADD = \
 	$(top_builddir)/src/utils/libutils.la \
 	$(top_builddir)/src/core/libdyad_core.la

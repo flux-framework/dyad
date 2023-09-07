@@ -1,5 +1,5 @@
-#ifndef DYAD_CORE_DYAD_RC_H
-#define DYAD_CORE_DYAD_RC_H
+#ifndef DYAD_DTL_DYAD_RC_H
+#define DYAD_DTL_DYAD_RC_H
 
 #if BUILDING_DYAD
 #define DYAD_DLL_EXPORTED __attribute__ ((__visibility__ ("default")))
@@ -53,4 +53,4 @@ typedef enum dyad_core_return_codes dyad_rc_t;
 }
 #endif
 
-#endif  // DYAD_CORE_DYAD_RC_H
+#endif  // DYAD_DTL_DYAD_RC_H

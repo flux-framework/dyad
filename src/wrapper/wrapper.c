@@ -119,10 +119,6 @@ DYAD_DLL_EXPORTED int open (const char *path, int oflag, ...)
     open_ptr_t func_ptr = NULL;
     int mode = 0;
 
-    // if (ctx == NULL) {
-    //     dyad_wrapper_init ();
-    // }
-
     if (oflag & O_CREAT) {
         va_list arg;
         va_start (arg, oflag);
@@ -164,10 +160,6 @@ DYAD_DLL_EXPORTED FILE *fopen (const char *path, const char *mode)
     typedef FILE *(*fopen_ptr_t) (const char *, const char *);
     fopen_ptr_t func_ptr = NULL;
 
-    // if (ctx == NULL) {
-    //     dyad_wrapper_init ();
-    // }
-
     func_ptr = (fopen_ptr_t)dlsym (RTLD_NEXT, "fopen");
     if ((error = dlerror ())) {
         DPRINTF (ctx, "DYAD_SYNC: error in dlsym: %s\n", error);
@@ -205,10 +197,6 @@ DYAD_DLL_EXPORTED int close (int fd)
     close_ptr_t func_ptr = NULL;
     char path[PATH_MAX + 1] = {'\0'};
     int rc = 0;
-
-    // if (ctx == NULL) {
-    //     dyad_wrapper_init ();
-    // }
 
     func_ptr = (close_ptr_t)dlsym (RTLD_NEXT, "close");
     if ((error = dlerror ())) {
@@ -292,10 +280,6 @@ DYAD_DLL_EXPORTED int fclose (FILE *fp)
     char path[PATH_MAX + 1] = {'\0'};
     int rc = 0;
     int fd = 0;
-
-    // if (ctx == NULL) {
-    //     dyad_wrapper_init ();
-    // }
 
     func_ptr = (fclose_ptr_t)dlsym (RTLD_NEXT, "fclose");
     if ((error = dlerror ())) {

@@ -1,5 +1,5 @@
-#ifndef DYAD_DTL_H
-#define DYAD_DTL_H
+#ifndef DYAD_DTL_DYAD_DTL_H
+#define DYAD_DTL_DYAD_DTL_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -16,4 +16,4 @@ struct dyad_dtl;
 }
 #endif
 
-#endif /* DYAD_DTL_H */
+#endif /* DYAD_DTL_DYAD_DTL_H */

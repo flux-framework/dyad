@@ -8,8 +8,8 @@
  * SPDX-License-Identifier: LGPL-3.0
 \************************************************************/
 
-#ifndef URPC_CLIENT_CTX_H
-#define URPC_CLIENT_CTX_H
+#ifndef DYAD_URPC_URPC_CLIENT_CTX_H
+#define DYAD_URPC_URPC_CLIENT_CTX_H
 
 #ifdef __cplusplus
 #include <stdbool.h>
@@ -44,4 +44,4 @@ inline void init_urpc_client_ctx (urpc_client_ctx_t *ctx)
 }
 #endif  // __cplusplus
 
-#endif  // URPC_CLIENT_CTX_H
+#endif  // DYAD_URPC_URPC_CLIENT_CTX_H
