@@ -16,7 +16,7 @@ extern "C" {
 #include <stdint.h>
 #endif
 
-const char* dyad_dtl_rpc_name = "dyad.fetch";
+#define DYAD_DTL_RPC_NAME "dyad.fetch"
 
 // Forward declarations of DTL contexts for the underlying implementations
 struct dyad_dtl_ucx;

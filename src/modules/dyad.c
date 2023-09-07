@@ -221,7 +221,7 @@ static dyad_rc_t dyad_open (flux_t *h, dyad_dtl_mode_t dtl_mode, bool debug)
 }
 
 static const struct flux_msg_handler_spec htab[] =
-    {{FLUX_MSGTYPE_REQUEST, dyad_dtl_rpc_name, dyad_fetch_request_cb, 0},
+    {{FLUX_MSGTYPE_REQUEST, DYAD_DTL_RPC_NAME, dyad_fetch_request_cb, 0},
      FLUX_MSGHANDLER_TABLE_END};
 
 void usage ()
