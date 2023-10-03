@@ -1,6 +1,7 @@
 #include <dyad/dtl/dyad_dtl_impl.h>
 
 #include <dyad/dtl/flux_dtl.h>
+#include <dyad/perf/dyad_perf.h>
 
 #if DYAD_ENABLE_UCX
 #include "ucx_dtl.h"
@@ -9,15 +10,18 @@
 dyad_rc_t dyad_dtl_init (dyad_dtl_t **dtl_handle,
                          dyad_dtl_mode_t mode,
                          flux_t *h,
-                         bool debug)
+                         bool debug,
+                         dyad_perf_t *perf_handle)
 {
     dyad_rc_t rc = DYAD_RC_OK;
+    DYAD_PERF_REGION_BEGIN (perf_handle, "dyad_dtl_init");
     *dtl_handle = malloc (sizeof (struct dyad_dtl));
     if (*dtl_handle == NULL) {
         rc = DYAD_RC_SYSFAIL;
         goto dtl_init_done;
     }
     (*dtl_handle)->mode = mode;
+    (*dtl_handle)->perf_handle = perf_handle;
 #if DYAD_ENABLE_UCX
     if (mode == DYAD_DTL_UCX) {
         rc = dyad_dtl_ucx_init (*dtl_handle, mode, h, debug);
@@ -39,6 +43,7 @@ dyad_rc_t dyad_dtl_init (dyad_dtl_t **dtl_handle,
     rc = DYAD_RC_OK;
 
 dtl_init_done:
+    DYAD_PERF_REGION_END (perf_handle, "dyad_dtl_init");
     return rc;
 }
 
@@ -53,6 +58,8 @@ dyad_rc_t dyad_dtl_finalize (dyad_dtl_t **dtl_handle)
         rc = DYAD_RC_OK;
         goto dtl_finalize_done;
     }
+    dyad_perf_t *perf_handle = (*dtl_handle)->perf_handle;
+    DYAD_PERF_REGION_BEGIN (perf_handle, "dyad_dtl_finalize");
 #if DYAD_ENABLE_UCX
     if ((*dtl_handle)->mode == DYAD_DTL_UCX) {
         if ((*dtl_handle)->private.ucx_dtl_handle != NULL) {
@@ -80,5 +87,6 @@ dyad_rc_t dyad_dtl_finalize (dyad_dtl_t **dtl_handle)
 dtl_finalize_done:
     free (*dtl_handle);
     *dtl_handle = NULL;
+    DYAD_PERF_REGION_END (perf_handle, "dyad_dtl_finalize");
     return rc;
 }

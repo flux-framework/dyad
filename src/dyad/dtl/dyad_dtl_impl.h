@@ -7,6 +7,7 @@
 #include <dyad/dtl/dyad_dtl.h>
 #include <dyad/common/dyad_flux_log.h>
 #include <dyad/common/dyad_rc.h>
+#include <dyad/perf/dyad_perf.h>
 #include <flux/core.h>
 #ifdef __cplusplus
 #include <cstdint>
@@ -41,6 +42,7 @@ typedef enum dyad_dtl_comm_mode dyad_dtl_comm_mode_t;
 struct dyad_dtl {
     dyad_dtl_private_t private;
     dyad_dtl_mode_t mode;
+    dyad_perf_t* perf_handle;
     dyad_rc_t (*rpc_pack) (struct dyad_dtl* restrict self,
                            const char* restrict upath,
                            uint32_t producer_rank,
@@ -61,7 +63,8 @@ typedef struct dyad_dtl dyad_dtl_t;
 dyad_rc_t dyad_dtl_init (dyad_dtl_t** dtl_handle,
                          dyad_dtl_mode_t mode,
                          flux_t* h,
-                         bool debug);
+                         bool debug,
+                         dyad_perf_t* perf_handle);
 
 dyad_rc_t dyad_dtl_finalize (dyad_dtl_t** dtl_handle);
 

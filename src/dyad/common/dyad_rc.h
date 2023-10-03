@@ -7,6 +7,8 @@
 #define DYAD_DLL_EXPORTED
 #endif
 
+#define DYAD_DLL_HIDDEN __attribute__ ((__visibility__ ("default")))
+
 #if DYAD_PERFFLOW
 #define DYAD_PFA_ANNOTATE __attribute__ ((annotate ("@critical_path()")))
 #else
@@ -42,6 +44,9 @@ enum dyad_core_return_codes {
     DYAD_RC_BAD_B64DECODE = -18,   // Decoding of data w/ base64 failed
     DYAD_RC_BAD_COMM_MODE = -19,   // Invalid comm mode provided to DTL
     DYAD_RC_UNTRACKED = -20,       // Provided path is not tracked by DYAD
+    DYAD_RC_PERF_INIT_FAIL = -21,   // Performance measurement initialization failed
+    DYAD_RC_BAD_CLI_ARG_DEF = -22,  // Trying to define a CLI argument failed
+    DYAD_RC_BAD_CLI_PARSE = -23,    // Trying to parse CLI arguments failed
 };
 
 typedef enum dyad_core_return_codes dyad_rc_t;
