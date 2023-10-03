@@ -11,6 +11,7 @@ dyad_wrapper_la_LIBADD = \
 	$(top_builddir)/src/core/libdyad_core.la
 dyad_wrapper_la_CPPFLAGS = \
 	-I$(top_srcdir)/src/utils \
+	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/core \
 	-I$(top_srcdir)/src/dtl \
 	$(FLUX_CORE_CFLAGS) \

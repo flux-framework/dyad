@@ -18,7 +18,9 @@ dyad_la_CFLAGS = \
 	$(AM_CFLAGS) \
 	-I$(top_srcdir)/src/utils \
 	-I$(top_srcdir)/src/utils/base64 \
+	-I$(top_srcdir)/src/common \
 	-I$(top_srcdir)/src/dtl \
+	-I$(top_srcdir)/src/perf \
 	$(JANSSON_CFLAGS) \
 	$(FLUX_CORE_CFLAGS) \
 	-DBUILDING_DYAD \
@@ -32,6 +34,12 @@ if PERFFLOW
 dyad_la_LIBADD += $(PERFFLOW_LIBS)
 dyad_la_CFLAGS += $(PERFFLOW_CFLAGS) -DDYAD_PERFFLOW=1
 dyad_la_CPPFLAGS += $(PERFFLOW_PLUGIN_CPPFLAGS)
+endif
+if WITH_CALIPER
+dyad_la_CFLAGS += \
+	-DWITH_CALIPER=1 \
+	$(CALIPER_CFLAGS)
+dyad_la_LIBADD += $(CALIPER_LIBS)
 endif
 
 if URPC
