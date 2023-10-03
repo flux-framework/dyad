@@ -8,8 +8,8 @@ export DYAD_PATH_PRODUCER=${DYAD_PATH}_producer
 mkdir -p ${DYAD_PATH_PRODUCER}
 echo "Loading DYAD module"
 
-echo flux module load ${DYAD_INSTALL_PREFIX}/lib/dyad.so  $DYAD_PATH_PRODUCER $DYAD_DTL_MODE
-flux module load ${DYAD_INSTALL_PREFIX}/lib/dyad.so  $DYAD_PATH_PRODUCER $DYAD_DTL_MODE
+echo flux module load ${DYAD_INSTALL_PREFIX}/lib/dyad.so --dtl_mode=$DYAD_DTL_MODE $DYAD_PATH_PRODUCER
+flux module load ${DYAD_INSTALL_PREFIX}/lib/dyad.so --dtl_mode=$DYAD_DTL_MODE $DYAD_PATH_PRODUCER
 
 if [[ "$mode" == "${valid_modes[0]}" ]]; then
     echo ${GITHUB_WORKSPACE}/docs/demos/ecp_feb_2023/c_prod 10 $DYAD_PATH_PRODUCER

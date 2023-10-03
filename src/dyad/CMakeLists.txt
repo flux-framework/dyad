@@ -1,4 +1,5 @@
 add_subdirectory(utils)
+add_subdirectory(perf)
 add_subdirectory(dtl)
 add_subdirectory(core)
 add_subdirectory(modules)

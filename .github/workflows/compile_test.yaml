@@ -13,6 +13,7 @@ jobs:
       matrix:
         flux: [ 0.52.0, 0.49.0]
         mode: ["FLUX_RPC", "UCX"]
+        profiler_mode: ["CALIPER", "NONE"]
     runs-on: ubuntu-20.04 # Docker-based jobs must run on Ubuntu
     env:
       FLUX_VERSION: ${{ matrix.flux }}
@@ -21,6 +22,7 @@ jobs:
       DYAD_KVS_NAMESPACE: "test"
       DYAD_DTL_MODE: ${{ matrix.mode }}
       DYAD_PATH: "/home/runner/work/dyad/temp/"
+      DYAD_PROFILER_MODE: ${{ matrix.profiler_mode }}
     steps:
       - name: Push checkout
         if: github.event_name == 'push'
@@ -190,10 +192,16 @@ jobs:
           if [[ $DYAD_DTL_MODE == 'UCX' ]]; then
             spack install -j4 ucx@1.13.1
           fi
+          if [[ $DYAD_PROFILER_MODE == 'CALIPER' ]]; then
+            spack install -j4 caliper
+          fi
           mkdir -p ${DYAD_INSTALL_PREFIX}
           spack view --verbose symlink ${DYAD_INSTALL_PREFIX} flux-core@${FLUX_VERSION}
           if [[ $DYAD_DTL_MODE == 'UCX' ]]; then
             spack view --verbose symlink ${DYAD_INSTALL_PREFIX} ucx@1.13.1
+          fi
+          if [[ $DYAD_PROFILER_MODE == 'CALIPER' ]]; then
+            spack view --verbose symlink ${DYAD_INSTALL_PREFIX} caliper 
           fi
       - name: Compile DYAD
         run: |
@@ -206,9 +214,14 @@ jobs:
           mkdir build
           cd build
           export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:${DYAD_INSTALL_PREFIX}/lib/pkgconfig
-          CONFIGURE_FLAGS="-DDYAD_CONTROL_PLANE=FLUX_RPC -DDYAD_DATA_PLANE=FLUX_RPC -DDYAD_PROFILER=NONE"
+          CONFIGURE_FLAGS="-DDYAD_CONTROL_PLANE=FLUX_RPC -DDYAD_DATA_PLANE=FLUX_RPC"
           if [[ $DYAD_DTL_MODE == 'UCX' ]]; then
-            CONFIGURE_FLAGS="-DDYAD_CONTROL_PLANE=FLUX_RPC -DDYAD_DATA_PLANE=UCX -DDYAD_PROFILER=NONE"
+            CONFIGURE_FLAGS="-DDYAD_CONTROL_PLANE=FLUX_RPC -DDYAD_DATA_PLANE=UCX"
+          fi
+          if [[ $DYAD_PROFILER_MODE == 'CALIPER' ]]; then
+            CONFIGURE_FLAGS="${CONFIGURE_FLAGS} -DDYAD_PROFILER=CALIPER"
+          else
+            CONFIGURE_FLAGS="${CONFIGURE_FLAGS} -DDYAD_PROFILER=NONE"
           fi
           cmake -DCMAKE_INSTALL_PREFIX=${DYAD_INSTALL_PREFIX} ${CONFIGURE_FLAGS} -DENABLE_DYAD_DEBUG=ON ..
           make install -j

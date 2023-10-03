@@ -158,6 +158,21 @@ if(DYAD_PROFILER STREQUAL "PERFFLOW_ASPECT")
         message(FATAL_ERROR "-- [${PROJECT_NAME}] ucx is needed for ${PROJECT_NAME} build")
     endif ()
 endif()
+if(DYAD_PROFILER STREQUAL "CALIPER")
+    find_package(caliper REQUIRED)
+    if (${caliper_FOUND})
+        # For some reason, Caliper sets things a little oddly. The main things to be aware of are:
+        #  * caliper_INCLUDE_DIR (singular) is used instead of caliper_INCLUDE_DIRS
+        #  * caliper_LIB_DIR is used instead of caliper_LIBRARIES
+        #  * There is no variable from caliper-config.cmake that points to the actual library files.
+        #    Caliper expects us to use CMake targets for actual linking
+        message(STATUS "[${PROJECT_NAME}] found caliper at ${caliper_INCLUDE_DIR}")
+        include_directories(${caliper_INCLUDE_DIR})
+        set(DEPENDENCY_LIB ${DEPENDENCY_LIB} ${caliper_LID_DIR})
+    else ()
+        message(FATAL_ERROR "-- [${PROJECT_NAME}] caliper is needed for ${PROJECT_NAME} build")
+    endif ()
+endif()
 if(DYAD_DATA_PLANE STREQUAL "UCX")
     find_package(ucx 1.6 REQUIRED)
     if (${ucx_FOUND})
