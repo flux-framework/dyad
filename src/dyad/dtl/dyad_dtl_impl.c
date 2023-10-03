@@ -5,7 +5,6 @@
 #endif
 
 #include <dyad/dtl/dyad_dtl_impl.h>
-
 #include <dyad/dtl/flux_dtl.h>
 #include <dyad/perf/dyad_perf.h>
 
@@ -49,7 +48,7 @@ dyad_rc_t dyad_dtl_init (dyad_dtl_t **dtl_handle,
     }
     rc = DYAD_RC_OK;
 
-dtl_init_done:
+dtl_init_done:;
     DYAD_PERF_REGION_END (perf_handle, "dyad_dtl_init");
     return rc;
 }
@@ -91,7 +90,7 @@ dyad_rc_t dyad_dtl_finalize (dyad_dtl_t **dtl_handle)
     }
     rc = DYAD_RC_OK;
 
-dtl_finalize_done:
+dtl_finalize_done:;
     free (*dtl_handle);
     *dtl_handle = NULL;
     DYAD_PERF_REGION_END (perf_handle, "dyad_dtl_finalize");

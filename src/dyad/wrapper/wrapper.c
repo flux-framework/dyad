@@ -40,11 +40,10 @@ using namespace std;  // std::clock ()
 #endif  // defined(__cplusplus)
 
 #include <dlfcn.h>
+#include <dyad/utils/utils.h>
 #include <fcntl.h>
 #include <libgen.h>  // dirname
 #include <unistd.h>
-
-#include <dyad/utils/utils.h>
 // #include "wrapper.h"
 #include <dyad/common/dyad_flux_log.h>
 #include <dyad/core/dyad_core.h>
@@ -54,6 +53,10 @@ using namespace std;  // std::clock ()
 extern "C" {
 #endif
 
+// Note:
+// To ensure we don't have multiple initialization, we need the following:
+// 1) The DYAD context (ctx below) must be static
+// 2) The DYAD context should be on the heap (done w/ malloc in dyad_init)
 static __thread dyad_ctx_t *ctx = NULL;
 static void dyad_wrapper_init (void) __attribute__ ((constructor));
 static void dyad_wrapper_fini (void) __attribute__ ((destructor));
@@ -180,9 +183,7 @@ DYAD_DLL_EXPORTED FILE *fopen (const char *path, const char *mode)
     }
 
     if (!(ctx && ctx->h) || (ctx && !ctx->reenter) || !path) {
-        IPRINTF (ctx,
-                 "DYAD_SYNC: fopen sync not applicable for \"%s\".\n",
-                 ((path) ? path : ""));
+        IPRINTF (ctx, "DYAD_SYNC: fopen sync not applicable for \"%s\".\n", ((path) ? path : ""));
         goto real_call;
     }
 
@@ -257,9 +258,7 @@ real_call:;  // semicolon here to avoid the error
     int wronly = is_wronly (fd);
 
     if (wronly == -1) {
-        DPRINTF (ctx,
-                 "Failed to check the mode of the file with fcntl: %s\n",
-                 strerror (errno));
+        DPRINTF (ctx, "Failed to check the mode of the file with fcntl: %s\n", strerror (errno));
     }
 
     if (to_sync && wronly == 1) {
@@ -340,9 +339,7 @@ real_call:;
     int wronly = is_wronly (fd);
 
     if (wronly == -1) {
-        DPRINTF (ctx,
-                 "Failed to check the mode of the file with fcntl: %s\n",
-                 strerror (errno));
+        DPRINTF (ctx, "Failed to check the mode of the file with fcntl: %s\n", strerror (errno));
     }
 
     if (to_sync && wronly == 1) {
