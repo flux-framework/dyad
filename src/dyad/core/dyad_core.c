@@ -109,7 +109,7 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_commit (const dyad_ctx_t* ctx, flux_kvs_t
     flux_future_destroy (f);
     f = NULL;
     rc = DYAD_RC_OK;
-kvs_commit_region_finish:
+kvs_commit_region_finish:;
     DYAD_PERF_REGION_END (ctx->perf_handle, "dyad_kvs_commit");
     return rc;
 }
@@ -268,7 +268,7 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_read (const dyad_ctx_t* restrict ctx,
     print_mdata (ctx, *mdata);
     rc = DYAD_RC_OK;
 
-kvs_read_end:
+kvs_read_end:;
     if (DYAD_IS_ERROR (rc) && mdata != NULL && *mdata != NULL) {
         dyad_free_metadata (mdata);
     }
@@ -523,7 +523,7 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_cons_store (const dyad_ctx_t* restrict ctx,
     }
     rc = DYAD_RC_OK;
 
-pull_done:
+pull_done:;
     DYAD_PERF_REGION_END (ctx->perf_handle, "dyad_write_data_for_consumer");
     // If "check" is set and the operation was successful, set the
     // DYAD_CHECK_ENV environment variable to "ok"
@@ -698,7 +698,7 @@ dyad_rc_t dyad_init (bool debug,
     // TODO Print logging info
     rc = DYAD_RC_OK;
 
-init_region_finish:
+init_region_finish:;
     DYAD_PERF_REGION_END ((*ctx)->perf_handle, "dyad_init");
     return rc;
 }
@@ -873,7 +873,7 @@ dyad_rc_t dyad_get_metadata (dyad_ctx_t* ctx,
     }
     rc = DYAD_RC_OK;
 
-get_metadata_done:
+get_metadata_done:;
     if (DYAD_IS_ERROR (rc) && mdata != NULL && *mdata != NULL) {
         dyad_free_metadata (mdata);
     }
@@ -1020,7 +1020,7 @@ dyad_rc_t dyad_finalize (dyad_ctx_t** ctx)
     free (*ctx);
     *ctx = NULL;
     rc = DYAD_RC_OK;
-finalize_region_finish:
+finalize_region_finish:;
     DYAD_PERF_REGION_END (perf_handle, "dyad_finalize");
     dyad_perf_finalize (&perf_handle);
     return rc;

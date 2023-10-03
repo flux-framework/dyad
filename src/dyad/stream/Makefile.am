@@ -9,6 +9,7 @@ libdyad_fstream_la_LIBADD = $(top_builddir)/src/core/libdyad_core.la
 libdyad_fstream_la_CXXFLAGS = \
     $(AM_CFLAGS) \
     -I$(top_srcdir)/src/utils \
+	-I$(top_srcdir)/src/common \
     -I$(top_srcdir)/src/core \
 	-I$(top_srcdir)/src/dtl \
     $(FLUX_CORE_CFLAGS)
