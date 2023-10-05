@@ -311,9 +311,6 @@ dyad_rc_t dyad_dtl_ucx_rpc_unpack (dyad_dtl_t* self, const flux_msg_t* msg, char
         return DYAD_RC_BADUNPACK;
     }
     FLUX_LOG_INFO (dtl_handle->h, "Obtained upath from RPC payload: %s\n", upath);
-    FLUX_LOG_INFO (dtl_handle->h,
-                   "Obtained UCP tag from RPC payload: %lu\n",
-                   dtl_handle->comm_tag);
     FLUX_LOG_INFO (dtl_handle->h, "Decoding consumer UCP address using base64\n");
     dtl_handle->addr_len = base64_decoded_length (enc_addr_len);
     dtl_handle->consumer_address = (ucp_address_t*)malloc (dtl_handle->addr_len);
