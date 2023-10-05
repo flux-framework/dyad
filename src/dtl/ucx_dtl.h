@@ -8,6 +8,7 @@
 
 struct dyad_dtl_ucx {
     flux_t* h;
+    uint32_t producer_rank;
     bool debug;
     ucp_context_h ucx_ctx;
     ucp_worker_h ucx_worker;
@@ -15,6 +16,7 @@ struct dyad_dtl_ucx {
     dyad_dtl_comm_mode_t curr_comm_mode;
     ucp_address_t* consumer_address;
     size_t addr_len;
+    uint32_t tag_counter;
     ucp_tag_t comm_tag;
 };
 
