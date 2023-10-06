@@ -67,20 +67,20 @@ AC_ARG_ENABLE([urpc],
     [enable_urpc=no]
 )
 AM_CONDITIONAL([URPC], [test "x$enable_urpc" = "xyes"])
-AC_ARG_WITH([perfflow],
-    [AS_HELP_STRING([--with-perfflow],
+AC_ARG_ENABLE([perfflow],
+    [AS_HELP_STRING([--enable-perfflow],
                     [enable performance measurement with PerfFlow Aspect])],
-    [with_perfflow=$withval],
-    [with_perfflow=no]
+    [enable_perfflow=$withval],
+    [enable_perfflow=no]
 )
-AM_CONDITIONAL([PERFFLOW], [test "x$with_perfflow" = "xyes"])
-AC_ARG_WITH([ucx],
-    [AS_HELP_STRING([--with-ucx],
+AM_CONDITIONAL([PERFFLOW], [test "x$enable_perfflow" = "xyes"])
+AC_ARG_ENABLE([ucx],
+    [AS_HELP_STRING([--enable-ucx],
                     [build the UCX-based data transport layer])],
-    [with_ucx=$withval],
-    [with_ucx=no]
+    [enable_ucx=$withval],
+    [enable_ucx=no]
 )
-AM_CONDITIONAL([UCX], [test "x$with_ucx" = "xyes"])
+AM_CONDITIONAL([UCX], [test "x$enable_ucx" = "xyes"])
 
 #############################################
 # Define PKG_CHECK_VAR if it does not exist #
@@ -120,7 +120,7 @@ AX_PERFFLOW_ASPECT([PERFFLOW],
     [pkg_check_perfflow_found=yes],
     [pkg_check_perfflow_found=no]
 )
-if test "x$with_perfflow" = "xyes" && test "x$pkg_check_perfflow_found" = "xno"; then
+if test "x$enable_perfflow" = "xyes" && test "x$pkg_check_perfflow_found" = "xno"; then
     AC_MSG_ERROR([requested PerfFlow Aspect support, but cannot find PerfFlow Aspect with pkg-config])
 fi
 # Check for UCX v1.6.0 or higher
@@ -129,7 +129,7 @@ PKG_CHECK_MODULES([UCX],
     [pkg_check_ucx_found=yes],
     [pkg_check_ucx_found=no]
 )
-if test "x$with_ucx" = "xyes" && test "x$pkg_check_ucx_found" = "xno"; then
+if test "x$enable_ucx" = "xyes" && test "x$pkg_check_ucx_found" = "xno"; then
     AC_MSG_ERROR([requested UCX support, but cannot find UCX with pkg-config])
 fi
 PKG_CHECK_VAR([UCX_LIBDIR],
@@ -141,7 +141,7 @@ PKG_CHECK_VAR([UCX_LIBDIR],
 AS_IF([test "x$UCX_LIBDIR" = "x"],
     [AC_MSG_FAILURE([check_var succeeded, but value is incorrect])]
 )
-AS_IF([test "x$with_ucx" = "xyes"],
+AS_IF([test "x$enable_ucx" = "xyes"],
     [DYAD_MOD_RPATH="-Wl,-rpath,$UCX_LIBDIR"],
     [DYAD_MOD_RPATH=""]
 )
