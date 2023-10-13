@@ -66,14 +66,21 @@ AC_ARG_ENABLE([urpc],
     [enable_urpc=$enableval],
     [enable_urpc=no]
 )
+AM_CONDITIONAL([URPC], [test "x$enable_urpc" = "xyes"])
 AC_ARG_ENABLE([perfflow],
     [AS_HELP_STRING([--enable-perfflow],
                     [enable performance measurement with PerfFlow Aspect])],
-    [enable_perfflow=$enableval],
+    [enable_perfflow=$withval],
     [enable_perfflow=no]
 )
-# TODO Add support for libb64 back once base64 encoding/decoding is fully complete
-# AC_ARG_VAR([LIBB64_DIR], [root directory for libb64])
+AM_CONDITIONAL([PERFFLOW], [test "x$enable_perfflow" = "xyes"])
+AC_ARG_ENABLE([ucx],
+    [AS_HELP_STRING([--enable-ucx],
+                    [build the UCX-based data transport layer])],
+    [enable_ucx=$withval],
+    [enable_ucx=no]
+)
+AM_CONDITIONAL([UCX], [test "x$enable_ucx" = "xyes"])
 
 #############################################
 # Define PKG_CHECK_VAR if it does not exist #
@@ -102,11 +109,29 @@ AS_VAR_IF([$1], [""], [$5], [$4])dnl
 ########################
 # Check for the dl library (specifically, the "dlsym" function)
 AC_CHECK_LIB([dl], [dlsym])
-# Check for UCX v1.6.0 or higher (Required)
-# TODO: make UCX optional based on a new AC_ARG_ENABLE flag
-PKG_CHECK_MODULES([UCX],
-    [ucx >= 1.6.0]
+# Find and get info for Flux-Core using pkg-config
+AX_FLUX_CORE
+# Check for Jansson 2.10 or higher (Required)
+PKG_CHECK_MODULES([JANSSON],
+    [jansson >= 2.10]
 )
+# Check for PerfFlow Aspect
+AX_PERFFLOW_ASPECT([PERFFLOW],
+    [pkg_check_perfflow_found=yes],
+    [pkg_check_perfflow_found=no]
+)
+if test "x$enable_perfflow" = "xyes" && test "x$pkg_check_perfflow_found" = "xno"; then
+    AC_MSG_ERROR([requested PerfFlow Aspect support, but cannot find PerfFlow Aspect with pkg-config])
+fi
+# Check for UCX v1.6.0 or higher
+PKG_CHECK_MODULES([UCX],
+    [ucx >= 1.6.0],
+    [pkg_check_ucx_found=yes],
+    [pkg_check_ucx_found=no]
+)
+if test "x$enable_ucx" = "xyes" && test "x$pkg_check_ucx_found" = "xno"; then
+    AC_MSG_ERROR([requested UCX support, but cannot find UCX with pkg-config])
+fi
 PKG_CHECK_VAR([UCX_LIBDIR],
     [ucx >= 1.6.0],
     [libdir],
@@ -116,25 +141,11 @@ PKG_CHECK_VAR([UCX_LIBDIR],
 AS_IF([test "x$UCX_LIBDIR" = "x"],
     [AC_MSG_FAILURE([check_var succeeded, but value is incorrect])]
 )
-# Find and get info for Flux-Core using pkg-config
-AX_FLUX_CORE
-PKG_CHECK_MODULES([JANSSON],
-    [jansson >= 2.10],
-    [pkg_check_jansson_found=yes],
-    [pkg_check_jansson_found=no]
+AS_IF([test "x$enable_ucx" = "xyes"],
+    [DYAD_MOD_RPATH="-Wl,-rpath,$UCX_LIBDIR"],
+    [DYAD_MOD_RPATH=""]
 )
-if test "x$enable_urpc" = "xyes" && test "x$pkg_check_jansson_found" = "xno"; then
-    AC_MSG_ERROR([jansson cannot be located, but it is required when '--enable-urpc' is provided])
-fi
-AM_CONDITIONAL([URPC], [test "x$enable_urpc" = "xyes"])
-AX_PERFFLOW_ASPECT([PERFFLOW],
-    [pkg_check_perfflow_found=yes],
-    [pkg_check_perfflow_found=no]
-)
-if test "x$enable_perfflow" = "xyes" && test "x$pkg_check_perfflow_found" = "xno"; then
-    AC_MSG_ERROR([requested PerfFlow Aspect support, but cannot find PerfFlow Aspect with pkg-config])
-fi
-AM_CONDITIONAL([PERFFLOW], [test "x$enable_perfflow" = "xyes"])
+AC_SUBST([DYAD_MOD_RPATH])
 
 ###########################
 # Checks for header files #
