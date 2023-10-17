@@ -1,9 +1,8 @@
 import ctypes
+from ctypes.util import find_library
 import os
 from pathlib import Path
 import warnings
-
-from numpy.ctypeslib import load_library
 
 
 DYAD_LIB_DIR = None
@@ -39,6 +38,7 @@ class DyadCtxWrapper(ctypes.Structure):
 class Dyad:
 
     def __init__(self):
+        self.initialized = False
         self.dyad_core_lib = None
         self.ctx = None
         self.dyad_init = None
@@ -46,29 +46,13 @@ class Dyad:
         self.dyad_produce = None
         self.dyad_consume = None
         self.dyad_finalize = None
-        dyad_core_libpath = None
+        dyad_core_lib_file = None
         self.cons_path = None
         self.prod_path = None
-        if DYAD_LIB_DIR is None:
-            if "LD_LIBRARY_PATH" not in os.environ:
-                raise EnvironmentError("Cannot find LD_LIBRARY_PATH in environment!")
-            for p in os.environ["LD_LIBRARY_PATH"].split(":"):
-                lib_path = Path(p).expanduser().resolve()
-                if len(list(lib_path.glob("libdyad_core.*"))) != 0:
-                    dyad_core_libpath = lib_path
-                    break
-            if dyad_core_libpath is None:
-                raise FileNotFoundError("Cannot find libdyad_core.so!")
-        else:
-            dyad_core_libpath = DYAD_LIB_DIR
-            if not isinstance(DYAD_LIB_DIR, Path):
-                dyad_core_libpath = Path(DYAD_LIB_DIR)
-            dyad_core_libpath = dyad_core_libpath.expanduser().resolve()
-            if not dyad_core_libpath.is_dir():
-                raise FileNotFoundError("Value of DYAD_LIB_DIR either doesn't exist or is not a directory")
-            if len(list(lib_path.glob("libdyad_core.*"))) == 0:
-                raise FileNotFoundError("Cannot find libdyad_core.so in value of DYAD_LIB_DIR")
-        self.dyad_core_lib = load_library("libdyad_core", dyad_core_libpath)
+        dyad_core_lib_file = find_library("dyad_core")
+        if dyad_core_lib_file is None:
+            raise FileNotFoundError("Cannot find libdyad_core.so using 'ctypes'")
+        self.dyad_core_lib = ctypes.CDLL(dyad_core_lib_file)
         if self.dyad_core_lib is None:
             raise FileNotFoundError("Cannot find libdyad_core")
         self.ctx = ctypes.POINTER(DyadCtxWrapper)()
@@ -140,6 +124,7 @@ class Dyad:
             self.cons_path = None
         else:
             self.cons_path = Path(self.ctx.contents.cons_managed_path.decode("utf-8")).expanduser().resolve()
+        self.initialized = True
         
     def init_env(self):
         if self.dyad_init_env is None:
@@ -194,6 +179,8 @@ class Dyad:
             raise RuntimeError("Cannot consume data with DYAD!")
     
     def finalize(self):
+        if not self.initialized:
+            return
         if self.dyad_finalize is None:
             warnings.warn(
                 "Trying to finalize DYAD when libdyad_core.so was not found",
