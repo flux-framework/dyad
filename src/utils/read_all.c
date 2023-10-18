@@ -39,39 +39,28 @@ ssize_t write_all (int fd, const void *buf, size_t len)
 
 ssize_t read_all (int fd, void **bufp)
 {
-    const size_t chunksize = 4096;
-    size_t len = 0;
-    void *buf = NULL;
-    ssize_t n = 0;
-    ssize_t count = 0;
-    void *new_buf = NULL;
-    int saved_errno = errno;
-    char *buf_pos = NULL;
-
-    if (fd < 0 || !bufp) {
+    const ssize_t file_size = lseek (fd, 0, SEEK_END);
+    if (file_size == 0) {
+        errno = EINVAL;
+        return 0;
+    }
+    off_t offset = lseek (fd, 0, SEEK_SET);
+    if (offset != 0) {
         errno = EINVAL;
         return -1;
     }
-    do {
-        if (len - count == 0) {
-            len += chunksize;
-            if (!(new_buf = realloc (buf, len + 1)))
-                goto error;
-            buf = new_buf;
-        }
-        buf_pos = (char *)buf + count;
-        if ((n = read (fd, (void *)buf_pos, len - count)) < 0)
-            goto error;
-        count += n;
-    } while (n != 0);
-    ((char *)buf)[count] = '\0';
-    *bufp = buf;
-    return count;
-error:
-    saved_errno = errno;
-    free (buf);
-    errno = saved_errno;
-    return -1;
+    *bufp = malloc (file_size);
+    if (*bufp == NULL) {
+        errno = EINVAL;
+        return -1;
+    }
+    ssize_t bytes_read = read (fd, *bufp, file_size);
+    if (bytes_read < file_size) {
+        // could not read all data
+        errno = EINVAL;
+        return bytes_read;
+    }
+    return file_size;
 }
 
 /*
