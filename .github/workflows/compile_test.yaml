@@ -12,13 +12,14 @@ jobs:
       fail-fast: false
       matrix:
         flux: [ 0.52.0, 0.49.0]
+        mode: ["FLUX_RPC", "UCX"]
     runs-on: ubuntu-20.04 # Docker-based jobs must run on Ubuntu
     env:
       FLUX_VERSION: ${{ matrix.flux }}
       SPACK_DIR: "/home/runner/work/spack"
       DYAD_INSTALL_PREFIX: "/home/runner/work/dyad/install"
       DYAD_KVS_NAMESPACE: "test"
-      DYAD_DTL_MODE: "UCX"
+      DYAD_DTL_MODE: ${{ matrix.mode }}
       DYAD_PATH: "/home/runner/work/dyad/temp"
     steps:
       - name: Push checkout
@@ -177,13 +178,22 @@ jobs:
                   prefix: /usr
           EOF
           spack external find
-          spack spec flux-core@${FLUX_VERSION} ucx@1.13.1
+          spack spec flux-core@${FLUX_VERSION} 
+          if [[ $DYAD_DTL_MODE == 'UCX' ]]; then
+            spack spec ucx@1.13.1
+          fi
       - name: Install dependencies
         run: |
           . ${SPACK_DIR}/share/spack/setup-env.sh
-          spack install -j4 flux-core@${FLUX_VERSION} ucx@1.13.1
+          spack install -j4 flux-core@${FLUX_VERSION}
+          if [[ $DYAD_DTL_MODE == 'UCX' ]]; then
+            spack install -j4 ucx@1.13.1
+          fi
           mkdir -p ${DYAD_INSTALL_PREFIX}
-          spack view --verbose symlink ${DYAD_INSTALL_PREFIX} flux-core@${FLUX_VERSION} ucx@1.13.1
+          spack view --verbose symlink ${DYAD_INSTALL_PREFIX} flux-core@${FLUX_VERSION} 
+          if [[ $DYAD_DTL_MODE == 'UCX' ]]; then
+            spack view --verbose symlink ${DYAD_INSTALL_PREFIX} ucx@1.13.1
+          fi
       - name: Compile DYAD
         run: |
           echo "Activating spack"
@@ -193,8 +203,12 @@ jobs:
           ls
           pwd
           ./autogen.sh
+          CONFIGURE_FLAGS=""
+          if [[ $DYAD_DTL_MODE == 'UCX' ]]; then
+            CONFIGURE_FLAGS=" --enable-ucx "
+          fi
           export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:${DYAD_INSTALL_PREFIX}/lib/pkgconfig
-          ./configure --enable-dyad-debug --enable-ucx --prefix=${DYAD_INSTALL_PREFIX} \
+          ./configure --enable-dyad-debug ${CONFIGURE_FLAGS} --prefix=${DYAD_INSTALL_PREFIX} \
                       CFLAGS="-I${DYAD_INSTALL_PREFIX}/include" \
                       CXXFLAGS="-I${DYAD_INSTALL_PREFIX}/include" \
                       LDFLAGS="-L${DYAD_INSTALL_PREFIX}/lib"
