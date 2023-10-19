@@ -14,6 +14,7 @@ dyad_rc_t dyad_dtl_init (dyad_dtl_t **dtl_handle,
         return DYAD_RC_SYSFAIL;
     }
     (*dtl_handle)->mode = mode;
+#if DYAD_ENABLE_UCX
     if (mode == DYAD_DTL_UCX) {
         rc = dyad_dtl_ucx_init (*dtl_handle, mode, h, debug);
         if (DYAD_IS_ERROR (rc)) {
@@ -21,6 +22,9 @@ dyad_rc_t dyad_dtl_init (dyad_dtl_t **dtl_handle,
         }
         return DYAD_RC_OK;
     } else if (mode == DYAD_DTL_FLUX_RPC) {
+#else
+    if (mode == DYAD_DTL_FLUX_RPC) {
+#endif
         rc = dyad_dtl_flux_init (*dtl_handle, mode, h, debug);
         if (DYAD_IS_ERROR (rc)) {
             return rc;
@@ -39,6 +43,7 @@ dyad_rc_t dyad_dtl_finalize (dyad_dtl_t **dtl_handle)
         // this function should be treated as a no-op, and we
         // should return DYAD_RC_OK to indicate no error has occured
         return DYAD_RC_OK;
+#if DYAD_ENABLE_UCX
     if ((*dtl_handle)->mode == DYAD_DTL_UCX) {
         if ((*dtl_handle)->private.ucx_dtl_handle != NULL) {
             rc = dyad_dtl_ucx_finalize (dtl_handle);
@@ -47,6 +52,9 @@ dyad_rc_t dyad_dtl_finalize (dyad_dtl_t **dtl_handle)
             }
         }
     } else if ((*dtl_handle)->mode == DYAD_DTL_FLUX_RPC) {
+#else
+    if ((*dtl_handle)->mode == DYAD_DTL_FLUX_RPC) {
+#endif
         if ((*dtl_handle)->private.flux_dtl_handle != NULL) {
             rc = dyad_dtl_flux_finalize (dtl_handle);
             if (DYAD_IS_ERROR (rc)) {
