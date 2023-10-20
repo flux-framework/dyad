@@ -1,7 +1,6 @@
 lib_LTLIBRARIES = dyad_wrapper.la
 dyad_wrapper_la_SOURCES = wrapper.c
 dyad_wrapper_la_LDFLAGS = \
-	-Wl,-rpath,'$(UCX_LIBDIR)' \
 	$(AM_LDFLAGS) \
 	-module \
 	-avoid-version \
