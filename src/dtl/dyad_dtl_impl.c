@@ -1,7 +1,10 @@
 #include "dyad_dtl_impl.h"
 
 #include "flux_dtl.h"
+
+#if DYAD_ENABLE_UCX
 #include "ucx_dtl.h"
+#endif
 
 dyad_rc_t dyad_dtl_init (dyad_dtl_t **dtl_handle,
                          dyad_dtl_mode_t mode,
