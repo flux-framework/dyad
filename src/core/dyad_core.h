@@ -50,6 +50,12 @@ struct dyad_ctx {
 DYAD_DLL_EXPORTED extern const struct dyad_ctx dyad_ctx_default;
 typedef struct dyad_ctx dyad_ctx_t;
 
+struct dyad_metadata {
+    char* fpath;
+    uint32_t owner_rank;
+};
+typedef struct dyad_metadata dyad_metadata_t;
+
 // Debug message
 #ifndef DPRINTF
 #define DPRINTF(curr_dyad_ctx, fmt, ...)           \
@@ -84,7 +90,7 @@ typedef struct dyad_ctx dyad_ctx_t;
  *                            instance of DYAD
  * @param[out] ctx            the newly initialized context
  *
- * @return An integer error code (values TBD)
+ * @return An error code from dyad_rc.h
  */
 DYAD_DLL_EXPORTED dyad_rc_t dyad_init (bool debug,
                                        bool check,
@@ -100,7 +106,8 @@ DYAD_DLL_EXPORTED dyad_rc_t dyad_init (bool debug,
 /**
  * @brief Intialize the DYAD context using environment variables
  * @param[out] ctx the newly initialized context
- * @return An error code
+ *
+ * @return An error code from dyad_rc.h
  */
 DYAD_DLL_EXPORTED dyad_rc_t dyad_init_env (dyad_ctx_t** ctx);
 
@@ -110,10 +117,26 @@ DYAD_DLL_EXPORTED dyad_rc_t dyad_init_env (dyad_ctx_t** ctx);
  * @param[in] ctx    the DYAD context for the operation
  * @param[in] fname  the name of the file being "produced"
  *
- * @return An integer error code (values TBD)
+ * @return An error code from dyad_rc.h
  */
 DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_produce (dyad_ctx_t* ctx,
                                                             const char* fname);
+
+/**
+ * @brief Obtain DYAD metadata for a file in the consumer-managed directory
+ * @param[in]  ctx         the DYAD context for the operation
+ * @param[in]  fname       the name of the file for which metadata is obtained
+ * @param[in]  should_wait if true, wait for the file to be produced before returning
+ * @param[out] mdata       a dyad_metadata_t object containing the metadata for the file
+ *
+ * @return An error code from dyad_rc.h
+ */
+DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_get_metadata (dyad_ctx_t* ctx,
+                                                                 const char* fname,
+                                                                 bool should_wait,
+                                                                 dyad_metadata_t** mdata);
+
+DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_free_metadata (dyad_metadata_t* mdata);
 
 /**
  * @brief Wrapper function that performs all the common tasks needed
@@ -121,7 +144,7 @@ DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_produce (dyad_ctx_t* ctx,
  * @param[in] ctx    the DYAD context for the operation
  * @param[in] fname  the name of the file being "consumed"
  *
- * @return An integer error code (values TBD)
+ * @return An error code from dyad_rc.h
  */
 DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_consume (dyad_ctx_t* ctx,
                                                             const char* fname);
@@ -130,7 +153,7 @@ DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_consume (dyad_ctx_t* ctx,
  * @brief Finalizes the DYAD instance and deallocates the context
  * @param[in] ctx  the DYAD context being finalized
  *
- * @return An integer error code (values TBD)
+ * @return An error code from dyad_rc.h
  */
 DYAD_DLL_EXPORTED dyad_rc_t dyad_finalize (dyad_ctx_t** ctx);
 

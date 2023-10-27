@@ -24,9 +24,9 @@ enum dyad_core_return_codes {
     DYAD_RC_NOCTX = -2,            // No DYAD Context found
     DYAD_RC_FLUXFAIL = -3,         // Some Flux function failed
     DYAD_RC_BADCOMMIT = -4,        // Flux KVS commit didn't work
-    DYAD_RC_BADLOOKUP = -5,        // Flux KVS lookup didn't work
+    DYAD_RC_NOTFOUND = -5,         // Flux KVS lookup didn't work
     DYAD_RC_BADFETCH = -6,         // Flux KVS commit didn't work
-    DYAD_RC_BADRESPONSE = -7,      // Cannot create/populate a DYAD response
+    DYAD_RC_BADMETADATA = -7,      // Cannot create/populate a DYAD response
     DYAD_RC_BADRPC = -8,           // Flux RPC pack or get didn't work
     DYAD_RC_BADFIO = -9,           // File I/O failed
     DYAD_RC_BADMANAGEDPATH = -10,  // Cons or Prod Manged Path is bad
@@ -41,6 +41,7 @@ enum dyad_core_return_codes {
                                    // end of stream) sooner than expected
     DYAD_RC_BAD_B64DECODE = -18,   // Decoding of data w/ base64 failed
     DYAD_RC_BAD_COMM_MODE = -19,   // Invalid comm mode provided to DTL
+    DYAD_RC_UNTRACKED = -20,       // Provided path is not tracked by DYAD
 };
 
 typedef enum dyad_core_return_codes dyad_rc_t;
