@@ -132,20 +132,22 @@ PKG_CHECK_MODULES([UCX],
 if test "x$enable_ucx" = "xyes" && test "x$pkg_check_ucx_found" = "xno"; then
     AC_MSG_ERROR([requested UCX support, but cannot find UCX with pkg-config])
 fi
-PKG_CHECK_VAR([UCX_LIBDIR],
-    [ucx >= 1.6.0],
-    [libdir],
-    [],
-    [AC_MSG_FAILURE([Could not find libdir for UCX])]
-)
-AS_IF([test "x$UCX_LIBDIR" = "x"],
-    [AC_MSG_FAILURE([check_var succeeded, but value is incorrect])]
-)
-AS_IF([test "x$enable_ucx" = "xyes"],
-    [DYAD_MOD_RPATH="-Wl,-rpath,$UCX_LIBDIR"],
-    [DYAD_MOD_RPATH=""]
-)
-AC_SUBST([DYAD_MOD_RPATH])
+if test "x$enable_ucx" = "xyes"; then
+    PKG_CHECK_VAR([UCX_LIBDIR],
+        [ucx >= 1.6.0],
+        [libdir],
+        [],
+        [AC_MSG_FAILURE([Could not find libdir for UCX])]
+    )
+    AS_IF([test "x$UCX_LIBDIR" = "x"],
+        [AC_MSG_FAILURE([check_var succeeded, but value is incorrect])]
+    )
+    AS_IF([test "x$enable_ucx" = "xyes"],
+        [DYAD_MOD_RPATH="-Wl,-rpath,$UCX_LIBDIR"],
+        [DYAD_MOD_RPATH=""]
+    )
+    AC_SUBST([DYAD_MOD_RPATH])
+fi
 
 ###########################
 # Checks for header files #

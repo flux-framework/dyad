@@ -2,7 +2,6 @@ lib_LTLIBRARIES = libdyad_fstream.la
 
 libdyad_fstream_la_SOURCES = dyad_stream_core.cpp
 libdyad_fstream_la_LDFLAGS = \
-    -Wl,-rpath,'$(UCX_LIBDIR)' \
     $(AM_LDFLAGS) \
     -avoid-version \
     -no-undefined

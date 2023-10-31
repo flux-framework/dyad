@@ -23,7 +23,7 @@ libdyad_dtl_la_SOURCES += \
     ucx_dtl.c \
     ucx_dtl.h
 libdyad_dtl_la_LIBADD += $(UCX_LIBS)
-libdyad_dtl_la_CFLAGS += $(UCX_CFLAGS)
+libdyad_dtl_la_CFLAGS += $(UCX_CFLAGS) -DDYAD_ENABLE_UCX=1
 endif
 
 include_HEADERS = dyad_rc.h dyad_flux_log.h dyad_dtl.h
