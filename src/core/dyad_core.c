@@ -237,10 +237,7 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_read (const dyad_ctx_t* restrict ctx,
 
 kvs_read_end:
     if (DYAD_IS_ERROR (rc) && mdata != NULL && *mdata != NULL) {
-        if ((*mdata)->fpath != NULL)
-            free ((*mdata)->fpath);
-        free (*mdata);
-        *mdata = NULL;
+        dyad_free_metadata (mdata);
     }
     if (f != NULL) {
         flux_future_destroy (f);
@@ -294,10 +291,7 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_fetch (const dyad_ctx_t* restrict ctx,
                        "is the "
                        "same as the consumer rank\n");
         if (mdata != NULL && *mdata != NULL) {
-            if ((*mdata)->fpath != NULL)
-                free ((*mdata)->fpath);
-            free (*mdata);
-            *mdata = NULL;
+            dyad_free_metadata (mdata);
         }
         rc = DYAD_RC_OK;
         goto fetch_done;
@@ -776,22 +770,20 @@ dyad_rc_t dyad_get_metadata (dyad_ctx_t* ctx,
 
 get_metadata_done:
     if (DYAD_IS_ERROR (rc) && mdata != NULL && *mdata != NULL) {
-        if ((*mdata)->fpath != NULL)
-            free ((*mdata)->fpath);
-        free (*mdata);
-        *mdata = NULL;
+        dyad_free_metadata (mdata);
     }
     return rc;
 }
 
-dyad_rc_t dyad_free_metadata (dyad_metadata_t* mdata)
+dyad_rc_t dyad_free_metadata (dyad_metadata_t** mdata)
 {
-    if (mdata != NULL) {
-        if (mdata->fpath != NULL)
-            free (mdata->fpath);
-        free (mdata);
-        mdata = NULL;
+    if (mdata == NULL || *mdata == NULL) {
+        return DYAD_RC_OK;
     }
+    if ((*mdata)->fpath != NULL)
+        free ((*mdata)->fpath);
+    free (*mdata);
+    *mdata = NULL;
     return DYAD_RC_OK;
 }
 
@@ -836,10 +828,7 @@ dyad_rc_t dyad_consume (dyad_ctx_t* ctx, const char* fname)
     // Regardless if there was an error in dyad_pull,
     // free the KVS response object
     if (mdata != NULL) {
-        if (mdata->fpath != NULL)
-            free (mdata->fpath);
-        free (mdata);
-        mdata = NULL;
+        dyad_free_metadata (&mdata);
     }
     // If an error occured in dyad_pull, log it
     // and return the corresponding DYAD return code

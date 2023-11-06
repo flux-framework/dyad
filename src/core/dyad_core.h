@@ -136,7 +136,8 @@ DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_get_metadata (dyad_ctx_t* ctx
                                                                  bool should_wait,
                                                                  dyad_metadata_t** mdata);
 
-DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_free_metadata (dyad_metadata_t* mdata);
+DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t
+dyad_free_metadata (dyad_metadata_t** mdata);
 
 /**
  * @brief Wrapper function that performs all the common tasks needed

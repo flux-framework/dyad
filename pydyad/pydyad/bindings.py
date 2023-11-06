@@ -58,7 +58,7 @@ class DyadMetadata:
 
     def __del__(self):
         if self.mdata is not None:
-            self.dyad_free_metadata(self.mdata)
+            self.dyad_free_metadata(ctypes.byref(self.mdata))
             self.mdata = None
 
 
@@ -117,7 +117,7 @@ class Dyad:
         self.dyad_get_metadata.restype = ctypes.c_int
         self.dyad_free_metadata = self.dyad_core_lib.dyad_free_metadata
         self.dyad_free_metadata.argtypes = [
-            ctypes.POINTER(DyadMetadataWrapper)
+            ctypes.POINTER(ctypes.POINTER(DyadMetadataWrapper))
         ]
         self.dyad_free_metadata.restype = ctypes.c_int
         self.dyad_consume = self.dyad_core_lib.dyad_consume
@@ -229,7 +229,7 @@ class Dyad:
             warnings.warn("Trying to free DYAD metadata when libdyad_core.so was not found", RuntimeWarning)
             return
         res = self.dyad_free_metadata(
-            metadata_wrapper
+            ctypes.byref(metadata_wrapper)
         )
         if int(res) != 0:
             raise RuntimeError("Could not free DYAD metadata")
