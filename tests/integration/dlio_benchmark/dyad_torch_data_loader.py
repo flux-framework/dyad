@@ -9,6 +9,7 @@ from dlio_benchmark.common.enumerations import Shuffle, DatasetType, DataLoaderT
 from dlio_benchmark.data_loader.base_data_loader import BaseDataLoader
 from dlio_benchmark.reader.reader_factory import ReaderFactory
 from dlio_benchmark.utils.utility import utcnow, get_rank, Profile
+from dlio_benchmark.utils.config import ConfigArguments
 from pydyad import Dyad, dyad_open
 import numpy as np
 dlp = Profile(MODULE_DATA_LOADER)
@@ -39,7 +40,7 @@ class DYADTorchDataset(Dataset):
                                                thread_index=worker_id,
                                                epoch_number=self.epoch_number)
         self.dyad_io = Dyad()
-        self.dyad_io.init()
+        self.dyad_io.init_env()
         self.conf = ConfigArguments.get_instance()
 
     @dlp.log
@@ -51,7 +52,7 @@ class DYADTorchDataset(Dataset):
         self.num_images_read += 1
         step = int(math.ceil(self.num_images_read / self.batch_size))
         logging.info(f"{utcnow()} Rank {get_rank()} reading {image_idx} sample")
-        filename, sample_index = self._args.global_index_map[image_idx]
+        filename, sample_index = self.conf.global_index_map[image_idx]
         base_fname = os.path.basename(filename)
         file_obj = self.dyad_io.get_metadata(fname=base_fname, should_wait=False)
         if file_obj:
