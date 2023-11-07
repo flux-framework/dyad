@@ -56,11 +56,11 @@ class DYADTorchDataset(Dataset):
         base_fname = os.path.basename(filename)
         file_obj = self.dyad_io.get_metadata(fname=base_fname, should_wait=False)
         if file_obj:
-            with dyad_open(base_fname, "rb") as f:
+            with dyad_open(base_fname, "rb", dyad_ctx=self.dyad_io) as f:
                 data = np.load(f)
         else:
             data = self.reader.read_index(image_idx, step)
-            with dyad_open(base_fname, "wb") as f:
+            with dyad_open(base_fname, "wb", dyad_ctx=self.dyad_io) as f:
                 np.save(f, data)
         return data
 
