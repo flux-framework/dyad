@@ -1,8 +1,8 @@
 import ctypes
 from ctypes.util import find_library
-import os
 from pathlib import Path
 import warnings
+import weakref
 
 
 DYAD_LIB_DIR = None
@@ -33,6 +33,33 @@ class DyadCtxWrapper(ctypes.Structure):
         ("prod_managed_path", ctypes.c_char_p),
         ("cons_managed_path", ctypes.c_char_p),
     ]
+
+
+class DyadMetadataWrapper(ctypes.Structure):
+    _fields_ = [
+        ("fpath", ctypes.c_char_p),
+        ("owner_rank", ctypes.c_uint32),
+    ]
+
+
+class DyadMetadata:
+
+    def __init__(self, metadata_wrapper, dyad_obj):
+        self.mdata = metadata_wrapper
+        self.dyad_free_metadata = weakref.ref(dyad_obj.dyad_free_metadata)
+        self.mdata_attrs = [tup[0] for tup in metadata_wrapper._fields_]
+
+    def __getattr__(self, attr_name):
+        if self.mdata is not None:
+            if attr_name not in self.mdata_attrs:
+                raise AttributeError("{} is not an attribute of DYAD's metadata".format(attr_name))
+            return getattr(self.mdata.contents, attr_name)
+        raise AttributeError("Underlying metadata object has already been freed")
+
+    def __del__(self):
+        if self.mdata is not None:
+            self.dyad_free_metadata(ctypes.byref(self.mdata))
+            self.mdata = None
 
 
 class Dyad:
@@ -80,6 +107,19 @@ class Dyad:
             ctypes.c_char_p,
         ]
         self.dyad_produce.restype = ctypes.c_int
+        self.dyad_get_metadata = self.dyad_core_lib.dyad_get_metadata
+        self.dyad_get_metadata.argtypes = [
+            ctypes.POINTER(DyadCtxWrapper),
+            ctypes.c_char_p,
+            ctypes.c_bool,
+            ctypes.POINTER(ctypes.POINTER(DyadMetadataWrapper)),
+        ]
+        self.dyad_get_metadata.restype = ctypes.c_int
+        self.dyad_free_metadata = self.dyad_core_lib.dyad_free_metadata
+        self.dyad_free_metadata.argtypes = [
+            ctypes.POINTER(ctypes.POINTER(DyadMetadataWrapper))
+        ]
+        self.dyad_free_metadata.restype = ctypes.c_int
         self.dyad_consume = self.dyad_core_lib.dyad_consume
         self.dyad_consume.argtypes = [
             ctypes.POINTER(DyadCtxWrapper),
@@ -163,6 +203,36 @@ class Dyad:
         )
         if int(res) != 0:
             raise RuntimeError("Cannot produce data with DYAD!")
+        
+    def get_metadata(self, fname, should_wait=False, raw=False):
+        if self.dyad_get_metadata is None:
+            warnings.warn(
+                "Trying to get metadata for file with DYAD when libdyad_core.so was not found",
+                RuntimeWarning
+            )
+            return None
+        mdata = ctypes.POINTER(DyadMetadataWrapper)()
+        res = self.dyad_get_metadata(
+            self.ctx,
+            fname.encode(),
+            should_wait,
+            ctypes.byref(mdata)
+        )
+        if int(res) != 0:
+            return None
+        if not raw:
+            return DyadMetadata(mdata, self)
+        return mdata
+        
+    def free_metadata(self, metadata_wrapper):
+        if self.dyad_free_metadata is None:
+            warnings.warn("Trying to free DYAD metadata when libdyad_core.so was not found", RuntimeWarning)
+            return
+        res = self.dyad_free_metadata(
+            ctypes.byref(metadata_wrapper)
+        )
+        if int(res) != 0:
+            raise RuntimeError("Could not free DYAD metadata")
     
     def consume(self, fname):
         if self.dyad_consume is None:
