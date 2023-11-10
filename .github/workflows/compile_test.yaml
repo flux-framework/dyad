@@ -20,7 +20,7 @@ jobs:
       DYAD_INSTALL_PREFIX: "/home/runner/work/dyad/install"
       DYAD_KVS_NAMESPACE: "test"
       DYAD_DTL_MODE: ${{ matrix.mode }}
-      DYAD_PATH: "/home/runner/work/dyad/temp"
+      DYAD_PATH: "/home/runner/work/dyad/temp/"
     steps:
       - name: Push checkout
         if: github.event_name == 'push'
