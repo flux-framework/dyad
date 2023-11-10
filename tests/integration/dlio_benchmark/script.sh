@@ -20,6 +20,9 @@ mkdir -p $DYAD_PATH/0
 mkdir -p $DYAD_PATH/1
 rm -rf $DYAD_PATH/0/* $DYAD_PATH/1/*
 
+export DLIO_DATA_DIR=${DYAD_PROJECT_DIR}/tests/integration/dlio_benchmark/data
+mkdir -p ${DLIO_DATA_DIR}
+
 flux kvs namespace create ${DYAD_KVS_NAMESPACE}
 
 echo Loading modules
@@ -27,10 +30,10 @@ flux exec -r 0 flux module load ${SPACK_ENV}/lib/dyad.so  $DYAD_PATH/0 $DYAD_DTL
 flux exec -r 1 flux module load ${SPACK_ENV}/lib/dyad.so  $DYAD_PATH/1 $DYAD_DTL_MODE
 
 echo Generate Data
-flux run -N 2 --tasks-per-node 1 dlio_benchmark --config-dir=${DYAD_PROJECT_DIR}/tests/integration/dlio_benchmark/configs workload=dyad_unet3d ++workload.workflow.generate_data=True ++workload.workflow.train=False
+flux run -N 2 --tasks-per-node 2 dlio_benchmark --config-dir=${DYAD_PROJECT_DIR}/tests/integration/dlio_benchmark/configs workload=dyad_unet3d ++workload.dataset.data_folder=${DLIO_DATA_DIR} ++workload.workflow.generate_data=True ++workload.workflow.train=False
 
 echo Run Training
-flux run -N 2 --tasks-per-node 1 dlio_benchmark --config-dir=${DYAD_PROJECT_DIR}/tests/integration/dlio_benchmark/configs workload=dyad_unet3d ++workload.workflow.generate_data=False ++workload.workflow.train=True
+flux run -N 2 --tasks-per-node 2 dlio_benchmark --config-dir=${DYAD_PROJECT_DIR}/tests/integration/dlio_benchmark/configs workload=dyad_unet3d ++workload.dataset.data_folder=${DLIO_DATA_DIR} ++workload.workflow.generate_data=False ++workload.workflow.train=True
 
 flux kvs namespace remove ${DYAD_KVS_NAMESPACE}
 flux exec -r 0 flux module unload dyad
