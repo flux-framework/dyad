@@ -2,7 +2,6 @@ import ctypes
 from ctypes.util import find_library
 from pathlib import Path
 import warnings
-import weakref
 
 
 DYAD_LIB_DIR = None
@@ -46,7 +45,7 @@ class DyadMetadata:
 
     def __init__(self, metadata_wrapper, dyad_obj):
         self.mdata = metadata_wrapper
-        self.dyad_free_metadata = weakref.ref(dyad_obj.dyad_free_metadata)
+        self.dyad_bindings_obj = dyad_obj
 
     def __getattr__(self, attr_name):
         if self.mdata is not None: 
@@ -58,8 +57,9 @@ class DyadMetadata:
 
     def __del__(self):
         if self.mdata is not None:
-            self.dyad_free_metadata(ctypes.byref(self.mdata))
+            self.dyad_bindings_obj.free_metadata(self.mdata)
             self.mdata = None
+            self.dyad_bindings_obj = None
 
 
 class Dyad:
