@@ -1,1 +1,1 @@
-dlio_benchmark[dlio_profiler] @ git+https://github.com/argonne-lcf/dlio_benchmark.git
+dlio_benchmark @ git+https://github.com/argonne-lcf/dlio_benchmark.git
