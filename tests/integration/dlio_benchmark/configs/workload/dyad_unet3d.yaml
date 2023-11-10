@@ -6,7 +6,6 @@ workflow:
   generate_data: False
   train: True
   evaluation: True
-  debug: True
 
 dataset:
   data_folder: data/dyad_unet3d
