@@ -99,6 +99,7 @@ class Dyad:
             ctypes.c_char_p,                                 # kvs_namespace
             ctypes.c_char_p,                                 # prod_managed_path
             ctypes.c_char_p,                                 # cons_managed_path
+            ctypes.c_int,                                    # dtl_mode
             ctypes.POINTER(ctypes.POINTER(DyadCtxWrapper)),  # ctx
         ]
         self.dyad_init.restype = ctypes.c_int
