@@ -13,7 +13,6 @@ jobs:
       matrix:
         flux: [ 0.52.0, 0.49.0]
         mode: ["FLUX_RPC", "UCX"]
-        test_mode: ["c", "cpp", "python"]
     runs-on: ubuntu-20.04 # Docker-based jobs must run on Ubuntu
     env:
       FLUX_VERSION: ${{ matrix.flux }}
@@ -22,7 +21,6 @@ jobs:
       DYAD_KVS_NAMESPACE: "test"
       DYAD_DTL_MODE: ${{ matrix.mode }}
       DYAD_PATH: "/home/runner/work/dyad/temp"
-      DYAD_TEST_MODE: ${{ matrix.test_mode }}
     steps:
       - name: Push checkout
         if: github.event_name == 'push'
@@ -217,13 +215,11 @@ jobs:
                       LDFLAGS="-L${DYAD_INSTALL_PREFIX}/lib"
           make install -j
       - name: Install PyDYAD
-        if: ${{ matrix.test_mode == 'python' }}
         run: |
           cd ${GITHUB_WORKSPACE}/pydyad
           python3 -m pip install -e .
           cd ${GITHUB_WORKSPACE}
       - name: Install Test
-        if: ${{ matrix.test_mode == 'c' || matrix.test_mode == 'cpp' }}
         run: |
           . ${SPACK_DIR}/share/spack/setup-env.sh
           export CFLAGS="-I${DYAD_INSTALL_PREFIX}/include"
@@ -231,14 +227,30 @@ jobs:
           export LDFLAGS="-L${DYAD_INSTALL_PREFIX}/lib"
           cd ${GITHUB_WORKSPACE}/docs/demos/ecp_feb_2023
           make all
-      - name: Test DYAD with separate FS
+      - name: Test DYAD with separate FS c
         run: |
-          mkdir $DYAD_PATH
+          mkdir -p $DYAD_PATH
           . ${SPACK_DIR}/share/spack/setup-env.sh
           export PATH=${PATH}:${DYAD_INSTALL_PREFIX}/bin:${DYAD_INSTALL_PREFIX}/sbin
           export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${DYAD_INSTALL_PREFIX}/lib
           echo "Starting flux brokers"
-          flux start --test-size=2 /bin/bash ${GITHUB_WORKSPACE}/.github/prod-cons/dyad_prod_cons_test.sh ${DYAD_TEST_MODE}
+          flux start --test-size=2 /bin/bash ${GITHUB_WORKSPACE}/.github/prod-cons/dyad_prod_cons_test.sh c
+      - name: Test DYAD with separate FS cpp
+        run: |
+          mkdir -p $DYAD_PATH
+          . ${SPACK_DIR}/share/spack/setup-env.sh
+          export PATH=${PATH}:${DYAD_INSTALL_PREFIX}/bin:${DYAD_INSTALL_PREFIX}/sbin
+          export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${DYAD_INSTALL_PREFIX}/lib
+          echo "Starting flux brokers"
+          flux start --test-size=2 /bin/bash ${GITHUB_WORKSPACE}/.github/prod-cons/dyad_prod_cons_test.sh cpp
+      - name: Test DYAD with separate FS python
+        run: |
+          mkdir -p $DYAD_PATH
+          . ${SPACK_DIR}/share/spack/setup-env.sh
+          export PATH=${PATH}:${DYAD_INSTALL_PREFIX}/bin:${DYAD_INSTALL_PREFIX}/sbin
+          export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${DYAD_INSTALL_PREFIX}/lib
+          echo "Starting flux brokers"
+          flux start --test-size=2 /bin/bash ${GITHUB_WORKSPACE}/.github/prod-cons/dyad_prod_cons_test.sh python
       - name: Test DYAD with DLIO benchmark
         run: |
           mkdir -p $DYAD_PATH
