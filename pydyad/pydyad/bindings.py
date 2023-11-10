@@ -47,13 +47,13 @@ class DyadMetadata:
     def __init__(self, metadata_wrapper, dyad_obj):
         self.mdata = metadata_wrapper
         self.dyad_free_metadata = weakref.ref(dyad_obj.dyad_free_metadata)
-        self.mdata_attrs = [tup[0] for tup in metadata_wrapper._fields_]
 
     def __getattr__(self, attr_name):
-        if self.mdata is not None:
-            if attr_name not in self.mdata_attrs:
+        if self.mdata is not None: 
+            try:
+                return getattr(self.mdata.contents, attr_name)
+            except AttributeError:
                 raise AttributeError("{} is not an attribute of DYAD's metadata".format(attr_name))
-            return getattr(self.mdata.contents, attr_name)
         raise AttributeError("Underlying metadata object has already been freed")
 
     def __del__(self):
