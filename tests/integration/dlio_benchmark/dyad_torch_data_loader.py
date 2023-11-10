@@ -11,6 +11,7 @@ from dlio_benchmark.reader.reader_factory import ReaderFactory
 from dlio_benchmark.utils.utility import utcnow, get_rank, Profile
 from dlio_benchmark.utils.config import ConfigArguments
 from pydyad import Dyad, dyad_open
+from pydyad.bindings import DTLMode
 import numpy as np
 dlp = Profile(MODULE_DATA_LOADER)
 import os
@@ -39,10 +40,19 @@ class DYADTorchDataset(Dataset):
                                                dataset_type=self.dataset_type,
                                                thread_index=worker_id,
                                                epoch_number=self.epoch_number)
-        self.dyad_io = Dyad()
-        self.dyad_io.init_env()
-        self.dyad_managed_directory = os.getenv("DYAD_PATH", "")
         self.conf = ConfigArguments.get_instance()
+        self.dyad_io = Dyad()
+        is_local = os.getenv("DYAD_LOCAL_TEST", "0") == "1"
+        import flux
+        self.f = flux.Flux()
+        if is_local:
+            self.dyad_managed_directory = os.path.join(os.getenv("DYAD_PATH", ""), str(self.f.get_rank()))
+        else:
+            self.dyad_managed_directory = os.getenv("DYAD_PATH", "")
+        self.dyad_io.init(debug=self.conf.debug, check=False, shared_storage=False, key_depth=3,
+                          key_bins=1024, kvs_namespace=os.getenv("DYAD_KVS_NAMESPACE"),
+                          prod_managed_path=self.dyad_managed_directory, cons_managed_path=self.dyad_managed_directory,
+                          dtl_mode=DTLMode.DYAD_DTL_UCX)
 
     @dlp.log
     def __len__(self):
@@ -58,15 +68,19 @@ class DYADTorchDataset(Dataset):
         file_obj = None
         base_fname = filename
         if self.dyad_managed_directory != "":
+            logging.debug(f"Using managed directory {self.dyad_managed_directory}")
             base_fname = os.path.join(self.dyad_managed_directory, os.path.basename(filename))
             file_obj = self.dyad_io.get_metadata(fname=base_fname, should_wait=False)
             is_present = True
         if file_obj:
+            logging.debug(f"Reading from managed directory {base_fname}")
             with dyad_open(base_fname, "rb", dyad_ctx=self.dyad_io) as f:
                 data = np.load(f)
         else:
+            logging.debug(f"Reading from pfs {base_fname}")
             data = self.reader.read_index(image_idx, step)
             if is_present:
+                logging.debug(f"Writing to managed_directory {base_fname}")
                 with dyad_open(base_fname, "wb", dyad_ctx=self.dyad_io) as f:
                     np.save(f, data)
         return data

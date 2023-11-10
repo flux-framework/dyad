@@ -6,17 +6,16 @@ workflow:
   generate_data: False
   train: True
   evaluation: True
-  profiling: False
+  debug: True
 
 dataset:
   data_folder: data/dyad_unet3d
   format: npz
-  num_files_train: 1
+  num_files_train: 16
   num_files_eval: 1
   num_samples_per_file: 1
   record_length: 4096
-  num_subfolders_train: 2
-  num_subfolders_eval: 2
+  file_shuffle: SEED
 
 reader:
   data_loader: pytorch
@@ -28,6 +27,8 @@ reader:
 train:
   epochs: 10
   computation_time: 1.00
+  seed: 100
+  seed_change_epoch: True
 
 
 evaluation:
