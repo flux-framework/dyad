@@ -227,30 +227,6 @@ jobs:
           export LDFLAGS="-L${DYAD_INSTALL_PREFIX}/lib"
           cd ${GITHUB_WORKSPACE}/docs/demos/ecp_feb_2023
           make all
-      - name: Test DYAD with separate FS c
-        run: |
-          mkdir -p $DYAD_PATH
-          . ${SPACK_DIR}/share/spack/setup-env.sh
-          export PATH=${PATH}:${DYAD_INSTALL_PREFIX}/bin:${DYAD_INSTALL_PREFIX}/sbin
-          export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${DYAD_INSTALL_PREFIX}/lib
-          echo "Starting flux brokers"
-          flux start --test-size=2 /bin/bash ${GITHUB_WORKSPACE}/.github/prod-cons/dyad_prod_cons_test.sh c
-      - name: Test DYAD with separate FS cpp
-        run: |
-          mkdir -p $DYAD_PATH
-          . ${SPACK_DIR}/share/spack/setup-env.sh
-          export PATH=${PATH}:${DYAD_INSTALL_PREFIX}/bin:${DYAD_INSTALL_PREFIX}/sbin
-          export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${DYAD_INSTALL_PREFIX}/lib
-          echo "Starting flux brokers"
-          flux start --test-size=2 /bin/bash ${GITHUB_WORKSPACE}/.github/prod-cons/dyad_prod_cons_test.sh cpp
-      - name: Test DYAD with separate FS python
-        run: |
-          mkdir -p $DYAD_PATH
-          . ${SPACK_DIR}/share/spack/setup-env.sh
-          export PATH=${PATH}:${DYAD_INSTALL_PREFIX}/bin:${DYAD_INSTALL_PREFIX}/sbin
-          export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${DYAD_INSTALL_PREFIX}/lib
-          echo "Starting flux brokers"
-          flux start --test-size=2 /bin/bash ${GITHUB_WORKSPACE}/.github/prod-cons/dyad_prod_cons_test.sh python
       - name: Test DYAD with DLIO benchmark
         run: |
           mkdir -p $DYAD_PATH
@@ -262,3 +238,28 @@ jobs:
           echo "Starting flux brokers"
           cd ${GITHUB_WORKSPACE}/tests/integration/dlio_benchmark
           flux start --test-size=2 /bin/bash ./script.sh ${GITHUB_WORKSPACE} ${DYAD_INSTALL_PREFIX}
+      - name: Test DYAD with separate FS c
+        run: |
+          mkdir -p $DYAD_PATH
+          . ${SPACK_DIR}/share/spack/setup-env.sh
+          export PATH=${PATH}:${DYAD_INSTALL_PREFIX}/bin:${DYAD_INSTALL_PREFIX}/sbin
+          export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${DYAD_INSTALL_PREFIX}/lib
+          echo "Starting flux brokers"
+          flux start --test-size=2 /bin/bash ${GITHUB_WORKSPACE}/.github/prod-cons/dyad_prod_cons_test.sh "c"
+      - name: Test DYAD with separate FS cpp
+        run: |
+          mkdir -p $DYAD_PATH
+          . ${SPACK_DIR}/share/spack/setup-env.sh
+          export PATH=${PATH}:${DYAD_INSTALL_PREFIX}/bin:${DYAD_INSTALL_PREFIX}/sbin
+          export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${DYAD_INSTALL_PREFIX}/lib
+          echo "Starting flux brokers"
+          flux start --test-size=2 /bin/bash ${GITHUB_WORKSPACE}/.github/prod-cons/dyad_prod_cons_test.sh "cpp"
+      - name: Test DYAD with separate FS python
+        run: |
+          mkdir -p $DYAD_PATH
+          . ${SPACK_DIR}/share/spack/setup-env.sh
+          export PATH=${PATH}:${DYAD_INSTALL_PREFIX}/bin:${DYAD_INSTALL_PREFIX}/sbin
+          export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${DYAD_INSTALL_PREFIX}/lib
+          echo "Starting flux brokers"
+          flux start --test-size=2 /bin/bash ${GITHUB_WORKSPACE}/.github/prod-cons/dyad_prod_cons_test.sh "python"
+      
