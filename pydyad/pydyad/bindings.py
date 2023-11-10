@@ -1,5 +1,6 @@
 import ctypes
 from ctypes.util import find_library
+import enum
 from pathlib import Path
 import warnings
 
@@ -60,6 +61,11 @@ class DyadMetadata:
             self.dyad_bindings_obj.free_metadata(self.mdata)
             self.mdata = None
             self.dyad_bindings_obj = None
+
+
+class DTLMode(enum.IntEnum):
+    DYAD_DTL_UCX = 0
+    DYAD_DTL_FLUX_RPC = 1
 
 
 class Dyad:
@@ -144,6 +150,7 @@ class Dyad:
         kvs_namespace=None,
         prod_managed_path=None,
         cons_managed_path=None,
+        dtl_mode=DTLMode.DYAD_DTL_FLUX_RPC,
     ):
         if self.dyad_init is None:
             warnings.warn(
@@ -160,6 +167,7 @@ class Dyad:
             kvs_namespace.encode() if kvs_namespace is not None else None,
             prod_managed_path.encode() if prod_managed_path is not None else None,
             cons_managed_path.encode() if cons_managed_path is not None else None,
+            ctypes.c_int(dtl_mode),
             ctypes.byref(self.ctx),
         )
         if int(res) != 0:
