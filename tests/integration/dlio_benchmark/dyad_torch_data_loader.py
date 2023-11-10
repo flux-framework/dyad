@@ -49,10 +49,14 @@ class DYADTorchDataset(Dataset):
             self.dyad_managed_directory = os.path.join(os.getenv("DYAD_PATH", ""), str(self.f.get_rank()))
         else:
             self.dyad_managed_directory = os.getenv("DYAD_PATH", "")
+        dtl_str = os.getenv("DYAD_DTL_MODE", "FLUX_RPC")
+        mode = DTLMode.DYAD_DTL_FLUX_RPC
+        if dtl_str == "UCX":
+            mode = DTLMode.DYAD_DTL_UCX
         self.dyad_io.init(debug=self.conf.debug, check=False, shared_storage=False, key_depth=3,
                           key_bins=1024, kvs_namespace=os.getenv("DYAD_KVS_NAMESPACE"),
                           prod_managed_path=self.dyad_managed_directory, cons_managed_path=self.dyad_managed_directory,
-                          dtl_mode=DTLMode.DYAD_DTL_UCX)
+                          dtl_mode=mode)
 
     @dlp.log
     def __len__(self):
