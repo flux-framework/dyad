@@ -41,6 +41,7 @@ class DYADTorchDataset(Dataset):
                                                epoch_number=self.epoch_number)
         self.dyad_io = Dyad()
         self.dyad_io.init_env()
+        self.dyad_managed_directory = os.getenv("DYAD_PATH", "")
         self.conf = ConfigArguments.get_instance()
 
     @dlp.log
@@ -53,15 +54,21 @@ class DYADTorchDataset(Dataset):
         step = int(math.ceil(self.num_images_read / self.batch_size))
         logging.info(f"{utcnow()} Rank {get_rank()} reading {image_idx} sample")
         filename, sample_index = self.conf.global_index_map[image_idx]
-        base_fname = os.path.basename(filename)
-        file_obj = self.dyad_io.get_metadata(fname=base_fname, should_wait=False)
+        is_present = False
+        file_obj = None
+        base_fname = filename
+        if self.dyad_managed_directory != "":
+            base_fname = os.path.join(self.dyad_managed_directory, os.path.basename(filename))
+            file_obj = self.dyad_io.get_metadata(fname=base_fname, should_wait=False)
+            is_present = True
         if file_obj:
             with dyad_open(base_fname, "rb", dyad_ctx=self.dyad_io) as f:
                 data = np.load(f)
         else:
             data = self.reader.read_index(image_idx, step)
-            with dyad_open(base_fname, "wb", dyad_ctx=self.dyad_io) as f:
-                np.save(f, data)
+            if is_present:
+                with dyad_open(base_fname, "wb", dyad_ctx=self.dyad_io) as f:
+                    np.save(f, data)
         return data
 
 class DyadTorchDataLoader(BaseDataLoader):
