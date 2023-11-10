@@ -134,9 +134,17 @@ class Dyad:
         self.cons_path = None
         self.prod_path = None
         
-    def init(self, debug, check, shared_storage, key_depth,
-             key_bins, kvs_namespace, prod_managed_path,
-             cons_managed_path):
+    def init(
+        self,
+        debug=False,
+        check=False,
+        shared_storage=False,
+        key_depth=3,
+        key_bins=1024,
+        kvs_namespace=None,
+        prod_managed_path=None,
+        cons_managed_path=None,
+    ):
         if self.dyad_init is None:
             warnings.warn(
                 "Trying to initialize DYAD when libdyad_core.so was not found",
