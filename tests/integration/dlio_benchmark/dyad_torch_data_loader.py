@@ -79,14 +79,14 @@ class DYADTorchDataset(Dataset):
         if file_obj:
             logging.debug(f"Reading from managed directory {base_fname}")
             with dyad_open(base_fname, "rb", dyad_ctx=self.dyad_io) as f:
-                data = np.load(f)
+                data = np.load(f, allow_pickle=True)["x"]
         else:
             logging.debug(f"Reading from pfs {base_fname}")
             data = self.reader.read_index(image_idx, step)
             if is_present:
                 logging.debug(f"Writing to managed_directory {base_fname}")
                 with dyad_open(base_fname, "wb", dyad_ctx=self.dyad_io) as f:
-                    np.save(f, data)
+                    np.save(f, x=data)
         return data
 
 class DyadTorchDataLoader(BaseDataLoader):
