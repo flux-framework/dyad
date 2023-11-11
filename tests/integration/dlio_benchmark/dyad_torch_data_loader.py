@@ -86,7 +86,7 @@ class DYADTorchDataset(Dataset):
             if is_present:
                 logging.debug(f"Writing to managed_directory {base_fname}")
                 with dyad_open(base_fname, "wb", dyad_ctx=self.dyad_io) as f:
-                    np.save(f, x=data)
+                    np.savez(f, x=data)
         return data
 
 class DyadTorchDataLoader(BaseDataLoader):
