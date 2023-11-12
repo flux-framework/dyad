@@ -1,4 +1,4 @@
-SUBDIRS = libtap base64
+SUBDIRS = base64
 
 noinst_LTLIBRARIES = libutils.la libmurmur3.la
 libutils_la_SOURCES = utils.c utils.h read_all.c read_all.h
