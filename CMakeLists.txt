@@ -18,9 +18,9 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 # This is mainly needed for finding FluxCore
 find_package(PkgConfig REQUIRED)
 find_package(FluxCore REQUIRED)
-find_package(Jansson REQUIRED VERSION 2.10)
+find_package(Jansson 2.10 REQUIRED)
 find_package(perfflowaspect CONFIG)
-find_package(ucx CONFIG VERSION 1.6)
+find_package(ucx 1.6 CONFIG)
 
 if (ENABLE_PERFFLOW AND NOT perfflowaspect_FOUND)
     message(FATAL_ERROR "Requested PerfFlow Aspect support, but could not find PerfFlow")
