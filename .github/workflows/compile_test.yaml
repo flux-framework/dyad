@@ -203,16 +203,14 @@ jobs:
           cd ${GITHUB_WORKSPACE}
           ls
           pwd
-          ./autogen.sh
+          mkdir build
+          cd build
+          export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:${DYAD_INSTALL_PREFIX}/lib/pkgconfig
           CONFIGURE_FLAGS=""
           if [[ $DYAD_DTL_MODE == 'UCX' ]]; then
-            CONFIGURE_FLAGS=" --enable-ucx "
+            CONFIGURE_FLAGS=" -DENABLE_UCX_DTL=ON -DCMAKE_MODULE_PATH='${DYAD_INSTALL_PREFIX}/lib/cmake/ucx' "
           fi
-          export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:${DYAD_INSTALL_PREFIX}/lib/pkgconfig
-          ./configure --enable-dyad-debug ${CONFIGURE_FLAGS} --prefix=${DYAD_INSTALL_PREFIX} \
-                      CFLAGS="-I${DYAD_INSTALL_PREFIX}/include" \
-                      CXXFLAGS="-I${DYAD_INSTALL_PREFIX}/include" \
-                      LDFLAGS="-L${DYAD_INSTALL_PREFIX}/lib"
+          cmake -DCMAKE_INSTALL_PREFIX=${DYAD_INSTALL_PREFIX} ${CONFIGURE_FLAGS} -DENABLE_DYAD_DEBUG=ON ..
           make install -j
       - name: Install PyDYAD
         run: |
