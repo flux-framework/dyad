@@ -177,7 +177,7 @@ function(dyad_install_headers public_headers current_dir)
         get_filename_component(header_directory_path "${header_file_path}" DIRECTORY)
         install(
                 FILES ${header}
-                DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${header_directory_path}"
+                DESTINATION "${CMAKE_INSTALL_PREFIX}/include/${header_directory_path}"
         )
         file(COPY ${header}
                 DESTINATION "${CMAKE_INCLUDE_OUTPUT_DIRECTORY}/${header_directory_path}")

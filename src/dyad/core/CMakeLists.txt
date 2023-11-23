@@ -6,6 +6,7 @@ add_library(dyad_core SHARED ${DYAD_CORE_SRC})
 target_link_libraries(dyad_core PUBLIC Jansson::Jansson flux::core)
 target_link_libraries(dyad_core PRIVATE utils murmur3 dyad_dtl)
 target_compile_definitions(dyad_core PUBLIC BUILDING_DYAD=1)
+set_target_properties(dyad_core PROPERTIES PUBLIC_HEADER ${DYAD_CORE_PUBLIC_HEADER})
 
 if(DYAD_PROFILER STREQUAL "PERFFLOW_ASPECT")
     target_link_libraries(dyad_core PUBLIC perfflowaspect::perfflowaspect)

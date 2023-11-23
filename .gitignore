@@ -114,3 +114,5 @@ flux_barrier
 **/__pycache__/
 **/build
 **/*.egg-info
+/install/
+/dyad-env/
