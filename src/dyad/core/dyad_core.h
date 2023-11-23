@@ -1,11 +1,12 @@
 #ifndef DYAD_CORE_DYAD_CORE_H
 #define DYAD_CORE_DYAD_CORE_H
 
-#include "dyad_envs.h"
-#include "dyad_rc.h"
-// Includes <flux/core.h>
-#include "dyad_dtl.h"
-#include "dyad_flux_log.h"
+
+#include <dyad/common/dyad_rc.h>
+#include <dyad/dtl/dyad_dtl.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <flux/core.h>
 
 #ifdef __cplusplus
 #include <cstdio>

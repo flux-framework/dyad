@@ -1,6 +1,6 @@
-#include "dyad_dtl_impl.h"
+#include <dyad/dtl/dyad_dtl_impl.h>
 
-#include "flux_dtl.h"
+#include <dyad/dtl/flux_dtl.h>
 
 #if DYAD_ENABLE_UCX
 #include "ucx_dtl.h"

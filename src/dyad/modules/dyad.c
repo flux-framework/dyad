@@ -30,10 +30,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "dyad_dtl_impl.h"
-#include "dyad_rc.h"
-#include "read_all.h"
-#include "utils.h"
+#include <dyad/dtl/dyad_dtl_impl.h>
+#include <dyad/common/dyad_rc.h>
+#include <dyad/utils/read_all.h>
+#include <dyad/utils/utils.h>
 
 #define TIME_DIFF(Tstart, Tend)                                                \
     ((double)(1000000000L * ((Tend).tv_sec - (Tstart).tv_sec) + (Tend).tv_nsec \

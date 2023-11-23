@@ -38,9 +38,10 @@ using namespace std;  // std::clock ()
 #include <libgen.h>  // dirname
 #include <unistd.h>
 
-#include "utils.h"
+#include <dyad/utils/utils.h>
 // #include "wrapper.h"
-#include "dyad_core.h"
+#include <dyad/common/dyad_flux_log.h>
+#include <dyad/core/dyad_core.h>
 
 #ifdef __cplusplus
 extern "C" {

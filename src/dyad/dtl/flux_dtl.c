@@ -1,4 +1,4 @@
-#include "flux_dtl.h"
+#include <dyad/dtl/flux_dtl.h>
 
 dyad_rc_t dyad_dtl_flux_init (dyad_dtl_t* self,
                               dyad_dtl_mode_t mode,
@@ -51,7 +51,7 @@ dyad_rc_t dyad_dtl_flux_rpc_unpack (dyad_dtl_t* self, const flux_msg_t* msg, cha
         // TODO create new RC for this
         return DYAD_RC_BADUNPACK;
     }
-    self->private.flux_dtl_handle->msg = msg;
+    self->private.flux_dtl_handle->msg = (flux_msg_t*)msg;
     return DYAD_RC_OK;
 }
 

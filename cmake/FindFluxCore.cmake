@@ -22,9 +22,8 @@ set(LIBFLUX_VERSION ${FLUX_CORE_VERSION})
 
 find_program(FLUX flux
     PATHS ${FLUX_PREFIX}/bin ENV PATH)
-
 execute_process(COMMAND $FLUX python -c "import sys; print(\".\".join(map(str, sys.version_info[[:2]])))"
-    OUTPUT_VARIABLE FLUX_PYTHON_VERSION)
+        OUTPUT_VARIABLE FLUX_PYTHON_VERSION)
 
 pkg_check_modules(FLUX_HOSTLIST REQUIRED IMPORTED_TARGET flux-hostlist )
 pkg_check_modules(FLUX_IDSET REQUIRED IMPORTED_TARGET flux-idset )
@@ -38,8 +37,32 @@ add_library(flux::idset ALIAS PkgConfig::FLUX_IDSET)
 add_library(flux::optparse ALIAS PkgConfig::FLUX_OPTPARSE)
 add_library(flux::schedutil ALIAS PkgConfig::FLUX_SCHEDUTIL)
 add_library(flux::taskmap ALIAS PkgConfig::FLUX_TASKMAP)
+if(${FLUX} STREQUAL "FLUX-NOTFOUND")
+    set(FluxCore_FOUND False)
+else()
+    find_path(FluxCore_INCLUDE_DIRS flux/core.h PATH_SUFFIXES include/)
+    if (NOT IS_DIRECTORY "${FluxCore_INCLUDE_DIRS}")
+        set(FluxCore_FOUND FALSE)
+    else()
+        message("-- FluxCore_INCLUDE_DIRS: " ${FluxCore_INCLUDE_DIRS})
+        get_filename_component(FluxCore_ROOT_DIR ${FluxCore_INCLUDE_DIRS}/.. ABSOLUTE)
+        message("-- FluxCore_ROOT_DIR: " ${FluxCore_ROOT_DIR})
+        find_path(FluxCore_LIBRARY_PATH libflux-core.so PATH_SUFFIXES lib/)
+        message("-- FluxCore_LIBRARY_PATH: " ${FluxCore_LIBRARY_PATH})
+        set(FluxCore_LIBRARIES -L${FluxCore_LIBRARY_PATH} -lflux-core)
+        set(FluxCore_FOUND True)
+        include(FindPackageHandleStandardArgs)
+        # handle the QUIETLY and REQUIRED arguments and set ortools to TRUE
+        # if all listed variables are TRUE
+        find_package_handle_standard_args(FluxCore
+                REQUIRED_VARS FluxCore_FOUND FluxCore_ROOT_DIR FluxCore_LIBRARIES FluxCore_INCLUDE_DIRS)
+    endif ()
+endif()
+
+
 
 # all but PMI
 add_library(flux-all INTERFACE)
 target_link_libraries(flux-all INTERFACE flux::core flux::hostlist flux::idset flux::optparse flux::schedutil flux::taskmap)
 add_library(flux::all ALIAS flux-all)
+
