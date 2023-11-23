@@ -1,6 +1,6 @@
 #include "generation.h"
 
-#include <dyad_stream_api.hpp>
+#include <dyad/stream/dyad_stream_api.hpp>
 #include <fstream>
 #include <iostream>
 #include <string>
