@@ -484,7 +484,7 @@ get_done:;
 DYAD_CORE_FUNC_MODS dyad_rc_t dyad_cons_store (const dyad_ctx_t* restrict ctx,
                                                const dyad_metadata_t* restrict mdata,
                                                int fd, const size_t data_len,
-                                               const char* restrict file_data)
+                                               char* restrict file_data)
 {
     dyad_rc_t rc = DYAD_RC_OK;
     const char* odir = NULL;
@@ -528,7 +528,7 @@ pull_done:;
     // If "check" is set and the operation was successful, set the
     // DYAD_CHECK_ENV environment variable to "ok"
     if (rc == DYAD_RC_OK && (ctx && ctx->check))
-        setenv (DYAD_CHECK_ENV, "ok", 1);
+        setenv(DYAD_CHECK_ENV, "ok", 1);
     return rc;
 }
 

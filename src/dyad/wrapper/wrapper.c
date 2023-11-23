@@ -44,6 +44,8 @@ using namespace std;  // std::clock ()
 #include <fcntl.h>
 #include <libgen.h>  // dirname
 #include <unistd.h>
+
+#include <dyad/utils/utils.h>
 // #include "wrapper.h"
 #include <dyad/common/dyad_flux_log.h>
 #include <dyad/core/dyad_core.h>
