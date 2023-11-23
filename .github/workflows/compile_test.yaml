@@ -220,6 +220,7 @@ jobs:
       - name: Install Test
         run: |
           . ${SPACK_DIR}/share/spack/setup-env.sh
+          export LD_LIBRARY_PATH=${DYAD_INSTALL_PREFIX}/lib:${LD_LIBRARY_PATH}
           export CFLAGS="-I${DYAD_INSTALL_PREFIX}/include"
           export CXXFLAGS="-I${DYAD_INSTALL_PREFIX}/include"
           export LDFLAGS="-L${DYAD_INSTALL_PREFIX}/lib"
