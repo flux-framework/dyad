@@ -10,9 +10,9 @@
 
 #include "dyad_stream_core.hpp"
 
-#include "dyad_core.h"
-#include "murmur3.h"
-#include "utils.h"
+#include <dyad/core/dyad_core.h>
+#include <dyad/utils/murmur3.h>
+#include <dyad/utils/utils.h>
 
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
@@ -30,6 +30,8 @@ using namespace std;  // std::clock ()
 // #include <cstdbool> // c++11
 
 #include <dlfcn.h>
+#include <dyad/common/dyad_flux_log.h>
+#include <dyad/core/dyad_envs.h>
 #include <fcntl.h>
 #include <libgen.h>  // dirname
 #include <unistd.h>

@@ -1,6 +1,8 @@
 #ifndef DYAD_DTL_DYAD_FLUX_LOG_H
 #define DYAD_DTL_DYAD_FLUX_LOG_H
 
+#include <sys/types.h>
+#include <unistd.h>
 #include <flux/core.h>
 
 #ifdef __cplusplus

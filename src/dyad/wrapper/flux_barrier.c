@@ -8,13 +8,14 @@
  * SPDX-License-Identifier: LGPL-3.0
 \************************************************************/
 
-#include <flux/core.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
 #include <time.h>
-
+#include <unistd.h>
+#include <flux/core.h>
 #if DYAD_FULL_DEBUG
 #define IPRINTF DPRINTF
 #define IPRINTF_DEFINED
@@ -92,12 +93,12 @@ int main (int argc, char** argv)
 
     flux_future_destroy (fb);
 
-    struct timespec t_now;
-    clock_gettime (CLOCK_REALTIME, &t_now);
-    char tbuf[100];
-    strftime (tbuf, sizeof (tbuf), "%D %T", gmtime (&(t_now.tv_sec)));
-
-    FLUX_LOG_INFO ("Synchronized at %s.%09ld\n", tbuf, t_now.tv_nsec);
+//    struct timespec t_now;
+//    clock_gettime (CLOCK_REALTIME, &t_now);
+//    char tbuf[100];
+//    strftime (tbuf, sizeof (tbuf), "%D %T", gmtime (&(t_now.tv_sec)));
+//
+//    FLUX_LOG_INFO ("Synchronized at %s.%09ld\n", tbuf, t_now.tv_nsec);
 
     return EXIT_SUCCESS;
 }

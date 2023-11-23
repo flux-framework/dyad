@@ -1,17 +1,21 @@
-#include "dyad_core.h"
+#include <dyad/core/dyad_core.h>
 
 #include <libgen.h>
 #include <unistd.h>
 
-#include "dyad_dtl_impl.h"
-#include "murmur3.h"
-#include "utils.h"
+#include <dyad/core/dyad_envs.h>
+#include <dyad/dtl/dyad_dtl_impl.h>
+#include <dyad/common/dyad_flux_log.h>
+#include <dyad/utils/murmur3.h>
+#include <dyad/utils/utils.h>
 
 #ifdef __cplusplus
 #include <climits>
 #include <cstring>
 #else
 #include <limits.h>
+#include <linux/limits.h>
+#include <stdlib.h>
 #include <string.h>
 #endif
 
@@ -465,12 +469,12 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_pull (const dyad_ctx_t* restrict ctx,
 
 pull_done:
     if (file_data != NULL) {
-        free (file_data);
+        free ((void*)file_data);
     }
     // If "check" is set and the operation was successful, set the
     // DYAD_CHECK_ENV environment variable to "ok"
     if (rc == DYAD_RC_OK && (ctx && ctx->check))
-        setenv (DYAD_CHECK_ENV, "ok", 1);
+        setenv(DYAD_CHECK_ENV, "ok", 1);
     return rc;
 }
 
