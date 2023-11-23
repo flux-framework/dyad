@@ -1,12 +1,13 @@
 #ifndef DYAD_DTL_DYAD_DTL_IMPL_H
 #define DYAD_DTL_DYAD_DTL_IMPL_H
 
+
+#include <jansson.h>
+
+#include <dyad/dtl/dyad_dtl.h>
 #include <dyad/common/dyad_flux_log.h>
 #include <dyad/common/dyad_rc.h>
-#include <dyad/perf/dyad_perf.h>
-#include <dyad/dtl/dyad_dtl.h>
 #include <flux/core.h>
-#include <jansson.h>
 #ifdef __cplusplus
 #include <cstdint>
 

@@ -1,6 +1,7 @@
 # DTL Interface
 set(DTL_SRC ${CMAKE_CURRENT_SOURCE_DIR}/dyad_dtl_impl.c)
-set(DTL_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/dyad_dtl_impl.h)
+set(DTL_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/dyad_dtl_impl.h
+                        ${CMAKE_CURRENT_SOURCE_DIR}/dyad_rc.h)
 set(DTL_PUBLIC_HEADERS )
 
 # Flux implementation for DTL
@@ -9,8 +10,8 @@ set(FLUX_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/flux_dtl.h)
 set(FLUX_PUBLIC_HEADERS )
 
 # UCX implementation for DTL
-set(UCX_DTL_SRC ${CMAKE_CURRENT_SOURCE_DIR}/ucx_dtl.c ${CMAKE_CURRENT_SOURCE_DIR}/ucx_ep_cache.cpp)
-set(UCX_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/ucx_dtl.h ${CMAKE_CURRENT_SOURCE_DIR}/ucx_ep_cache.h)
+set(UCX_DTL_SRC ${CMAKE_CURRENT_SOURCE_DIR}/ucx_dtl.c)
+set(UCX_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/ucx_dtl.h)
 set(UCX_PUBLIC_HEADERS )
 
 if(DYAD_DATA_PLANE STREQUAL "UCX")
@@ -23,7 +24,7 @@ set(DTL_PRIVATE_HEADERS ${DTL_PRIVATE_HEADERS} ${FLUX_PRIVATE_HEADERS})
 set(DTL_PUBLIC_HEADERS ${DTL_PUBLIC_HEADERS} ${FLUX_PUBLIC_HEADERS})
 
 add_library(${PROJECT_NAME}_dtl SHARED ${DTL_SRC})
-target_link_libraries(${PROJECT_NAME}_dtl PUBLIC ${PROJECT_NAME}_utils Jansson::Jansson flux::core ${PROJECT_NAME}_perf)
+target_link_libraries(${PROJECT_NAME}_dtl PUBLIC ${PROJECT_NAME}_utils Jansson::Jansson flux::core)
 
 if(DYAD_DATA_PLANE STREQUAL "UCX")
     target_link_libraries(${PROJECT_NAME}_dtl PUBLIC ucx::ucp ucx::ucs)

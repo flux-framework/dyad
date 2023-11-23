@@ -1,13 +1,14 @@
-#include <dyad/common/dyad_flux_log.h>
 #include <dyad/core/dyad_core.h>
-#include <dyad/core/dyad_envs.h>
-#include <dyad/dtl/dyad_dtl_impl.h>
-#include <dyad/perf/dyad_perf.h>
-#include <dyad/utils/murmur3.h>
-#include <dyad/utils/utils.h>
+
 #include <libgen.h>
 #include <unistd.h>
 #include <fcntl.h>
+
+#include <dyad/core/dyad_envs.h>
+#include <dyad/dtl/dyad_dtl_impl.h>
+#include <dyad/common/dyad_flux_log.h>
+#include <dyad/utils/murmur3.h>
+#include <dyad/utils/utils.h>
 
 #ifdef __cplusplus
 #include <climits>
@@ -521,7 +522,7 @@ pull_done:
     // If "check" is set and the operation was successful, set the
     // DYAD_CHECK_ENV environment variable to "ok"
     if (rc == DYAD_RC_OK && (ctx && ctx->check))
-        setenv (DYAD_CHECK_ENV, "ok", 1);
+        setenv(DYAD_CHECK_ENV, "ok", 1);
     return rc;
 }
 

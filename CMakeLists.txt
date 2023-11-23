@@ -32,24 +32,7 @@ set(CMAKE_CXX_STANDARD 11)
 # This sets where to look for dependent libraries
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${CMAKE_BINARY_DIR} ${CMAKE_INSTALL_PREFIX})
 # This sets where to look for dependent library's cmake files
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_BINARY_DIR}/lib/cmake)
-
-if (NOT DYAD_INSTALL_BIN_DIR)
-    set(DYAD_INSTALL_BIN_DIR ${CMAKE_INSTALL_PREFIX}/bin)
-    message("-- " "[${PROJECT_NAME}] DYAD_INSTALL_BIN_DIR " ${DYAD_INSTALL_BIN_DIR})
-endif ()
-if (NOT DYAD_INSTALL_LIB_DIR)
-    set(DYAD_INSTALL_LIB_DIR ${CMAKE_INSTALL_PREFIX}/lib)
-    message("-- " "[${PROJECT_NAME}] DYAD_INSTALL_LIB_DIR " ${DYAD_INSTALL_LIB_DIR})
-endif ()
-if (NOT DYAD_INSTALL_INCLUDE_DIR)
-    set(DYAD_INSTALL_INCLUDE_DIR ${CMAKE_INSTALL_PREFIX}/include)
-    message("-- " "[${PROJECT_NAME}] DYAD_INSTALL_INCLUDE_DIR " ${DYAD_INSTALL_INCLUDE_DIR})
-endif ()
-if (NOT DYAD_INSTALL_DATA_DIR)
-    set(DYAD_INSTALL_DATA_DIR ${CMAKE_INSTALL_PREFIX}/share)
-    message("-- " "[${PROJECT_NAME}] DYAD_INSTALL_DATA_DIR " ${DYAD_INSTALL_DATA_DIR})
-endif ()
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_BINARY_DIR}/lib/cmake ${CMAKE_BINARY_DIR}/share/cmake)
 
 if (NOT CMAKE_INSTALL_RPATH)
     set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib:${CMAKE_INSTALL_PREFIX}/lib64")
@@ -83,18 +66,22 @@ set(DYAD_CONTROL_PLANE "FLUX_RPC" CACHE STRING "Protocol to use for DYAD's Contr
 set_property(CACHE DYAD_CONTROL_PLANE PROPERTY STRINGS FLUX_RPC)
 set(DYAD_DATA_PLANE "FLUX_RPC" CACHE STRING "Protocol to use for DYAD's Data Plane")
 set_property(CACHE DYAD_DATA_PLANE PROPERTY STRINGS FLUX_RPC UCX)
-set(DYAD_PROFILER "NONE" CACHE STRING "Protocol to use for DYAD's Data Plane")
+set(DYAD_PROFILER "NONE" CACHE STRING "Profiler to use for DYAD")
 set_property(CACHE DYAD_PROFILER PROPERTY STRINGS PERFFLOW_ASPECT CALIPER NONE)
-set(DYAD_LOGGER "NONE" CACHE STRING "Protocol to use for DYAD's Logging (note: only available in Debug builds)")
-set_property(CACHE DYAD_LOGGER PROPERTY STRINGS FLUX PRINTF NONE)
 
 #------------------------------------------------------------------------------
 # Build Type based configurations
 #------------------------------------------------------------------------------
-set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} -std=c99)
+set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} -std=c11)
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -std=c++11)
-if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
-    add_definitions(-DDYAD_FULL_DEBUG=1 -DDYAD_LOGGING_ON=1)
+
+if(CMAKE_BUILD_TYPE STREQUAL "")
+    set(CMAKE_BUILD_TYPE "Release") # Setting default as Release
+endif()
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DDYAD_FULL_DEBUG=1 -DDYAD_LOGGING_ON=1" )
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDYAD_FULL_DEBUG=1 -DDYAD_LOGGING_ON=1")
 endif()
 #------------------------------------------------------------------------------
 # Disallow in-source build
@@ -114,16 +101,6 @@ if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     # Set the possible values of build type for cmake-gui
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"
             "MinSizeRel" "RelWithDebInfo")
-endif ()
-#------------------------------------------------------------------------------
-# Set definitions for logger
-#------------------------------------------------------------------------------
-if (DYAD_LOGGER STREQUAL FLUX)
-    add_definitions(-DDYAD_LOGGING_ON=1 -DDYAD_LOGGING_FLUX=1)
-elseif (DYAD_LOGGER STREQUAL PRINTF)
-    add_definitions(-DDYAD_LOGGING_ON=1 -DDYAD_LOGGING_PRINTF=1)
-else ()
-    add_definitions(-DDYAD_LOGGING_ON=0)
 endif ()
 #------------------------------------------------------------------------------
 # Dependencies
@@ -169,21 +146,6 @@ if(DYAD_PROFILER STREQUAL "PERFFLOW_ASPECT")
         message(FATAL_ERROR "-- [${PROJECT_NAME}] ucx is needed for ${PROJECT_NAME} build")
     endif ()
 endif()
-if(DYAD_PROFILER STREQUAL "CALIPER")
-    find_package(caliper REQUIRED)
-    if (${caliper_FOUND})
-        # For some reason, Caliper sets things a little oddly. The main things to be aware of are:
-        #  * caliper_INCLUDE_DIR (singular) is used instead of caliper_INCLUDE_DIRS
-        #  * caliper_LIB_DIR is used instead of caliper_LIBRARIES
-        #  * There is no variable from caliper-config.cmake that points to the actual library files.
-        #    Caliper expects us to use CMake targets for actual linking
-        message(STATUS "[${PROJECT_NAME}] found caliper at ${caliper_INCLUDE_DIR}")
-        include_directories(${caliper_INCLUDE_DIR})
-        set(DEPENDENCY_LIB ${DEPENDENCY_LIB} ${caliper_LID_DIR})
-    else ()
-        message(FATAL_ERROR "-- [${PROJECT_NAME}] caliper is needed for ${PROJECT_NAME} build")
-    endif ()
-endif()
 if(DYAD_DATA_PLANE STREQUAL "UCX")
     find_package(ucx 1.6 REQUIRED)
     if (${ucx_FOUND})
@@ -203,7 +165,7 @@ function(dyad_install_headers public_headers current_dir)
         get_filename_component(header_directory_path "${header_file_path}" DIRECTORY)
         install(
                 FILES ${header}
-                DESTINATION "${CMAKE_INSTALL_PREFIX}/include/${header_directory_path}"
+                DESTINATION "include/${header_directory_path}"
         )
         file(COPY ${header}
                 DESTINATION "${CMAKE_INCLUDE_OUTPUT_DIRECTORY}/${header_directory_path}")
@@ -228,7 +190,7 @@ install(
         FILES
         ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake/${PROJECT_NAME}/install/${PROJECT_NAME}-config.cmake
         DESTINATION
-        ${DYAD_INSTALL_LIB_DIR}/cmake/${PROJECT_NAME}
+        lib/cmake/${PROJECT_NAME}
 )
 #-----------------------------------------------------------------------------
 # Configure the ${PROJECT_NAME}-config-version .cmake file for the install directory
@@ -242,14 +204,7 @@ install(
         FILES
         ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake/${PROJECT_NAME}/${PROJECT_NAME}-config-version.cmake
         DESTINATION
-        ${DYAD_INSTALL_LIB_DIR}/cmake/${PROJECT_NAME}
-)
-
-install(
-    FILES
-    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindFluxCore.cmake ${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindJansson.cmake
-    DESTINATION
-    ${DYAD_INSTALL_LIB_DIR}/cmake/${PROJECT_NAME}
+        lib/cmake/${PROJECT_NAME}
 )
 
 export(EXPORT ${DYAD_EXPORTED_TARGETS}
@@ -258,7 +213,7 @@ export(EXPORT ${DYAD_EXPORTED_TARGETS}
 install(EXPORT
         ${DYAD_EXPORTED_TARGETS}
         DESTINATION
-        ${DYAD_INSTALL_LIB_DIR}/cmake/${PROJECT_NAME}
+        lib/cmake/${PROJECT_NAME}
         FILE
         ${DYAD_EXPORTED_TARGETS}.cmake
         )

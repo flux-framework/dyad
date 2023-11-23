@@ -71,10 +71,8 @@ dyad_rc_t dyad_dtl_flux_rpc_unpack (dyad_dtl_t* self, const flux_msg_t* msg, cha
         goto dtl_flux_rpc_unpack_region_finish;
     }
     self->private.flux_dtl_handle->msg = (flux_msg_t*)msg;
-    dyad_rc = DYAD_RC_OK;
-dtl_flux_rpc_unpack_region_finish:
-    DYAD_PERF_REGION_END (self->perf_handle, "dyad_dtl_flux_rpc_unpack");
-    return dyad_rc;
+    return DYAD_RC_OK;
+>>>>>>> a563f9f (refactored and initial changes to build.):src/dtl/flux_dtl.c
 }
 
 dyad_rc_t dyad_dtl_flux_rpc_respond (dyad_dtl_t* self, const flux_msg_t* orig_msg)
