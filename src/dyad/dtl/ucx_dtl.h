@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <ucp/api/ucp.h>
 
-#include "dyad_dtl_impl.h"
+#include <dyad/dtl/dyad_dtl_impl.h>
 
 struct dyad_dtl_ucx {
     flux_t* h;

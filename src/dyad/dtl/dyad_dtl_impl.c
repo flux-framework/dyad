@@ -27,11 +27,12 @@ dyad_rc_t dyad_dtl_init (dyad_dtl_t **dtl_handle,
     } else if (mode == DYAD_DTL_FLUX_RPC) {
 #else
     if (mode == DYAD_DTL_FLUX_RPC) {
-#endif
+
         rc = dyad_dtl_flux_init (*dtl_handle, mode, h, debug);
         if (DYAD_IS_ERROR (rc)) {
             goto dtl_init_done;
         }
+#endif
     } else {
         rc = DYAD_RC_BADDTLMODE;
         goto dtl_init_done;
@@ -64,13 +65,14 @@ dyad_rc_t dyad_dtl_finalize (dyad_dtl_t **dtl_handle)
     } else if ((*dtl_handle)->mode == DYAD_DTL_FLUX_RPC) {
 #else
     if ((*dtl_handle)->mode == DYAD_DTL_FLUX_RPC) {
-#endif
+
         if ((*dtl_handle)->private.flux_dtl_handle != NULL) {
             rc = dyad_dtl_flux_finalize (dtl_handle);
             if (DYAD_IS_ERROR (rc)) {
                 goto dtl_finalize_done;
             }
         }
+#endif
     } else {
         rc = DYAD_RC_BADDTLMODE;
         goto dtl_finalize_done;

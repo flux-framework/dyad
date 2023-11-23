@@ -82,9 +82,9 @@ endif ()
 set(DYAD_CONTROL_PLANE "FLUX_RPC" CACHE STRING "Protocol to use for DYAD's Control Plane")
 set_property(CACHE DYAD_CONTROL_PLANE PROPERTY STRINGS FLUX_RPC)
 set(DYAD_DATA_PLANE "FLUX_RPC" CACHE STRING "Protocol to use for DYAD's Data Plane")
-set_property(CACHE DYAD_DATA_PLANE PROPERTY STRINGS FLUX_RPC UPX)
+set_property(CACHE DYAD_DATA_PLANE PROPERTY STRINGS FLUX_RPC UCX)
 set(DYAD_PROFILER "NONE" CACHE STRING "Protocol to use for DYAD's Data Plane")
-set_property(CACHE DYAD_DATA_PLANE PROPERTY STRINGS PERFFLOW_ASPECT CALIPER NONE)
+set_property(CACHE DYAD_PROFILER PROPERTY STRINGS PERFFLOW_ASPECT CALIPER NONE)
 
 #------------------------------------------------------------------------------
 # Build Type based configurations
