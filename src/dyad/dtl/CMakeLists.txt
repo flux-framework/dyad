@@ -18,6 +18,7 @@ if(DYAD_DATA_PLANE STREQUAL "UCX")
     set(DTL_SRC ${DTL_SRC} ${UCX_DTL_SRC})
     set(DTL_PRIVATE_HEADERS ${DTL_PRIVATE_HEADERS} ${UCX_PRIVATE_HEADERS})
     set(DTL_PUBLIC_HEADERS ${DTL_PUBLIC_HEADERS} ${UCX_PUBLIC_HEADERS})
+#<<<<<<< HEAD
 endif()
 set(DTL_SRC ${DTL_SRC} ${FLUX_DTL_SRC})
 set(DTL_PRIVATE_HEADERS ${DTL_PRIVATE_HEADERS} ${FLUX_PRIVATE_HEADERS})
@@ -25,6 +26,18 @@ set(DTL_PUBLIC_HEADERS ${DTL_PUBLIC_HEADERS} ${FLUX_PUBLIC_HEADERS})
 
 add_library(${PROJECT_NAME}_dtl SHARED ${DTL_SRC})
 target_link_libraries(${PROJECT_NAME}_dtl PUBLIC ${PROJECT_NAME}_utils Jansson::Jansson flux::core)
+#=======
+#elseif(DYAD_DATA_PLANE STREQUAL "FLUX_RPC")
+#    set(DTL_SRC ${DTL_SRC} ${FLUX_DTL_SRC})
+#    set(DTL_PRIVATE_HEADERS ${DTL_PRIVATE_HEADERS} ${FLUX_PRIVATE_HEADERS})
+#    set(DTL_PUBLIC_HEADERS ${DTL_PUBLIC_HEADERS} ${FLUX_PUBLIC_HEADERS})
+#else()
+#    message(FATAL_ERROR "-- [${PROJECT_NAME}] Unknown DYAD_DATA_PLANE configuration ${DYAD_DATA_PLANE}")
+#endif()
+
+#add_library(${PROJECT_NAME}_dtl SHARED ${DTL_SRC})
+#target_link_libraries(${PROJECT_NAME}_dtl PUBLIC utils Jansson::Jansson flux::core)
+#>>>>>>> fbec6e7 (refactored and initial changes to build.)
 
 if(DYAD_DATA_PLANE STREQUAL "UCX")
     target_link_libraries(${PROJECT_NAME}_dtl PUBLIC ucx::ucp ucx::ucs)
@@ -32,6 +45,7 @@ if(DYAD_DATA_PLANE STREQUAL "UCX")
 endif()
 
 install(
+#<<<<<<< HEAD
         TARGETS ${PROJECT_NAME}_dtl
         EXPORT ${DYAD_EXPORTED_TARGETS}
         LIBRARY DESTINATION ${DYAD_INSTALL_LIB_DIR}
@@ -41,3 +55,8 @@ install(
 if(NOT ${DTL_PUBLIC_HEADERS} STREQUAL "")
     dyad_install_headers("${DTL_PUBLIC_HEADERS}" ${CMAKE_CURRENT_SOURCE_DIR})
 endif()
+#=======
+#    FILES ${dtl_install_headers}
+#    DESTINATION ${DYAD_INCLUDEDIR}
+#)
+#>>>>>>> fbec6e7 (refactored and initial changes to build.)

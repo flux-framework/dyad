@@ -80,7 +80,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "")
 endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DDYAD_FULL_DEBUG=1 -DDYAD_LOGGING_ON=1" )
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DDYAD_FULL_DEBUG=1 -DDYAD_LOGGING_ON=1")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDYAD_FULL_DEBUG=1 -DDYAD_LOGGING_ON=1")
 endif()
 #------------------------------------------------------------------------------
