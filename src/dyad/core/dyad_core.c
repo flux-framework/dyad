@@ -4,17 +4,17 @@
 #error "no config"
 #endif
 
+#include <dyad/common/dyad_flux_log.h>
 #include <dyad/core/dyad_core.h>
-
+#include <dyad/core/dyad_envs.h>
+#include <dyad/dtl/dyad_dtl_impl.h>
+#include <dyad/perf/dyad_perf.h>
+#include <dyad/utils/murmur3.h>
+#include <dyad/utils/utils.h>
 #include <libgen.h>
 #include <unistd.h>
 #include <fcntl.h>
 
-#include <dyad/core/dyad_envs.h>
-#include <dyad/dtl/dyad_dtl_impl.h>
-#include <dyad/common/dyad_flux_log.h>
-#include <dyad/utils/murmur3.h>
-#include <dyad/utils/utils.h>
 
 #ifdef __cplusplus
 #include <climits>
@@ -35,6 +35,7 @@
 const struct dyad_ctx dyad_ctx_default = {
     NULL,   // h
     NULL,   // dtl_handle
+    NULL,   // perf_handle
     false,  // debug
     false,  // check
     false,  // reenter
@@ -57,16 +58,8 @@ static int gen_path_key (const char* str,
                          const uint32_t depth,
                          const uint32_t width)
 {
-    static const uint32_t seeds[10] = {104677u,
-                                       104681u,
-                                       104683u,
-                                       104693u,
-                                       104701u,
-                                       104707u,
-                                       104711u,
-                                       104717u,
-                                       104723u,
-                                       104729u};
+    static const uint32_t seeds[10] =
+        {104677u, 104681u, 104683u, 104693u, 104701u, 104707u, 104711u, 104717u, 104723u, 104729u};
 
     uint32_t seed = 57u;
     uint32_t hash[4] = {0u};  // Output for the hash
@@ -99,20 +92,26 @@ static int gen_path_key (const char* str,
 DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_commit (const dyad_ctx_t* ctx, flux_kvs_txn_t* txn)
 {
     flux_future_t* f = NULL;
+    dyad_rc_t rc = DYAD_RC_OK;
+    DYAD_PERF_REGION_BEGIN (ctx->perf_handle, "dyad_kvs_commit");
     DYAD_LOG_INFO (ctx, "Committing transaction to KVS\n");
     // Commit the transaction to the Flux KVS
     f = flux_kvs_commit (ctx->h, ctx->kvs_namespace, 0, txn);
     // If the commit failed, log an error and return DYAD_BADCOMMIT
     if (f == NULL) {
         DYAD_LOG_ERR (ctx, "Could not commit transaction to Flux KVS\n");
-        return DYAD_RC_BADCOMMIT;
+        rc = DYAD_RC_BADCOMMIT;
+        goto kvs_commit_region_finish;
     }
     // If the commit is pending, wait for it to complete
     flux_future_wait_for (f, -1.0);
     // Once the commit is complete, destroy the future and transaction
     flux_future_destroy (f);
     f = NULL;
-    return DYAD_RC_OK;
+    rc = DYAD_RC_OK;
+kvs_commit_region_finish:
+    DYAD_PERF_REGION_END (ctx->perf_handle, "dyad_kvs_commit");
+    return rc;
 }
 
 DYAD_CORE_FUNC_MODS dyad_rc_t publish_via_flux (const dyad_ctx_t* restrict ctx,
@@ -132,18 +131,20 @@ DYAD_CORE_FUNC_MODS dyad_rc_t publish_via_flux (const dyad_ctx_t* restrict ctx,
     // The transaction will contain a single key-value pair
     // with the previously generated key as the key and the
     // producer's rank as the value
+    DYAD_PERF_REGION_BEGIN (ctx->perf_handle, "dyad_kvs_transaction_create_and_pack");
     DYAD_LOG_INFO (ctx, "Creating KVS transaction under the key %s\n", topic);
     txn = flux_kvs_txn_create ();
     if (txn == NULL) {
         DYAD_LOG_ERR (ctx, "Could not create Flux KVS transaction\n");
         rc = DYAD_RC_FLUXFAIL;
-        goto publish_done;
+        goto kvs_transaction_create_and_pack_region_finish;
     }
     if (flux_kvs_txn_pack (txn, 0, topic, "i", ctx->rank) < 0) {
         DYAD_LOG_ERR (ctx, "Could not pack Flux KVS transaction\n");
         rc = DYAD_RC_FLUXFAIL;
-        goto publish_done;
+        goto kvs_transaction_create_and_pack_region_finish;
     }
+    DYAD_PERF_REGION_END (ctx->perf_handle, "dyad_kvs_transaction_create_and_pack");
     // Call dyad_kvs_commit to commit the transaction into the Flux KVS
     rc = dyad_kvs_commit (ctx, txn);
     // If dyad_kvs_commit failed, log an error and forward the return code
@@ -152,6 +153,8 @@ DYAD_CORE_FUNC_MODS dyad_rc_t publish_via_flux (const dyad_ctx_t* restrict ctx,
         goto publish_done;
     }
     rc = DYAD_RC_OK;
+kvs_transaction_create_and_pack_region_finish:;
+    DYAD_PERF_REGION_END (ctx->perf_handle, "dyad_kvs_transaction_create_and_pack");
 publish_done:;
     if (txn != NULL) {
         flux_kvs_txn_destroy (txn);
@@ -159,8 +162,7 @@ publish_done:;
     return rc;
 }
 
-DYAD_CORE_FUNC_MODS dyad_rc_t dyad_commit (dyad_ctx_t* restrict ctx,
-                                           const char* restrict fname)
+DYAD_CORE_FUNC_MODS dyad_rc_t dyad_commit (dyad_ctx_t* restrict ctx, const char* restrict fname)
 {
     dyad_rc_t rc = DYAD_RC_OK;
     char upath[PATH_MAX];
@@ -224,11 +226,13 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_read (const dyad_ctx_t* restrict ctx,
     // made available
     if (should_wait)
         kvs_lookup_flags = FLUX_KVS_WAITCREATE;
+    DYAD_PERF_REGION_BEGIN (ctx->perf_handle, "dyad_kvs_lookup");
     DYAD_LOG_INFO (ctx, "Retrieving information from KVS under the key %s\n", topic);
     f = flux_kvs_lookup (ctx->h, ctx->kvs_namespace, kvs_lookup_flags, topic);
     // If the KVS lookup failed, log an error and return DYAD_BADLOOKUP
     if (f == NULL) {
         DYAD_LOG_ERR (ctx, "KVS lookup failed!\n");
+        DYAD_PERF_REGION_END (ctx->perf_handle, "dyad_kvs_lookup");
         rc = DYAD_RC_NOTFOUND;
         goto kvs_read_end;
     }
@@ -272,6 +276,7 @@ kvs_read_end:
         flux_future_destroy (f);
         f = NULL;
     }
+    DYAD_PERF_REGION_END (ctx->perf_handle, "dyad_kvs_lookup");
     return rc;
 }
 
@@ -397,11 +402,9 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_get_data (const dyad_ctx_t* ctx,
     dyad_rc_t final_rc = DYAD_RC_OK;
     flux_future_t* f;
     json_t* rpc_payload;
+    DYAD_PERF_REGION_BEGIN (ctx->perf_handle, "dyad_get_data");
     DYAD_LOG_INFO (ctx, "Packing payload for RPC to DYAD module");
-    rc = ctx->dtl_handle->rpc_pack (ctx->dtl_handle,
-                                    mdata->fpath,
-                                    mdata->owner_rank,
-                                    &rpc_payload);
+    rc = ctx->dtl_handle->rpc_pack (ctx->dtl_handle, mdata->fpath, mdata->owner_rank, &rpc_payload);
     if (DYAD_IS_ERROR (rc)) {
         DYAD_LOG_ERR (ctx,
                       "Cannot create JSON payload for Flux RPC to DYAD "
@@ -409,12 +412,14 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_get_data (const dyad_ctx_t* ctx,
         goto get_done;
     }
     DYAD_LOG_INFO (ctx, "Sending payload for RPC to DYAD module");
+    DYAD_PERF_REGION_BEGIN (ctx->perf_handle, "dyad_send_rpc");
     f = flux_rpc_pack (ctx->h,
                        DYAD_DTL_RPC_NAME,
                        mdata->owner_rank,
                        FLUX_RPC_STREAMING,
                        "o",
                        rpc_payload);
+    DYAD_PERF_REGION_END (ctx->perf_handle, "dyad_send_rpc");
     if (f == NULL) {
         DYAD_LOG_ERR (ctx, "Cannot send RPC to producer module\n");
         rc = DYAD_RC_BADRPC;
@@ -427,7 +432,7 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_get_data (const dyad_ctx_t* ctx,
         goto get_done;
     }
     DYAD_LOG_INFO (ctx, "Establish DTL connection with DYAD module");
-    rc = ctx->dtl_handle->establish_connection (ctx->dtl_handle, DYAD_COMM_RECV);
+    rc = ctx->dtl_handle->establish_connection (ctx->dtl_handle);
     if (DYAD_IS_ERROR (rc)) {
         DYAD_LOG_ERR (ctx,
                       "Cannot establish connection with DYAD module on broker "
@@ -457,9 +462,8 @@ get_done:;
     // well in the module, this last message will set errno to ENODATA (i.e.,
     // end of stream). Otherwise, something went wrong, so we'll return
     // DYAD_RC_BADRPC.
-    DYAD_LOG_INFO (ctx,
-                   "Wait for end-of-stream message from module (current RC = %d)\n",
-                   rc);
+    DYAD_LOG_INFO (ctx, "Wait for end-of-stream message from module (current RC = %d)\n", rc);
+    DYAD_PERF_REGION_BEGIN (ctx->perf_handle, "dyad_wait_for_rpc_end");
     if (rc != DYAD_RC_RPC_FINISHED && rc != DYAD_RC_BADRPC) {
         if (!(flux_rpc_get (f, NULL) < 0 && errno == ENODATA)) {
             DYAD_LOG_ERR (ctx,
@@ -470,8 +474,10 @@ get_done:;
             rc = DYAD_RC_BADRPC;
         }
     }
+    DYAD_PERF_REGION_END (ctx->perf_handle, "dyad_wait_for_rpc_end");
     DYAD_LOG_INFO (ctx, "Destroy the Flux future for the RPC\n");
     flux_future_destroy (f);
+    DYAD_PERF_REGION_END (ctx->perf_handle, "dyad_get_data");
     return rc;
 }
 
@@ -491,6 +497,7 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_cons_store (const dyad_ctx_t* restrict ctx,
     memset (file_path_copy, 0, PATH_MAX + 1);
 
     // Build the full path to the file being consumed
+    DYAD_PERF_REGION_BEGIN (ctx->perf_handle, "dyad_write_data_for_consumer");
     strncpy (file_path, ctx->cons_managed_path, PATH_MAX - 1);
     concat_str (file_path, mdata->fpath, "/", PATH_MAX);
     strncpy (file_path_copy, file_path, PATH_MAX);  // dirname modifies the arg
@@ -517,10 +524,11 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_cons_store (const dyad_ctx_t* restrict ctx,
     rc = DYAD_RC_OK;
 
 pull_done:
+    DYAD_PERF_REGION_END (ctx->perf_handle, "dyad_write_data_for_consumer");
     // If "check" is set and the operation was successful, set the
     // DYAD_CHECK_ENV environment variable to "ok"
     if (rc == DYAD_RC_OK && (ctx && ctx->check))
-        setenv(DYAD_CHECK_ENV, "ok", 1);
+        setenv (DYAD_CHECK_ENV, "ok", 1);
     return rc;
 }
 
@@ -538,6 +546,12 @@ dyad_rc_t dyad_init (bool debug,
                      dyad_ctx_t** ctx)
 {
     dyad_rc_t rc = DYAD_RC_OK;
+    dyad_perf_t* perf_handle = NULL;
+    rc = dyad_perf_init (&perf_handle, false, NULL);
+    if (DYAD_IS_ERROR (rc)) {
+        goto init_region_finish;
+    }
+    DYAD_PERF_REGION_BEGIN (perf_handle, "dyad_init");
     // If ctx is NULL, we won't be able to return a dyad_ctx_t
     // to the user. In that case, print an error and return
     // immediately with DYAD_NOCTX.
@@ -546,7 +560,8 @@ dyad_rc_t dyad_init (bool debug,
                  "'ctx' argument to dyad_init is NULL! This prevents us from "
                  "returning "
                  "a dyad_ctx_t object!\n");
-        return DYAD_RC_NOCTX;
+        rc = DYAD_RC_NOCTX;
+        goto init_region_finish;
     }
     // Check if the actual dyad_ctx_t object is not NULL.
     // If it is not NULL, that means the dyad_ctx_t object
@@ -557,7 +572,8 @@ dyad_rc_t dyad_init (bool debug,
         if ((*ctx)->initialized) {
             // TODO Indicate already initialized
             DPRINTF ((*ctx), "DYAD context already initialized\n");
-            return DYAD_RC_OK;
+            rc = DYAD_RC_OK;
+            goto init_region_finish;
         }
     } else {
         if (reinit) dyad_finalize (ctx);
@@ -566,7 +582,8 @@ dyad_rc_t dyad_init (bool debug,
         *ctx = (dyad_ctx_t*)malloc (sizeof (struct dyad_ctx));
         if (*ctx == NULL) {
             fprintf (stderr, "Could not allocate DYAD context!\n");
-            return DYAD_RC_NOCTX;
+            rc = DYAD_RC_NOCTX;
+            goto init_region_finish;
         }
     }
     // Set the initial contents of the dyad_ctx_t object
@@ -578,9 +595,11 @@ dyad_rc_t dyad_init (bool debug,
         fprintf (stderr,
                  "Warning: no managed path provided! DYAD will not do "
                  "anything!\n");
-        return DYAD_RC_OK;
+        rc = DYAD_RC_OK;
+        goto init_region_finish;
     }
     // Set the values in dyad_ctx_t that don't need allocation
+    (*ctx)->perf_handle = perf_handle;
     (*ctx)->debug = debug;
     (*ctx)->check = check;
     (*ctx)->shared_storage = shared_storage;
@@ -591,14 +610,16 @@ dyad_rc_t dyad_init (bool debug,
     (*ctx)->h = flux_open (NULL, 0);
     if ((*ctx)->h == NULL) {
         fprintf (stderr, "Could not open Flux handle!\n");
-        return DYAD_RC_FLUXFAIL;
+        rc = DYAD_RC_FLUXFAIL;
+        goto init_region_finish;
     }
     // Get the rank of the Flux broker corresponding
     // to the handle. If this fails, return DYAD_FLUXFAIL
     FLUX_LOG_INFO ((*ctx)->h, "DYAD_CORE: getting Flux rank");
     if (flux_get_rank ((*ctx)->h, &((*ctx)->rank)) < 0u) {
         FLUX_LOG_ERR ((*ctx)->h, "Could not get Flux rank!\n");
-        return DYAD_RC_FLUXFAIL;
+        rc = DYAD_RC_FLUXFAIL;
+        goto init_region_finish;
     }
     (*ctx)->service_mux = (service_mux < 1u)? 1u : service_mux;
     (*ctx)->node_idx = (*ctx)->rank / (*ctx)->service_mux;
@@ -608,7 +629,8 @@ dyad_rc_t dyad_init (bool debug,
     if (kvs_namespace == NULL) {
         FLUX_LOG_ERR ((*ctx)->h, "No KVS namespace provided!\n");
         // TODO see if we want a different return val
-        return DYAD_RC_NOCTX;
+        rc = DYAD_RC_NOCTX;
+        goto init_region_finish;
     }
     const size_t namespace_len = strlen (kvs_namespace);
     (*ctx)->kvs_namespace = (char*)malloc (namespace_len + 1);
@@ -616,16 +638,17 @@ dyad_rc_t dyad_init (bool debug,
         FLUX_LOG_ERR ((*ctx)->h, "Could not allocate buffer for KVS namespace!\n");
         free (*ctx);
         *ctx = NULL;
-        return DYAD_RC_NOCTX;
+        rc = DYAD_RC_NOCTX;
+        goto init_region_finish;
     }
     strncpy ((*ctx)->kvs_namespace, kvs_namespace, namespace_len + 1);
     // Initialize the DTL based on the value of dtl_mode
     // If an error occurs, log it and return an error
     FLUX_LOG_INFO ((*ctx)->h, "DYAD_CORE: inintializing DYAD DTL");
-    rc = dyad_dtl_init (&(*ctx)->dtl_handle, dtl_mode, (*ctx)->h, (*ctx)->debug);
+    rc = dyad_dtl_init (&(*ctx)->dtl_handle, dtl_mode, DYAD_COMM_RECV, (*ctx)->h, (*ctx)->debug, (*ctx)->perf_handle);
     if (DYAD_IS_ERROR (rc)) {
         FLUX_LOG_ERR ((*ctx)->h, "Cannot initialize the DTL\n");
-        return rc;
+        goto init_region_finish;
     }
     // If the producer-managed path is provided, copy it into
     // the dyad_ctx_t object
@@ -642,7 +665,8 @@ dyad_rc_t dyad_init (bool debug,
             free ((*ctx)->kvs_namespace);
             free (*ctx);
             *ctx = NULL;
-            return DYAD_RC_NOCTX;
+            rc = DYAD_RC_NOCTX;
+            goto init_region_finish;
         }
         strncpy ((*ctx)->prod_managed_path, prod_managed_path, prod_path_len + 1);
     }
@@ -662,7 +686,8 @@ dyad_rc_t dyad_init (bool debug,
             free ((*ctx)->prod_managed_path);
             free (*ctx);
             *ctx = NULL;
-            return DYAD_RC_NOCTX;
+            rc = DYAD_RC_NOCTX;
+            goto init_region_finish;
         }
         strncpy ((*ctx)->cons_managed_path, cons_managed_path, cons_path_len + 1);
     }
@@ -671,7 +696,11 @@ dyad_rc_t dyad_init (bool debug,
     (*ctx)->reenter = true;
     (*ctx)->initialized = true;
     // TODO Print logging info
-    return DYAD_RC_OK;
+    rc = DYAD_RC_OK;
+
+init_region_finish:
+    DYAD_PERF_REGION_END ((*ctx)->perf_handle, "dyad_init");
+    return rc;
 }
 
 dyad_rc_t dyad_init_env (dyad_ctx_t** ctx)
@@ -955,18 +984,22 @@ dyad_rc_t dyad_consume (dyad_ctx_t* ctx, const char* fname)
     rc = DYAD_RC_OK;
 consume_done:;
     if (file_data != NULL) {
-        free ((void*) file_data);
+        ctx->dtl_handle->return_buffer (ctx->dtl_handle, (void**)&file_data);
     }
     // Set reenter to true to allow additional intercepting
     ctx->reenter = true;
     return rc;
 }
 
-int dyad_finalize (dyad_ctx_t** ctx)
+dyad_rc_t dyad_finalize (dyad_ctx_t** ctx)
 {
+    dyad_rc_t rc = DYAD_RC_OK;
     if (ctx == NULL || *ctx == NULL) {
-        return DYAD_RC_OK;
+        rc = DYAD_RC_OK;
+        goto finalize_region_finish;
     }
+    dyad_perf_t* perf_handle = (*ctx)->perf_handle;
+    DYAD_PERF_REGION_BEGIN (perf_handle, "dyad_finalize");
     dyad_dtl_finalize (&(*ctx)->dtl_handle);
     if ((*ctx)->h != NULL) {
         flux_close ((*ctx)->h);
@@ -986,7 +1019,11 @@ int dyad_finalize (dyad_ctx_t** ctx)
     }
     free (*ctx);
     *ctx = NULL;
-    return DYAD_RC_OK;
+    rc = DYAD_RC_OK;
+finalize_region_finish:
+    DYAD_PERF_REGION_END (perf_handle, "dyad_finalize");
+    dyad_perf_finalize (&perf_handle);
+    return rc;
 }
 
 #if DYAD_SYNC_DIR
