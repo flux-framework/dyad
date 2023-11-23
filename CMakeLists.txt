@@ -55,7 +55,21 @@ if (NOT CMAKE_INSTALL_RPATH)
     set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib:${CMAKE_INSTALL_PREFIX}/lib64")
     set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 endif ()
-
+#------------------------------------------------------------------------------
+if (NOT DYAD_EXTERNALLY_CONFIGURED)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin CACHE PATH "Single Directory for all Executables.")
+    set(CMAKE_INCLUDE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/include CACHE PATH "Store the headers.")
+    set(EXECUTABLE_OUTPUT_PATH ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib CACHE PATH "Single Directory for all Libraries")
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib CACHE PATH "Single Directory for all static libraries.")
+endif ()
+#-----------------------------------------------------------------------------
+# Targets built within this project are exported at Install time for use
+# by other projects.
+#-----------------------------------------------------------------------------
+if (NOT DYAD_EXPORTED_TARGETS)
+    set(DYAD_EXPORTED_TARGETS "dyad-targets")
+endif ()
 #------------------------------------------------------------------------------
 # Build options
 #------------------------------------------------------------------------------
@@ -81,6 +95,25 @@ if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
     set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} -DDYAD_FULL_DEBUG=1 -DDYAD_LOGGING_ON=1 )
     set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -DDYAD_FULL_DEBUG=1 -DDYAD_LOGGING_ON=1)
 endif()
+#------------------------------------------------------------------------------
+# Disallow in-source build
+#------------------------------------------------------------------------------
+if ("${CMAKE_CURRENT_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
+    message(FATAL_ERROR
+            "${PROJECT_NAME} requires an out of source Build. "
+            "Please create a separate binary directory and run CMake there.")
+endif ()
+#------------------------------------------------------------------------------
+# Set a default build type if none was specified
+#------------------------------------------------------------------------------
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    message(STATUS "Setting build type to 'RelWithDebInfo' as none was specified.")
+    set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "Choose the type of build." FORCE)
+    # Set the possible values of build type for cmake-gui
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"
+            "MinSizeRel" "RelWithDebInfo")
+endif ()
 #------------------------------------------------------------------------------
 # Dependencies
 #------------------------------------------------------------------------------
@@ -136,4 +169,63 @@ if(DYAD_DATA_PLANE STREQUAL "UCX")
     endif ()
 endif()
 
+function(dyad_install_headers public_headers current_dir)
+    message("-- [${PROJECT_NAME}] " "installing headers ${public_headers}")
+    foreach (header ${public_headers})
+        file(RELATIVE_PATH header_file_path "${PROJECT_SOURCE_DIR}/src" "${header}")
+        message("-- [${PROJECT_NAME}] " "installing header ${header_file_path}")
+        get_filename_component(header_directory_path "${header_file_path}" DIRECTORY)
+        install(
+                FILES ${header}
+                DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${header_directory_path}"
+        )
+        file(COPY ${header}
+                DESTINATION "${CMAKE_INCLUDE_OUTPUT_DIRECTORY}/${header_directory_path}")
+    endforeach ()
+endfunction()
+
 add_subdirectory(src/dyad)
+
+#-----------------------------------------------------------------------------
+# Configure the config.cmake file for the build directory
+#-----------------------------------------------------------------------------
+configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/CMake/${PROJECT_NAME}-config.cmake.build.in
+        ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake/${PROJECT_NAME}/${PROJECT_NAME}-config.cmake @ONLY
+)
+
+configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/CMake/${PROJECT_NAME}-config.cmake.install.in
+        ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake/${PROJECT_NAME}/install/${PROJECT_NAME}-config.cmake @ONLY
+)
+install(
+        FILES
+        ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake/${PROJECT_NAME}/install/${PROJECT_NAME}-config.cmake
+        DESTINATION
+        ${DYAD_INSTALL_LIB_DIR}/cmake/${PROJECT_NAME}
+)
+#-----------------------------------------------------------------------------
+# Configure the ${PROJECT_NAME}-config-version .cmake file for the install directory
+#-----------------------------------------------------------------------------
+configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/CMake/${PROJECT_NAME}-config-version.cmake.in
+        ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake/${PROJECT_NAME}/${PROJECT_NAME}-config-version.cmake @ONLY
+)
+
+install(
+        FILES
+        ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake/${PROJECT_NAME}/${PROJECT_NAME}-config-version.cmake
+        DESTINATION
+        ${DYAD_INSTALL_LIB_DIR}/cmake/${PROJECT_NAME}
+)
+
+export(EXPORT ${DYAD_EXPORTED_TARGETS}
+        FILE "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake/${PROJECT_NAME}/${PROJECT_NAME}Targets.cmake")
+
+install(EXPORT
+        ${DYAD_EXPORTED_TARGETS}
+        DESTINATION
+        ${DYAD_INSTALL_LIB_DIR}/cmake/${PROJECT_NAME}
+        FILE
+        ${DYAD_EXPORTED_TARGETS}.cmake
+        )

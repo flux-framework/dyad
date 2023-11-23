@@ -14,7 +14,7 @@
 #include <iostream>
 #include <string>
 
-#include "dyad_params.hpp"
+#include <dyad/stream/dyad_params.hpp>
 
 extern "C" {
 struct dyad_ctx;

@@ -8,7 +8,7 @@
  * SPDX-License-Identifier: LGPL-3.0
 \************************************************************/
 
-#include "dyad_stream_core.hpp"
+#include <dyad/stream/dyad_stream_core.hpp>
 
 #include <dyad/core/dyad_core.h>
 #include <dyad/utils/murmur3.h>

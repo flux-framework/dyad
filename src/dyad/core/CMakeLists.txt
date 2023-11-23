@@ -11,12 +11,13 @@ if(DYAD_PROFILER STREQUAL "PERFFLOW_ASPECT")
     target_link_libraries(dyad_core PUBLIC perfflowaspect::perfflowaspect)
     target_compile_definitions(dyad_core DYAD_PERFFLOW=1)
 endif()
-
 install(
-    FILES ${dyad_core_install_headers}
-    DESTINATION include
+        TARGETS dyad_core
+        EXPORT ${DYAD_EXPORTED_TARGETS}
+        LIBRARY DESTINATION ${DYAD_INSTALL_LIB_DIR}
+        ARCHIVE DESTINATION ${DYAD_INSTALL_LIB_DIR}
+        RUNTIME DESTINATION ${DYAD_INSTALL_BIN_DIR}
 )
-install(
-    TARGETS dyad_core
-    LIBRARY DESTINATION ${DYAD_LIBDIR}
-)
+if(NOT "${DYAD_CORE_PUBLIC_HEADER}" STREQUAL "")
+    dyad_install_headers("${DYAD_CORE_PUBLIC_HEADER}" ${CMAKE_CURRENT_SOURCE_DIR})
+endif()

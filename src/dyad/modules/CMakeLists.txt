@@ -12,8 +12,6 @@ if(DYAD_PROFILER STREQUAL "PERFFLOW_ASPECT")
     target_compile_definitions(dyad PUBLIC DYAD_PERFFLOW=1)
 endif()
 
-set(DYAD_MODULE_TARGETS dyad)
-
 #if (BUILD_URPC)
 #    set(urpc_src
 #        "${CMAKE_CURRENT_SOURCE_DIR}/urpc.c"
@@ -31,8 +29,13 @@ set(DYAD_MODULE_TARGETS dyad)
 #    endif (ENABLE_PERFFLOW)
 #    set(modules_targets "${modules_targets} urpc")
 #endif (BUILD_URPC)
-
 install(
-    TARGETS ${DYAD_MODULE_TARGETS}
-    LIBRARY DESTINATION ${DYAD_LIBDIR}
+        TARGETS dyad
+        EXPORT ${DYAD_EXPORTED_TARGETS}
+        LIBRARY DESTINATION ${DYAD_INSTALL_LIB_DIR}
+        ARCHIVE DESTINATION ${DYAD_INSTALL_LIB_DIR}
+        RUNTIME DESTINATION ${DYAD_INSTALL_BIN_DIR}
 )
+if(NOT "${DYAD_MODULE_PUBLIC_HEADERS}" STREQUAL "")
+    dyad_install_headers("${DYAD_MODULE_PUBLIC_HEADERS}" ${CMAKE_CURRENT_SOURCE_DIR})
+endif()
