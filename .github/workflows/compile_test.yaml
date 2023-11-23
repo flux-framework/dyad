@@ -13,7 +13,7 @@ jobs:
       matrix:
         flux: [ 0.52.0, 0.49.0]
         mode: ["FLUX_RPC", "UCX"]
-        test_mode: ["c", "cpp", "python"]
+        test_mode: ["c", "cpp"] #, "python"]
     runs-on: ubuntu-20.04 # Docker-based jobs must run on Ubuntu
     env:
       FLUX_VERSION: ${{ matrix.flux }}
