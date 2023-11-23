@@ -15,6 +15,7 @@
 #include <stdio.h>
 #endif
 // clang-format on
+
 #include <flux/core.h>
 #include <unistd.h>
 
