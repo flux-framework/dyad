@@ -3,6 +3,7 @@ set(DYAD_MODULE_PRIVATE_HEADERS )
 set(DYAD_MODULE_PUBLIC_HEADERS )
 
 add_library(dyad SHARED ${DYAD_MODULE_SRC})
+set_target_properties(dyad PROPERTIES PREFIX "")
 target_link_libraries(dyad PUBLIC Jansson::Jansson flux::core)
 target_link_libraries(dyad PRIVATE dyad_dtl)
 target_compile_definitions(dyad PUBLIC BUILDING_DYAD=1)
