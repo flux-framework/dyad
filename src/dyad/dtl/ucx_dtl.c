@@ -1,11 +1,11 @@
-#include "ucx_dtl.h"
+#include <dyad/dtl/ucx_dtl.h>
 
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "base64.h"
+#include <dyad/utils/base64/base64.h>
 
 extern const base64_maps_t base64_maps_rfc4648;
 
