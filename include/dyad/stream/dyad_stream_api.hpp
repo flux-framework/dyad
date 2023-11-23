@@ -19,7 +19,7 @@
 #include <string>
 #include <type_traits>
 
-#include "dyad_stream_core.hpp"
+#include <dyad/stream/dyad_stream_core.hpp>
 
 #define DYAD_PATH_ENV "DYAD_PATH"
 

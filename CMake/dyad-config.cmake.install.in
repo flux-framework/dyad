@@ -1,0 +1,17 @@
+set(DYAD_FOUND TRUE)
+
+# Include directories
+set(DYAD_INCLUDE_DIRS "@DYAD_INSTALL_INCLUDE_DIR@")
+if (NOT IS_DIRECTORY "${DYAD_INCLUDE_DIRS}")
+    set(DYAD_FOUND FALSE)
+endif ()
+#message(STATUS "DYAD_INCLUDE_DIRS: " ${DYAD_INCLUDE_DIRS})
+get_filename_component(DYAD_ROOT_DIR ${DYAD_INCLUDE_DIRS}/.. ABSOLUTE)
+#message(STATUS "DYAD_ROOT_DIR: " ${DYAD_ROOT_DIR})
+set(DYAD_LIBRARY_PATH "@DYAD_INSTALL_LIB_DIR@")
+link_directories(${DYAD_LIBRARY_PATH})
+set(DYAD_LIBRARIES dlio-profiler)
+set(DYAD_DEFINITIONS "")
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(dlio-profiler
+            REQUIRED_VARS DYAD_FOUND DYAD_INCLUDE_DIRS DYAD_LIBRARIES)
