@@ -60,6 +60,7 @@ jobs:
         run: |
           . ${SPACK_DIR}/share/spack/setup-env.sh
           mkdir -p /home/runner/.spack
+          cat > /home/runner/.spack/packages.yaml << 'EOF'
           packages:
             all:
               target: [x86_64]
