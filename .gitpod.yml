@@ -7,10 +7,11 @@
 tasks:
   - name: Install Dependencies
     before: >
-      sudo rm -rf /home/gitpod/.pyenv
-      sudo apt-get update && sudo apt-get install -y --no-install-recommends gcc g++ gfortran autoconf \
+      sudo rm -rf /home/gitpod/.pyenv &&
+      sudo apt-get update && 
+      sudo apt-get install -y --no-install-recommends gcc g++ gfortran autoconf \
             automake libtool libtool-bin openmpi-bin libopenmpi-dev libarchive-dev \
-            ncurses-bin hwloc lua5.3 liblua5.3-dev python3.10 python3-pip libczmq-dev lua-posix-dev \
+            ncurses-bin hwloc lua5.3 liblua5.3-dev python3.10 python3-pip python3.10-dev liblz4-dev libczmq-dev lua-posix-dev \
             lz4 pkgconf libzmq5 sqlite
     command: >
       sudo python3.10 -m pip install jsonschema>=2.3.0 cffi ply pyyaml &&
@@ -20,7 +21,7 @@ tasks:
     command: >
       mkdir /workspace/scripts &&
       echo export SPACK_DIR=/workspace/spack > /workspace/scripts/gitpod.env  &&
-      echo export FLUX_VERSION=0.52 >> /workspace/scripts/gitpod.env &&
+      echo export FLUX_VERSION=0.54 >> /workspace/scripts/gitpod.env &&
       echo export DYAD_DTL_MODE=UCX >> /workspace/scripts/gitpod.env &&
       echo export DYAD_INSTALL_PREFIX=/workspace/install >> /workspace/scripts/gitpod.env &&
       source /workspace/scripts/gitpod.env &&
