@@ -1,7 +1,7 @@
 . ${SPACK_DIR}/share/spack/setup-env.sh
-PYTHON_VERSION=`python3.10 --version | awk {'print $2'}`
-sudo rm /usr/bin/python
-sudo ln -s `which python3.10` /usr/bin/python
+#PYTHON_VERSION=`python --version | awk {'print $2'}`
+#sudo rm /usr/bin/python
+#sudo ln -s `which python3.10` /usr/bin/python
 mkdir -p $HOME/.spack
 cat > $HOME/.spack/packages.yaml << EOF
 packages:
@@ -12,7 +12,7 @@ packages:
   python:
     buildable: False
     externals:
-    - spec: python@${PYTHON_VERSION}
+    - spec: python@3.10
       prefix: /usr
   py-jsonschema:
     buildable: False
