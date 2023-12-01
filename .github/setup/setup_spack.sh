@@ -1,6 +1,6 @@
 . ${SPACK_DIR}/share/spack/setup-env.sh
 PYTHON_VERSION=`python3.10 --version | awk {'print $2'}`
-rm /usr/bin/python
+sudo rm /usr/bin/python
 sudo ln -s `which python3.10` /usr/bin/python
 mkdir -p $HOME/.spack
 cat > $HOME/.spack/packages.yaml << EOF
