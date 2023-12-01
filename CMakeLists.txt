@@ -23,7 +23,7 @@ include_directories(${CMAKE_BINARY_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src) # required for private includes
 # Do we want to use RPath to simplify linking
 set(CMAKE_MACOSX_RPATH 1)
-#set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 11)
 #set(CMAKE_C_VISIBILITY_PRESET hidden)
 #set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 #------------------------------------------------------------------------------
