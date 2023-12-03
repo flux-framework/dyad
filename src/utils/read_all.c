@@ -21,6 +21,12 @@
 #include <sys/mman.h>
 #include "read_all.h"
 
+void * allocate_aligned(size_t size) {
+  size_t alignment = getpagesize();
+  int malloc_offset = (size + alignment) % alignment; 
+  void* mem = malloc(size + alignment);
+  return (char*) mem + malloc_offset;
+}
 ssize_t write_all (int fd, const void *buf, size_t len)
 {
     ssize_t n = 0;
@@ -57,7 +63,7 @@ ssize_t read_all (const char* filename, void **bufp)
         errno = EINVAL;
         return -1;
     }
-    *bufp = malloc (file_size);
+    *bufp = allocate_aligned (file_size);
     if (*bufp == NULL) {
         errno = EINVAL;
         return -1;
