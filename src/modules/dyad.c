@@ -159,16 +159,10 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
 #endif  // DYAD_SPIN_WAIT
 
     FLUX_LOG_INFO (h, "Reading file %s for transfer", fullpath);
-    fd = open (fullpath, O_RDONLY);
-    if (fd < 0) {
-        FLUX_LOG_ERR (h, "DYAD_MOD: Failed to open file \"%s\".\n", fullpath);
-        goto fetch_error;
-    }
-    if ((inlen = read_all (fd, &inbuf)) < 0) {
+    if ((inlen = read_all (fullpath, &inbuf)) < 0) {
         FLUX_LOG_ERR (h, "DYAD_MOD: Failed to load file \"%s\".\n", fullpath);
         goto fetch_error;
     }
-    close (fd);
     FLUX_LOG_INFO (h, "Is inbuf NULL? -> %i\n", (int)(inbuf == NULL));
 
     FLUX_LOG_INFO (h, "Establish DTL connection with consumer");
@@ -188,7 +182,7 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
         errno = ECOMM;
         goto fetch_error;
     }
-
+    munmap(inbuf, inlen);
     FLUX_LOG_INFO (h, "Close RPC message stream with an ENODATA (%d) message", ENODATA);
     if (flux_respond_error (h, msg, ENODATA, NULL) < 0) {
         FLUX_LOG_ERR (h,

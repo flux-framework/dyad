@@ -23,7 +23,7 @@ ssize_t write_all (int fd, const void *buf, size_t len);
 __attribute__ ((annotate ("@critical_path()")))
 #endif
 ssize_t
-read_all (int fd, void **bufp);
+read_all (const char* filename, void **bufp);
 
 #if defined(__cplusplus)
 };
