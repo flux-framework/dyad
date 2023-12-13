@@ -99,6 +99,8 @@ if (DYAD_ENABLE_UCX_DATA)
 endif ()
 set(DYAD_PROFILER "NONE" CACHE STRING "Profiler to use for DYAD")
 set_property(CACHE DYAD_PROFILER PROPERTY STRINGS PERFFLOW_ASPECT CALIPER NONE)
+set(DYAD_LOGGER "NONE" CACHE STRING "Protocol to use for DYAD's Logging (note: only available in Debug builds)")
+set_property(CACHE DYAD_LOGGER PROPERTY STRINGS FLUX PRINTF NONE)
 
 
 #------------------------------------------------------------------------------
@@ -142,6 +144,16 @@ if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     # Set the possible values of build type for cmake-gui
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"
             "MinSizeRel" "RelWithDebInfo")
+endif ()
+#------------------------------------------------------------------------------
+# Set definitions for logger
+#------------------------------------------------------------------------------
+if (DYAD_LOGGER STREQUAL FLUX)
+    add_definitions(-DDYAD_LOGGING_ON=1 -DDYAD_LOGGING_FLUX=1)
+elseif (DYAD_LOGGER STREQUAL PRINTF)
+    add_definitions(-DDYAD_LOGGING_ON=1 -DDYAD_LOGGING_PRINTF=1)
+else ()
+    add_definitions(-DDYAD_LOGGING_ON=0)
 endif ()
 #------------------------------------------------------------------------------
 # Dependencies

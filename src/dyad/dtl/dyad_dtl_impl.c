@@ -5,7 +5,6 @@
 #endif
 
 #include <dyad/dtl/dyad_dtl_impl.h>
-
 #include <dyad/dtl/flux_dtl.h>
 #include <dyad/perf/dyad_perf.h>
 
