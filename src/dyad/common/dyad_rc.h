@@ -39,7 +39,8 @@ enum dyad_core_return_codes {
     DYAD_RC_UCXWAIT_FAIL = -15,    // UCX wait (either custom or
                                    // 'ucp_worker_wait') failed
     DYAD_RC_UCXCOMM_FAIL = -16,    // UCX communication routine failed
-    DYAD_RC_RPC_FINISHED = -17,    // The Flux RPC responded with ENODATA (i.e.,
+    DYAD_RC_UCXMMAP_FAIL = -17,    // Failed to perform operations with ucp_mem_map
+    DYAD_RC_RPC_FINISHED = -18,    // The Flux RPC responded with ENODATA (i.e.,
                                    // end of stream) sooner than expected
     DYAD_RC_BAD_B64DECODE = -18,   // Decoding of data w/ base64 failed
     DYAD_RC_BAD_COMM_MODE = -19,   // Invalid comm mode provided to DTL
@@ -47,6 +48,7 @@ enum dyad_core_return_codes {
     DYAD_RC_PERF_INIT_FAIL = -21,   // Performance measurement initialization failed
     DYAD_RC_BAD_CLI_ARG_DEF = -22,  // Trying to define a CLI argument failed
     DYAD_RC_BAD_CLI_PARSE = -23,    // Trying to parse CLI arguments failed
+    DYAD_RC_BADBUF = -24,          // Invalid buffer/pointer passed to function
 };
 
 typedef enum dyad_core_return_codes dyad_rc_t;

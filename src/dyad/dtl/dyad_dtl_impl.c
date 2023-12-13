@@ -1,5 +1,4 @@
 #include <dyad/dtl/dyad_dtl_impl.h>
-
 #include <dyad/dtl/flux_dtl.h>
 #include <dyad/perf/dyad_perf.h>
 
@@ -9,6 +8,7 @@
 
 dyad_rc_t dyad_dtl_init (dyad_dtl_t **dtl_handle,
                          dyad_dtl_mode_t mode,
+                         dyad_dtl_comm_mode_t comm_mode,
                          flux_t *h,
                          bool debug,
                          dyad_perf_t *perf_handle)
@@ -24,7 +24,7 @@ dyad_rc_t dyad_dtl_init (dyad_dtl_t **dtl_handle,
     (*dtl_handle)->perf_handle = perf_handle;
 #if DYAD_ENABLE_UCX
     if (mode == DYAD_DTL_UCX) {
-        rc = dyad_dtl_ucx_init (*dtl_handle, mode, h, debug);
+        rc = dyad_dtl_ucx_init (*dtl_handle, mode, comm_mode, h, debug);
         if (DYAD_IS_ERROR (rc)) {
             goto dtl_init_done;
         }
@@ -32,7 +32,7 @@ dyad_rc_t dyad_dtl_init (dyad_dtl_t **dtl_handle,
 #else
     if (mode == DYAD_DTL_FLUX_RPC) {
 #endif
-        rc = dyad_dtl_flux_init (*dtl_handle, mode, h, debug);
+        rc = dyad_dtl_flux_init (*dtl_handle, mode, comm_mode, h, debug);
         if (DYAD_IS_ERROR (rc)) {
             goto dtl_init_done;
         }

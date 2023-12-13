@@ -37,24 +37,30 @@ ssize_t write_all (int fd, const void *buf, size_t len)
     return count;
 }
 
-ssize_t read_all (int fd, void **bufp)
+ssize_t get_file_size (int fd)
 {
-    const ssize_t file_size = lseek (fd, 0, SEEK_END);
+    ssize_t file_size = 0;
+    off_t offset = 0;
+    file_size = lseek (fd, 0, SEEK_END);
     if (file_size == 0) {
         errno = EINVAL;
-        return 0;
+        return -1;
     }
-    off_t offset = lseek (fd, 0, SEEK_SET);
+    offset = lseek (fd, 0, SEEK_SET);
     if (offset != 0) {
         errno = EINVAL;
         return -1;
     }
-    *bufp = malloc (file_size);
-    if (*bufp == NULL) {
+    return file_size;
+}
+
+ssize_t read_all (int fd, void *bufp, ssize_t file_size)
+{
+    if (bufp == NULL) {
         errno = EINVAL;
         return -1;
     }
-    ssize_t bytes_read = read (fd, *bufp, file_size);
+    ssize_t bytes_read = read (fd, bufp, file_size);
     if (bytes_read < file_size) {
         // could not read all data
         errno = EINVAL;

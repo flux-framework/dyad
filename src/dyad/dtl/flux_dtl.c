@@ -2,6 +2,7 @@
 
 dyad_rc_t dyad_dtl_flux_init (dyad_dtl_t* self,
                               dyad_dtl_mode_t mode,
+                              dyad_dtl_comm_mode_t comm_mode,
                               flux_t* h,
                               bool debug)
 {
@@ -14,6 +15,7 @@ dyad_rc_t dyad_dtl_flux_init (dyad_dtl_t* self,
         goto dtl_flux_init_region_finish;
     }
     self->private.flux_dtl_handle->h = h;
+    self->private.flux_dtl_handle->comm_mode = comm_mode;
     self->private.flux_dtl_handle->debug = debug;
     self->private.flux_dtl_handle->f = NULL;
     self->private.flux_dtl_handle->msg = NULL;
@@ -22,6 +24,8 @@ dyad_rc_t dyad_dtl_flux_init (dyad_dtl_t* self,
     self->rpc_unpack = dyad_dtl_flux_rpc_unpack;
     self->rpc_respond = dyad_dtl_flux_rpc_respond;
     self->rpc_recv_response = dyad_dtl_flux_rpc_recv_response;
+    self->get_buffer = dyad_dtl_flux_get_buffer;
+    self->return_buffer = dyad_dtl_flux_return_buffer;
     self->establish_connection = dyad_dtl_flux_establish_connection;
     self->send = dyad_dtl_flux_send;
     self->recv = dyad_dtl_flux_recv;
@@ -84,8 +88,39 @@ dyad_rc_t dyad_dtl_flux_rpc_recv_response (dyad_dtl_t* self, flux_future_t* f)
     return DYAD_RC_OK;
 }
 
-dyad_rc_t dyad_dtl_flux_establish_connection (dyad_dtl_t* self,
-                                              dyad_dtl_comm_mode_t comm_mode)
+dyad_rc_t dyad_dtl_flux_get_buffer (dyad_dtl_t* self, size_t data_size, void** data_buf)
+{
+    dyad_rc_t rc = DYAD_RC_OK;
+    if (data_buf == NULL || *data_buf != NULL) {
+        rc = DYAD_RC_BADBUF;
+        goto flux_get_buf_done;
+    }
+    *data_buf = malloc (data_size);
+    if (*data_buf == NULL) {
+        rc = DYAD_RC_SYSFAIL;
+        goto flux_get_buf_done;
+    }
+    rc = DYAD_RC_OK;
+
+flux_get_buf_done:
+    return rc;
+}
+
+dyad_rc_t dyad_dtl_flux_return_buffer (dyad_dtl_t* self, void** data_buf)
+{
+    dyad_rc_t rc = DYAD_RC_OK;
+    if (data_buf == NULL || *data_buf == NULL) {
+        rc = DYAD_RC_BADBUF;
+        goto flux_ret_buf_done;
+    }
+    free (*data_buf);
+    rc = DYAD_RC_OK;
+
+flux_ret_buf_done:
+    return rc;
+}
+
+dyad_rc_t dyad_dtl_flux_establish_connection (dyad_dtl_t* self)
 {
     return DYAD_RC_OK;
 }
@@ -144,13 +179,11 @@ dyad_rc_t dyad_dtl_flux_recv (dyad_dtl_t* self, void** buf, size_t* buflen)
         goto finish_recv;
     }
     *buflen = tmp_buflen;
-    if (*buf == NULL) {
-        *buf = malloc (tmp_buflen);
-        if (*buf == NULL) {
-            FLUX_LOG_ERR (dtl_handle->h, "Could not allocate space for file buffer");
-            dyad_rc = DYAD_RC_SYSFAIL;
-            goto finish_recv;
-        }
+    dyad_rc = self->get_buffer (self, *buflen, buf);
+    if (DYAD_IS_ERROR (dyad_rc)) {
+        *buf = NULL;
+        *buflen = 0;
+        goto finish_recv;
     }
     memcpy (*buf, tmp_buf, tmp_buflen);
     dyad_rc = DYAD_RC_OK;
