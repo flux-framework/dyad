@@ -14,9 +14,11 @@ struct dyad_dtl_ucx {
     ucp_mem_h mem_handle;
     void* net_buf;
     size_t max_transfer_size;
+    ucp_address_t* local_address;
+    size_t local_addr_len;
+    ucp_address_t* remote_address;
+    size_t remote_addr_len;
     ucp_ep_h ep;
-    ucp_address_t* consumer_address;
-    size_t addr_len;
     ucp_tag_t comm_tag;
 };
 
