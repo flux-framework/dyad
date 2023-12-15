@@ -10,14 +10,14 @@ set(DYAD_MURMUR3_SRC ${CMAKE_CURRENT_SOURCE_DIR}/murmur3.c)
 set(DYAD_MURMUR3_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/murmur3.h)
 set(DYAD_MURMUR3_PUBLIC_HEADERS )
 
-add_library(utils SHARED ${DYAD_UTILS_SRC})
-target_link_libraries(utils PUBLIC flux::core base64)
+add_library(${PROJECT_NAME}_utils SHARED ${DYAD_UTILS_SRC})
+target_link_libraries(${PROJECT_NAME}_utils PUBLIC flux::core ${PROJECT_NAME}_base64)
 
-add_library(murmur3 SHARED ${DYAD_MURMUR3_SRC})
+add_library(${PROJECT_NAME}_murmur3 SHARED ${DYAD_MURMUR3_SRC})
 
 
 install(
-        TARGETS utils
+        TARGETS ${PROJECT_NAME}_utils
         EXPORT ${DYAD_EXPORTED_TARGETS}
         LIBRARY DESTINATION ${DYAD_INSTALL_LIB_DIR}
         ARCHIVE DESTINATION ${DYAD_INSTALL_LIB_DIR}
@@ -27,7 +27,7 @@ if(NOT "${DYAD_UTILS_PUBLIC_HEADERS}" STREQUAL "")
     dyad_install_headers("${DYAD_UTILS_PUBLIC_HEADERS}" ${CMAKE_CURRENT_SOURCE_DIR})
 endif()
 install(
-        TARGETS murmur3
+        TARGETS ${PROJECT_NAME}_murmur3
         EXPORT ${DYAD_EXPORTED_TARGETS}
         LIBRARY DESTINATION ${DYAD_INSTALL_LIB_DIR}
         ARCHIVE DESTINATION ${DYAD_INSTALL_LIB_DIR}

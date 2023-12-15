@@ -24,7 +24,7 @@ set(DTL_PRIVATE_HEADERS ${DTL_PRIVATE_HEADERS} ${FLUX_PRIVATE_HEADERS})
 set(DTL_PUBLIC_HEADERS ${DTL_PUBLIC_HEADERS} ${FLUX_PUBLIC_HEADERS})
 
 add_library(${PROJECT_NAME}_dtl SHARED ${DTL_SRC})
-target_link_libraries(${PROJECT_NAME}_dtl PUBLIC utils Jansson::Jansson flux::core)
+target_link_libraries(${PROJECT_NAME}_dtl PUBLIC ${PROJECT_NAME}_utils Jansson::Jansson flux::core)
 
 if(DYAD_DATA_PLANE STREQUAL "UCX")
     target_link_libraries(${PROJECT_NAME}_dtl PUBLIC ucx::ucp ucx::ucs)

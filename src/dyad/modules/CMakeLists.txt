@@ -2,15 +2,15 @@ set(DYAD_MODULE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/dyad.c)
 set(DYAD_MODULE_PRIVATE_HEADERS )
 set(DYAD_MODULE_PUBLIC_HEADERS )
 
-add_library(dyad SHARED ${DYAD_MODULE_SRC})
-set_target_properties(dyad PROPERTIES PREFIX "")
-target_link_libraries(dyad PUBLIC Jansson::Jansson flux::core)
-target_link_libraries(dyad PRIVATE dyad_dtl)
-target_compile_definitions(dyad PUBLIC BUILDING_DYAD=1)
+add_library(${PROJECT_NAME} SHARED ${DYAD_MODULE_SRC})
+set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
+target_link_libraries(${PROJECT_NAME} PUBLIC Jansson::Jansson flux::core)
+target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_dtl)
+target_compile_definitions(${PROJECT_NAME} PUBLIC BUILDING_DYAD=1)
 
 if(DYAD_PROFILER STREQUAL "PERFFLOW_ASPECT")
-    target_link_libraries(dyad PUBLIC perfflowaspect::perfflowaspect)
-    target_compile_definitions(dyad PUBLIC DYAD_PERFFLOW=1)
+    target_link_libraries(${PROJECT_NAME} PUBLIC perfflowaspect::perfflowaspect)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC DYAD_PERFFLOW=1)
 endif()
 
 #if (BUILD_URPC)
@@ -31,7 +31,7 @@ endif()
 #    set(modules_targets "${modules_targets} urpc")
 #endif (BUILD_URPC)
 install(
-        TARGETS dyad
+        TARGETS ${PROJECT_NAME}
         EXPORT ${DYAD_EXPORTED_TARGETS}
         LIBRARY DESTINATION ${DYAD_INSTALL_LIB_DIR}
         ARCHIVE DESTINATION ${DYAD_INSTALL_LIB_DIR}
