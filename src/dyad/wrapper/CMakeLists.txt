@@ -2,19 +2,19 @@ set(DYAD_WRAPPER_SRC ${CMAKE_CURRENT_SOURCE_DIR}/wrapper.c)
 set(DYAD_WRAPPER_PRIVATE_HEADERS )
 set(DYAD_WRAPPER_PUBLIC_HEADERS )
 
-add_library(dyad_wrapper SHARED ${DYAD_WRAPPER_SRC})
-target_link_libraries(dyad_wrapper PUBLIC dyad_core flux::core)
-target_link_libraries(dyad_wrapper PRIVATE utils)
-target_compile_definitions(dyad_wrapper PUBLIC BUILDING_DYAD=1)
+add_library(${PROJECT_NAME}_wrapper SHARED ${DYAD_WRAPPER_SRC})
+target_link_libraries(${PROJECT_NAME}_wrapper PUBLIC ${PROJECT_NAME}_core flux::core)
+target_link_libraries(${PROJECT_NAME}_wrapper PRIVATE ${PROJECT_NAME}_utils)
+target_compile_definitions(${PROJECT_NAME}_wrapper PUBLIC BUILDING_DYAD=1)
 
 set(FLUX_BARRIER_SRC ${CMAKE_CURRENT_SOURCE_DIR}/flux_barrier.c)
 set(FLUX_BARRIER_PRIVATE_HEADERS )
 set(FLUX_BARRIER_PUBLIC_HEADERS )
 
-add_executable(flux_barrier ${FLUX_BARRIER_SRC})
-target_link_libraries(flux_barrier PUBLIC flux::core)
+add_executable(${PROJECT_NAME}_flux_barrier ${FLUX_BARRIER_SRC})
+target_link_libraries(${PROJECT_NAME}_flux_barrier PUBLIC flux::core)
 install(
-        TARGETS dyad_wrapper
+        TARGETS ${PROJECT_NAME}_wrapper
         EXPORT ${DYAD_EXPORTED_TARGETS}
         LIBRARY DESTINATION ${DYAD_INSTALL_LIB_DIR}
         ARCHIVE DESTINATION ${DYAD_INSTALL_LIB_DIR}
@@ -24,7 +24,7 @@ if(NOT "${DYAD_WRAPPER_PUBLIC_HEADERS}" STREQUAL "")
     dyad_install_headers("${DYAD_WRAPPER_PUBLIC_HEADERS}" ${CMAKE_CURRENT_SOURCE_DIR})
 endif()
 install(
-        TARGETS flux_barrier
+        TARGETS ${PROJECT_NAME}_flux_barrier
         EXPORT ${DYAD_EXPORTED_TARGETS}
         LIBRARY DESTINATION ${DYAD_INSTALL_LIB_DIR}
         ARCHIVE DESTINATION ${DYAD_INSTALL_LIB_DIR}
