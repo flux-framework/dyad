@@ -222,6 +222,13 @@ install(
         lib/cmake/${PROJECT_NAME}
 )
 
+install(
+    FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindFluxCore.cmake ${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindJansson.cmake
+    DESTINATION
+    ${DYAD_INSTALL_LIB_DIR}/cmake/${PROJECT_NAME}
+)
+
 export(EXPORT ${DYAD_EXPORTED_TARGETS}
         FILE "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake/${PROJECT_NAME}/${PROJECT_NAME}Targets.cmake")
 
