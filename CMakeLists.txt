@@ -92,8 +92,7 @@ set_property(CACHE DYAD_PROFILER PROPERTY STRINGS PERFFLOW_ASPECT CALIPER NONE)
 set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} -std=c99)
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -std=c++11)
 if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
-    set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} -DDYAD_FULL_DEBUG=1 -DDYAD_LOGGING_ON=1 )
-    set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -DDYAD_FULL_DEBUG=1 -DDYAD_LOGGING_ON=1)
+    add_definitions(-DDYAD_FULL_DEBUG=1 -DDYAD_LOGGING_ON=1)
 endif()
 #------------------------------------------------------------------------------
 # Disallow in-source build
@@ -232,6 +231,13 @@ install(
         ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake/${PROJECT_NAME}/${PROJECT_NAME}-config-version.cmake
         DESTINATION
         ${DYAD_INSTALL_LIB_DIR}/cmake/${PROJECT_NAME}
+)
+
+install(
+    FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindFluxCore.cmake ${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindJansson.cmake
+    DESTINATION
+    ${DYAD_INSTALL_LIB_DIR}/cmake/${PROJECT_NAME}
 )
 
 export(EXPORT ${DYAD_EXPORTED_TARGETS}
