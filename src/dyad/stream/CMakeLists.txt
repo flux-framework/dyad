@@ -4,10 +4,10 @@ set(DYAD_FSTREAM_PUBLIC_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dya
                                 ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dyad/stream/dyad_params.hpp
                                 ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dyad/stream/dyad_stream_core.hpp)
 
-
 add_library(${PROJECT_NAME}_fstream SHARED ${DYAD_FSTREAM_SRC} ${DYAD_FSTREAM_PRIVATE_HEADERS} ${DYAD_FSTREAM_PUBLIC_HEADERS})
 target_compile_features(${PROJECT_NAME}_fstream PRIVATE )
 target_link_libraries(${PROJECT_NAME}_fstream PUBLIC ${PROJECT_NAME}_core flux::core)
+target_include_directories(${PROJECT_NAME}_fstream PUBLIC $<INSTALL_INTERFACE:${DYAD_INSTALL_INCLUDE_DIR}>)
 
 if (ENABLE_PERFFLOW)
     target_link_libraries(${PROJECT_NAME}_fstream PUBLIC perfflowaspect::perfflowaspect)
