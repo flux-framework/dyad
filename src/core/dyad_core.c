@@ -179,6 +179,7 @@ commit_done:;
 
 DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_read (const dyad_ctx_t* restrict ctx,
                                              const char* restrict topic,
+                                             const char* restrict upath,
                                              bool should_wait,
                                              dyad_metadata_t** mdata)
 {
@@ -217,15 +218,15 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_read (const dyad_ctx_t* restrict ctx,
             goto kvs_read_end;
         }
     }
-    size_t topic_len = strlen (topic);
-    (*mdata)->fpath = (char*)malloc (topic_len + 1);
+    size_t upath_len = strlen (upath);
+    (*mdata)->fpath = (char*)malloc (upath_len + 1);
     if ((*mdata)->fpath == NULL) {
         DYAD_LOG_ERR (ctx, "Cannot allocate memory for fpath in metadata object");
         rc = DYAD_RC_SYSFAIL;
         goto kvs_read_end;
     }
-    memset ((*mdata)->fpath, '\0', topic_len + 1);
-    strncpy ((*mdata)->fpath, topic, topic_len);
+    memset ((*mdata)->fpath, '\0', upath_len + 1);
+    strncpy ((*mdata)->fpath, upath, upath_len);
     rc = flux_kvs_lookup_get_unpack (f, "i", &((*mdata)->owner_rank));
     // If the extraction did not work, log an error and return DYAD_BADFETCH
     if (rc < 0) {
@@ -272,7 +273,7 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_fetch (const dyad_ctx_t* restrict ctx,
     DYAD_LOG_INFO (ctx, "Generated KVS key for consumer: %s\n", topic);
     // Call dyad_kvs_read to retrieve infromation about the file
     // from the Flux KVS
-    rc = dyad_kvs_read (ctx, topic, true, mdata);
+    rc = dyad_kvs_read (ctx, topic, upath, true, mdata);
     // If an error occured in dyad_kvs_read, log it and propagate the return
     // code
     if (DYAD_IS_ERROR (rc)) {
@@ -751,21 +752,11 @@ dyad_rc_t dyad_get_metadata (dyad_ctx_t* ctx,
     }
     DYAD_LOG_INFO (ctx, "Generating KVS key: %s", topic);
     gen_path_key (upath, topic, topic_len, ctx->key_depth, ctx->key_bins);
-    rc = dyad_kvs_read (ctx, topic, should_wait, mdata);
+    rc = dyad_kvs_read (ctx, topic, fname, should_wait, mdata);
     if (DYAD_IS_ERROR (rc)) {
         DYAD_LOG_ERR (ctx, "Could not read data from the KVS");
         goto get_metadata_done;
     }
-    free ((*mdata)->fpath);
-    size_t fname_len = strlen (fname);
-    (*mdata)->fpath = (char*)malloc (fname_len + 1);
-    if ((*mdata)->fpath == NULL) {
-        DYAD_LOG_ERR (ctx, "Could not allocate memory for fpath");
-        rc = DYAD_RC_SYSFAIL;
-        goto get_metadata_done;
-    }
-    memset ((*mdata)->fpath, '\0', fname_len + 1);
-    strncpy ((*mdata)->fpath, fname, fname_len);
     rc = DYAD_RC_OK;
 
 get_metadata_done:
