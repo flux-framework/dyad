@@ -2,6 +2,7 @@
 #define DYAD_DTL_UCX_H
 
 #include <dyad/dtl/dyad_dtl_impl.h>
+#include <dyad/dtl/ucx_ep_cache.h>
 #include <stdlib.h>
 #include <ucp/api/ucp.h>
 
@@ -20,6 +21,7 @@ struct dyad_dtl_ucx {
     size_t remote_addr_len;
     ucp_ep_h ep;
     ucp_tag_t comm_tag;
+    ucx_ep_cache_h ep_cache;
 };
 
 typedef struct dyad_dtl_ucx dyad_dtl_ucx_t;
