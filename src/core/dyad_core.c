@@ -299,11 +299,11 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_fetch (const dyad_ctx_t* restrict ctx,
     // In either of these cases, skip the creation of the dyad_kvs_response_t
     // object, and return DYAD_OK. This will cause the file transfer step to be
     // skipped
-    if (ctx->shared_storage || (mdata->owner_rank == ctx->rank)) {
+    if (ctx->shared_storage || ((*mdata)->owner_rank == ctx->rank)) {
         DYAD_LOG_INFO (ctx,
                        "Either shared-storage is enabled or the producer rank (%u) "
                        "is the "
-                       "same as the consumer rank (%u)", mdata->owner_rank, ctx->rank);
+                       "same as the consumer rank (%u)", (*mdata)->owner_rank, ctx->rank);
         if (mdata != NULL && *mdata != NULL) {
             dyad_free_metadata (mdata);
         }
