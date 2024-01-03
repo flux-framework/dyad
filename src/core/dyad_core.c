@@ -177,6 +177,18 @@ commit_done:;
     return rc;
 }
 
+static void print_mdata (const dyad_ctx_t* restrict ctx,
+                         const dyad_metadata_t* mdata)
+{
+    if (mdata == NULL) {
+        DYAD_LOG_INFO (ctx, "Cannot print a NULL metadata object!");
+    } else {
+        DYAD_LOG_INFO (ctx, "Printing contents of DYAD Metadata object");
+        DYAD_LOG_INFO (ctx, "fpath = %s", mdata->fpath);
+        DYAD_LOG_INFO (ctx, "owner_rank = %u", mdata->owner_rank);
+    }
+}
+
 DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_read (const dyad_ctx_t* restrict ctx,
                                              const char* restrict topic,
                                              const char* restrict upath,
@@ -234,6 +246,8 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_read (const dyad_ctx_t* restrict ctx,
         rc = DYAD_RC_BADMETADATA;
         goto kvs_read_end;
     }
+    DYAD_LOG_INFO (ctx, "Successfully created DYAD Metadata object");
+    print_mdata (ctx, *mdata);
     rc = DYAD_RC_OK;
 
 kvs_read_end:
