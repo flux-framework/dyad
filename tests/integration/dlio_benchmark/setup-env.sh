@@ -2,8 +2,9 @@
 
 # Configurations
 export DLIO_WORKLOAD=dyad_unet3d # unet3d dyad_unet3d dyad_unet3d_small
-export NUM_NODES=16
-export PPN=1
+export NUM_NODES=2
+export PPN=8
+export BROKERS_PER_NODE=1
 export GENERATE_DATA="0"
 
 export DYAD_INSTALL_PREFIX=/usr/workspace/haridev/dyad/env/spack/.spack-env/view
