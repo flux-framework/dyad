@@ -1,3 +1,4 @@
+
 from time import time
 import logging
 import math
@@ -8,8 +9,9 @@ from dlio_benchmark.common.constants import MODULE_DATA_LOADER
 from dlio_benchmark.common.enumerations import Shuffle, DatasetType, DataLoaderType
 from dlio_benchmark.data_loader.base_data_loader import BaseDataLoader
 from dlio_benchmark.reader.reader_factory import ReaderFactory
-from dlio_benchmark.utils.utility import utcnow, get_rank, Profile
+from dlio_benchmark.utils.utility import utcnow, DLIOMPI
 from dlio_benchmark.utils.config import ConfigArguments
+from dlio_profiler.logger import fn_interceptor as Profile
 from pydyad import Dyad, dyad_open
 from pydyad.bindings import DTLMode
 import numpy as np
@@ -43,14 +45,19 @@ class DYADTorchDataset(Dataset):
         self.conf = ConfigArguments.get_instance()
         self.dyad_io = Dyad()
         is_local = os.getenv("DYAD_LOCAL_TEST", "0") == "1"
+        self.broker_per_node = int(os.getenv("DYAD_BROKERS_PER_NODE", "1"))
         import flux
         self.f = flux.Flux()
+        self.broker_rank = self.f.get_rank()
         if is_local:
             self.dyad_managed_directory = os.path.join(os.getenv("DYAD_PATH", ""), str(self.f.get_rank()))
         else:
             self.dyad_managed_directory = os.getenv("DYAD_PATH", "")
+        self.my_node_index = self.broker_rank // self.broker_rank
         dtl_str = os.getenv("DYAD_DTL_MODE", "FLUX_RPC")
         mode = DTLMode.DYAD_DTL_FLUX_RPC
+        namespace = os.getenv("DYAD_KVS_NAMESPACE")
+        logging.info(f"{utcnow()} Rank {DLIOMPI.get_instance().rank()} init dyad {self.dyad_managed_directory} {dtl_str} {namespace}")
         if dtl_str == "UCX":
             mode = DTLMode.DYAD_DTL_UCX
         self.dyad_io.init(debug=self.conf.debug, check=False, shared_storage=False, key_depth=3,
@@ -66,21 +73,31 @@ class DYADTorchDataset(Dataset):
     def __getitem__(self, image_idx):
         self.num_images_read += 1
         step = int(math.ceil(self.num_images_read / self.batch_size))
-        logging.info(f"{utcnow()} Rank {get_rank()} reading {image_idx} sample")
         filename, sample_index = self.conf.global_index_map[image_idx]
         is_present = False
         file_obj = None
         base_fname = filename
+        dlp.update(image_idx=image_idx)
         if self.dyad_managed_directory != "":
-            logging.debug(f"Using managed directory {self.dyad_managed_directory}")
             base_fname = os.path.join(self.dyad_managed_directory, os.path.basename(filename))
             file_obj = self.dyad_io.get_metadata(fname=base_fname, should_wait=False)
+            logging.debug(f"Using managed directory {self.dyad_managed_directory} {base_fname} {file_obj}")
             is_present = True
         if file_obj:
+            access_mode = "remote"
+            file_node_index = file_obj.owner_rank // self.broker_rank
+            if self.my_node_index == file_node_index:
+                access_mode = "local"
+            dlp.update(args={"mode":"dyad"})
+            dlp.update(args={"access":access_mode})
+            logging.info(f"{utcnow()} Rank {DLIOMPI.get_instance().rank()} reading {image_idx} sample from {access_mode} dyad")
             logging.debug(f"Reading from managed directory {base_fname}")
             with dyad_open(base_fname, "rb", dyad_ctx=self.dyad_io) as f:
                 data = np.load(f, allow_pickle=True)["x"]
         else:
+            dlp.update(args={"mode":"pfs"})
+            dlp.update(args={"access":"remote"})
+            logging.info(f"{utcnow()} Rank {DLIOMPI.get_instance().rank()} reading {image_idx} sample from pfs {base_fname}")
             logging.debug(f"Reading from pfs {base_fname}")
             data = self.reader.read_index(image_idx, step)
             if is_present:
