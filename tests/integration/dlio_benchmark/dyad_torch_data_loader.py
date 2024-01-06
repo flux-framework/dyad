@@ -53,7 +53,7 @@ class DYADTorchDataset(Dataset):
             self.dyad_managed_directory = os.path.join(os.getenv("DYAD_PATH", ""), str(self.f.get_rank()))
         else:
             self.dyad_managed_directory = os.getenv("DYAD_PATH", "")
-        self.my_node_index = self.broker_rank // self.broker_rank
+        self.my_node_index = self.broker_rank // self.broker_per_node
         dtl_str = os.getenv("DYAD_DTL_MODE", "FLUX_RPC")
         mode = DTLMode.DYAD_DTL_FLUX_RPC
         namespace = os.getenv("DYAD_KVS_NAMESPACE")
@@ -85,7 +85,7 @@ class DYADTorchDataset(Dataset):
             is_present = True
         if file_obj:
             access_mode = "remote"
-            file_node_index = file_obj.owner_rank // self.broker_rank
+            file_node_index = file_obj.owner_rank // self.broker_per_node
             if self.my_node_index == file_node_index:
                 access_mode = "local"
             dlp.update(args={"mode":"dyad"})
