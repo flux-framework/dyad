@@ -1,0 +1,38 @@
+model: unet3d
+
+framework: pytorch
+
+workflow:
+  generate_data: False
+  train: True
+  evaluation: True
+
+dataset:
+  data_folder: data/dyad_unet3d
+  format: npz
+  num_files_train: 16
+  num_files_eval: 1
+  num_samples_per_file: 1
+  record_length: 4096
+  file_shuffle: SEED
+
+reader:
+  data_loader: pytorch
+  batch_size: 1
+  batch_size_eval: 1
+  data_loader_classname: dyad_torch_data_loader.DyadTorchDataLoader
+  data_loader_sampler: index
+
+train:
+  epochs: 10
+  computation_time: 1.00
+  seed: 100
+  seed_change_epoch: True
+
+
+evaluation:
+  eval_time: 0.5
+  epochs_between_evals: 1
+
+profiling:
+  profiler: iostat
