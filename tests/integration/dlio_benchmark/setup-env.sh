@@ -4,7 +4,7 @@
 export DLIO_WORKLOAD=dyad_unet3d # unet3d dyad_unet3d dyad_unet3d_small
 export NUM_NODES=2
 export PPN=8
-export BROKERS_PER_NODE=1
+export BROKERS_PER_NODE=2
 export GENERATE_DATA="0"
 
 export DYAD_INSTALL_PREFIX=/usr/workspace/haridev/dyad/env/spack/.spack-env/view
@@ -21,6 +21,7 @@ export DLIO_DATA_DIR=/p/lustre2/haridev/dyad/dlio_benchmark/${DLIO_WORKLOAD}
 export DLIO_PROFILER_ENABLE=1
 export DLIO_PROFILER_INC_METADATA=1
 export DLIO_PROFILER_DATA_DIR=${DLIO_DATA_DIR}:${DYAD_PATH}
+export MV2_BCAST_HWLOC_TOPOLOGY=0
 # Activate Environments
 . ${SPACK_DIR}/share/spack/setup-env.sh
 spack env activate -p ${SPACK_ENV}
