@@ -2,6 +2,7 @@
 from time import time
 import logging
 import math
+import pickle
 import torch
 from torch.utils.data import Dataset, DataLoader, RandomSampler, SequentialSampler
 
@@ -11,12 +12,15 @@ from dlio_benchmark.data_loader.base_data_loader import BaseDataLoader
 from dlio_benchmark.reader.reader_factory import ReaderFactory
 from dlio_benchmark.utils.utility import utcnow, DLIOMPI
 from dlio_benchmark.utils.config import ConfigArguments
-from dlio_profiler.logger import fn_interceptor as Profile
+from dlio_profiler.logger import dlio_logger as PerfTrace, fn_interceptor as Profile
 from pydyad import Dyad, dyad_open
 from pydyad.bindings import DTLMode
 import numpy as np
 dlp = Profile(MODULE_DATA_LOADER)
 import os
+
+def get_trace_name(output_folder):
+    return f"{output_folder}/trace-{os.getpid()}.pfw"
 
 class DYADTorchDataset(Dataset):
     """
@@ -32,11 +36,23 @@ class DYADTorchDataset(Dataset):
         self.reader = None
         self.num_images_read = 0
         self.batch_size = batch_size
+        args = ConfigArguments.get_instance()
+        self.serial_args = pickle.dumps(args)
         if num_workers == 0:
             self.worker_init(-1)
 
     @dlp.log
     def worker_init(self, worker_id):
+        pickle.loads(self.serial_args)
+        _args = ConfigArguments.get_instance()
+        _args.configure_dlio_logging(True)
+        dlp_trace = get_trace_name(_args.output_folder)
+        self.dlp_logger = PerfTrace.initialize_log(logfile=dlp_trace,
+                                                     data_dir=f"{os.path.abspath(_args.data_folder)}:"
+                                                              f"{_args.data_folder}:./{_args.data_folder}:"
+                                                              f"{_args.checkpoint_folder}:./{_args.checkpoint_folder}:"
+                                                              f"{os.path.abspath(_args.checkpoint_folder)}",
+                                                     process_id=os.getpid())
         logging.debug(f"{utcnow()} worker initialized {worker_id} with format {self.format_type}")
         self.reader = ReaderFactory.get_reader(type=self.format_type,
                                                dataset_type=self.dataset_type,
@@ -90,7 +106,7 @@ class DYADTorchDataset(Dataset):
                 access_mode = "local"
             dlp.update(args={"mode":"dyad"})
             dlp.update(args={"access":access_mode})
-            logging.info(f"{utcnow()} Rank {DLIOMPI.get_instance().rank()} reading {image_idx} sample from {access_mode} dyad")
+            logging.info(f"{utcnow()} Rank {DLIOMPI.get_instance().rank()} reading {image_idx} sample from {access_mode} dyad {file_obj.owner_rank}")
             logging.debug(f"Reading from managed directory {base_fname}")
             with dyad_open(base_fname, "rb", dyad_ctx=self.dyad_io) as f:
                 data = np.load(f, allow_pickle=True)["x"]
@@ -130,18 +146,29 @@ class DyadTorchDataLoader(BaseDataLoader):
                 logging.debug(
                     f"{utcnow()} Prefetch size is {self._args.prefetch_size}; prefetch factor of {prefetch_factor} will be set to Torch DataLoader.")
         else:
+            prefetch_factor = 2
             if self._args.my_rank == 0:
                 logging.debug(
                     f"{utcnow()} Prefetch size is 0; a default prefetch factor of 2 will be set to Torch DataLoader.")
         logging.debug(f"{utcnow()} Setup dataloader with {self._args.read_threads} workers {torch.__version__}")
+        if self._args.read_threads==0:
+            kwargs={}
+        else:
+            kwargs={'multiprocessing_context':self._args.multiprocessing_context,
+                    'prefetch_factor': prefetch_factor}
+            if torch.__version__ != '1.3.1':       
+                kwargs['persistent_workers'] = True
         if torch.__version__ == '1.3.1':
+            if 'prefetch_factor' in kwargs:
+                del kwargs['prefetch_factor']
             self._dataset = DataLoader(dataset,
                                        batch_size=batch_size,
                                        sampler=sampler,
                                        num_workers=self._args.read_threads,
                                        pin_memory=True,
                                        drop_last=True,
-                                       worker_init_fn=dataset.worker_init)
+                                       worker_init_fn=dataset.worker_init, 
+                                       **kwargs)
         else:
             self._dataset = DataLoader(dataset,
                                        batch_size=batch_size,
@@ -150,7 +177,7 @@ class DyadTorchDataLoader(BaseDataLoader):
                                        pin_memory=True,
                                        drop_last=True,
                                        worker_init_fn=dataset.worker_init,
-                                       prefetch_factor=prefetch_factor if prefetch_factor > 0 else 2)  # 2 is the default value
+                                       **kwargs)  # 2 is the default value
         logging.debug(f"{utcnow()} Rank {self._args.my_rank} will read {len(self._dataset) * batch_size} files")
 
         # self._dataset.sampler.set_epoch(epoch_number)
