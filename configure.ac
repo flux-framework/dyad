@@ -81,6 +81,12 @@ AC_ARG_ENABLE([ucx],
     [enable_ucx=no]
 )
 AM_CONDITIONAL([UCX], [test "x$enable_ucx" = "xyes"])
+AC_ARG_ENABLE([caliper],
+    [AS_HELP_STRING([--enable-caliper],
+                    [enable performance measurement with Caliper])],
+    [enable_caliper=$withval],
+    [enable_caliper=no]
+)
 
 #############################################
 # Define PKG_CHECK_VAR if it does not exist #
@@ -120,9 +126,10 @@ AX_PERFFLOW_ASPECT([PERFFLOW],
     [pkg_check_perfflow_found=yes],
     [pkg_check_perfflow_found=no]
 )
-if test "x$enable_perfflow" = "xyes" && test "x$pkg_check_perfflow_found" = "xno"; then
+if test "x$with_perfflow" = "xyes" && test "x$pkg_check_perfflow_found" = "xno"; then
     AC_MSG_ERROR([requested PerfFlow Aspect support, but cannot find PerfFlow Aspect with pkg-config])
 fi
+DYAD_MOD_RPATH=""
 # Check for UCX v1.6.0 or higher
 PKG_CHECK_MODULES([UCX],
     [ucx >= 1.6.0],
@@ -143,11 +150,52 @@ if test "x$enable_ucx" = "xyes"; then
         [AC_MSG_FAILURE([check_var succeeded, but value is incorrect])]
     )
     AS_IF([test "x$enable_ucx" = "xyes"],
-        [DYAD_MOD_RPATH="-Wl,-rpath,$UCX_LIBDIR"],
-        [DYAD_MOD_RPATH=""]
+        [
+            if test -z "$DYAD_MOD_RPATH"; then
+                DYAD_MOD_RPATH="$UCX_LIBDIR"
+            else
+                DYAD_MOD_RPATH="$DYAD_MOD_RPATH:$UCX_LIBDIR"
+            fi
+        ],
+        []
     )
-    AC_SUBST([DYAD_MOD_RPATH])
 fi
+PKG_CHECK_MODULES([CALIPER],
+    [caliper],
+    [pkg_check_caliper_found=yes],
+    [pkg_check_caliper_found=no]
+)
+if test "x$enable_caliper" = "xyes" && test "x$pkg_check_caliper_found" = "xno"; then
+    AC_MSG_ERROR([requested Caliper support, but cannot find Caliper with pkg-config])
+fi
+if test "x$enable_caliper" = "xyes"; then
+    PKG_CHECK_VAR([CALIPER_LIBDIR],
+        [caliper],
+        [libdir],
+        [],
+        [AC_MSG_FAILURE([Could not find libdir for Caliper])]
+    )
+    AS_IF([test "x$CALIPER_LIBDIR" = "x"],
+          [AC_MSG_FAILURE([check_var succeeded, but value is incorrect])]
+    )
+    AS_IF([test "x$enable_caliper" = "xyes"],
+        [
+            if test -z "$DYAD_MOD_RPATH"; then
+                DYAD_MOD_RPATH="$CALIPER_LIBDIR"
+            else
+                DYAD_MOD_RPATH="$DYAD_MOD_RPATH:$CALIPER_LIBDIR"
+            fi
+        ],
+        []
+    )
+fi
+AM_CONDITIONAL([WITH_CALIPER], [test "x$enable_caliper" = "xyes"])
+
+AS_IF([test -z "$DYAD_MOD_RPATH"],
+    [],
+    [DYAD_MOD_RPATH="-Wl,-rpath,$DYAD_MOD_RPATH"]
+)
+AC_SUBST([DYAD_MOD_RPATH])
 
 ###########################
 # Checks for header files #
@@ -207,6 +255,7 @@ fi
 ########################
 AC_CONFIG_FILES([Makefile
                  src/Makefile
+                 src/perf/Makefile
                  src/utils/Makefile
                  src/utils/base64/Makefile
                  src/utils/libtap/Makefile
