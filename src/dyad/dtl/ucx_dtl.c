@@ -566,13 +566,13 @@ dyad_rc_t dyad_dtl_ucx_init (dyad_dtl_t* self,
     }
 
     // Allocate a buffer of max transfer size using UCX
-    ucx_allocate_buffer (self->perf_handle,
-                         dtl_handle->h,
-                         dtl_handle->ucx_ctx,
-                         dtl_handle->max_transfer_size,
-                         dtl_handle->comm_mode,
-                         dtl_handle->mem_handle,
-                         &(dtl_handle->net_buf));
+    // ucx_allocate_buffer (self->perf_handle,
+    //                      dtl_handle->h,
+    //                      dtl_handle->ucx_ctx,
+    //                      dtl_handle->max_transfer_size,
+    //                      dtl_handle->comm_mode,
+    //                      dtl_handle->mem_handle,
+    //                      &(dtl_handle->net_buf));
 
     self->rpc_pack = dyad_dtl_ucx_rpc_pack;
     self->rpc_unpack = dyad_dtl_ucx_rpc_unpack;
@@ -778,6 +778,13 @@ dyad_rc_t dyad_dtl_ucx_get_buffer (dyad_dtl_t* self, size_t data_size, void** da
         rc = DYAD_RC_BADBUF;
         goto ucx_get_buffer_done;
     }
+    ucx_allocate_buffer (self->perf_handle,
+                         dtl_handle->h,
+                         dtl_handle->ucx_ctx,
+                         data_size,  // dtl_handle->max_transfer_size,
+                         dtl_handle->comm_mode,
+                         dtl_handle->mem_handle,
+                         &(dtl_handle->net_buf));
     DYAD_LOG_INFO (dtl_handle, "Setting the data buffer pointer to the UCX-allocated buffer");
     *data_buf = dtl_handle->net_buf;
     rc = DYAD_RC_OK;
@@ -793,6 +800,14 @@ dyad_rc_t dyad_dtl_ucx_return_buffer (dyad_dtl_t* self, void** data_buf)
     if (data_buf == NULL || *data_buf == NULL) {
         DYAD_PERF_REGION_END (self->perf_handle, "dyad_dtl_ucx_return_buffer");
         return DYAD_RC_BADBUF;
+    }
+    dyad_dtl_ucx_t* dtl_handle = self->private.ucx_dtl_handle;
+    if (dtl_handle->mem_handle != NULL) {
+        ucx_free_buffer (perf_handle,
+                         dtl_handle->h,
+                         dtl_handle->ucx_ctx,
+                         dtl_handle->mem_handle,
+                         &(dtl_handle->net_buf));
     }
     *data_buf = NULL;
     DYAD_PERF_REGION_END (self->perf_handle, "dyad_dtl_ucx_return_buffer");
@@ -983,13 +998,13 @@ dyad_rc_t dyad_dtl_ucx_finalize (dyad_dtl_t** self)
         dtl_handle->local_address = NULL;
     }
     // Free memory buffer if not already freed
-    if (dtl_handle->mem_handle != NULL) {
-        ucx_free_buffer (perf_handle,
-                         dtl_handle->h,
-                         dtl_handle->ucx_ctx,
-                         dtl_handle->mem_handle,
-                         &(dtl_handle->net_buf));
-    }
+    // if (dtl_handle->mem_handle != NULL) {
+    //     ucx_free_buffer (perf_handle,
+    //                      dtl_handle->h,
+    //                      dtl_handle->ucx_ctx,
+    //                      dtl_handle->mem_handle,
+    //                      &(dtl_handle->net_buf));
+    // }
     // Release worker if not already released
     if (dtl_handle->ucx_worker != NULL) {
         ucp_worker_destroy (dtl_handle->ucx_worker);
