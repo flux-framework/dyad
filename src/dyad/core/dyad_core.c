@@ -36,6 +36,7 @@ const struct dyad_ctx dyad_ctx_default = {
     3u,     // key_depth
     1024u,  // key_bins
     0u,     // rank
+    1u,     // service_mux
     NULL,   // kvs_namespace
     NULL,   // prod_managed_path
     NULL    // cons_managed_path
@@ -303,7 +304,8 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_fetch (const dyad_ctx_t* restrict ctx,
     // In either of these cases, skip the creation of the dyad_kvs_response_t
     // object, and return DYAD_OK. This will cause the file transfer step to be
     // skipped
-    if (ctx->shared_storage || ((*mdata)->owner_rank == ctx->rank)) {
+    if (ctx->shared_storage ||
+        (((*mdata)->owner_rank / ctx->service_mux) == (ctx->rank / ctx->service_mux))) {
         DYAD_LOG_INFO (ctx,
                        "Either shared-storage is enabled or the producer rank (%u) "
                        "is the "
@@ -483,6 +485,7 @@ dyad_rc_t dyad_init (bool debug,
                      bool shared_storage,
                      unsigned int key_depth,
                      unsigned int key_bins,
+                     unsigned int service_mux,
                      const char* kvs_namespace,
                      const char* prod_managed_path,
                      const char* cons_managed_path,
@@ -547,10 +550,11 @@ dyad_rc_t dyad_init (bool debug,
     // Get the rank of the Flux broker corresponding
     // to the handle. If this fails, return DYAD_FLUXFAIL
     FLUX_LOG_INFO ((*ctx)->h, "DYAD_CORE: getting Flux rank");
-    if (flux_get_rank ((*ctx)->h, &((*ctx)->rank)) < 0) {
+    if (flux_get_rank ((*ctx)->h, &((*ctx)->rank)) < 0u) {
         FLUX_LOG_ERR ((*ctx)->h, "Could not get Flux rank!\n");
         return DYAD_RC_FLUXFAIL;
     }
+    (*ctx)->service_mux = (service_mux < 1u)? 1u : service_mux;
     // If the namespace is provided, copy it into the dyad_ctx_t object
     FLUX_LOG_INFO ((*ctx)->h, "DYAD_CORE: saving KVS namespace");
     if (kvs_namespace == NULL) {
@@ -628,12 +632,13 @@ dyad_rc_t dyad_init_env (dyad_ctx_t** ctx)
     bool debug = false;
     bool check = false;
     bool shared_storage = false;
-    unsigned int key_depth = 0;
-    unsigned int key_bins = 0;
+    unsigned int key_depth = 0u;
+    unsigned int key_bins = 0u;
+    unsigned int service_mux = 1u;
     char* kvs_namespace = NULL;
     char* prod_managed_path = NULL;
     char* cons_managed_path = NULL;
-    size_t dtl_mode_env_len = 0;
+    size_t dtl_mode_env_len = 0ul;
     dyad_dtl_mode_t dtl_mode = DYAD_DTL_UCX;
 
     if ((e = getenv (DYAD_SYNC_DEBUG_ENV))) {
@@ -671,6 +676,12 @@ dyad_rc_t dyad_init_env (dyad_ctx_t** ctx)
         key_bins = atoi (e);
     } else {
         key_bins = 1024;
+    }
+
+    if ((e = getenv (DYAD_SERVICE_MUX_ENV))) {
+        service_mux = atoi (e);
+    } else {
+        service_mux= 1u;
     }
 
     if ((e = getenv (DYAD_KVS_NAMESPACE_ENV))) {
@@ -718,6 +729,7 @@ dyad_rc_t dyad_init_env (dyad_ctx_t** ctx)
                       shared_storage,
                       key_depth,
                       key_bins,
+                      service_mux,
                       kvs_namespace,
                       prod_managed_path,
                       cons_managed_path,
