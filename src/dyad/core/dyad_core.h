@@ -36,20 +36,20 @@ struct dyad_perf;
  * @struct dyad_ctx
  */
 struct dyad_ctx {
-    flux_t* h;                      // the Flux handle for DYAD
-    struct dyad_dtl* dtl_handle;    // Opaque handle to DTL info
-    struct dyad_perf* perf_handle;  // Opaque handle to performance measurement tools
-    bool debug;                     // if true, perform debug logging
-    bool check;                     // if true, perform some check logging
-    bool reenter;                   // if false, do not recursively enter DYAD
-    bool initialized;               // if true, DYAD is initialized
-    bool shared_storage;            // if true, the managed path is shared
-    unsigned int key_depth;         // Depth of bins for the Flux KVS
-    unsigned int key_bins;          // Number of bins for the Flux KVS
-    uint32_t rank;                  // Flux rank for DYAD
-    char* kvs_namespace;            // Flux KVS namespace for DYAD
-    char* prod_managed_path;        // producer path managed by DYAD
-    char* cons_managed_path;        // consumer path managed by DYAD
+    flux_t* h;                    // the Flux handle for DYAD
+    struct dyad_dtl* dtl_handle;  // Opaque handle to DTL info
+    bool debug;                   // if true, perform debug logging
+    bool check;                   // if true, perform some check logging
+    bool reenter;                 // if false, do not recursively enter DYAD
+    bool initialized;             // if true, DYAD is initialized
+    bool shared_storage;          // if true, the managed path is shared
+    unsigned int key_depth;       // Depth of bins for the Flux KVS
+    unsigned int key_bins;        // Number of bins for the Flux KVS
+    uint32_t rank;                // Flux rank for DYAD
+    uint32_t service_mux;         // Number of Flux brokers sharing node-local storage
+    char* kvs_namespace;          // Flux KVS namespace for DYAD
+    char* prod_managed_path;      // producer path managed by DYAD
+    char* cons_managed_path;      // consumer path managed by DYAD
 };
 DYAD_DLL_EXPORTED extern const struct dyad_ctx dyad_ctx_default;
 typedef struct dyad_ctx dyad_ctx_t;
@@ -89,6 +89,7 @@ typedef struct dyad_metadata dyad_metadata_t;
  *                            with the path is shared
  * @param[in]  key_depth      depth of the key hierarchy for the path
  * @param[in]  key_bins       number of bins used in key hashing
+ * @param[in]  service_mux    number of brokers sharing node-local storage
  * @param[in]  kvs_namespace  Flux KVS namespace to be used for this
  *                            instance of DYAD
  * @param[out] ctx            the newly initialized context
@@ -100,6 +101,7 @@ DYAD_DLL_EXPORTED dyad_rc_t dyad_init (bool debug,
                                        bool shared_storage,
                                        unsigned int key_depth,
                                        unsigned int key_bins,
+                                       unsigned int service_mux,
                                        const char* kvs_namespace,
                                        const char* prod_managed_path,
                                        const char* cons_managed_path,

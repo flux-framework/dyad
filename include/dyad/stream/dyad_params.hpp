@@ -24,6 +24,8 @@ struct dyad_params {
     unsigned int m_key_depth;
     /// The number of bins used in key hashing
     unsigned int m_key_bins;
+    /// The number of brokers sharing node-local storage
+    unsigned int m_service_mux;
     /// The DTL to use to move data from producer to consumer
     /// Valid values can be found in dyad_dtl_defs.h from core
     int m_dtl_mode;
@@ -41,6 +43,7 @@ struct dyad_params {
           m_shared_storage (false),
           m_key_depth (2u),
           m_key_bins (256u),
+          m_service_mux (1u),
           m_dtl_mode (0),
           m_kvs_namespace (""),
           m_cons_managed_path (""),
