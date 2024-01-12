@@ -429,6 +429,21 @@ bool get_stat (const char* path, unsigned int max_retry, long ns_sleep)
 }
 #endif  // DYAD_SPIN_WAIT
 
+ssize_t get_file_size (int fd)
+{
+    const ssize_t file_size = lseek (fd, 0, SEEK_END);
+    if (file_size == 0) {
+        errno = EINVAL;
+        return 0;
+    }
+    const off_t offset = lseek (fd, 0, SEEK_SET);
+    if (offset != 0) {
+        errno = EINVAL;
+        return 0;
+    }
+    return file_size;
+}
+
 #if DYAD_SYNC_DIR
 int sync_containing_dir (const char* path)
 {

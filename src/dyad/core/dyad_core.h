@@ -45,6 +45,8 @@ struct dyad_ctx {
     unsigned int key_bins;        // Number of bins for the Flux KVS
     uint32_t rank;                // Flux rank for DYAD
     uint32_t service_mux;         // Number of Flux brokers sharing node-local storage
+    uint32_t node_idx;            // Index of the node hosting broker(s)
+    int pid;                      // unix process id, obtained by getpid()
     char* kvs_namespace;          // Flux KVS namespace for DYAD
     char* prod_managed_path;      // producer path managed by DYAD
     char* cons_managed_path;      // consumer path managed by DYAD
