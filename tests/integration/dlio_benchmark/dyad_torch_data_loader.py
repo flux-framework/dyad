@@ -61,7 +61,7 @@ class DYADTorchDataset(Dataset):
         self.conf = ConfigArguments.get_instance()
         self.dyad_io = Dyad()
         is_local = os.getenv("DYAD_LOCAL_TEST", "0") == "1"
-        self.broker_per_node = int(os.getenv("DYAD_BROKERS_PER_NODE", "1"))
+        self.broker_per_node = int(os.getenv("BROKERS_PER_NODE", "1"))
         import flux
         self.f = flux.Flux()
         self.broker_rank = self.f.get_rank()
@@ -69,7 +69,7 @@ class DYADTorchDataset(Dataset):
             self.dyad_managed_directory = os.path.join(os.getenv("DYAD_PATH", ""), str(self.f.get_rank()))
         else:
             self.dyad_managed_directory = os.getenv("DYAD_PATH", "")
-        self.my_node_index = self.broker_rank // self.broker_per_node
+        self.my_node_index = int(self.broker_rank*1.0 / self.broker_per_node)
         dtl_str = os.getenv("DYAD_DTL_MODE", "FLUX_RPC")
         mode = DTLMode.DYAD_DTL_FLUX_RPC
         namespace = os.getenv("DYAD_KVS_NAMESPACE")
@@ -77,6 +77,7 @@ class DYADTorchDataset(Dataset):
         if dtl_str == "UCX":
             mode = DTLMode.DYAD_DTL_UCX
         self.dyad_io.init(debug=self.conf.debug, check=False, shared_storage=False, key_depth=3,
+                          service_mux=self.broker_per_node,
                           key_bins=1024, kvs_namespace=os.getenv("DYAD_KVS_NAMESPACE"),
                           prod_managed_path=self.dyad_managed_directory, cons_managed_path=self.dyad_managed_directory,
                           dtl_mode=mode)
@@ -101,9 +102,11 @@ class DYADTorchDataset(Dataset):
             is_present = True
         if file_obj:
             access_mode = "remote"
-            file_node_index = file_obj.owner_rank // self.broker_per_node
+            file_node_index = int(file_obj.owner_rank*1.0 / self.broker_per_node)
             if self.my_node_index == file_node_index:
                 access_mode = "local"
+            dlp.update(args={"owner_rank":str(file_obj.owner_rank)})
+            dlp.update(args={"my_broker":str(self.broker_rank)})
             dlp.update(args={"mode":"dyad"})
             dlp.update(args={"access":access_mode})
             logging.info(f"{utcnow()} Rank {DLIOMPI.get_instance().rank()} reading {image_idx} sample from {access_mode} dyad {file_obj.owner_rank}")
