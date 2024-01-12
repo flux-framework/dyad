@@ -30,6 +30,8 @@ class DyadCtxWrapper(ctypes.Structure):
         ("key_bins", ctypes.c_uint),
         ("rank", ctypes.c_uint32),
         ("service_mux", ctypes.c_uint32),
+        ("node_idx", ctypes.c_uint32),
+        ("pid", ctypes.c_int32),
         ("kvs_namespace", ctypes.c_char_p),
         ("prod_managed_path", ctypes.c_char_p),
         ("cons_managed_path", ctypes.c_char_p),
@@ -98,6 +100,8 @@ class Dyad:
             ctypes.c_uint,                                   # key_depth
             ctypes.c_uint,                                   # key_bins
             ctypes.c_uint,                                   # service_mux
+            ctypes.c_uint,                                   # node_idx
+            ctypes.c_int,                                    # pid
             ctypes.c_char_p,                                 # kvs_namespace
             ctypes.c_char_p,                                 # prod_managed_path
             ctypes.c_char_p,                                 # cons_managed_path
