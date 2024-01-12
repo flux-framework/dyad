@@ -20,9 +20,11 @@
 #if defined(__cplusplus)
 // #include <cstdbool> // c++11
 #include <cstddef>
+#include <cstdio>
 #else
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdio.h>
 #endif  // defined(__cplusplus)
 
 #include <sys/stat.h>
@@ -74,6 +76,8 @@ bool is_fd_dir (int fd);
 /// Try access file info
 bool get_stat (const char* path, unsigned int max_retry, long ns_sleep);
 #endif  // DYAD_SPIN_WAIT
+
+ssize_t get_file_size (int fd);
 
 #if DYAD_SYNC_DIR
 /**

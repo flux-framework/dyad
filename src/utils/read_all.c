@@ -17,6 +17,7 @@
 #include <unistd.h>
 
 #include "read_all.h"
+#include "utils.h"
 
 ssize_t write_all (int fd, const void *buf, size_t len)
 {
@@ -39,15 +40,10 @@ ssize_t write_all (int fd, const void *buf, size_t len)
 
 ssize_t read_all (int fd, void **bufp)
 {
-    const ssize_t file_size = lseek (fd, 0, SEEK_END);
-    if (file_size == 0) {
+    const ssize_t file_size = get_file_size (fd);
+    if (file_size <= 0) {
         errno = EINVAL;
         return 0;
-    }
-    off_t offset = lseek (fd, 0, SEEK_SET);
-    if (offset != 0) {
-        errno = EINVAL;
-        return -1;
     }
     *bufp = malloc (file_size);
     if (*bufp == NULL) {
