@@ -268,6 +268,8 @@ kvs_read_end:
 DYAD_CORE_FUNC_MODS dyad_rc_t dyad_excl_flock (const dyad_ctx_t* restrict ctx,
                                                int fd, struct flock* restrict lock)
 {
+    DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] Applies an exclusive lock on fd %d", \
+                   ctx->node_idx, ctx->rank, ctx->pid, fd);
     if (!lock) return DYAD_RC_BADFIO;
     lock->l_type = F_WRLCK;
     lock->l_whence = SEEK_SET;
@@ -278,12 +280,16 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_excl_flock (const dyad_ctx_t* restrict ctx,
         DYAD_LOG_ERR (ctx, "Cannot apply exclusive lock on fd %d", fd);
         return DYAD_RC_BADFIO;
     }
+    DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] Exclusive lock placed on fd %d", \
+                   ctx->node_idx, ctx->rank, ctx->pid, fd);
     return DYAD_RC_OK;
 }
 
 DYAD_CORE_FUNC_MODS dyad_rc_t dyad_shared_flock (const dyad_ctx_t* restrict ctx,
                                                  int fd, struct flock* restrict lock)
 {
+    DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] Applies a shared lock on fd %d", \
+                   ctx->node_idx, ctx->rank, ctx->pid, fd);
     if (!lock) return DYAD_RC_BADFIO;
     lock->l_type = F_RDLCK;
     lock->l_whence = SEEK_SET;
@@ -294,18 +300,24 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_shared_flock (const dyad_ctx_t* restrict ctx,
         DYAD_LOG_ERR (ctx, "Cannot apply shared lock on fd %d", fd);
         return DYAD_RC_BADFIO;
     }
+    DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] Shared lock placed on fd %d", \
+                   ctx->node_idx, ctx->rank, ctx->pid, fd);
     return DYAD_RC_OK;
 }
 
 DYAD_CORE_FUNC_MODS dyad_rc_t dyad_release_flock (const dyad_ctx_t* restrict ctx,
                                                   int fd, struct flock* restrict lock)
 {
+    DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] Releases a lock on fd %d", \
+                   ctx->node_idx, ctx->rank, ctx->pid, fd);
     if (!lock) return DYAD_RC_BADFIO;
     lock->l_type = F_UNLCK;
     if (fcntl (fd, F_SETLK, lock) == -1) { // will just unlock
         DYAD_LOG_ERR (ctx, "Cannot release lock on fd %d", fd);
         return DYAD_RC_BADFIO;
     }
+    DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] lock lifted from fd %d", \
+                   ctx->node_idx, ctx->rank, ctx->pid, fd);
     return DYAD_RC_OK;
 }
 
@@ -860,7 +872,9 @@ dyad_rc_t dyad_consume (dyad_ctx_t* ctx, const char* fname)
             dyad_release_flock (ctx, fd, &exclusive_lock);
             goto consume_done;
         }
-        if ((file_size = get_file_size (fd)) == 0) {
+        if ((file_size = get_file_size (fd)) <= 0) {
+            DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] File (fd %d) is not fetched yet", \
+                           ctx->node_idx, ctx->rank, ctx->pid);
             // Call dyad_fetch to get (and possibly wait on)
             // data from the Flux KVS
             rc = dyad_fetch (ctx, fname, &mdata);
