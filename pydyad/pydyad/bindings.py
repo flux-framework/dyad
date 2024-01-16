@@ -1,8 +1,8 @@
 import ctypes
 from ctypes.util import find_library
+import enum
 from pathlib import Path
 import warnings
-import weakref
 
 
 DYAD_LIB_DIR = None
@@ -46,20 +46,26 @@ class DyadMetadata:
 
     def __init__(self, metadata_wrapper, dyad_obj):
         self.mdata = metadata_wrapper
-        self.dyad_free_metadata = weakref.ref(dyad_obj.dyad_free_metadata)
-        self.mdata_attrs = [tup[0] for tup in metadata_wrapper._fields_]
+        self.dyad_bindings_obj = dyad_obj
 
     def __getattr__(self, attr_name):
-        if self.mdata is not None:
-            if attr_name not in self.mdata_attrs:
+        if self.mdata is not None: 
+            try:
+                return getattr(self.mdata.contents, attr_name)
+            except AttributeError:
                 raise AttributeError("{} is not an attribute of DYAD's metadata".format(attr_name))
-            return getattr(self.mdata.contents, attr_name)
         raise AttributeError("Underlying metadata object has already been freed")
 
     def __del__(self):
         if self.mdata is not None:
-            self.dyad_free_metadata(ctypes.byref(self.mdata))
+            self.dyad_bindings_obj.free_metadata(self.mdata)
             self.mdata = None
+            self.dyad_bindings_obj = None
+
+
+class DTLMode(enum.IntEnum):
+    DYAD_DTL_UCX = 0
+    DYAD_DTL_FLUX_RPC = 1
 
 
 class Dyad:
@@ -93,6 +99,7 @@ class Dyad:
             ctypes.c_char_p,                                 # kvs_namespace
             ctypes.c_char_p,                                 # prod_managed_path
             ctypes.c_char_p,                                 # cons_managed_path
+            ctypes.c_int,                                    # dtl_mode
             ctypes.POINTER(ctypes.POINTER(DyadCtxWrapper)),  # ctx
         ]
         self.dyad_init.restype = ctypes.c_int
@@ -134,9 +141,18 @@ class Dyad:
         self.cons_path = None
         self.prod_path = None
         
-    def init(self, debug, check, shared_storage, key_depth,
-             key_bins, kvs_namespace, prod_managed_path,
-             cons_managed_path):
+    def init(
+        self,
+        debug=False,
+        check=False,
+        shared_storage=False,
+        key_depth=3,
+        key_bins=1024,
+        kvs_namespace=None,
+        prod_managed_path=None,
+        cons_managed_path=None,
+        dtl_mode=DTLMode.DYAD_DTL_FLUX_RPC,
+    ):
         if self.dyad_init is None:
             warnings.warn(
                 "Trying to initialize DYAD when libdyad_core.so was not found",
@@ -152,6 +168,7 @@ class Dyad:
             kvs_namespace.encode() if kvs_namespace is not None else None,
             prod_managed_path.encode() if prod_managed_path is not None else None,
             cons_managed_path.encode() if cons_managed_path is not None else None,
+            ctypes.c_int(dtl_mode),
             ctypes.byref(self.ctx),
         )
         if int(res) != 0:
