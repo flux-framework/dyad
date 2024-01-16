@@ -380,7 +380,7 @@ fetch_done:;
 
 DYAD_CORE_FUNC_MODS dyad_rc_t dyad_get_data (const dyad_ctx_t* ctx,
                                              const dyad_metadata_t* restrict mdata,
-                                             const char** file_data,
+                                             char** file_data,
                                              size_t* file_len)
 {
     dyad_rc_t rc = DYAD_RC_OK;
@@ -848,7 +848,7 @@ dyad_rc_t dyad_consume (dyad_ctx_t* ctx, const char* fname)
     int rc = 0;
     int fd = -1;
     ssize_t file_size = -1;
-    const char* file_data = NULL;
+    char* file_data = NULL;
     size_t data_len = 0ul;
     dyad_metadata_t* mdata = NULL;
     struct flock exclusive_lock;
@@ -866,64 +866,67 @@ dyad_rc_t dyad_consume (dyad_ctx_t* ctx, const char* fname)
     // Set reenter to false to avoid recursively performing
     // DYAD operations
     ctx->reenter = false;
-    if (fd = open (fname, O_RDWR | O_CREAT, 0666) == -1) {
-        rc = dyad_excl_flock (ctx, fd, &exclusive_lock);
+    fd = open (fname, O_RDWR | O_CREAT, 0666);
+    if (fd == -1) {
+        DYAD_LOG_ERR (ctx, "Cannot create file (%s) for dyad_consume!\n", fname);
+        return DYAD_RC_BADFIO;
+    }
+    rc = dyad_excl_flock (ctx, fd, &exclusive_lock);
+    if (DYAD_IS_ERROR (rc)) {
+        dyad_release_flock (ctx, fd, &exclusive_lock);
+        goto consume_done;
+    }
+    if ((file_size = get_file_size (fd)) <= 0) {
+        DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] File (%s with fd %d) is not fetched yet", \
+                       ctx->node_idx, ctx->rank, ctx->pid, fname, fd);
+        // Call dyad_fetch to get (and possibly wait on)
+        // data from the Flux KVS
+        rc = dyad_fetch (ctx, fname, &mdata);
+        // If an error occured in dyad_fetch, log an error
+        // and return the corresponding DYAD return code
         if (DYAD_IS_ERROR (rc)) {
+            DYAD_LOG_ERR (ctx, "dyad_fetch failed!\n");
             dyad_release_flock (ctx, fd, &exclusive_lock);
             goto consume_done;
         }
-        if ((file_size = get_file_size (fd)) <= 0) {
-            DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] File (fd %d) is not fetched yet", \
-                           ctx->node_idx, ctx->rank, ctx->pid);
-            // Call dyad_fetch to get (and possibly wait on)
-            // data from the Flux KVS
-            rc = dyad_fetch (ctx, fname, &mdata);
-            // If an error occured in dyad_fetch, log an error
-            // and return the corresponding DYAD return code
-            if (DYAD_IS_ERROR (rc)) {
-                DYAD_LOG_ERR (ctx, "dyad_fetch failed!\n");
-                dyad_release_flock (ctx, fd, &exclusive_lock);
-                goto consume_done;
-            }
-            // If dyad_fetch was successful, but resp is still NULL,
-            // then we need to skip data transfer.
-            // This will most likely happend because shared_storage
-            // is enabled
-            if (mdata == NULL) {
-                DYAD_LOG_INFO (ctx, "The KVS response is NULL! Skipping dyad_pull!\n");
-                rc = DYAD_RC_OK;
-                dyad_release_flock (ctx, fd, &exclusive_lock);
-                goto consume_done;
-            }
-
-            // Call dyad_get_data to dispatch a RPC to the producer's Flux broker
-            // and retrieve the data associated with the file
-            rc = dyad_get_data (ctx, mdata, &file_data, &data_len);
-            if (DYAD_IS_ERROR (rc)) {
-                DYAD_LOG_ERR (ctx, "dyad_get_data failed!\n");
-                dyad_release_flock (ctx, fd, &exclusive_lock);
-                goto consume_done;
-            }
-
-            // Call dyad_pull to fetch the data from the producer's
-            // Flux broker
-            rc = dyad_cons_store (ctx, mdata, fd, data_len, file_data);
-            // Regardless if there was an error in dyad_pull,
-            // free the KVS response object
-            if (mdata != NULL) {
-                dyad_free_metadata (&mdata);
-            }
-            // If an error occured in dyad_pull, log it
-            // and return the corresponding DYAD return code
-            if (DYAD_IS_ERROR (rc)) {
-                DYAD_LOG_ERR (ctx, "dyad_cons_store failed!\n");
-                dyad_release_flock (ctx, fd, &exclusive_lock);
-                goto consume_done;
-            };
-            fsync (fd);
+        // If dyad_fetch was successful, but resp is still NULL,
+        // then we need to skip data transfer.
+        // This will most likely happend because shared_storage
+        // is enabled
+        if (mdata == NULL) {
+            DYAD_LOG_INFO (ctx, "The KVS response is NULL! Skipping dyad_pull!\n");
+            rc = DYAD_RC_OK;
+            dyad_release_flock (ctx, fd, &exclusive_lock);
+            goto consume_done;
         }
-        dyad_release_flock (ctx, fd, &exclusive_lock);
+
+        // Call dyad_get_data to dispatch a RPC to the producer's Flux broker
+        // and retrieve the data associated with the file
+        rc = dyad_get_data (ctx, mdata, &file_data, &data_len);
+        if (DYAD_IS_ERROR (rc)) {
+            DYAD_LOG_ERR (ctx, "dyad_get_data failed!\n");
+            dyad_release_flock (ctx, fd, &exclusive_lock);
+            goto consume_done;
+        }
+
+        // Call dyad_pull to fetch the data from the producer's
+        // Flux broker
+        rc = dyad_cons_store (ctx, mdata, fd, data_len, file_data);
+        // Regardless if there was an error in dyad_pull,
+        // free the KVS response object
+        if (mdata != NULL) {
+            dyad_free_metadata (&mdata);
+        }
+        // If an error occured in dyad_pull, log it
+        // and return the corresponding DYAD return code
+        if (DYAD_IS_ERROR (rc)) {
+            DYAD_LOG_ERR (ctx, "dyad_cons_store failed!\n");
+            dyad_release_flock (ctx, fd, &exclusive_lock);
+            goto consume_done;
+        };
+        fsync (fd);
     }
+    dyad_release_flock (ctx, fd, &exclusive_lock);
 
     if (close (fd) != 0) {
         rc = DYAD_RC_BADFIO;
@@ -932,7 +935,7 @@ dyad_rc_t dyad_consume (dyad_ctx_t* ctx, const char* fname)
     rc = DYAD_RC_OK;
 consume_done:;
     if (file_data != NULL) {
-        free (file_data);
+        free ((void*) file_data);
     }
     // Set reenter to true to allow additional intercepting
     ctx->reenter = true;
