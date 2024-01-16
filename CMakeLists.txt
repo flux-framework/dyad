@@ -32,24 +32,7 @@ set(CMAKE_CXX_STANDARD 11)
 # This sets where to look for dependent libraries
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${CMAKE_BINARY_DIR} ${CMAKE_INSTALL_PREFIX})
 # This sets where to look for dependent library's cmake files
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_BINARY_DIR}/lib/cmake)
-
-if (NOT DYAD_INSTALL_BIN_DIR)
-    set(DYAD_INSTALL_BIN_DIR ${CMAKE_INSTALL_PREFIX}/bin)
-    message("-- " "[${PROJECT_NAME}] DYAD_INSTALL_BIN_DIR " ${DYAD_INSTALL_BIN_DIR})
-endif ()
-if (NOT DYAD_INSTALL_LIB_DIR)
-    set(DYAD_INSTALL_LIB_DIR ${CMAKE_INSTALL_PREFIX}/lib)
-    message("-- " "[${PROJECT_NAME}] DYAD_INSTALL_LIB_DIR " ${DYAD_INSTALL_LIB_DIR})
-endif ()
-if (NOT DYAD_INSTALL_INCLUDE_DIR)
-    set(DYAD_INSTALL_INCLUDE_DIR ${CMAKE_INSTALL_PREFIX}/include)
-    message("-- " "[${PROJECT_NAME}] DYAD_INSTALL_INCLUDE_DIR " ${DYAD_INSTALL_INCLUDE_DIR})
-endif ()
-if (NOT DYAD_INSTALL_DATA_DIR)
-    set(DYAD_INSTALL_DATA_DIR ${CMAKE_INSTALL_PREFIX}/share)
-    message("-- " "[${PROJECT_NAME}] DYAD_INSTALL_DATA_DIR " ${DYAD_INSTALL_DATA_DIR})
-endif ()
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_BINARY_DIR}/lib/cmake ${CMAKE_BINARY_DIR}/share/cmake)
 
 if (NOT CMAKE_INSTALL_RPATH)
     set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib:${CMAKE_INSTALL_PREFIX}/lib64")
@@ -177,7 +160,7 @@ function(dyad_install_headers public_headers current_dir)
         get_filename_component(header_directory_path "${header_file_path}" DIRECTORY)
         install(
                 FILES ${header}
-                DESTINATION "${CMAKE_INSTALL_PREFIX}/include/${header_directory_path}"
+                DESTINATION "include/${header_directory_path}"
         )
         file(COPY ${header}
                 DESTINATION "${CMAKE_INCLUDE_OUTPUT_DIRECTORY}/${header_directory_path}")
@@ -202,7 +185,7 @@ install(
         FILES
         ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake/${PROJECT_NAME}/install/${PROJECT_NAME}-config.cmake
         DESTINATION
-        ${DYAD_INSTALL_LIB_DIR}/cmake/${PROJECT_NAME}
+        lib/cmake/${PROJECT_NAME}
 )
 #-----------------------------------------------------------------------------
 # Configure the ${PROJECT_NAME}-config-version .cmake file for the install directory
@@ -216,7 +199,7 @@ install(
         FILES
         ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake/${PROJECT_NAME}/${PROJECT_NAME}-config-version.cmake
         DESTINATION
-        ${DYAD_INSTALL_LIB_DIR}/cmake/${PROJECT_NAME}
+        lib/cmake/${PROJECT_NAME}
 )
 
 export(EXPORT ${DYAD_EXPORTED_TARGETS}
@@ -225,7 +208,7 @@ export(EXPORT ${DYAD_EXPORTED_TARGETS}
 install(EXPORT
         ${DYAD_EXPORTED_TARGETS}
         DESTINATION
-        ${DYAD_INSTALL_LIB_DIR}/cmake/${PROJECT_NAME}
+        lib/cmake/${PROJECT_NAME}
         FILE
         ${DYAD_EXPORTED_TARGETS}.cmake
         )
