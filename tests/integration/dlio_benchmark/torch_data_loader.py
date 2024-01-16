@@ -19,6 +19,8 @@ import logging
 import math
 import pickle
 import torch
+torch.use_deterministic_algorithms(True)
+import random
 from torch.utils.data import Dataset, DataLoader, RandomSampler, SequentialSampler
 
 from dlio_benchmark.common.constants import MODULE_DATA_LOADER
@@ -29,16 +31,10 @@ from dlio_benchmark.utils.utility import utcnow, DLIOMPI
 from dlio_benchmark.utils.config import ConfigArguments
 from dlio_profiler.logger import fn_interceptor as Profile
 
-from pydyad import Dyad, dyad_open
-from pydyad.bindings import DTLMode
-import numpy as np
-import flux
-import os
-
 dlp = Profile(MODULE_DATA_LOADER)
 
 
-class DYADTorchDataset(Dataset):
+class BaseTorchDataset(Dataset):
     """
     Currently, we only support loading one sample per file
     TODO: support multiple samples per file
@@ -65,32 +61,12 @@ class DYADTorchDataset(Dataset):
         self._args.configure_dlio_logging(is_child=True)
         self.dlp_logger = self._args.configure_dlio_profiler(is_child=True, use_pid=True)
         logging.debug(f"{utcnow()} worker initialized {worker_id} with format {self.format_type}")
+        worker_seed = torch.initial_seed() % 2**32
+        random.seed(worker_seed)
         self.reader = ReaderFactory.get_reader(type=self.format_type,
                                                dataset_type=self.dataset_type,
                                                thread_index=worker_id,
                                                epoch_number=self.epoch_number)
-        self.dyad_io = Dyad()
-        is_local = os.getenv("DYAD_LOCAL_TEST", "0") == "1"
-        self.broker_per_node = int(os.getenv("BROKERS_PER_NODE", "1"))
-
-        self.f = flux.Flux()
-        self.broker_rank = self.f.get_rank()
-        if is_local:
-            self.dyad_managed_directory = os.path.join(os.getenv("DYAD_PATH", ""), str(self.f.get_rank()))
-        else:
-            self.dyad_managed_directory = os.getenv("DYAD_PATH", "")
-        self.my_node_index = int(self.broker_rank*1.0 / self.broker_per_node)
-        dtl_str = os.getenv("DYAD_DTL_MODE", "FLUX_RPC")
-        mode = DTLMode.DYAD_DTL_FLUX_RPC
-        namespace = os.getenv("DYAD_KVS_NAMESPACE")
-        logging.info(f"{utcnow()} Rank {DLIOMPI.get_instance().rank()} init dyad {self.dyad_managed_directory} {dtl_str} {namespace}")
-        if dtl_str == "UCX":
-            mode = DTLMode.DYAD_DTL_UCX
-        self.dyad_io.init(debug=self._args.debug, check=False, shared_storage=False, key_depth=3,
-                          service_mux=self.broker_per_node,
-                          key_bins=1024, kvs_namespace=os.getenv("DYAD_KVS_NAMESPACE"),
-                          prod_managed_path=self.dyad_managed_directory, cons_managed_path=self.dyad_managed_directory,
-                          dtl_mode=mode)
 
     def __del__(self):
         if self.dlp_logger:
@@ -102,47 +78,19 @@ class DYADTorchDataset(Dataset):
     @dlp.log
     def __getitem__(self, image_idx):
         self.num_images_read += 1
-        step = int(math.ceil(self.num_images_read / self.batch_size))
         filename, sample_index = self._args.global_index_map[image_idx]
-        is_present = False
-        file_obj = None
-        base_fname = filename
-        dlp.update(args={"fname":filename})
-        dlp.update(args={"image_idx":image_idx})
-        if self.dyad_managed_directory != "":
-            base_fname = os.path.join(self.dyad_managed_directory, os.path.basename(filename))
-            file_obj = self.dyad_io.get_metadata(fname=base_fname, should_wait=False)
-            logging.debug(f"Using managed directory {self.dyad_managed_directory} {base_fname} {file_obj}")
-            is_present = True
-        if file_obj:
-            access_mode = "remote"
-            file_node_index = int(file_obj.owner_rank*1.0 / self.broker_per_node)
-            if self.my_node_index == file_node_index:
-                access_mode = "local"
-            dlp.update(args={"owner_rank":str(file_obj.owner_rank)})
-            dlp.update(args={"my_broker":str(self.broker_rank)})
-            dlp.update(args={"mode":"dyad"})
-            dlp.update(args={"access":access_mode})
-            logging.info(f"{utcnow()} Rank {DLIOMPI.get_instance().rank()} reading {image_idx} sample from {access_mode} dyad {file_obj.owner_rank}")
-            logging.debug(f"Reading from managed directory {base_fname}")
-            with dyad_open(base_fname, "rb", dyad_ctx=self.dyad_io) as f:
-                data = np.load(f, allow_pickle=True)["x"]
-        else:
-            dlp.update(args={"mode":"pfs"})
-            dlp.update(args={"access":"remote"})
-            logging.info(f"{utcnow()} Rank {DLIOMPI.get_instance().rank()} reading {image_idx} sample from pfs {base_fname}")
-            logging.debug(f"Reading from pfs {base_fname}")
-            data = self.reader.read_index(image_idx, step)
-            if is_present:
-                logging.debug(f"Writing to managed_directory {base_fname}")
-                with dyad_open(base_fname, "wb", dyad_ctx=self.dyad_io) as f:
-                    np.savez(f, x=data)
-
+        step = int(math.ceil(self.num_images_read / self.batch_size))
+        logging.debug(f"{utcnow()} Rank {DLIOMPI.get_instance().rank()} reading {image_idx} sample")
+        data = self.reader.read_index(image_idx, step)
         dlp.update(step=step)
         dlp.update(image_size=data.nbytes)
+        dlp.update(args={"mode":"pfs"})
+        dlp.update(args={"access":"remote"})
+        dlp.update(args={"fname":filename})
+        dlp.update(args={"image_idx":image_idx})
         return data
 
-class DyadTorchDataLoader(BaseDataLoader):
+class BaseTorchDataLoader(BaseDataLoader):
     @dlp.log_init
     def __init__(self, format_type, dataset_type, epoch_number):
         super().__init__(format_type, dataset_type, epoch_number, DataLoaderType.PYTORCH)
@@ -150,9 +98,13 @@ class DyadTorchDataLoader(BaseDataLoader):
     @dlp.log
     def read(self):
         do_shuffle = True if self._args.sample_shuffle != Shuffle.OFF else False
-        dataset = DYADTorchDataset(self.format_type, self.dataset_type, self.epoch_number, self.num_samples, self._args.read_threads, self.batch_size)
+        g = torch.Generator()
+        dataset = BaseTorchDataset(self.format_type, self.dataset_type, self.epoch_number, self.num_samples, self._args.read_threads, self.batch_size)
         if do_shuffle:
-            sampler = RandomSampler(dataset)
+            if self._args.sample_shuffle == Shuffle.SEED:
+                torch.manual_seed(self._args.seed)
+                g.manual_seed(self._args.seed)
+            sampler = RandomSampler(dataset, replacement=True, num_samples=self.num_samples, generator=g)
         else:
             sampler = SequentialSampler(dataset)
         if self._args.read_threads >= 1:
@@ -195,6 +147,7 @@ class DyadTorchDataLoader(BaseDataLoader):
                                        pin_memory=True,
                                        drop_last=True,
                                        worker_init_fn=dataset.worker_init,
+                                       generator=g,
                                        **kwargs)  # 2 is the default value
         logging.debug(f"{utcnow()} Rank {self._args.my_rank} will read {len(self._dataset) * self.batch_size} files")
 
