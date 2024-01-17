@@ -97,6 +97,7 @@ class Dyad:
             ctypes.c_bool,                                   # debug
             ctypes.c_bool,                                   # check
             ctypes.c_bool,                                   # shared_storage
+            ctypes.c_bool,                                   # reinit
             ctypes.c_uint,                                   # key_depth
             ctypes.c_uint,                                   # key_bins
             ctypes.c_uint,                                   # service_mux
@@ -150,6 +151,7 @@ class Dyad:
         debug=False,
         check=False,
         shared_storage=False,
+        reinit=False,
         key_depth=3,
         key_bins=1024,
         service_mux=1,
@@ -168,6 +170,7 @@ class Dyad:
             ctypes.c_bool(debug),
             ctypes.c_bool(check),
             ctypes.c_bool(shared_storage),
+            ctypes.c_bool(reinit),
             ctypes.c_uint(key_depth),
             ctypes.c_uint(key_bins),
             ctypes.c_uint(service_mux),
