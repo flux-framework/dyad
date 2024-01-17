@@ -203,16 +203,14 @@ jobs:
           cd ${GITHUB_WORKSPACE}
           ls
           pwd
-          ./autogen.sh
-          CONFIGURE_FLAGS=""
-          if [[ $DYAD_DTL_MODE == 'UCX' ]]; then
-            CONFIGURE_FLAGS=" --enable-ucx "
-          fi
+          mkdir build
+          cd build
           export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:${DYAD_INSTALL_PREFIX}/lib/pkgconfig
-          ./configure --enable-dyad-debug ${CONFIGURE_FLAGS} --prefix=${DYAD_INSTALL_PREFIX} \
-                      CFLAGS="-I${DYAD_INSTALL_PREFIX}/include" \
-                      CXXFLAGS="-I${DYAD_INSTALL_PREFIX}/include" \
-                      LDFLAGS="-L${DYAD_INSTALL_PREFIX}/lib"
+          CONFIGURE_FLAGS="-DDYAD_CONTROL_PLANE=FLUX_RPC -DDYAD_DATA_PLANE=FLUX_RPC -DDYAD_PROFILER=NONE"
+          if [[ $DYAD_DTL_MODE == 'UCX' ]]; then
+            CONFIGURE_FLAGS="-DDYAD_CONTROL_PLANE=FLUX_RPC -DDYAD_DATA_PLANE=UCX -DDYAD_PROFILER=NONE"
+          fi
+          cmake -DCMAKE_INSTALL_PREFIX=${DYAD_INSTALL_PREFIX} ${CONFIGURE_FLAGS} -DENABLE_DYAD_DEBUG=ON ..
           make install -j
       - name: Install PyDYAD
         run: |
@@ -222,6 +220,7 @@ jobs:
       - name: Install Test
         run: |
           . ${SPACK_DIR}/share/spack/setup-env.sh
+          export LD_LIBRARY_PATH=${DYAD_INSTALL_PREFIX}/lib:${LD_LIBRARY_PATH}
           export CFLAGS="-I${DYAD_INSTALL_PREFIX}/include"
           export CXXFLAGS="-I${DYAD_INSTALL_PREFIX}/include"
           export LDFLAGS="-L${DYAD_INSTALL_PREFIX}/lib"
@@ -262,4 +261,4 @@ jobs:
           export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${DYAD_INSTALL_PREFIX}/lib
           echo "Starting flux brokers"
           flux start --test-size=2 /bin/bash ${GITHUB_WORKSPACE}/.github/prod-cons/dyad_prod_cons_test.sh "python"
-      
+

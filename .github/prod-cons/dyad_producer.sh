@@ -13,14 +13,14 @@ flux module load ${DYAD_INSTALL_PREFIX}/lib/dyad.so  $DYAD_PATH_PRODUCER $DYAD_D
 
 if [[ "$mode" == "${valid_modes[0]}" ]]; then
     echo ${GITHUB_WORKSPACE}/docs/demos/ecp_feb_2023/c_prod 10 $DYAD_PATH_PRODUCER
-    LD_PRELOAD=${DYAD_INSTALL_PREFIX}/lib/dyad_wrapper.so ${GITHUB_WORKSPACE}/docs/demos/ecp_feb_2023/c_prod 10 $DYAD_PATH_PRODUCER
-elif [[ "$mode" == "${test_modes[1]}" ]]; then
+    LD_PRELOAD=${DYAD_INSTALL_PREFIX}/lib/libdyad_wrapper.so ${GITHUB_WORKSPACE}/docs/demos/ecp_feb_2023/c_prod 10 $DYAD_PATH_PRODUCER
+elif [[ "$mode" == "${valid_modes[1]}" ]]; then
     echo ${GITHUB_WORKSPACE}/docs/demos/ecp_feb_2023/cpp_prod 10 $DYAD_PATH_PRODUCER
     ${GITHUB_WORKSPACE}/docs/demos/ecp_feb_2023/cpp_prod 10 $DYAD_PATH_PRODUCER
-elif [[ "$mode" == "${test_modes[2]}" ]]; then
+elif [[ "$mode" == "${valid_modes[2]}" ]]; then
     echo python3 ${GITHUB_WORKSPACE}/tests/pydyad_spsc/consumer.py $DYAD_PATH_PRODUCER 10 50
     python3 ${GITHUB_WORKSPACE}/tests/pydyad_spsc/consumer.py $DYAD_PATH_PRODUCER 10 50
 else
-    echo "Invalid test mode: $mode"
+    echo "Invalid prod test mode: $mode"
     exit 1
 fi
