@@ -92,6 +92,7 @@ typedef struct dyad_metadata dyad_metadata_t;
  * @param[in]  check          ???
  * @param[in]  shared_storage indicate if the storage associated
  *                            with the path is shared
+ * @param[in]  reinit         force reinitialization
  * @param[in]  key_depth      depth of the key hierarchy for the path
  * @param[in]  key_bins       number of bins used in key hashing
  * @param[in]  service_mux    number of brokers sharing node-local storage
@@ -104,6 +105,7 @@ typedef struct dyad_metadata dyad_metadata_t;
 DYAD_DLL_EXPORTED dyad_rc_t dyad_init (bool debug,
                                        bool check,
                                        bool shared_storage,
+                                       bool reinit,
                                        unsigned int key_depth,
                                        unsigned int key_bins,
                                        unsigned int service_mux,
