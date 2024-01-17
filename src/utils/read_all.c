@@ -11,11 +11,14 @@
 #if HAVE_CONFIG_H
 #include "config.h"
 #endif  // HAVE_CONFIG_H
-
+#define _GNU_SOURCE
 #include <errno.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
-
+#include <fcntl.h>
+#include <sys/mman.h>
 #include "read_all.h"
 
 ssize_t write_all (int fd, const void *buf, size_t len)
@@ -37,8 +40,13 @@ ssize_t write_all (int fd, const void *buf, size_t len)
     return count;
 }
 
-ssize_t read_all (int fd, void **bufp)
+ssize_t read_all (const char* filename, void **bufp)
 {
+    int fd = open (filename, O_RDONLY);
+    if (fd < 0) {
+        errno = EINVAL;
+        return -1;
+    }
     const ssize_t file_size = lseek (fd, 0, SEEK_END);
     if (file_size == 0) {
         errno = EINVAL;
@@ -49,16 +57,15 @@ ssize_t read_all (int fd, void **bufp)
         errno = EINVAL;
         return -1;
     }
-    *bufp = malloc (file_size);
+    size_t alignment = getpagesize();
+    *bufp = aligned_alloc(alignment, file_size);
     if (*bufp == NULL) {
         errno = EINVAL;
         return -1;
     }
-    ssize_t bytes_read = read (fd, *bufp, file_size);
-    if (bytes_read < file_size) {
-        // could not read all data
+    if ((*bufp = mmap (*bufp, file_size, PROT_READ, MAP_PRIVATE | MAP_FIXED, fd, 0)) == (caddr_t) -1) {
         errno = EINVAL;
-        return bytes_read;
+        return -1;
     }
     return file_size;
 }
