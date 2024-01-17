@@ -72,7 +72,7 @@ set_property(CACHE DYAD_PROFILER PROPERTY STRINGS PERFFLOW_ASPECT CALIPER NONE)
 #------------------------------------------------------------------------------
 # Build Type based configurations
 #------------------------------------------------------------------------------
-set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} -std=c99)
+set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} -std=c11)
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -std=c++11)
 if(CMAKE_BUILD_TYPE STREQUAL "DEBUG")
     set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} -DDYAD_FULL_DEBUG=1 -DDYAD_LOGGING_ON=1 )
