@@ -42,6 +42,7 @@ using namespace std;  // std::clock ()
 // #include "wrapper.h"
 #include <dyad/common/dyad_flux_log.h>
 #include <dyad/core/dyad_core.h>
+#include <dyad/core/dyad_envs.h>
 
 #ifdef __cplusplus
 extern "C" {
