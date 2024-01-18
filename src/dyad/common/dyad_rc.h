@@ -1,6 +1,12 @@
 #ifndef DYAD_DTL_DYAD_RC_H
 #define DYAD_DTL_DYAD_RC_H
 
+#if defined(DYAD_HAS_CONFIG)
+#include "dyad/dyad_config.hpp"
+#else
+#error "no config"
+#endif
+
 #if BUILDING_DYAD
 #define DYAD_DLL_EXPORTED __attribute__ ((__visibility__ ("default")))
 #else

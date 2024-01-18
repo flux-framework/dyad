@@ -1,3 +1,9 @@
+#if defined(DYAD_HAS_CONFIG)
+#include "dyad/dyad_config.hpp"
+#else
+#error "no config"
+#endif
+
 #include <dyad/dtl/flux_dtl.h>
 
 dyad_rc_t dyad_dtl_flux_init (dyad_dtl_t* self,

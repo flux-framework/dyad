@@ -1,18 +1,34 @@
 set(DYAD_FSTREAM_SRC ${CMAKE_CURRENT_SOURCE_DIR}/dyad_stream_core.cpp)
-set(DYAD_FSTREAM_PRIVATE_HEADERS )
+set(DYAD_FSTREAM_PRIVATE_HEADERS)
 set(DYAD_FSTREAM_PUBLIC_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dyad/stream/dyad_stream_api.hpp
                                 ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dyad/stream/dyad_params.hpp
                                 ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dyad/stream/dyad_stream_core.hpp)
 
 
-add_library(${PROJECT_NAME}_fstream SHARED ${DYAD_FSTREAM_SRC} ${DYAD_FSTREAM_PRIVATE_HEADERS} ${DYAD_FSTREAM_PUBLIC_HEADERS})
-target_compile_features(${PROJECT_NAME}_fstream PRIVATE )
-target_link_libraries(${PROJECT_NAME}_fstream PUBLIC ${PROJECT_NAME}_core flux::core)
+add_library(${PROJECT_NAME}_fstream SHARED ${DYAD_FSTREAM_SRC}
+            ${DYAD_FSTREAM_PRIVATE_HEADERS} ${DYAD_FSTREAM_PUBLIC_HEADERS})
+set_target_properties(${PROJECT_NAME}_fstream PROPERTIES CMAKE_INSTALL_RPATH
+                      "${CMAKE_INSTALL_PREFIX}/${DYAD_LIBDIR}")
+target_compile_features(${PROJECT_NAME}_fstream PRIVATE)
+target_link_libraries(${PROJECT_NAME}_fstream PRIVATE ${PROJECT_NAME}_core flux::core)
 
 if (ENABLE_PERFFLOW)
-    target_link_libraries(${PROJECT_NAME}_fstream PUBLIC perfflowaspect::perfflowaspect)
+    target_link_libraries(${PROJECT_NAME}_fstream PRIVATE perfflowaspect::perfflowaspect)
+    target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${perfflowaspect_INCLUDE_DIRS})
     target_compile_definitions(${PROJECT_NAME}_fstream PRIVATE DYAD_PERFFLOW=1)
 endif (ENABLE_PERFFLOW)
+
+target_compile_definitions(${PROJECT_NAME}_fstream PUBLIC DYAD_HAS_CONFIG)
+target_include_directories(${PROJECT_NAME}_fstream PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/src>
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/include>
+    $<INSTALL_INTERFACE:${DYAD_INSTALL_INCLUDE_DIR}>)
+target_include_directories(${PROJECT_NAME}_fstream SYSTEM PRIVATE ${FluxCore_INCLUDE_DIRS})
+
+if (TARGET DYAD_CXX_FLAGS_werror)
+    target_link_libraries(${PROJECT_NAME}_fstream PRIVATE DYAD_CXX_FLAGS_werror)
+endif ()
+
 
 install(
         TARGETS ${PROJECT_NAME}_fstream

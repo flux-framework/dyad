@@ -4,17 +4,29 @@ set(DYAD_UTILS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/utils.c
                    ${CMAKE_CURRENT_SOURCE_DIR}/read_all.c)
 set(DYAD_UTILS_PRIVATE_HEADERS  ${CMAKE_CURRENT_SOURCE_DIR}/utils.h
                                 ${CMAKE_CURRENT_SOURCE_DIR}/read_all.h)
-set(DYAD_UTILS_PUBLIC_HEADERS )
+set(DYAD_UTILS_PUBLIC_HEADERS)
 
 set(DYAD_MURMUR3_SRC ${CMAKE_CURRENT_SOURCE_DIR}/murmur3.c)
 set(DYAD_MURMUR3_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/murmur3.h)
-set(DYAD_MURMUR3_PUBLIC_HEADERS )
+set(DYAD_MURMUR3_PUBLIC_HEADERS)
 
-add_library(${PROJECT_NAME}_utils SHARED ${DYAD_UTILS_SRC})
+add_library(${PROJECT_NAME}_utils SHARED ${DYAD_UTILS_SRC}
+            ${DYAD_UTILS_PRIVATE_HEADERS} ${DYAD_UTILS_PUBLIC_HEADERS})
+set_target_properties(${PROJECT_NAME}_utils PROPERTIES CMAKE_INSTALL_RPATH
+                      "${CMAKE_INSTALL_PREFIX}/${DYAD_LIBDIR}")
 target_link_libraries(${PROJECT_NAME}_utils PUBLIC flux::core ${PROJECT_NAME}_base64)
+target_compile_definitions(${PROJECT_NAME}_utils PUBLIC DYAD_HAS_CONFIG)
+target_include_directories(${PROJECT_NAME}_utils PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/src>
+    $<INSTALL_INTERFACE:${DYAD_INSTALL_INCLUDE_DIR}>)
 
 add_library(${PROJECT_NAME}_murmur3 SHARED ${DYAD_MURMUR3_SRC})
+set_target_properties(${PROJECT_NAME}_murmur3 PROPERTIES CMAKE_INSTALL_RPATH
+                      "${CMAKE_INSTALL_PREFIX}/${DYAD_LIBDIR}")
 
+if (TARGET DYAD_C_FLAGS_werror)
+  target_link_libraries(${PROJECT_NAME}_utils PRIVATE DYAD_C_FLAGS_werror)
+endif ()
 
 install(
         TARGETS ${PROJECT_NAME}_utils
