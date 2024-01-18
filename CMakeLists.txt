@@ -15,37 +15,48 @@ set(DYAD_PACKAGE_STRING "${DYAD_PACKAGE_NAME} ${DYAD_PACKAGE_VERSION}")
 set(DYAD_PACKAGE_TARNAME "${DYAD_PACKAGE}")
 
 project(dyad LANGUAGES C CXX)
+
+# Convenience defines
+string(TOUPPER "${PROJECT_NAME}" UPPER_PROJECT_NAME)
+string(TOLOWER "${PROJECT_NAME}" LOWER_PROJECT_NAME)
+
 #------------------------------------------------------------------------------
 # Internal Includes for header and libraries
 #------------------------------------------------------------------------------
-link_directories(${CMAKE_BINARY_DIR}/lib)
+# Get installation directories -- these get used in various places;
+# best to just make them available
+include(GNUInstallDirs)
+if (CMAKE_INSTALL_LIBDIR)
+   set(DYAD_LIBDIR ${CMAKE_INSTALL_LIBDIR})
+else ()
+   set(DYAD_LIBDIR "lib")
+endif ()
+link_directories(${CMAKE_BINARY_DIR}/${DYAD_LIBDIR})
 include_directories(${CMAKE_BINARY_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src) # required for private includes
-# Do we want to use RPath to simplify linking
-set(CMAKE_MACOSX_RPATH 1)
-set(CMAKE_CXX_STANDARD 11)
-#set(CMAKE_C_VISIBILITY_PRESET hidden)
-#set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+
 #------------------------------------------------------------------------------
 # Internal Paths for cmake libraries and Setup install and output Directories
 #------------------------------------------------------------------------------
 # This sets where to look for dependent libraries
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${CMAKE_BINARY_DIR} ${CMAKE_INSTALL_PREFIX})
 # This sets where to look for dependent library's cmake files
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake ${CMAKE_BINARY_DIR}/lib/cmake ${CMAKE_BINARY_DIR}/share/cmake)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_BINARY_DIR}/${DYAD_LIBDIR}/cmake)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_BINARY_DIR}/share/cmake)
 
-if (NOT CMAKE_INSTALL_RPATH)
-    set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib:${CMAKE_INSTALL_PREFIX}/lib64")
-    set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-endif ()
 #------------------------------------------------------------------------------
 if (NOT DYAD_EXTERNALLY_CONFIGURED)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin CACHE PATH "Single Directory for all Executables.")
     set(CMAKE_INCLUDE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/include CACHE PATH "Store the headers.")
     set(EXECUTABLE_OUTPUT_PATH ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
-    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib CACHE PATH "Single Directory for all Libraries")
-    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib CACHE PATH "Single Directory for all static libraries.")
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${DYAD_LIBDIR} CACHE PATH "Single Directory for all Libraries")
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${DYAD_LIBDIR} CACHE PATH "Single Directory for all static libraries.")
 endif ()
+
+include(ExternalProject)
+include(SetupCompiler)
+
 #-----------------------------------------------------------------------------
 # Targets built within this project are exported at Install time for use
 # by other projects.
@@ -62,6 +73,11 @@ endif ()
 #option(ENABLE_PERFFLOW "Build with PerfFlow Aspect support" OFF)
 #option(ENABLE_UCX_DTL "Build DYAD's UCX data transport layer" OFF)
 
+option (USE_CLANG_LIBCXX OFF)
+if (USE_CLANG_LIBCXX)
+    set (GCC_TOOLCHAIN "")
+endif (USE_CLANG_LIBCXX)
+
 set(DYAD_CONTROL_PLANE "FLUX_RPC" CACHE STRING "Protocol to use for DYAD's Control Plane")
 set_property(CACHE DYAD_CONTROL_PLANE PROPERTY STRINGS FLUX_RPC)
 set(DYAD_DATA_PLANE "FLUX_RPC" CACHE STRING "Protocol to use for DYAD's Data Plane")
@@ -72,8 +88,6 @@ set_property(CACHE DYAD_PROFILER PROPERTY STRINGS PERFFLOW_ASPECT CALIPER NONE)
 #------------------------------------------------------------------------------
 # Build Type based configurations
 #------------------------------------------------------------------------------
-set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} -std=c11)
-set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -std=c++11)
 
 if(CMAKE_BUILD_TYPE STREQUAL "")
     set(CMAKE_BUILD_TYPE "Release") # Setting default as Release
@@ -173,6 +187,7 @@ function(dyad_install_headers public_headers current_dir)
 endfunction()
 
 add_subdirectory(src/dyad)
+cmake_policy(SET CMP0079 NEW)
 
 #-----------------------------------------------------------------------------
 # Configure the config.cmake file for the build directory
@@ -190,7 +205,7 @@ install(
         FILES
         ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake/${PROJECT_NAME}/install/${PROJECT_NAME}-config.cmake
         DESTINATION
-        lib/cmake/${PROJECT_NAME}
+        ${DYAD_LIBDIR}/cmake/${PROJECT_NAME}
 )
 #-----------------------------------------------------------------------------
 # Configure the ${PROJECT_NAME}-config-version .cmake file for the install directory
@@ -204,7 +219,7 @@ install(
         FILES
         ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake/${PROJECT_NAME}/${PROJECT_NAME}-config-version.cmake
         DESTINATION
-        lib/cmake/${PROJECT_NAME}
+        ${DYAD_LIBDIR}/cmake/${PROJECT_NAME}
 )
 
 export(EXPORT ${DYAD_EXPORTED_TARGETS}
@@ -213,7 +228,70 @@ export(EXPORT ${DYAD_EXPORTED_TARGETS}
 install(EXPORT
         ${DYAD_EXPORTED_TARGETS}
         DESTINATION
-        lib/cmake/${PROJECT_NAME}
+        ${DYAD_LIBDIR}/cmake/${PROJECT_NAME}
         FILE
         ${DYAD_EXPORTED_TARGETS}.cmake
         )
+
+###############################################################################
+#                      Print out configuration summary
+###############################################################################
+include(DYADUtils)
+if (CMAKE_HOST_SYSTEM_NAME MATCHES "Linux")
+  set(DYAD_GNU_LINUX TRUE)
+endif ()
+
+# NOTE: message() outputs to stderr by default. We now use a string to
+# maintain this information and then have cmake echo it to stdout. The
+# only side effects are that if you use the CMake GUI, you won't see
+# this output anymore (they only report stderr) and that if you add
+# something to the list, you must remember your newline!
+set(_str "\n== DYAD Configuration Summary ==\n\n")
+string(APPEND _str "  PROJECT_SOURCE_DIR:   ${PROJECT_SOURCE_DIR}\n"
+  "  PROJECT_BINARY_DIR:   ${PROJECT_BINARY_DIR}\n\n"
+  "  CMAKE_INSTALL_PREFIX: ${CMAKE_INSTALL_PREFIX}\n"
+  "  CMAKE_BUILD_TYPE:     ${CMAKE_BUILD_TYPE}\n\n")
+if (CMAKE_BUILD_TYPE MATCHES None)
+  string(APPEND _str
+    "  CXX FLAGS:            ${CMAKE_CXX_FLAGS}\n")
+elseif (CMAKE_BUILD_TYPE MATCHES Release)
+  string(APPEND _str
+    "  CXX FLAGS:            ${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_RELEASE}\n")
+  string(APPEND _str
+    "  C FLAGS:              ${CMAKE_C_FLAGS} ${CMAKE_C_FLAGS_RELEASE}\n")
+elseif (CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
+  string(APPEND _str
+    "  CXX FLAGS:            ${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_RELWITHDEBINFO}\n")
+  string(APPEND _str
+    "  C FLAGS:              ${CMAKE_C_FLAGS} ${CMAKE_C_FLAGS_RELWITHDEBINFO}\n")
+elseif (CMAKE_BUILD_TYPE MATCHES Debug)
+  string(APPEND _str
+    "  CXX FLAGS:            ${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_DEBUG}\n")
+  string(APPEND _str
+    "  C FLAGS:              ${CMAKE_C_FLAGS} ${CMAKE_C_FLAGS_DEBUG}\n")
+endif ()
+string(APPEND _str "\n")
+
+string(APPEND _str
+  "  DYAD_GIT_VERSION:            ${DYAD_GIT_VERSION}\n")
+string(APPEND _str
+  "  DYAD_CONTROL_PLANE:          ${DYAD_CONTROL_PLANE}\n")
+string(APPEND _str
+  "  DYAD_DATA_PLANE:             ${DYAD_DATA_PLANE}\n")
+string(APPEND _str
+  "  DYAD_PROFILER:               ${DYAD_PROFILER}\n")
+string(APPEND _str
+  "  FluxCore_ROOT_DIR:           ${FluxCore_ROOT_DIR}\n")
+string(APPEND _str
+  "  JANSSON_INCLUDE_DIR:         ${JANSSON_INCLUDE_DIR}\n")
+
+#Print the true/false variables
+append_str_tf(_str
+  DYAD_GNU_LINUX
+)
+string(APPEND _str
+  "\n== End DYAD Configuration Summary ==\n")
+
+# Output to stdout
+execute_process(COMMAND ${CMAKE_COMMAND} -E echo "${_str}")
+set(_str)
