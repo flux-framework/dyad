@@ -29,6 +29,9 @@ class DyadCtxWrapper(ctypes.Structure):
         ("key_depth", ctypes.c_uint),
         ("key_bins", ctypes.c_uint),
         ("rank", ctypes.c_uint32),
+        ("service_mux", ctypes.c_uint32),
+        ("node_idx", ctypes.c_uint32),
+        ("pid", ctypes.c_int32),
         ("kvs_namespace", ctypes.c_char_p),
         ("prod_managed_path", ctypes.c_char_p),
         ("cons_managed_path", ctypes.c_char_p),
@@ -96,6 +99,7 @@ class Dyad:
             ctypes.c_bool,                                   # shared_storage
             ctypes.c_uint,                                   # key_depth
             ctypes.c_uint,                                   # key_bins
+            ctypes.c_uint,                                   # service_mux
             ctypes.c_char_p,                                 # kvs_namespace
             ctypes.c_char_p,                                 # prod_managed_path
             ctypes.c_char_p,                                 # cons_managed_path
@@ -148,6 +152,7 @@ class Dyad:
         shared_storage=False,
         key_depth=3,
         key_bins=1024,
+        service_mux=1,
         kvs_namespace=None,
         prod_managed_path=None,
         cons_managed_path=None,
@@ -165,6 +170,7 @@ class Dyad:
             ctypes.c_bool(shared_storage),
             ctypes.c_uint(key_depth),
             ctypes.c_uint(key_bins),
+            ctypes.c_uint(service_mux),
             kvs_namespace.encode() if kvs_namespace is not None else None,
             prod_managed_path.encode() if prod_managed_path is not None else None,
             cons_managed_path.encode() if cons_managed_path is not None else None,

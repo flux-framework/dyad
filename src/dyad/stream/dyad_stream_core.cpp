@@ -97,6 +97,7 @@ void dyad_stream_core::init (const dyad_params &p)
                               p.m_shared_storage,
                               p.m_key_depth,
                               p.m_key_bins,
+                              p.m_service_mux,
                               p.m_kvs_namespace.c_str (),
                               p.m_prod_managed_path.c_str (),
                               p.m_cons_managed_path.c_str (),
@@ -122,6 +123,7 @@ void dyad_stream_core::log_info (const std::string &msg_head) const
                    (m_ctx->shared_storage) ? "true" : "false");
     DYAD_LOG_INFO (m_ctx, "%s=%u\n", DYAD_KEY_DEPTH_ENV, m_ctx->key_depth);
     DYAD_LOG_INFO (m_ctx, "%s=%u\n", DYAD_KEY_BINS_ENV, m_ctx->key_bins);
+    DYAD_LOG_INFO (m_ctx, "%s=%u\n", DYAD_SERVICE_MUX_ENV, m_ctx->service_mux);
     DYAD_LOG_INFO (m_ctx, "%s=%s\n", DYAD_KVS_NAMESPACE_ENV, m_ctx->kvs_namespace);
 }
 
