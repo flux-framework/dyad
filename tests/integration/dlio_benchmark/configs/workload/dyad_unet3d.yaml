@@ -19,7 +19,7 @@ dataset:
 reader: 
   data_loader: pytorch
   batch_size: 4
-  read_threads: 6
+  read_threads: 3
   file_shuffle: seed
   sample_shuffle: seed
   multiprocessing_context: spawn

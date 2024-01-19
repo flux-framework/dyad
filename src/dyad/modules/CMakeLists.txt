@@ -10,7 +10,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES CMAKE_INSTALL_RPATH
 target_link_libraries(${PROJECT_NAME} PRIVATE Jansson::Jansson flux::core)
 target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_dtl)
 target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_utils)
-target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_perf)
+target_link_libraries(${PROJECT_NAME} PRIVATE flux::optparse)
 target_compile_definitions(${PROJECT_NAME} PUBLIC BUILDING_DYAD=1)
 target_compile_definitions(${PROJECT_NAME} PUBLIC DYAD_HAS_CONFIG)
 target_include_directories(${PROJECT_NAME} PUBLIC
@@ -29,6 +29,9 @@ if(DYAD_PROFILER STREQUAL "PERFFLOW_ASPECT")
     target_compile_definitions(${PROJECT_NAME} PRIVATE DYAD_PERFFLOW=1)
 endif()
 
+if(DYAD_PROFILER STREQUAL "DLIO_PROFILER")
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${DLIO_PROFILER_LIBRARIES})
+endif()
 install(
         TARGETS ${PROJECT_NAME}
         EXPORT ${DYAD_EXPORTED_TARGETS}

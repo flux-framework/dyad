@@ -9,7 +9,7 @@
 \************************************************************/
 
 #if defined(DYAD_HAS_CONFIG)
-#include "dyad/dyad_config.hpp"
+#include <dyad/dyad_config.hpp>
 #else
 #error "no config"
 #endif
@@ -47,7 +47,8 @@ using namespace std;  // std::clock ()
 
 #include <dyad/utils/utils.h>
 // #include "wrapper.h"
-#include <dyad/common/dyad_flux_log.h>
+#include <dyad/common/dyad_logging.h>
+#include <dyad/common/dyad_profiler.h>
 #include <dyad/core/dyad_core.h>
 #include <dyad/core/dyad_envs.h>
 
@@ -99,6 +100,11 @@ static inline int is_wronly (int fd)
 
 void dyad_wrapper_init (void)
 {
+
+#if DYAD_PROFILER == 3
+    DLIO_PROFILER_C_FINI();
+#endif
+    DYAD_C_FUNCTION_START();
     dyad_rc_t rc = DYAD_RC_OK;
 
     rc = dyad_init_env (&ctx);
@@ -107,6 +113,7 @@ void dyad_wrapper_init (void)
         fprintf (stderr, "Failed to initialize DYAD (code = %d)\n", rc);
         ctx->initialized = false;
         ctx->reenter = false;
+        DYAD_C_FUNCTION_END();
         return;
     }
 
@@ -115,18 +122,28 @@ void dyad_wrapper_init (void)
     DYAD_LOG_INFO (ctx, "%s=%s\n", DYAD_SYNC_CHECK_ENV, (ctx->check) ? "true" : "false");
     DYAD_LOG_INFO (ctx, "%s=%u\n", DYAD_KEY_DEPTH_ENV, ctx->key_depth);
     DYAD_LOG_INFO (ctx, "%s=%u\n", DYAD_KEY_BINS_ENV, ctx->key_bins);
+    DYAD_C_FUNCTION_END();
 }
 
 void dyad_wrapper_fini ()
 {
+    DYAD_C_FUNCTION_START();
     if (ctx == NULL) {
-        return;
+        DYAD_C_FUNCTION_END();
+        goto dyad_wrapper_fini_done;
     }
     dyad_finalize (&ctx);
+dyad_wrapper_fini_done:;
+    DYAD_C_FUNCTION_END();
+#if DYAD_PROFILER == 3
+    DLIO_PROFILER_C_FINI();
+#endif
 }
 
 DYAD_DLL_EXPORTED int open (const char *path, int oflag, ...)
 {
+    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_UPDATE_STR ("path", "path");
     char *error = NULL;
     typedef int (*open_ptr_t) (const char *, int, mode_t, ...);
     open_ptr_t func_ptr = NULL;
@@ -142,6 +159,7 @@ DYAD_DLL_EXPORTED int open (const char *path, int oflag, ...)
     func_ptr = (open_ptr_t)dlsym (RTLD_NEXT, "open");
     if ((error = dlerror ())) {
         DPRINTF (ctx, "DYAD_SYNC: error in dlsym: %s\n", error);
+        DYAD_C_FUNCTION_END();
         return -1;
     }
 
@@ -163,12 +181,15 @@ DYAD_DLL_EXPORTED int open (const char *path, int oflag, ...)
     IPRINTF (ctx, "DYAD_SYNC: exists open sync (\"%s\").\n", path);
 
 real_call:;
-
-    return (func_ptr (path, oflag, mode));
+    int ret = (func_ptr (path, oflag, mode));
+    DYAD_C_FUNCTION_END();
+    return ret;
 }
 
 DYAD_DLL_EXPORTED FILE *fopen (const char *path, const char *mode)
 {
+    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_UPDATE_STR ("path", "path");
     char *error = NULL;
     typedef FILE *(*fopen_ptr_t) (const char *, const char *);
     fopen_ptr_t func_ptr = NULL;
@@ -176,6 +197,7 @@ DYAD_DLL_EXPORTED FILE *fopen (const char *path, const char *mode)
     func_ptr = (fopen_ptr_t)dlsym (RTLD_NEXT, "fopen");
     if ((error = dlerror ())) {
         DPRINTF (ctx, "DYAD_SYNC: error in dlsym: %s\n", error);
+        DYAD_C_FUNCTION_END();
         return NULL;
     }
 
@@ -196,12 +218,16 @@ DYAD_DLL_EXPORTED FILE *fopen (const char *path, const char *mode)
     }
     IPRINTF (ctx, "DYAD_SYNC: exits fopen sync (\"%s\").\n", path);
 
-real_call:
-    return (func_ptr (path, mode));
+real_call:;
+    FILE *fh = (func_ptr (path, mode));
+    DYAD_C_FUNCTION_END();
+    return fh;
 }
 
 DYAD_DLL_EXPORTED int close (int fd)
 {
+    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
     bool to_sync = false;
     char *error = NULL;
     typedef int (*close_ptr_t) (int);
@@ -212,6 +238,7 @@ DYAD_DLL_EXPORTED int close (int fd)
     func_ptr = (close_ptr_t)dlsym (RTLD_NEXT, "close");
     if ((error = dlerror ())) {
         DPRINTF (ctx, "DYAD_SYNC: error in dlsym: %s\n", error);
+        DYAD_C_FUNCTION_END();
         return -1;  // return the failure code
     }
 
@@ -239,7 +266,7 @@ DYAD_DLL_EXPORTED int close (int fd)
     }
 
     if (get_path (fd, PATH_MAX - 1, path) < 0) {
-        IPRINTF (ctx, "DYAD_SYNC: unable to obtain file path from a descriptor.\n");
+        DYAD_LOG_DEBUG(ctx, "DYAD_SYNC: unable to obtain file path from a descriptor.\n");
         to_sync = false;
         goto real_call;
     }
@@ -276,12 +303,13 @@ real_call:;  // semicolon here to avoid the error
     } else {
         rc = func_ptr (fd);
     }
-
+    DYAD_C_FUNCTION_END();
     return rc;
 }
 
 DYAD_DLL_EXPORTED int fclose (FILE *fp)
 {
+    DYAD_C_FUNCTION_START();
     bool to_sync = false;
     char *error = NULL;
     typedef int (*fclose_ptr_t) (FILE *);
@@ -292,7 +320,8 @@ DYAD_DLL_EXPORTED int fclose (FILE *fp)
 
     func_ptr = (fclose_ptr_t)dlsym (RTLD_NEXT, "fclose");
     if ((error = dlerror ())) {
-        DPRINTF (ctx, "DYAD_SYNC: error in dlsym: %s\n", error);
+        DYAD_LOG_DEBUG (ctx, "DYAD_SYNC: error in dlsym: %s\n", error);
+        DYAD_C_FUNCTION_END();
         return EOF;  // return the failure code
     }
 
@@ -320,7 +349,7 @@ DYAD_DLL_EXPORTED int fclose (FILE *fp)
     }
 
     if (get_path (fileno (fp), PATH_MAX - 1, path) < 0) {
-        IPRINTF (ctx, "DYAD_SYNC: unable to obtain file path from a descriptor.\n");
+        DYAD_LOG_DEBUG (ctx, "DYAD_SYNC: unable to obtain file path from a descriptor.\n");
         to_sync = false;
         goto real_call;
     }
@@ -357,7 +386,7 @@ real_call:;
     } else {
         rc = func_ptr (fp);
     }
-
+    DYAD_C_FUNCTION_END();
     return rc;
 }
 
