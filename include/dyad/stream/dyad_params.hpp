@@ -11,6 +11,12 @@
 #ifndef DYAD_STREAM_DYAD_PARAMS_HPP
 #define DYAD_STREAM_DYAD_PARAMS_HPP
 
+#if defined(DYAD_HAS_CONFIG)
+#include "dyad/dyad_config.hpp"
+#else
+#error "no config"
+#endif
+
 #include <string>
 
 namespace dyad

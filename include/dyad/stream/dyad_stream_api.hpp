@@ -10,6 +10,13 @@
 
 #ifndef DYAD_STREAM_DYAD_STREAM_API_HPP
 #define DYAD_STREAM_DYAD_STREAM_API_HPP
+
+#if defined(DYAD_HAS_CONFIG)
+#include "dyad/dyad_config.hpp"
+#else
+#error "no config"
+#endif
+
 #include <unistd.h>  // fsync
 
 #include <climits>   // realpath

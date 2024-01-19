@@ -11,6 +11,12 @@
 #ifndef DYAD_STREAM_DYAD_STREAM_CORE_HPP
 #define DYAD_STREAM_DYAD_STREAM_CORE_HPP
 
+#if defined(DYAD_HAS_CONFIG)
+#include "dyad/dyad_config.hpp"
+#else
+#error "no config"
+#endif
+
 #include <iostream>
 #include <string>
 
