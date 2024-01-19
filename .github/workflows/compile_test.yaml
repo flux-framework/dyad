@@ -210,7 +210,8 @@ jobs:
           if [[ $DYAD_DTL_MODE == 'UCX' ]]; then
             CONFIGURE_FLAGS="-DDYAD_CONTROL_PLANE=FLUX_RPC -DDYAD_DATA_PLANE=UCX -DDYAD_PROFILER=NONE"
           fi
-          cmake -DCMAKE_INSTALL_PREFIX=${DYAD_INSTALL_PREFIX} ${CONFIGURE_FLAGS} -DENABLE_DYAD_DEBUG=ON ..
+          TEST_CONF="-DLIBDIR_AS_LIB:BOOL=ON -DCMAKE_BUILD_TYPE=Debug"
+          cmake -DCMAKE_INSTALL_PREFIX=${DYAD_INSTALL_PREFIX} ${CONFIGURE_FLAGS} ${TEST_CONF} ..
           make install -j
       - name: Install PyDYAD
         run: |
