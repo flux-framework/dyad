@@ -1,3 +1,4 @@
+#include <dyad/common/dyad_flux_log.h>
 #include <dyad/core/dyad_core.h>
 
 #include <libgen.h>
@@ -6,10 +7,11 @@
 
 #include <dyad/core/dyad_envs.h>
 #include <dyad/dtl/dyad_dtl_impl.h>
-#include <dyad/common/dyad_flux_log.h>
 #include <dyad/perf/dyad_perf.h>
 #include <dyad/utils/murmur3.h>
 #include <dyad/utils/utils.h>
+#include <libgen.h>
+#include <unistd.h>
 
 #ifdef __cplusplus
 #include <climits>
@@ -53,16 +55,8 @@ static int gen_path_key (const char* str,
                          const uint32_t depth,
                          const uint32_t width)
 {
-    static const uint32_t seeds[10] = {104677u,
-                                       104681u,
-                                       104683u,
-                                       104693u,
-                                       104701u,
-                                       104707u,
-                                       104711u,
-                                       104717u,
-                                       104723u,
-                                       104729u};
+    static const uint32_t seeds[10] =
+        {104677u, 104681u, 104683u, 104693u, 104701u, 104707u, 104711u, 104717u, 104723u, 104729u};
 
     uint32_t seed = 57u;
     uint32_t hash[4] = {0u};  // Output for the hash
@@ -166,8 +160,7 @@ kvs_transaction_create_and_pack_region_finish:
     goto publish_done;
 }
 
-DYAD_CORE_FUNC_MODS dyad_rc_t dyad_commit (dyad_ctx_t* restrict ctx,
-                                           const char* restrict fname)
+DYAD_CORE_FUNC_MODS dyad_rc_t dyad_commit (dyad_ctx_t* restrict ctx, const char* restrict fname)
 {
     dyad_rc_t rc = DYAD_RC_OK;
     char upath[PATH_MAX];
@@ -409,10 +402,7 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_get_data (const dyad_ctx_t* ctx,
     json_t* rpc_payload;
     DYAD_PERF_REGION_BEGIN (ctx->perf_handle, "dyad_get_data");
     DYAD_LOG_INFO (ctx, "Packing payload for RPC to DYAD module");
-    rc = ctx->dtl_handle->rpc_pack (ctx->dtl_handle,
-                                    mdata->fpath,
-                                    mdata->owner_rank,
-                                    &rpc_payload);
+    rc = ctx->dtl_handle->rpc_pack (ctx->dtl_handle, mdata->fpath, mdata->owner_rank, &rpc_payload);
     if (DYAD_IS_ERROR (rc)) {
         DYAD_LOG_ERR (ctx,
                       "Cannot create JSON payload for Flux RPC to DYAD "
@@ -440,7 +430,7 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_get_data (const dyad_ctx_t* ctx,
         goto get_done;
     }
     DYAD_LOG_INFO (ctx, "Establish DTL connection with DYAD module");
-    rc = ctx->dtl_handle->establish_connection (ctx->dtl_handle, DYAD_COMM_RECV);
+    rc = ctx->dtl_handle->establish_connection (ctx->dtl_handle);
     if (DYAD_IS_ERROR (rc)) {
         DYAD_LOG_ERR (ctx,
                       "Cannot establish connection with DYAD module on broker "
@@ -534,12 +524,12 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_cons_store (const dyad_ctx_t* restrict ctx,
 pull_done:
     DYAD_PERF_REGION_END (ctx->perf_handle, "dyad_write_data_for_consumer");
     if (file_data != NULL) {
-        free ((void*)file_data);
+        ctx->dtl_handle->return_buffer (ctx->dtl_handle, (void**)&file_data);
     }
     // If "check" is set and the operation was successful, set the
     // DYAD_CHECK_ENV environment variable to "ok"
     if (rc == DYAD_RC_OK && (ctx && ctx->check))
-        setenv(DYAD_CHECK_ENV, "ok", 1);
+        setenv (DYAD_CHECK_ENV, "ok", 1);
     return rc;
 }
 
@@ -654,7 +644,7 @@ dyad_rc_t dyad_init (bool debug,
     // Initialize the DTL based on the value of dtl_mode
     // If an error occurs, log it and return an error
     FLUX_LOG_INFO ((*ctx)->h, "DYAD_CORE: inintializing DYAD DTL");
-    rc = dyad_dtl_init (&(*ctx)->dtl_handle, dtl_mode, (*ctx)->h, (*ctx)->debug, (*ctx)->perf_handle);
+    rc = dyad_dtl_init (&(*ctx)->dtl_handle, dtl_mode, DYAD_COMM_RECV, (*ctx)->h, (*ctx)->debug, (*ctx)->perf_handle);
     if (DYAD_IS_ERROR (rc)) {
         FLUX_LOG_ERR ((*ctx)->h, "Cannot initialize the DTL\n");
         goto init_region_finish;
