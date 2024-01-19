@@ -9,8 +9,8 @@
 
 #include <dyad/dtl/dyad_dtl_impl.h>
 #include <dyad/dtl/ucx_ep_cache.h>
-#include <stdlib.h>
 #include <ucp/api/ucp.h>
+#include <stdlib.h>
 
 struct dyad_dtl_ucx {
     flux_t* h;

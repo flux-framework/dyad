@@ -16,6 +16,7 @@ jobs:
         os: [ ubuntu-20.04 ]
         compiler: [ gcc ]
         gcc: [ 10 ]
+        profiler_mode: ["NONE"]
     name: ${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.gcc }}-${{ matrix.flux }}-${{ matrix.mode }}
     runs-on: ${{ matrix.os }} # Docker-based jobs must run on Ubuntu
     env:
@@ -223,10 +224,16 @@ jobs:
           if [[ $DYAD_DTL_MODE == 'UCX' ]]; then
             spack install -j4 ucx@1.13.1
           fi
+          if [[ $DYAD_PROFILER_MODE == 'CALIPER' ]]; then
+            spack install -j4 caliper
+          fi
           mkdir -p ${DYAD_INSTALL_PREFIX}
           spack view --verbose symlink ${DYAD_INSTALL_PREFIX} flux-core@${FLUX_VERSION}
           if [[ $DYAD_DTL_MODE == 'UCX' ]]; then
             spack view --verbose symlink ${DYAD_INSTALL_PREFIX} ucx@1.13.1
+          fi
+          if [[ $DYAD_PROFILER_MODE == 'CALIPER' ]]; then
+            spack view --verbose symlink ${DYAD_INSTALL_PREFIX} caliper
           fi
       - name: Compile DYAD
         run: |

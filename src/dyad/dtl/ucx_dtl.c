@@ -809,7 +809,7 @@ dyad_rc_t dyad_dtl_ucx_return_buffer (dyad_dtl_t* self, void** data_buf)
     }
     dyad_dtl_ucx_t* dtl_handle = self->private.ucx_dtl_handle;
     if (dtl_handle->mem_handle != NULL) {
-        ucx_free_buffer (perf_handle,
+        ucx_free_buffer (self->perf_handle,
                          dtl_handle->h,
                          dtl_handle->ucx_ctx,
                          dtl_handle->mem_handle,
