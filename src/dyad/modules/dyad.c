@@ -9,16 +9,20 @@
 \************************************************************/
 
 #if defined(DYAD_HAS_CONFIG)
-#include "dyad/dyad_config.hpp"
+#include <dyad/dyad_config.hpp>
 #else
 #error "no config"
 #endif
 
 #include <dyad/common/dyad_rc.h>
 #include <dyad/dtl/dyad_dtl_impl.h>
-#include <dyad/perf/dyad_perf.h>
+#include <dyad/core/dyad_core.h>
+#include <dyad/common/dyad_logging.h>
+#include <dyad/common/dyad_profiler.h>
 #include <dyad/utils/read_all.h>
 #include <dyad/utils/utils.h>
+
+#include <flux/optparse.h>
 
 #if defined(__cplusplus)
 #include <cerrno>
@@ -47,15 +51,11 @@
      / 1000000000L)
 
 struct dyad_mod_ctx {
-    flux_t *h;
-    bool debug;
     flux_msg_handler_t **handlers;
-    const char *dyad_path;
-    dyad_dtl_t *dtl_handle;
-    dyad_perf_t *perf_handle;
+    dyad_ctx_t* ctx;
 };
 
-const struct dyad_mod_ctx dyad_mod_ctx_default = {NULL, false, NULL, NULL, NULL};
+const struct dyad_mod_ctx dyad_mod_ctx_default = {NULL, NULL};
 
 typedef struct dyad_mod_ctx dyad_mod_ctx_t;
 
@@ -71,37 +71,34 @@ void dyad_mod_fini (void)
 
 static void freectx (void *arg)
 {
-    dyad_mod_ctx_t *ctx = (dyad_mod_ctx_t *)arg;
-    flux_msg_handler_delvec (ctx->handlers);
-    if (ctx->dtl_handle != NULL) {
-        dyad_dtl_finalize (&(ctx->dtl_handle));
-        ctx->dtl_handle = NULL;
+    dyad_mod_ctx_t *mod_ctx = (dyad_mod_ctx_t *)arg;
+    flux_msg_handler_delvec (mod_ctx->handlers);
+    if (mod_ctx->ctx) {
+        if ( mod_ctx->ctx->dtl_handle ) dyad_dtl_finalize (mod_ctx->ctx);
+        mod_ctx->ctx->dtl_handle = NULL;
+        free(mod_ctx->ctx);
+        mod_ctx->ctx = NULL;
     }
-    if (ctx->perf_handle != NULL) {
-        ctx->perf_handle->flush (ctx->perf_handle);
-        dyad_perf_finalize (&(ctx->perf_handle));
-        ctx->perf_handle = NULL;
-    }
-    free (ctx);
+    free (mod_ctx);
 }
 
 static dyad_mod_ctx_t *getctx (flux_t *h)
 {
-    dyad_mod_ctx_t *ctx = (dyad_mod_ctx_t *)flux_aux_get (h, "dyad");
+    dyad_mod_ctx_t *mod_ctx = (dyad_mod_ctx_t *)flux_aux_get (h, "dyad");
 
-    if (!ctx) {
-        ctx = (dyad_mod_ctx_t *)malloc (sizeof (*ctx));
-        if (ctx == NULL) {
-            FLUX_LOG_ERR (h, "DYAD_MOD: could not allocate memory for context");
+    if (!mod_ctx) {
+        mod_ctx = (dyad_mod_ctx_t *)malloc (sizeof (*mod_ctx));
+        if (mod_ctx == NULL) {
+            DYAD_LOG_STDERR("DYAD_MOD: could not allocate memory for context");
             goto getctx_error;
         }
-        ctx->h = h;
-        ctx->debug = false;
-        ctx->handlers = NULL;
-        ctx->dyad_path = NULL;
-        ctx->dtl_handle = NULL;
-        if (flux_aux_set (h, "dyad", ctx, freectx) < 0) {
-            FLUX_LOG_ERR (h, "DYAD_MOD: flux_aux_set() failed!\n");
+        mod_ctx->handlers = NULL;
+        mod_ctx->ctx = (dyad_ctx_t *)malloc (sizeof (dyad_ctx_t));
+        mod_ctx->ctx->h = h;
+        mod_ctx->ctx->debug = false;
+        mod_ctx->ctx->prod_managed_path = NULL;
+        if (flux_aux_set (h, "dyad", mod_ctx, freectx) < 0) {
+            DYAD_LOG_STDERR ("DYAD_MOD: flux_aux_set() failed!\n");
             goto getctx_error;
         }
     }
@@ -112,7 +109,7 @@ getctx_error:;
     return NULL;
 
 getctx_done:
-    return ctx;
+    return mod_ctx;
 }
 
 /* request callback called when dyad.fetch request is invoked */
@@ -122,20 +119,9 @@ __attribute__ ((annotate ("@critical_path()")))
 static void
 dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, void *arg)
 {
-    // freopen (
-    //     "/g/g90/lumsden1/ws/insitu_benchmark/wio_benchmark_dyad_tests/campaigns/"
-    //     "pre_christmas_testing/opt_1_oto_scaling/oto_proc_scaling/"
-    //     "dyad_1198371a_2n_1pcpn_128i_1si_nocolloc/broker_cb.out",
-    //     "a+",
-    //     stdout);
-    // freopen (
-    //     "/g/g90/lumsden1/ws/insitu_benchmark/wio_benchmark_dyad_tests/campaigns/"
-    //     "pre_christmas_testing/opt_1_oto_scaling/oto_proc_scaling/"
-    //     "dyad_1198371a_2n_1pcpn_128i_1si_nocolloc/broker_cb.err",
-    //     "a+",
-    //     stderr);
-    FLUX_LOG_INFO (h, "Launched callback for dyad.fetch\n");
-    dyad_mod_ctx_t *ctx = getctx (h);
+    DYAD_C_FUNCTION_START();
+    dyad_mod_ctx_t *mod_ctx = getctx (h);
+    DYAD_LOG_INFO(mod_ctx->ctx, "Launched callback for dyad.fetch\n");
     ssize_t inlen = 0;
     void *inbuf = NULL;
     int fd = -1;
@@ -145,9 +131,7 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
     int saved_errno = errno;
     ssize_t file_size = 0;
     dyad_rc_t rc = 0;
-
-    DYAD_PERF_REGION_BEGIN (ctx->perf_handle, "dyad_server_cb");
-
+    struct flock shared_lock;
     if (!flux_msg_is_streaming (msg)) {
         errno = EPROTO;
         goto fetch_error;
@@ -156,120 +140,120 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
     if (flux_msg_get_userid (msg, &userid) < 0)
         goto fetch_error;
 
-    FLUX_LOG_INFO (h, "DYAD_MOD: unpacking RPC message");
+    DYAD_LOG_INFO(mod_ctx->ctx, "DYAD_MOD: unpacking RPC message");
 
-    rc = ctx->dtl_handle->rpc_unpack (ctx->dtl_handle, msg, &upath);
+    rc = mod_ctx->ctx->dtl_handle->rpc_unpack (mod_ctx->ctx, msg, &upath);
 
     if (DYAD_IS_ERROR (rc)) {
-        FLUX_LOG_ERR (ctx->h, "Could not unpack message from client\n");
+        DYAD_LOG_ERROR(mod_ctx->ctx, "Could not unpack message from client\n");
         errno = EPROTO;
         goto fetch_error;
     }
+    DYAD_C_FUNCTION_UPDATE_STR ("upath", upath);
+    DYAD_LOG_DEBUG(mod_ctx, "DYAD_MOD: requested user_path: %s", upath);
+    DYAD_LOG_DEBUG(mod_ctx, "DYAD_MOD: sending initial response to consumer");
 
-    FLUX_LOG_INFO (h, "DYAD_MOD: requested user_path: %s", upath);
-    FLUX_LOG_INFO (h, "DYAD_MOD: sending initial response to consumer");
-
-    rc = ctx->dtl_handle->rpc_respond (ctx->dtl_handle, msg);
+    rc = mod_ctx->ctx->dtl_handle->rpc_respond (mod_ctx->ctx, msg);
     if (DYAD_IS_ERROR (rc)) {
-        FLUX_LOG_ERR (ctx->h, "Could not send primary RPC response to client\n");
+        DYAD_LOG_ERROR(mod_ctx, "Could not send primary RPC response to client\n");
         goto fetch_error;
     }
 
-    strncpy (fullpath, ctx->dyad_path, PATH_MAX - 1);
+    strncpy (fullpath, mod_ctx->ctx->prod_managed_path, PATH_MAX - 1);
     concat_str (fullpath, upath, "/", PATH_MAX);
+    DYAD_C_FUNCTION_UPDATE_STR ("fullpath", fullpath);
 
 #if DYAD_SPIN_WAIT
     if (!get_stat (fullpath, 1000U, 1000L)) {
-        FLUX_LOG_ERR (h, "DYAD_MOD: Failed to access info on \"%s\".\n", fullpath);
+        DYAD_LOG_ERR(mod_ctx->ctx, "DYAD_MOD: Failed to access info on \"%s\".\n", fullpath);
         // goto error;
     }
 #endif  // DYAD_SPIN_WAIT
 
-    DYAD_PERF_REGION_BEGIN (ctx->perf_handle, "dyad_server_read_data");
-    FLUX_LOG_INFO (h, "Reading file %s for transfer", fullpath);
+    DYAD_LOG_INFO (mod_ctx->ctx, "Reading file %s for transfer", fullpath);
     fd = open (fullpath, O_RDONLY);
+
     if (fd < 0) {
-        FLUX_LOG_ERR (h, "DYAD_MOD: Failed to open file \"%s\".\n", fullpath);
-        DYAD_PERF_REGION_END (ctx->perf_handle, "dyad_server_read_data");
+        DYAD_LOG_ERROR(mod_ctx, "DYAD_MOD: Failed to open file \"%s\".\n", fullpath);
         goto fetch_error;
     }
-    FLUX_LOG_INFO (h, "Getting file size");
+    rc = dyad_shared_flock (mod_ctx->ctx, fd, &shared_lock);
+    if (DYAD_IS_ERROR (rc)) {
+        dyad_release_flock (mod_ctx->ctx, fd, &shared_lock);
+        goto fetch_error;
+    }
     file_size = get_file_size (fd);
-    FLUX_LOG_INFO (h, "Getting buffer for reading the file");
-    rc = ctx->dtl_handle->get_buffer (ctx->dtl_handle, file_size, &inbuf);
-    FLUX_LOG_INFO (h, "Reading file data into buffer");
-    if ((inlen = read (fd, inbuf, file_size)) < 0) {
-        FLUX_LOG_ERR (h, "DYAD_MOD: Failed to load file \"%s\".\n", fullpath);
+    DYAD_LOG_DEBUG (mod_ctx->ctx, "file %s has size %u", fullpath, file_size);
+    if (file_size > 0) {
+        rc = mod_ctx->ctx->dtl_handle->get_buffer (mod_ctx->ctx, file_size, &inbuf);
+        inlen = read (fd, inbuf, file_size);
+        if (inlen != file_size) {
+            DYAD_LOG_ERROR (mod_ctx->ctx,
+                            "DYAD_MOD: Failed to load file \"%s\" only read %u of %u.\n",
+                            fullpath,
+                            inlen,
+                            file_size);
+            close (fd);
+            goto fetch_error;
+        }
+        DYAD_C_FUNCTION_UPDATE_INT ("file_size", file_size);
+        DYAD_LOG_DEBUG (mod_ctx->ctx, "Closing file pointer");
         close (fd);
-        DYAD_PERF_REGION_END (ctx->perf_handle, "dyad_server_read_data");
-        goto fetch_error;
-    }
-    FLUX_LOG_INFO (h, "Closing file pointer");
-    close (fd);
-    DYAD_PERF_REGION_END (ctx->perf_handle, "dyad_server_read_data");
-    FLUX_LOG_INFO (h, "Is inbuf NULL? -> %i\n", (int)(inbuf == NULL));
+        DYAD_LOG_DEBUG (mod_ctx->ctx, "Is inbuf NULL? -> %i\n", (int)(inbuf == NULL));
 
-    FLUX_LOG_INFO (h, "Establish DTL connection with consumer");
-    rc = ctx->dtl_handle->establish_connection (ctx->dtl_handle);
+        DYAD_LOG_DEBUG (mod_ctx->ctx, "Establish DTL connection with consumer");
+        rc = mod_ctx->ctx->dtl_handle->establish_connection (mod_ctx->ctx);
+        if (DYAD_IS_ERROR (rc)) {
+            DYAD_LOG_ERROR (mod_ctx->ctx, "Could not establish DTL connection with client\n");
+            errno = ECONNREFUSED;
+            goto fetch_error;
+        }
+        DYAD_LOG_DEBUG (mod_ctx, "Send file to consumer with DTL");
+        rc = mod_ctx->ctx->dtl_handle->send (mod_ctx->ctx, inbuf, inlen);
+        DYAD_LOG_DEBUG (mod_ctx, "Close DTL connection with consumer");
+        mod_ctx->ctx->dtl_handle->close_connection (mod_ctx->ctx);
+        mod_ctx->ctx->dtl_handle->return_buffer (mod_ctx->ctx, &inbuf);
+        if (DYAD_IS_ERROR (rc)) {
+            DYAD_LOG_ERROR (mod_ctx->ctx, "Could not send data to client via DTL\n");
+            errno = ECOMM;
+            goto fetch_error;
+        }
+    }
+    dyad_release_flock (mod_ctx->ctx, fd, &shared_lock);
     if (DYAD_IS_ERROR (rc)) {
-        FLUX_LOG_ERR (ctx->h, "Could not establish DTL connection with client\n");
-        errno = ECONNREFUSED;
+        dyad_release_flock (mod_ctx->ctx, fd, &shared_lock);
         goto fetch_error;
     }
-    FLUX_LOG_INFO (h, "Send file to consumer with DTL");
-    rc = ctx->dtl_handle->send (ctx->dtl_handle, inbuf, inlen);
-    FLUX_LOG_INFO (h, "Close DTL connection with consumer");
-    ctx->dtl_handle->close_connection (ctx->dtl_handle);
-    ctx->dtl_handle->return_buffer (ctx->dtl_handle, &inbuf);
-    if (DYAD_IS_ERROR (rc)) {
-        FLUX_LOG_ERR (ctx->h, "Could not send data to client via DTL\n");
-        errno = ECOMM;
-        goto fetch_error;
-    }
-
-    FLUX_LOG_INFO (h, "Close RPC message stream with an ENODATA (%d) message", ENODATA);
-    DYAD_PERF_REGION_BEGIN (ctx->perf_handle, "dyad_server_send_response");
+    DYAD_LOG_DEBUG(mod_ctx, "Close RPC message stream with an ENODATA (%d) message", ENODATA);
     if (flux_respond_error (h, msg, ENODATA, NULL) < 0) {
-        FLUX_LOG_ERR (h, "DYAD_MOD: %s: flux_respond_error with ENODATA failed\n", __FUNCTION__);
+        DYAD_LOG_ERROR (mod_ctx, "DYAD_MOD: %s: flux_respond_error with ENODATA failed\n", __func__ );
     }
-    DYAD_PERF_REGION_END (ctx->perf_handle, "dyad_server_send_response");
     errno = saved_errno;
-    FLUX_LOG_INFO (h, "Finished dyad.fetch module invocation\n");
+    DYAD_LOG_INFO(mod_ctx, "Finished dyad.fetch module invocation\n");
     goto end_fetch_cb;
 
 fetch_error:
-    FLUX_LOG_ERR (h, "Close RPC message stream with an error (errno = %d)\n", errno);
-    DYAD_PERF_REGION_BEGIN (ctx->perf_handle, "dyad_server_send_response");
+    DYAD_LOG_ERROR(mod_ctx, "Close RPC message stream with an error (errno = %d)\n", errno);
     if (flux_respond_error (h, msg, errno, NULL) < 0) {
-        FLUX_LOG_ERR (h, "DYAD_MOD: %s: flux_respond_error", __FUNCTION__);
+        DYAD_LOG_ERROR (mod_ctx, "DYAD_MOD: %s: flux_respond_error", __func__);
     }
-    DYAD_PERF_REGION_END (ctx->perf_handle, "dyad_server_send_response");
     errno = saved_errno;
+    DYAD_C_FUNCTION_END();
     return;
 
 end_fetch_cb:
-    DYAD_PERF_REGION_END (ctx->perf_handle, "dyad_server_cb");
+    DYAD_C_FUNCTION_END();
     return;
 }
 
 static dyad_rc_t dyad_open (flux_t *h, dyad_dtl_mode_t dtl_mode, bool debug, optparse_t *opts)
 {
-    dyad_mod_ctx_t *ctx = getctx (h);
-    dyad_rc_t rc = 0;
-    char *e = NULL;
-
-    ctx->debug = debug;
-    rc = dyad_perf_init (&(ctx->perf_handle), true, opts);
-    if (DYAD_IS_ERROR (rc))
-        goto open_done;
-    rc = dyad_dtl_init (&(ctx->dtl_handle),
-                        dtl_mode,
-                        DYAD_COMM_SEND,
-                        h,
-                        ctx->debug,
-                        ctx->perf_handle);
-
-open_done:
+    DYAD_C_FUNCTION_START();
+    dyad_mod_ctx_t *mod_ctx = getctx (h);
+    dyad_rc_t rc = DYAD_RC_OK;
+    mod_ctx->ctx->debug = debug;
+    rc = dyad_dtl_init (mod_ctx->ctx, dtl_mode, DYAD_COMM_SEND, mod_ctx->ctx->debug);
+    DYAD_C_FUNCTION_END();
     return rc;
 }
 
@@ -278,7 +262,11 @@ static const struct flux_msg_handler_spec htab[] =
      FLUX_MSGHANDLER_TABLE_END};
 
 static struct optparse_option cmdline_opts[] =
-    {{.name = "dtl_mode",
+    {{.name = "test",
+         .key = 't',
+         .has_arg = 0,
+         .usage = "Show help"},
+     {.name = "mode",
       .key = 'm',
       .has_arg = 1,
       .arginfo = "DTL_MODE",
@@ -311,132 +299,111 @@ static struct optparse_option cmdline_opts[] =
 
 DYAD_DLL_EXPORTED int mod_main (flux_t *h, int argc, char **argv)
 {
+    DYAD_LOGGER_INIT();
+    DYAD_LOG_STDOUT("Loading mod_main\n");
     const mode_t m = (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH | S_ISGID);
-    dyad_mod_ctx_t *ctx = NULL;
+    dyad_mod_ctx_t *mod_ctx = NULL;
     size_t arglen = 0;
     bool debug = false;
     dyad_dtl_mode_t dtl_mode = DYAD_DTL_DEFAULT;
-    const char *optargp = NULL;
+    const char* optargp;
     int optindex = 0;
     optparse_t *opts = NULL;
-    int i = 0;
-
-    // TODO(Ian): Remove if not debugging
-    // freopen (
-    //     "/g/g90/lumsden1/ws/insitu_benchmark/wio_benchmark_dyad_tests/campaigns/"
-    //     "pre_christmas_testing/opt_1_oto_scaling/oto_proc_scaling/"
-    //     "dyad_1198371a_2n_1pcpn_128i_1si_nocolloc/broker.out",
-    //     "a+",
-    //     stdout);
-    // freopen (
-    //     "/g/g90/lumsden1/ws/insitu_benchmark/wio_benchmark_dyad_tests/campaigns/"
-    //     "pre_christmas_testing/opt_1_oto_scaling/oto_proc_scaling/"
-    //     "dyad_1198371a_2n_1pcpn_128i_1si_nocolloc/broker.err",
-    //     "a+",
-    //     stderr);
-
     if (!h) {
-        fprintf (stderr, "Failed to get flux handle\n");
+        DYAD_LOG_STDERR("Failed to get flux handle\n");
         goto mod_done;
     }
 
-    // for (i = 0; i < argc; i++) {
-    //     FLUX_LOG_INFO (h, "argv[%d] = %s", i, argv[i]);
-    // }
+    mod_ctx = getctx (h);
 
-    // FLUX_LOG_INFO (h, "Getting context from AUX");
-    ctx = getctx (h);
-
-    // FLUX_LOG_INFO (h, "Creating optparser");
+    DYAD_LOG_DEBUG(ctx, "Creating optparser");
     opts = optparse_create ("dyad.so");
-    // FLUX_LOG_INFO (h, "Adding option table to parser");
+    DYAD_LOG_DEBUG(mod_ctx->ctx, "Adding option table to parser");
     if (optparse_add_option_table (opts, cmdline_opts) < 0) {
-        // FLUX_LOG_ERR (h, "Cannot add option table for DYAD module");
-        fprintf (stderr, "Cannot add option table for DYAD module");
+        DYAD_LOG_ERROR(mod_ctx->ctx, "Cannot add option table for DYAD module");
         goto mod_error;
     }
-    // FLUX_LOG_INFO (h, "Adding perf options to parser");
-    if (DYAD_IS_ERROR (dyad_perf_setopts (opts))) {
-        // FLUX_LOG_ERR (h, "Cannot set command-line options for the performance plugin");
-        fprintf (stderr, "Cannot set command-line options for the performance plugin");
-        goto mod_error;
-    }
-    // FLUX_LOG_INFO (h, "Parsing command line options");
+    uint32_t broker_rank;
+    flux_get_rank (h, &broker_rank);
+#ifdef DYAD_PROFILER_DLIO_PROFILER
+    int pid = broker_rank;
+    DLIO_PROFILER_C_INIT (NULL, NULL, &pid);
+#endif
+    DYAD_C_FUNCTION_START();
+    DYAD_LOG_DEBUG(mod_ctx->ctx, "Adding perf options to parser");
+    DYAD_LOG_DEBUG(mod_ctx->ctx, "Parsing command line options");
     if ((optindex = optparse_parse_args (opts, argc, argv)) < 0) {
-        // FLUX_LOG_ERR (h, "Cannot parse command line arguments to dyad.so");
-        fprintf (stderr, "Cannot parse command line arguments to dyad.so");
+        DYAD_LOG_ERROR(mod_ctx->ctx, "Cannot parse command line arguments to dyad.so");
         goto mod_error;
     }
     if (optindex >= argc) {
-        // FLUX_LOG_ERR (h, "Positional arguments not provided to dyad.so");
-        fprintf (stderr, "Positional arguments not provided to dyad.so");
+        DYAD_LOG_ERROR(mod_ctx->ctx, "Positional arguments not provided to dyad.so");
         optparse_print_usage (opts);
         goto mod_error;
     }
 
-    if (optparse_getopt (opts, "info_log", &optargp) > 0) {
-        DYAD_LOG_INFO_REDIRECT (optargp);
-    } else {
-        DYAD_LOG_INFO_REDIRECT ("./dyad_server.out");
-    }
-    if (optparse_getopt (opts, "error_log", &optargp) > 0) {
-        DYAD_LOG_ERR_REDIRECT (optargp);
-    } else {
-        DYAD_LOG_ERR_REDIRECT ("./dyad_server.err");
-    }
-    FLUX_LOG_INFO (h, "Test");
 
-    if (optparse_getopt (opts, "dtl_mode", &optargp) > 0) {
-        FLUX_LOG_INFO (h, "Found 'dtl_mode': %s", optargp);
+    if (optparse_getopt (opts, "mode", &optargp) > 0) {
+        DYAD_LOG_DEBUG (mod_ctx->ctx, "Found 'mode': %s", optargp);
         arglen = strlen (optargp);
         if (strncmp (optargp, "FLUX_RPC", arglen) == 0) {
             dtl_mode = DYAD_DTL_FLUX_RPC;
         } else if (strncmp (optargp, "UCX", arglen) == 0) {
             dtl_mode = DYAD_DTL_UCX;
         } else {
-            FLUX_LOG_ERR (h, "Invalid DTL mode provided\n");
+            DYAD_LOG_ERROR (mod_ctx->ctx, "Invalid DTL mode provided\n");
             optparse_print_usage (opts);
             goto mod_error;
         }
     } else {
-        FLUX_LOG_INFO (h, "Did not find 'dtl_mode'");
+        DYAD_LOG_DEBUG (mod_ctx->ctx, "Did not find 'mode'");
     }
+    DYAD_LOG_DEBUG (mod_ctx->ctx, "Test");
 
-    if (optparse_getopt (opts, "debug", &optargp) > 0) {
-        FLUX_LOG_INFO (h, "Found 'debug'");
-        debug = true;
-    } else {
-        FLUX_LOG_INFO (h, "Did not find 'debug'");
-    }
-
-    (ctx->dyad_path) = argv[optindex];
-    mkdir_as_needed (ctx->dyad_path, m);
-
+    (mod_ctx->ctx->prod_managed_path) = argv[optindex];
+    mkdir_as_needed (mod_ctx->ctx->prod_managed_path, m);
+    DYAD_LOG_INFO (mod_ctx->ctx, "Loading DYAD Module with Path %s and DTL Mode %d", mod_ctx->ctx->prod_managed_path, dtl_mode);
     if (DYAD_IS_ERROR (dyad_open (h, dtl_mode, debug, opts))) {
-        FLUX_LOG_ERR (ctx->h, "dyad_open failed");
+        DYAD_LOG_ERROR (mod_ctx->ctx, "dyad_open failed");
         goto mod_error;
     }
-
+    char log_file_name[4096], err_file_name[4096];
+    if (optparse_getopt (opts, "info_log", &optargp) > 0) {
+        sprintf (log_file_name, "%s_%u.out", optargp, broker_rank);
+        DYAD_LOG_STDOUT_REDIRECT (log_file_name);
+    } else {
+        sprintf (log_file_name, "dyad_core_%u.out", broker_rank);
+        DYAD_LOG_STDOUT_REDIRECT (log_file_name);
+    }
+    if (optparse_getopt (opts, "error_log", &optargp) > 0) {
+        sprintf (err_file_name, "%s_%d.err", optargp, broker_rank);
+        DYAD_LOG_STDERR_REDIRECT (err_file_name);
+    } else {
+        sprintf (err_file_name, "dyad_core_%d.err", broker_rank);
+        DYAD_LOG_STDERR_REDIRECT (err_file_name);
+    }
     optparse_destroy (opts);
 
-    FLUX_LOG_INFO (ctx->h, "dyad module begins using \"%s\"\n", argv[optindex]);
+    DYAD_LOG_DEBUG (mod_ctx->ctx, "dyad module begins using \"%s\"\n", argv[optindex]);
 
-    if (flux_msg_handler_addvec (ctx->h, htab, (void *)h, &ctx->handlers) < 0) {
-        FLUX_LOG_ERR (ctx->h, "flux_msg_handler_addvec: %s\n", strerror (errno));
+    if (flux_msg_handler_addvec (mod_ctx->ctx->h, htab, (void *)h, &mod_ctx->handlers) < 0) {
+        DYAD_LOG_ERROR (mod_ctx->ctx, "flux_msg_handler_addvec: %s\n", strerror (errno));
         goto mod_error;
     }
 
-    if (flux_reactor_run (flux_get_reactor (ctx->h), 0) < 0) {
-        FLUX_LOG_ERR (ctx->h, "flux_reactor_run: %s", strerror (errno));
+    if (flux_reactor_run (flux_get_reactor (mod_ctx->ctx->h), 0) < 0) {
+        DYAD_LOG_DEBUG (mod_ctx->ctx, "flux_reactor_run: %s", strerror (errno));
         goto mod_error;
     }
 
     goto mod_done;
 
 mod_error:;
+    DYAD_C_FUNCTION_END();
     return EXIT_FAILURE;
 
 mod_done:;
+    DYAD_C_FUNCTION_END();
     return EXIT_SUCCESS;
 }
 

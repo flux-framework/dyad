@@ -1,11 +1,13 @@
 #if defined(DYAD_HAS_CONFIG)
-#include "dyad/dyad_config.hpp"
+#include <dyad/dyad_config.hpp>
 #else
 #error "no config"
 #endif
 
-#include <dyad/common/dyad_flux_log.h>
+#include <dyad/common/dyad_profiler.h>
+#include <dyad/common/dyad_logging.h>
 #include <dyad/dtl/ucx_ep_cache.h>
+#include <dyad/common/dyad_structures.h>
 
 #include <functional>
 #include <new>
@@ -39,46 +41,49 @@ struct hash<key_type> {
 
 static void dyad_ucx_ep_err_handler (void* arg, ucp_ep_h ep, ucs_status_t status)
 {
-    flux_t* h = (flux_t*)arg;
-    FLUX_LOG_ERR (h, "An error occured on the UCP endpoint (status = %d)\n", status);
+    DYAD_C_FUNCTION_START();
+    dyad_ctx_t *ctx = (dyad_ctx_t*)arg;
+    DYAD_LOG_ERROR (ctx, "An error occured on the UCP endpoint (status = %d)\n", status);
+    DYAD_C_FUNCTION_END();
 }
 
-dyad_rc_t ucx_connect (dyad_perf_t* perf_handle,
+dyad_rc_t ucx_connect (const dyad_ctx_t *ctx,
                        ucp_worker_h worker,
                        const ucp_address_t* addr,
-                       flux_t* h,
                        ucp_ep_h* ep)
 {
+    DYAD_C_FUNCTION_START();
+    dyad_rc_t rc = DYAD_RC_OK;
     ucp_ep_params_t params;
     ucs_status_t status = UCS_OK;
-    DYAD_PERF_REGION_BEGIN (perf_handle, "ucx_connect");
     params.field_mask = UCP_EP_PARAM_FIELD_REMOTE_ADDRESS | UCP_EP_PARAM_FIELD_ERR_HANDLING_MODE
                         | UCP_EP_PARAM_FIELD_ERR_HANDLER;
     params.address = addr;
     params.err_mode = UCP_ERR_HANDLING_MODE_PEER;
     params.err_handler.cb = dyad_ucx_ep_err_handler;
-    params.err_handler.arg = (void*)h;
+    params.err_handler.arg = (void*)ctx;
     status = ucp_ep_create (worker, &params, ep);
     if (UCX_STATUS_FAIL (status)) {
-        FLUX_LOG_ERR (h, "ucp_ep_create failed with status %d\n", (int)status);
-        DYAD_PERF_REGION_END (perf_handle, "ucx_connect");
-        return DYAD_RC_UCXCOMM_FAIL;
+        DYAD_LOG_ERROR (ctx, "ucp_ep_create failed with status %d\n", (int)status);
+        rc = DYAD_RC_UCXCOMM_FAIL;
+        goto ucx_connect_done;
     }
     if (*ep == NULL) {
-        FLUX_LOG_ERR (h, "ucp_ep_create succeeded, but returned a NULL endpoint");
-        DYAD_PERF_REGION_END (perf_handle, "ucx_connect");
-        return DYAD_RC_UCXCOMM_FAIL;
+        DYAD_LOG_ERROR (ctx, "ucp_ep_create succeeded, but returned a NULL endpoint");
+        rc = DYAD_RC_UCXCOMM_FAIL;
+        goto ucx_connect_done;
     }
-    DYAD_PERF_REGION_END (perf_handle, "ucx_connect");
-    return DYAD_RC_OK;
+ucx_connect_done:;
+    DYAD_C_FUNCTION_END();
+    return rc;
 }
 
-dyad_rc_t ucx_disconnect (dyad_perf_t* perf_handle, ucp_worker_h worker, ucp_ep_h ep)
+dyad_rc_t ucx_disconnect (const dyad_ctx_t *ctx, ucp_worker_h worker, ucp_ep_h ep)
 {
+    DYAD_C_FUNCTION_START();
     dyad_rc_t rc = DYAD_RC_OK;
     ucs_status_t status = UCS_OK;
     ucs_status_ptr_t stat_ptr;
-    DYAD_PERF_REGION_BEGIN (perf_handle, "ucx_disconnect");
     if (ep != NULL) {
         // ucp_tag_send_sync_nbx is the prefered version of this send
         // since UCX 1.9 However, some systems (e.g., Lassen) may have
@@ -120,30 +125,39 @@ dyad_rc_t ucx_disconnect (dyad_perf_t* perf_handle, ucp_worker_h worker, ucp_ep_
         }
     }
 ucx_disconnect_region_finish:
-    DYAD_PERF_REGION_END (perf_handle, "ucx_disconnect");
+    DYAD_C_FUNCTION_END();
     return rc;
 }
 
-dyad_rc_t dyad_ucx_ep_cache_init (ucx_ep_cache_h* cache)
+dyad_rc_t dyad_ucx_ep_cache_init (const dyad_ctx_t *ctx, ucx_ep_cache_h* cache)
 {
+    DYAD_C_FUNCTION_START();
+    dyad_rc_t rc = DYAD_RC_OK;
     if (cache == nullptr || *cache != nullptr) {
-        return DYAD_RC_BADBUF;
+        rc = DYAD_RC_BADBUF;
+        goto ucx_ep_cache_init_done;
     }
     *cache = reinterpret_cast<ucx_ep_cache_h> (new (std::nothrow) cache_type ());
     if (*cache == nullptr) {
-        return DYAD_RC_SYSFAIL;
+        rc = DYAD_RC_SYSFAIL;
+        goto ucx_ep_cache_init_done;
     }
-    return DYAD_RC_OK;
+ucx_ep_cache_init_done:;
+    DYAD_C_FUNCTION_END();
+    return rc;
 }
 
-dyad_rc_t dyad_ucx_ep_cache_find (const ucx_ep_cache_h cache,
+dyad_rc_t dyad_ucx_ep_cache_find (const dyad_ctx_t *ctx,
+                                  const ucx_ep_cache_h cache,
                                   const ucp_address_t* addr,
                                   const size_t addr_size,
                                   ucp_ep_h* ep)
 {
+    DYAD_C_FUNCTION_START();
     dyad_rc_t rc = DYAD_RC_OK;
     if (ep == nullptr || *ep != nullptr) {
-        return DYAD_RC_BADBUF;
+        rc = DYAD_RC_BADBUF;
+        goto ucx_ep_cache_find_done;
     }
     try {
         const cache_type* cpp_cache = reinterpret_cast<const cache_type*> (cache);
@@ -161,15 +175,18 @@ dyad_rc_t dyad_ucx_ep_cache_find (const ucx_ep_cache_h cache,
         *ep = nullptr;
         rc = DYAD_RC_SYSFAIL;
     }
+ucx_ep_cache_find_done:;
+    DYAD_C_FUNCTION_END();
     return rc;
 }
 
-dyad_rc_t dyad_ucx_ep_cache_insert (ucx_ep_cache_h cache,
+dyad_rc_t dyad_ucx_ep_cache_insert (const dyad_ctx_t *ctx,
+                                    ucx_ep_cache_h cache,
                                     const ucp_address_t* addr,
                                     const size_t addr_size,
-                                    ucp_worker_h worker,
-                                    flux_t* h)
+                                    ucp_worker_h worker)
 {
+    DYAD_C_FUNCTION_START();
     dyad_rc_t rc = DYAD_RC_OK;
     try {
         cache_type* cpp_cache = reinterpret_cast<cache_type*> (cache);
@@ -180,7 +197,7 @@ dyad_rc_t dyad_ucx_ep_cache_insert (ucx_ep_cache_h cache,
             rc = DYAD_RC_OK;
         } else {
             ucp_ep_h ep;
-            rc = ucx_connect (nullptr, worker, addr, h, &ep);
+            rc = ucx_connect (ctx, worker, addr, &ep);
             if (!DYAD_IS_ERROR (rc)) {
                 cpp_cache->emplace (key, ep);
                 rc = DYAD_RC_OK;
@@ -189,55 +206,65 @@ dyad_rc_t dyad_ucx_ep_cache_insert (ucx_ep_cache_h cache,
     } catch (...) {
         rc = DYAD_RC_SYSFAIL;
     }
+    DYAD_C_FUNCTION_END();
     return rc;
 }
 
-static inline cache_type::iterator cache_remove_impl (cache_type* cache,
+static inline cache_type::iterator cache_remove_impl (const dyad_ctx_t *ctx,
+                                                      cache_type* cache,
                                                       cache_type::iterator it,
                                                       ucp_worker_h worker)
 {
+    DYAD_C_FUNCTION_START();
     if (it != cache->end ()) {
-        ucx_disconnect (nullptr, worker, it->second);
+        ucx_disconnect (ctx, worker, it->second);
         // The UCP address was allocated with 'malloc' while unpacking
         // the RPC message. So, we extract it from the key and free
         // it after erasing the iterator
         ucp_address_t* addr = it->first.first;
         auto next_it = cache->erase (it);
         free (addr);
+        DYAD_C_FUNCTION_END();
         return next_it;
     }
+    DYAD_C_FUNCTION_END();
     return cache->end ();
 }
 
-dyad_rc_t dyad_ucx_ep_cache_remove (ucx_ep_cache_h cache,
+dyad_rc_t dyad_ucx_ep_cache_remove (const dyad_ctx_t *ctx,
+                                    ucx_ep_cache_h cache,
                                     const ucp_address_t* addr,
                                     const size_t addr_size,
                                     ucp_worker_h worker)
 {
+    DYAD_C_FUNCTION_START();
     dyad_rc_t rc = DYAD_RC_OK;
     try {
         cache_type* cpp_cache = reinterpret_cast<cache_type*> (cache);
         auto key = std::make_pair<ucp_address_t*, size_t> (const_cast<ucp_address_t*> (addr),
                                                            static_cast<size_t> (addr_size));
         cache_type::iterator cache_it = cpp_cache->find (key);
-        cache_remove_impl (cpp_cache, cache_it, worker);
+        cache_remove_impl (ctx, cpp_cache, cache_it, worker);
         rc = DYAD_RC_OK;
     } catch (...) {
         rc = DYAD_RC_SYSFAIL;
     }
+    DYAD_C_FUNCTION_END();
     return rc;
 }
 
-dyad_rc_t dyad_ucx_ep_cache_finalize (ucx_ep_cache_h* cache, ucp_worker_h worker)
+dyad_rc_t dyad_ucx_ep_cache_finalize (const dyad_ctx_t *ctx, ucx_ep_cache_h* cache, ucp_worker_h worker)
 {
+    DYAD_C_FUNCTION_START();
     if (cache == nullptr || *cache == nullptr) {
         return DYAD_RC_OK;
     }
     cache_type* cpp_cache = reinterpret_cast<cache_type*> (*cache);
     for (cache_type::iterator it = cpp_cache->begin (); it != cpp_cache->end ();) {
-        it = cache_remove_impl (cpp_cache, it, worker);
+        it = cache_remove_impl (ctx, cpp_cache, it, worker);
     }
     delete cpp_cache;
     *cache = nullptr;
+    DYAD_C_FUNCTION_END();
     return DYAD_RC_OK;
 }

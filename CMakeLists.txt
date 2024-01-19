@@ -98,7 +98,11 @@ if (DYAD_ENABLE_UCX_DATA)
     set (DYAD_ENABLE_UCX_DTL 1)
 endif ()
 set(DYAD_PROFILER "NONE" CACHE STRING "Profiler to use for DYAD")
-set_property(CACHE DYAD_PROFILER PROPERTY STRINGS PERFFLOW_ASPECT CALIPER NONE)
+set_property(CACHE DYAD_PROFILER PROPERTY STRINGS PERFFLOW_ASPECT CALIPER DLIO_PROFILER NONE)
+set(DYAD_LOGGER "NONE" CACHE STRING "Logger to use for DYAD")
+set_property(CACHE DYAD_LOGGER PROPERTY STRINGS FLUX CPP_LOGGER NONE)
+set(DYAD_LOGGER_LEVEL "NONE" CACHE STRING "Logging level to use for DYAD")
+set_property(CACHE DYAD_LOGGER_LEVEL PROPERTY STRINGS DEBUG INFO WARN ERROR NONE)
 
 
 #------------------------------------------------------------------------------
@@ -116,9 +120,51 @@ if(CMAKE_BUILD_TYPE STREQUAL "")
     set(CMAKE_BUILD_TYPE "Release") # Setting default as Release
 endif()
 
+if(DYAD_PROFILER STREQUAL "PERFFLOW_ASPECT")
+    set(DYAD_PROFILER_PERFFLOW_ASPECT 1)
+elseif(DYAD_PROFILER STREQUAL "CALIPER")
+    set(DYAD_PROFILER_CALIPER 1)
+elseif(DYAD_PROFILER STREQUAL "DLIO_PROFILER")
+    set(DYAD_PROFILER_DLIO_PROFILER 1)
+else()
+    set(DYAD_PROFILER_NONE 1)
+endif()
+message(STATUS "[${PROJECT_NAME}] setting DYAD_PROFILER as ${DYAD_PROFILER}")
+
+if(DYAD_LOGGER STREQUAL "FLUX")
+    set(DYAD_LOGGER_FLUX 1)
+elseif(DYAD_LOGGER STREQUAL "CPP_LOGGER")
+    set(DYAD_LOGGER_CPP_LOGGER 1)
+endif()
+message(STATUS "[${PROJECT_NAME}] setting DYAD_LOGGER as ${DYAD_LOGGER}")
+
+
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(DYAD_FULL_DEBUG 1)
-    set(DYAD_LOGGING_ON 1)
+    if (DYAD_LOGGER STREQUAL "NONE")
+        message(STATUS "-- [${PROJECT_NAME}] disabling logger as no logger is selected")
+        set(DYAD_LOGGER_NO_LOG 1)
+    else()
+        if (DYAD_LOGGER_LEVEL STREQUAL "NONE" OR DYAD_LOGGER_LEVEL STREQUAL "DEBUG")
+            set(DYAD_LOGGER_LEVEL_ERROR 1)
+            set(DYAD_LOGGER_LEVEL_WARN 1)
+            set(DYAD_LOGGER_LEVEL_INFO 1)
+            set(DYAD_LOGGER_LEVEL_DEBUG 1)
+        elseif(DYAD_LOGGER_LEVEL STREQUAL "ERROR")
+            set(DYAD_LOGGER_LEVEL_ERROR 1)
+        elseif(DYAD_LOGGER_LEVEL STREQUAL "WARN")
+            set(DYAD_LOGGER_LEVEL_ERROR 1)
+            set(DYAD_LOGGER_LEVEL_WARN 1)
+        elseif(DYAD_LOGGER_LEVEL STREQUAL "INFO")
+            set(DYAD_LOGGER_LEVEL_ERROR 1)
+            set(DYAD_LOGGER_LEVEL_WARN 1)
+            set(DYAD_LOGGER_LEVEL_INFO 1)
+        else()
+            set(DYAD_LOGGER_NO_LOG 1)
+        endif()
+        message(STATUS "[${PROJECT_NAME}] setting DYAD_LOGGER_LEVEL as ${DYAD_LOGGER_LEVEL}")
+    endif()
+else()
+    set(DYAD_LOGGER_NO_LOG 1)
 endif()
 
 if (NOT DEFINED BUILD_SHARED_LIBS)
@@ -172,12 +218,31 @@ endif ()
 
 # Optional Dependencies
 # =============================================================================
+if (DYAD_LOGGER STREQUAL "CPP_LOGGER")
+    find_package(cpp-logger REQUIRED)
+    if (${CPP_LOGGER_FOUND})
+        message(STATUS "[${PROJECT_NAME}] found cpp-logger at ${CPP_LOGGER_INCLUDE_DIRS}")
+        include_directories(${CPP_LOGGER_INCLUDE_DIRS})
+        set(DEPENDENCY_LIB ${DEPENDENCY_LIB} ${CPP_LOGGER_LIBRARIES})
+    else ()
+        message(FATAL_ERROR "-- [${PROJECT_NAME}] cpp-logger is not found but selected in cmake options for ${PROJECT_NAME} build")
+    endif ()
+endif()
 if(DYAD_PROFILER STREQUAL "PERFFLOW_ASPECT")
     find_package(perfflowaspect REQUIRED)
     if (${perfflowaspect_FOUND})
         message(STATUS "[${PROJECT_NAME}] found perfflowaspect at ${perfflowaspect_INCLUDE_DIRS}")
     else ()
-        message(FATAL_ERROR "-- [${PROJECT_NAME}] ucx is needed for ${PROJECT_NAME} build")
+        message(FATAL_ERROR "-- [${PROJECT_NAME}] perfflowaspect is not found but selected in cmake options for ${PROJECT_NAME} build")
+    endif ()
+elseif(DYAD_PROFILER STREQUAL "DLIO_PROFILER")
+    find_package(dlio_profiler REQUIRED IMPORTED)
+    if (${DLIO_PROFILER_FOUND})
+        message(STATUS "[${PROJECT_NAME}] found dlio_profiler at ${DLIO_PROFILER_INCLUDE_DIRS}")
+        include_directories(${DLIO_PROFILER_INCLUDE_DIRS})
+        set(DEPENDENCY_LIB ${DEPENDENCY_LIB} ${DLIO_PROFILER_LIBRARIES})
+    else ()
+        message(FATAL_ERROR "-- [${PROJECT_NAME}] dlio_profiler is not found but selected in cmake options ${PROJECT_NAME} build")
     endif ()
 endif()
 if(DYAD_ENABLE_UCX_DATA)
@@ -248,7 +313,7 @@ export(EXPORT ${DYAD_EXPORTED_TARGETS}
 
 # Write the configure file
 configure_file("${CMAKE_SOURCE_DIR}/cmake/configure_files/dyad_config.hpp.in"
-               "${CMAKE_BINARY_DIR}/src/dyad/dyad_config.hpp" @ONLY)
+               "${CMAKE_INCLUDE_OUTPUT_DIRECTORY}/dyad/dyad_config.hpp" @ONLY)
 
 
 ################################################################
@@ -315,7 +380,7 @@ endif (WIP_package_config)
 #...........................................
 
 install(FILES
-        "${CMAKE_BINARY_DIR}/src/dyad/dyad_config.hpp"
+        "${CMAKE_INCLUDE_OUTPUT_DIRECTORY}/dyad/dyad_config.hpp"
         DESTINATION
         ${DYAD_INSTALL_INCLUDE_DIR}/dyad)
 
@@ -385,6 +450,10 @@ string(APPEND _str
   "  DYAD_DATA_PLANE:             ${DYAD_DATA_PLANE}\n")
 string(APPEND _str
   "  DYAD_PROFILER:               ${DYAD_PROFILER}\n")
+string(APPEND _str
+  "  DYAD_LOGGER:                 ${DYAD_LOGGER}\n")
+string(APPEND _str
+  "  DYAD_LOGGER_LEVEL:           ${DYAD_LOGGER_LEVEL}\n")
 string(APPEND _str
   "  FluxCore_ROOT_DIR:           ${FluxCore_ROOT_DIR}\n")
 string(APPEND _str
