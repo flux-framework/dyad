@@ -258,16 +258,67 @@ configure_file("${CMAKE_SOURCE_DIR}/cmake/configure_files/dyad_config.hpp.in"
 
 include(CMakePackageConfigHelpers)
 
-install(FILES
-        "${CMAKE_BINARY_DIR}/src/dyad/dyad_config.hpp"
-        DESTINATION
-        ${DYAD_INSTALL_INCLUDE_DIR}/dyad)
-
 # Write the version file. This is independent of build/install tree.
 write_basic_package_version_file(
   DYADConfigVersion.cmake
   VERSION "${DYAD_PACKAGE_VERSION}"
   COMPATIBILITY SameMajorVersion)
+
+#...........................................
+# There are two different places where cmake config is handled currently.
+# Need to clean up and merge
+
+if (WIP_package_config)
+# This is for the build tree
+#set(INCLUDE_INSTALL_DIRS
+#  "${CMAKE_SOURCE_DIR}/src/dyad/common"
+#  "${CMAKE_SOURCE_DIR}/src/dyad/core"
+#  "${CMAKE_SOURCE_DIR}/src/dyad/dtl"
+#  "${CMAKE_SOURCE_DIR}/src/dyad/module"
+#  "${CMAKE_SOURCE_DIR}/src/dyad/wrapper"
+#  "${CMAKE_SOURCE_DIR}/src/dyad/utils"
+#  "${CMAKE_SOURCE_DIR}/src/dyad/utils/base64")
+#  "${CMAKE_SOURCE_DIR}/include/dyad/stream")
+set(EXTRA_CMAKE_MODULE_DIR "${CMAKE_SOURCE_DIR}/cmake/modules")
+
+configure_package_config_file(cmake/configure_files/DYADConfig.cmake.in
+  "${CMAKE_BINARY_DIR}/DYADConfig.cmake"
+  INSTALL_DESTINATION "${CMAKE_BINARY_DIR}/src/dyad/${DYAD_LIBDIR}/cmake/dyad"
+  PATH_VARS CMAKE_BINARY_DIR)
+  #PATH_VARS INCLUDE_INSTALL_DIRS CMAKE_BINARY_DIR)
+
+# Write the configure file for the install tree
+set(INCLUDE_INSTALL_DIRS include)
+set(EXTRA_CMAKE_MODULE_DIR)
+configure_package_config_file(cmake/configure_files/DYADConfig.cmake.in
+  "${CMAKE_BINARY_DIR}/DYADConfig.cmake.install"
+  INSTALL_DESTINATION "${DYAD_LIBDIR}/cmake/dyad"
+  PATH_VARS INCLUDE_INSTALL_DIRS DYAD_LIBDIR)
+
+# Install export
+install(EXPORT DYADTargets
+        NAMESPACE DYAD::
+        FILE DYADTargets.cmake
+        DESTINATION "${DYAD_LIBDIR}/cmake/dyad")
+
+# Install the cmake stuff
+install(FILES "${PROJECT_BINARY_DIR}/DYADConfig.cmake.install"
+        DESTINATION "${DYAD_LIBDIR}/cmake/dyad"
+        RENAME "DYADConfig.cmake")
+
+install(FILES "${PROJECT_BINARY_DIR}/DYADConfigVersion.cmake"
+        DESTINATION "${DYAD_LIBDIR}/cmake/dyad")
+
+install(DIRECTORY cmake/modules
+        DESTINATION "${DYAD_LIBDIR}/cmake/dyad"
+        FILES_MATCHING PATTERN "*.cmake")
+endif (WIP_package_config)
+#...........................................
+
+install(FILES
+        "${CMAKE_BINARY_DIR}/src/dyad/dyad_config.hpp"
+        DESTINATION
+        ${DYAD_INSTALL_INCLUDE_DIR}/dyad)
 
 install(EXPORT
         ${DYAD_EXPORTED_TARGETS}
