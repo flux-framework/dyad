@@ -10,8 +10,8 @@ set(FLUX_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/flux_dtl.h)
 set(FLUX_PUBLIC_HEADERS)
 
 # UCX implementation for DTL
-set(UCX_DTL_SRC ${CMAKE_CURRENT_SOURCE_DIR}/ucx_dtl.c)
-set(UCX_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/ucx_dtl.h)
+set(UCX_DTL_SRC ${CMAKE_CURRENT_SOURCE_DIR}/ucx_dtl.c ${CMAKE_CURRENT_SOURCE_DIR}/ucx_ep_cache.cpp)
+set(UCX_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/ucx_dtl.h ${CMAKE_CURRENT_SOURCE_DIR}/ucx_ep_cache.h)
 set(UCX_PUBLIC_HEADERS)
 
 list(APPEND DTL_SRC ${FLUX_DTL_SRC})
@@ -26,6 +26,7 @@ endif()
 
 add_library(${PROJECT_NAME}_dtl SHARED ${DTL_SRC} ${DTL_PUBLIC_HEADERS} ${DTL_PRIVATE_HEADERS})
 target_link_libraries(${PROJECT_NAME}_dtl PRIVATE ${PROJECT_NAME}_utils Jansson::Jansson flux::core)
+target_link_libraries(${PROJECT_NAME}_dtl PRIVATE ${PROJECT_NAME}_perf)
 set_target_properties(${PROJECT_NAME}_dtl PROPERTIES CMAKE_INSTALL_RPATH
                       "${CMAKE_INSTALL_PREFIX}/${DYAD_LIBDIR}")
 
