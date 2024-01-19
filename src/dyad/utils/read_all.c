@@ -8,9 +8,11 @@
  * SPDX-License-Identifier: LGPL-3.0
 \************************************************************/
 
-#if HAVE_CONFIG_H
-#include "config.h"
-#endif  // HAVE_CONFIG_H
+#if defined(DYAD_HAS_CONFIG)
+#include "dyad/dyad_config.hpp"
+#else
+#error "no config"
+#endif
 
 #include <errno.h>
 #include <stdlib.h>

@@ -14,6 +14,14 @@ if (ENABLE_PERFFLOW)
     target_compile_definitions(${PROJECT_NAME}_fstream PRIVATE DYAD_PERFFLOW=1)
 endif (ENABLE_PERFFLOW)
 
+target_compile_definitions(${PROJECT_NAME}_fstream PUBLIC DYAD_HAS_CONFIG)
+target_include_directories(${PROJECT_NAME}_fstream PUBLIC $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/src>)
+
+if (TARGET DYAD_CXX_FLAGS_werror)
+  target_link_libraries(${PROJECT_NAME}_fstream PUBLIC DYAD_CXX_FLAGS_werror)
+endif ()
+
+
 install(
         TARGETS ${PROJECT_NAME}_fstream
         EXPORT ${DYAD_EXPORTED_TARGETS}

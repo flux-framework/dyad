@@ -4,7 +4,3 @@ add_subdirectory(core)
 add_subdirectory(modules)
 add_subdirectory(wrapper)
 add_subdirectory(stream)
-
-if (BUILD_URPC)
-    add_subdirectory(urpc)
-endif (BUILD_URPC)

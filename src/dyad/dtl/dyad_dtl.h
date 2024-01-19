@@ -1,6 +1,12 @@
 #ifndef DYAD_DTL_DYAD_DTL_H
 #define DYAD_DTL_DYAD_DTL_H
 
+#if defined(DYAD_HAS_CONFIG)
+#include "dyad/dyad_config.hpp"
+#else
+#error "no config"
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif

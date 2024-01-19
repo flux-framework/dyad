@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.12)
 #------------------------------------------------------------------------------
 # Version information
 #------------------------------------------------------------------------------
@@ -28,8 +28,17 @@ string(TOLOWER "${PROJECT_NAME}" LOWER_PROJECT_NAME)
 include(GNUInstallDirs)
 if (CMAKE_INSTALL_LIBDIR)
    set(DYAD_LIBDIR ${CMAKE_INSTALL_LIBDIR})
+   set(DYAD_INSTALL_INCLUDE_DIR
+       ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR})
+   set(DYAD_INSTALL_DOCDIR
+       ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DOCDIR})
+   set(DYAD_INSTALL_SYSCONFDIR
+       ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_SYSCONFDIR}/modulefiles)
 else ()
    set(DYAD_LIBDIR "lib")
+   set(DYAD_INSTALL_INCLUDE_DIR "${CMAKE_INSTALL_PREFIX}/include")
+   set(DYAD_INSTALL_DOCDIR "${CMAKE_INSTALL_PREFIX}/doc")
+   set(DYAD_INSTALL_SYSCONFDIR "${CMAKE_INSTALL_PREFIX}/etc/modulefiles")
 endif ()
 link_directories(${CMAKE_BINARY_DIR}/${DYAD_LIBDIR})
 include_directories(${CMAKE_BINARY_DIR}/include)
@@ -54,9 +63,6 @@ if (NOT DYAD_EXTERNALLY_CONFIGURED)
     set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${DYAD_LIBDIR} CACHE PATH "Single Directory for all static libraries.")
 endif ()
 
-include(ExternalProject)
-include(SetupCompiler)
-
 #-----------------------------------------------------------------------------
 # Targets built within this project are exported at Install time for use
 # by other projects.
@@ -73,6 +79,12 @@ endif ()
 #option(ENABLE_PERFFLOW "Build with PerfFlow Aspect support" OFF)
 #option(ENABLE_UCX_DTL "Build DYAD's UCX data transport layer" OFF)
 
+# This option is off by default because non-developers should not use
+# this option under normal circumstances.
+option(DYAD_WARNINGS_AS_ERRORS
+  "Build with warnings promoted to errors." OFF)
+mark_as_advanced(DYAD_WARNINGS_AS_ERRORS)
+
 option (USE_CLANG_LIBCXX OFF)
 if (USE_CLANG_LIBCXX)
     set (GCC_TOOLCHAIN "")
@@ -85,6 +97,10 @@ set_property(CACHE DYAD_DATA_PLANE PROPERTY STRINGS FLUX_RPC UCX)
 set(DYAD_PROFILER "NONE" CACHE STRING "Profiler to use for DYAD")
 set_property(CACHE DYAD_PROFILER PROPERTY STRINGS PERFFLOW_ASPECT CALIPER NONE)
 
+
+include(ExternalProject)
+include(SetupCompiler)
+
 #------------------------------------------------------------------------------
 # Build Type based configurations
 #------------------------------------------------------------------------------
@@ -94,8 +110,8 @@ if(CMAKE_BUILD_TYPE STREQUAL "")
 endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DDYAD_FULL_DEBUG=1 -DDYAD_LOGGING_ON=1" )
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDYAD_FULL_DEBUG=1 -DDYAD_LOGGING_ON=1")
+    set(DYAD_FULL_DEBUG 1)
+    set(DYAD_LOGGING_ON 1)
 endif()
 #------------------------------------------------------------------------------
 # Disallow in-source build
@@ -186,8 +202,10 @@ function(dyad_install_headers public_headers current_dir)
     endforeach ()
 endfunction()
 
+include(DYADUtils)
 add_subdirectory(src/dyad)
 cmake_policy(SET CMP0079 NEW)
+
 
 #-----------------------------------------------------------------------------
 # Configure the config.cmake file for the build directory
@@ -225,6 +243,28 @@ install(
 export(EXPORT ${DYAD_EXPORTED_TARGETS}
         FILE "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake/${PROJECT_NAME}/${PROJECT_NAME}Targets.cmake")
 
+# Write the configure file
+configure_file("${CMAKE_SOURCE_DIR}/cmake/configure_files/dyad_config.hpp.in"
+               "${CMAKE_BINARY_DIR}/src/dyad/dyad_config.hpp" @ONLY)
+
+
+################################################################
+# Install DYAD
+################################################################
+
+include(CMakePackageConfigHelpers)
+
+install(FILES
+        "${CMAKE_BINARY_DIR}/src/dyad/dyad_config.hpp"
+        DESTINATION
+        ${DYAD_INSTALL_INCLUDE_DIR}/dyad)
+
+# Write the version file. This is independent of build/install tree.
+write_basic_package_version_file(
+  DYADConfigVersion.cmake
+  VERSION "${DYAD_PACKAGE_VERSION}"
+  COMPATIBILITY SameMajorVersion)
+
 install(EXPORT
         ${DYAD_EXPORTED_TARGETS}
         DESTINATION
@@ -233,10 +273,19 @@ install(EXPORT
         ${DYAD_EXPORTED_TARGETS}.cmake
         )
 
+# Install license and readme
+install(FILES
+        "${PROJECT_SOURCE_DIR}/NOTICE"
+        "${PROJECT_SOURCE_DIR}/LICENSE"
+        "${PROJECT_SOURCE_DIR}/README.md"
+        DESTINATION
+        ${DYAD_INSTALL_DOCDIR})
+
+
 ###############################################################################
 #                      Print out configuration summary
 ###############################################################################
-include(DYADUtils)
+
 if (CMAKE_HOST_SYSTEM_NAME MATCHES "Linux")
   set(DYAD_GNU_LINUX TRUE)
 endif ()
@@ -273,6 +322,8 @@ endif ()
 string(APPEND _str "\n")
 
 string(APPEND _str
+  "  DYAD_PACKAGE_VERSION:        ${DYAD_PACKAGE_VERSION}\n")
+string(APPEND _str
   "  DYAD_GIT_VERSION:            ${DYAD_GIT_VERSION}\n")
 string(APPEND _str
   "  DYAD_CONTROL_PLANE:          ${DYAD_CONTROL_PLANE}\n")
@@ -295,3 +346,29 @@ string(APPEND _str
 # Output to stdout
 execute_process(COMMAND ${CMAKE_COMMAND} -E echo "${_str}")
 set(_str)
+
+
+###############################################################################
+# Write a basic modulefile
+###############################################################################
+
+set(DYAD_MODULEFILE_NAME "dyad-${DYAD_PACKAGE_VERSION}.lua")
+#  CACHE STRING
+#  "The name of the DYAD modulefile to install. Must end in .lua.")
+
+if (NOT (DYAD_MODULEFILE_NAME MATCHES ".+\.lua"))
+  message(WARNING
+    "DYAD_MODULEFILE_NAME must have extension \".lua\". Appending.")
+  set(DYAD_MODULEFILE_NAME "${DYAD_MODULEFILE_NAME}.lua"
+    CACHE STRING "" FORCE)
+endif ()
+
+configure_file(
+  "${CMAKE_SOURCE_DIR}/cmake/configure_files/dyad_module.lua.in"
+  "${CMAKE_BINARY_DIR}/dyad_module.lua.install"
+  @ONLY)
+
+install(FILES "${CMAKE_BINARY_DIR}/dyad_module.lua.install"
+  RENAME "${DYAD_MODULEFILE_NAME}"
+  DESTINATION
+  "${DYAD_INSTALL_SYSCONFDIR}")

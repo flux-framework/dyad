@@ -12,9 +12,14 @@ set(DYAD_MURMUR3_PUBLIC_HEADERS )
 
 add_library(${PROJECT_NAME}_utils SHARED ${DYAD_UTILS_SRC})
 target_link_libraries(${PROJECT_NAME}_utils PUBLIC flux::core ${PROJECT_NAME}_base64)
+target_compile_definitions(${PROJECT_NAME}_utils PUBLIC DYAD_HAS_CONFIG)
+target_include_directories(${PROJECT_NAME}_utils PUBLIC $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/src>)
 
 add_library(${PROJECT_NAME}_murmur3 SHARED ${DYAD_MURMUR3_SRC})
 
+if (TARGET DYAD_C_FLAGS_werror)
+  target_link_libraries(${PROJECT_NAME}_utils PUBLIC DYAD_C_FLAGS_werror)
+endif ()
 
 install(
         TARGETS ${PROJECT_NAME}_utils
