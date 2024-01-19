@@ -25,7 +25,11 @@ string(TOLOWER "${PROJECT_NAME}" LOWER_PROJECT_NAME)
 #------------------------------------------------------------------------------
 # Get installation directories -- these get used in various places;
 # best to just make them available
-include(GNUInstallDirs)
+option (LIBDIR_AS_LIB OFF)
+if (NOT LIBDIR_AS_LIB)
+    include(GNUInstallDirs)
+endif ()
+
 if (CMAKE_INSTALL_LIBDIR)
    set(DYAD_LIBDIR ${CMAKE_INSTALL_LIBDIR})
    set(DYAD_INSTALL_INCLUDE_DIR
