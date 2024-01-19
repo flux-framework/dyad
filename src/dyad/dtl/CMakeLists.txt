@@ -31,6 +31,13 @@ if(DYAD_DATA_PLANE STREQUAL "UCX")
     target_compile_definitions(${PROJECT_NAME}_dtl PRIVATE DYAD_ENABLE_UCX=1)
 endif()
 
+target_compile_definitions(${PROJECT_NAME}_dtl PUBLIC DYAD_HAS_CONFIG)
+target_include_directories(${PROJECT_NAME}_dtl PUBLIC $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/src>)
+
+if (TARGET DYAD_C_FLAGS_werror)
+  target_link_libraries(${PROJECT_NAME}_dtl PUBLIC DYAD_C_FLAGS_werror)
+endif ()
+
 install(
         TARGETS ${PROJECT_NAME}_dtl
         EXPORT ${DYAD_EXPORTED_TARGETS}

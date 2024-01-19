@@ -6,6 +6,12 @@ add_library(${PROJECT_NAME}_wrapper SHARED ${DYAD_WRAPPER_SRC})
 target_link_libraries(${PROJECT_NAME}_wrapper PUBLIC ${PROJECT_NAME}_core flux::core)
 target_link_libraries(${PROJECT_NAME}_wrapper PRIVATE ${PROJECT_NAME}_utils)
 target_compile_definitions(${PROJECT_NAME}_wrapper PUBLIC BUILDING_DYAD=1)
+target_compile_definitions(${PROJECT_NAME}_wrapper PUBLIC DYAD_HAS_CONFIG)
+target_include_directories(${PROJECT_NAME}_wrapper PUBLIC $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/src>)
+
+if (TARGET DYAD_C_FLAGS_werror)
+  target_link_libraries(${PROJECT_NAME}_wrapper PUBLIC DYAD_C_FLAGS_werror)
+endif ()
 
 set(FLUX_BARRIER_SRC ${CMAKE_CURRENT_SOURCE_DIR}/flux_barrier.c)
 set(FLUX_BARRIER_PRIVATE_HEADERS )

@@ -1,10 +1,17 @@
 #ifndef DYAD_DTL_UCX_H
 #define DYAD_DTL_UCX_H
 
-#include <dyad/dtl/dyad_dtl_impl.h>
-#include <dyad/dtl/ucx_ep_cache.h>
+#if defined(DYAD_HAS_CONFIG)
+#include "dyad/dyad_config.hpp"
+#else
+#error "no config"
+#endif
+
 #include <stdlib.h>
 #include <ucp/api/ucp.h>
+
+#include <dyad/dtl/dyad_dtl_impl.h>
+#include <dyad/dtl/ucx_ep_cache.h>
 
 struct dyad_dtl_ucx {
     flux_t* h;

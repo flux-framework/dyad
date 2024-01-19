@@ -11,6 +11,12 @@
 #ifndef DYAD_UTILS_READ_ALL_H
 #define DYAD_UTILS_READ_ALL_H
 
+#if defined(DYAD_HAS_CONFIG)
+#include "dyad/dyad_config.hpp"
+#else
+#error "no config"
+#endif
+
 #include <sys/types.h>
 
 #if defined(__cplusplus)

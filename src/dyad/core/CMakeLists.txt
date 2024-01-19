@@ -1,11 +1,17 @@
 set(DYAD_CORE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/dyad_core.c)
 set(DYAD_CORE_PRIVATE_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/dyad_envs.h ${CMAKE_CURRENT_SOURCE_DIR}/dyad_core.h)
-set(DYAD_CORE_PUBLIC_HEADER )
+set(DYAD_CORE_PUBLIC_HEADER)
 
 add_library(${PROJECT_NAME}_core SHARED ${DYAD_CORE_SRC})
 target_link_libraries(${PROJECT_NAME}_core PUBLIC Jansson::Jansson flux::core)
 target_link_libraries(${PROJECT_NAME}_core PRIVATE ${PROJECT_NAME}_utils ${PROJECT_NAME}_murmur3 ${PROJECT_NAME}_dtl)
 target_compile_definitions(${PROJECT_NAME}_core PUBLIC BUILDING_DYAD=1)
+target_compile_definitions(${PROJECT_NAME}_core PUBLIC DYAD_HAS_CONFIG)
+target_include_directories(${PROJECT_NAME}_core PUBLIC $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/src>)
+
+if (TARGET DYAD_C_FLAGS_werror)
+  target_link_libraries(${PROJECT_NAME}_core PUBLIC DYAD_C_FLAGS_werror)
+endif ()
 
 if(DYAD_PROFILER STREQUAL "PERFFLOW_ASPECT")
     target_link_libraries(${PROJECT_NAME}_core PUBLIC perfflowaspect::perfflowaspect)
