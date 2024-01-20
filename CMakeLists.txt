@@ -29,8 +29,9 @@ option (DYAD_LIBDIR_AS_LIB OFF)
 if (NOT DYAD_LIBDIR_AS_LIB)
     include(GNUInstallDirs)
 endif ()
-
+#
 if (CMAKE_INSTALL_LIBDIR)
+   message(STATUS "CMAKE_INSTALL_LIBDIR ${CMAKE_INSTALL_LIBDIR}")
    set(DYAD_LIBDIR ${CMAKE_INSTALL_LIBDIR})
    set(DYAD_INSTALL_INCLUDE_DIR
        ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR})
@@ -43,10 +44,8 @@ else ()
    set(DYAD_INSTALL_INCLUDE_DIR "${CMAKE_INSTALL_PREFIX}/include")
    set(DYAD_INSTALL_DOCDIR "${CMAKE_INSTALL_PREFIX}/doc")
    set(DYAD_INSTALL_SYSCONFDIR "${CMAKE_INSTALL_PREFIX}/etc/modulefiles")
+   message(STATUS "DYAD_LIBDIR set to ${DYAD_LIBDIR}")
 endif ()
-link_directories(${CMAKE_BINARY_DIR}/${DYAD_LIBDIR})
-include_directories(${CMAKE_BINARY_DIR}/include)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src) # required for private includes
 
 #------------------------------------------------------------------------------
 # Internal Paths for cmake libraries and Setup install and output Directories
@@ -117,6 +116,10 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(DYAD_FULL_DEBUG 1)
     set(DYAD_LOGGING_ON 1)
 endif()
+
+if (NOT DEFINED BUILD_SHARED_LIBS)
+    set(BUILD_SHARED_LIBS ON)
+endif ()
 #------------------------------------------------------------------------------
 # Disallow in-source build
 #------------------------------------------------------------------------------
@@ -139,7 +142,7 @@ endif ()
 #------------------------------------------------------------------------------
 # Dependencies
 #------------------------------------------------------------------------------
-set(DEPENDENCY_LIB "")
+
 # Required Dependencies
 # =============================================================================
 # Import pkg-config for finding FluxCore
@@ -147,23 +150,18 @@ find_package(PkgConfig REQUIRED)
 if (${PkgConfig_FOUND})
     message(STATUS "[${PROJECT_NAME}] found PkgConfig at ${PkgConfig_INCLUDE_DIRS}")
     include_directories(${PkgConfig_INCLUDE_DIRS})
-    set(DEPENDENCY_LIB ${DEPENDENCY_LIB} ${PkgConfig_LIBRARIES})
 else ()
     message(FATAL_ERROR "-- [${PROJECT_NAME}] PkgConfig is needed for ${PROJECT_NAME} build")
 endif ()
 find_package(FluxCore REQUIRED)
 if (${FluxCore_FOUND})
     message(STATUS "[${PROJECT_NAME}] found FluxCore at ${FluxCore_INCLUDE_DIRS}")
-    include_directories(${FluxCore_INCLUDE_DIRS})
-    set(DEPENDENCY_LIB ${DEPENDENCY_LIB} ${FluxCore_LIBRARIES})
 else ()
     message(FATAL_ERROR "-- [${PROJECT_NAME}] FluxCore is needed for ${PROJECT_NAME} build")
 endif ()
 find_package(Jansson 2.10 REQUIRED)
 if (${JANSSON_FOUND})
     message(STATUS "[${PROJECT_NAME}] found Jansson at ${JANSSON_INCLUDE_DIRS}")
-    include_directories(${JANSSON_INCLUDE_DIRS})
-    set(DEPENDENCY_LIB ${DEPENDENCY_LIB} ${JANSSON_LIBRARIES})
 else ()
     message(FATAL_ERROR "-- [${PROJECT_NAME}] Jansson is needed for ${PROJECT_NAME} build")
 endif ()
@@ -174,8 +172,6 @@ if(DYAD_PROFILER STREQUAL "PERFFLOW_ASPECT")
     find_package(perfflowaspect REQUIRED)
     if (${perfflowaspect_FOUND})
         message(STATUS "[${PROJECT_NAME}] found perfflowaspect at ${perfflowaspect_INCLUDE_DIRS}")
-        include_directories(${perfflowaspect_INCLUDE_DIRS})
-        set(DEPENDENCY_LIB ${DEPENDENCY_LIB} ${perfflowaspect_LIBRARIES})
     else ()
         message(FATAL_ERROR "-- [${PROJECT_NAME}] ucx is needed for ${PROJECT_NAME} build")
     endif ()
@@ -184,8 +180,6 @@ if(DYAD_ENABLE_UCX_DATA)
     find_package(ucx 1.6 REQUIRED)
     if (${ucx_FOUND})
         message(STATUS "[${PROJECT_NAME}] found ucx at ${ucx_INCLUDE_DIRS}")
-        include_directories(${ucx_INCLUDE_DIRS})
-        set(DEPENDENCY_LIB ${DEPENDENCY_LIB} ${ucx_LIBRARIES})
     else ()
         message(FATAL_ERROR "-- [${PROJECT_NAME}] ucx is needed for ${PROJECT_NAME} build")
     endif ()
