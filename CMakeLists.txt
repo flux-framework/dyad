@@ -25,8 +25,8 @@ string(TOLOWER "${PROJECT_NAME}" LOWER_PROJECT_NAME)
 #------------------------------------------------------------------------------
 # Get installation directories -- these get used in various places;
 # best to just make them available
-option (LIBDIR_AS_LIB OFF)
-if (NOT LIBDIR_AS_LIB)
+option (DYAD_LIBDIR_AS_LIB OFF)
+if (NOT DYAD_LIBDIR_AS_LIB)
     include(GNUInstallDirs)
 endif ()
 
@@ -89,15 +89,15 @@ option(DYAD_WARNINGS_AS_ERRORS
   "Build with warnings promoted to errors." OFF)
 mark_as_advanced(DYAD_WARNINGS_AS_ERRORS)
 
-option (USE_CLANG_LIBCXX OFF)
-if (USE_CLANG_LIBCXX)
+option (DYAD_USE_CLANG_LIBCXX OFF)
+if (DYAD_USE_CLANG_LIBCXX)
     set (GCC_TOOLCHAIN "")
-endif (USE_CLANG_LIBCXX)
+endif (DYAD_USE_CLANG_LIBCXX)
 
-set(DYAD_CONTROL_PLANE "FLUX_RPC" CACHE STRING "Protocol to use for DYAD's Control Plane")
-set_property(CACHE DYAD_CONTROL_PLANE PROPERTY STRINGS FLUX_RPC)
-set(DYAD_DATA_PLANE "FLUX_RPC" CACHE STRING "Protocol to use for DYAD's Data Plane")
-set_property(CACHE DYAD_DATA_PLANE PROPERTY STRINGS FLUX_RPC UCX)
+option (DYAD_ENABLE_UCX_DATA "Allow to dynamically select UCX for DYAD's Data Plane" OFF)
+if (DYAD_ENABLE_UCX_DATA)
+    set (DYAD_ENABLE_UCX_DTL 1)
+endif ()
 set(DYAD_PROFILER "NONE" CACHE STRING "Profiler to use for DYAD")
 set_property(CACHE DYAD_PROFILER PROPERTY STRINGS PERFFLOW_ASPECT CALIPER NONE)
 
@@ -180,7 +180,7 @@ if(DYAD_PROFILER STREQUAL "PERFFLOW_ASPECT")
         message(FATAL_ERROR "-- [${PROJECT_NAME}] ucx is needed for ${PROJECT_NAME} build")
     endif ()
 endif()
-if(DYAD_DATA_PLANE STREQUAL "UCX")
+if(DYAD_ENABLE_UCX_DATA)
     find_package(ucx 1.6 REQUIRED)
     if (${ucx_FOUND})
         message(STATUS "[${PROJECT_NAME}] found ucx at ${ucx_INCLUDE_DIRS}")
@@ -394,6 +394,10 @@ string(APPEND _str
 #Print the true/false variables
 append_str_tf(_str
   DYAD_GNU_LINUX
+  DYAD_ENABLE_UCX_DATA
+  DYAD_LIBDIR_AS_LIB
+  DYAD_USE_CLANG_LIBCXX
+  DYAD_WARNINGS_AS_ERRORS
 )
 string(APPEND _str
   "\n== End DYAD Configuration Summary ==\n")

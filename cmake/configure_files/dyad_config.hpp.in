@@ -27,6 +27,7 @@
 #cmakedefine DYAD_GNU_LINUX 1
 #cmakedefine DYAD_LOGGING_ON 1
 #cmakedefine DYAD_FULL_DEBUG 1
+#cmakedefine DYAD_ENABLE_UCX_DTL 1
 #cmakedefine DYAD_HAS_STD_FILESYSTEM 1
 
 

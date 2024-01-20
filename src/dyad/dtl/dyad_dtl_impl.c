@@ -8,7 +8,7 @@
 
 #include <dyad/dtl/flux_dtl.h>
 
-#if DYAD_ENABLE_UCX
+#if DYAD_ENABLE_UCX_DTL
 #include "ucx_dtl.h"
 #endif
 
@@ -24,7 +24,7 @@ dyad_rc_t dyad_dtl_init (dyad_dtl_t **dtl_handle,
         goto dtl_init_done;
     }
     (*dtl_handle)->mode = mode;
-#if DYAD_ENABLE_UCX
+#if DYAD_ENABLE_UCX_DTL
     if (mode == DYAD_DTL_UCX) {
         rc = dyad_dtl_ucx_init (*dtl_handle, mode, h, debug);
         if (DYAD_IS_ERROR (rc)) {
@@ -59,7 +59,7 @@ dyad_rc_t dyad_dtl_finalize (dyad_dtl_t **dtl_handle)
         rc = DYAD_RC_OK;
         goto dtl_finalize_done;
     }
-#if DYAD_ENABLE_UCX
+#if DYAD_ENABLE_UCX_DTL
     if ((*dtl_handle)->mode == DYAD_DTL_UCX) {
         if ((*dtl_handle)->private.ucx_dtl_handle != NULL) {
             rc = dyad_dtl_ucx_finalize (dtl_handle);
