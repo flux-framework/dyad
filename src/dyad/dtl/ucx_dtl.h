@@ -1,6 +1,12 @@
 #ifndef DYAD_DTL_UCX_H
 #define DYAD_DTL_UCX_H
 
+#if defined(DYAD_HAS_CONFIG)
+#include "dyad/dyad_config.hpp"
+#else
+#error "no config"
+#endif
+
 #include <stdlib.h>
 #include <ucp/api/ucp.h>
 

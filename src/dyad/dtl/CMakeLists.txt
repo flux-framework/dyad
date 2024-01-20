@@ -1,35 +1,49 @@
 # DTL Interface
 set(DTL_SRC ${CMAKE_CURRENT_SOURCE_DIR}/dyad_dtl_impl.c)
 set(DTL_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/dyad_dtl_impl.h
-                        ${CMAKE_CURRENT_SOURCE_DIR}/dyad_rc.h)
-set(DTL_PUBLIC_HEADERS )
+                        ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_rc.h)
+set(DTL_PUBLIC_HEADERS)
 
 # Flux implementation for DTL
 set(FLUX_DTL_SRC ${CMAKE_CURRENT_SOURCE_DIR}/flux_dtl.c)
 set(FLUX_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/flux_dtl.h)
-set(FLUX_PUBLIC_HEADERS )
+set(FLUX_PUBLIC_HEADERS)
 
 # UCX implementation for DTL
 set(UCX_DTL_SRC ${CMAKE_CURRENT_SOURCE_DIR}/ucx_dtl.c)
 set(UCX_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/ucx_dtl.h)
-set(UCX_PUBLIC_HEADERS )
+set(UCX_PUBLIC_HEADERS)
 
-if(DYAD_DATA_PLANE STREQUAL "UCX")
-    set(DTL_SRC ${DTL_SRC} ${UCX_DTL_SRC})
-    set(DTL_PRIVATE_HEADERS ${DTL_PRIVATE_HEADERS} ${UCX_PRIVATE_HEADERS})
-    set(DTL_PUBLIC_HEADERS ${DTL_PUBLIC_HEADERS} ${UCX_PUBLIC_HEADERS})
+list(APPEND DTL_SRC ${FLUX_DTL_SRC})
+list(APPEND DTL_PRIVATE_HEADERS ${FLUX_PRIVATE_HEADERS})
+list(APPEND DTL_PUBLIC_HEADERS ${FLUX_PUBLIC_HEADERS})
+
+if(DYAD_ENABLE_UCX_DATA)
+    list(APPEND DTL_SRC ${UCX_DTL_SRC})
+    list(APPEND DTL_PRIVATE_HEADERS ${UCX_PRIVATE_HEADERS})
+    list(APPEND DTL_PUBLIC_HEADERS ${UCX_PUBLIC_HEADERS})
 endif()
-set(DTL_SRC ${DTL_SRC} ${FLUX_DTL_SRC})
-set(DTL_PRIVATE_HEADERS ${DTL_PRIVATE_HEADERS} ${FLUX_PRIVATE_HEADERS})
-set(DTL_PUBLIC_HEADERS ${DTL_PUBLIC_HEADERS} ${FLUX_PUBLIC_HEADERS})
 
-add_library(${PROJECT_NAME}_dtl SHARED ${DTL_SRC})
-target_link_libraries(${PROJECT_NAME}_dtl PUBLIC ${PROJECT_NAME}_utils Jansson::Jansson flux::core)
+add_library(${PROJECT_NAME}_dtl SHARED ${DTL_SRC} ${DTL_PUBLIC_HEADERS} ${DTL_PRIVATE_HEADERS})
+target_link_libraries(${PROJECT_NAME}_dtl PRIVATE ${PROJECT_NAME}_utils Jansson::Jansson flux::core)
+set_target_properties(${PROJECT_NAME}_dtl PROPERTIES CMAKE_INSTALL_RPATH
+                      "${CMAKE_INSTALL_PREFIX}/${DYAD_LIBDIR}")
 
-if(DYAD_DATA_PLANE STREQUAL "UCX")
-    target_link_libraries(${PROJECT_NAME}_dtl PUBLIC ucx::ucp ucx::ucs)
-    target_compile_definitions(${PROJECT_NAME}_dtl PRIVATE DYAD_ENABLE_UCX=1)
+if(DYAD_ENABLE_UCX_DATA)
+    target_link_libraries(${PROJECT_NAME}_dtl PRIVATE ucx::ucp ucx::ucs)
+    target_include_directories(${PROJECT_NAME}_dtl SYSTEM PUBLIC ${ucx_INCLUDE_DIRS})
 endif()
+
+target_compile_definitions(${PROJECT_NAME}_dtl PUBLIC DYAD_HAS_CONFIG)
+target_include_directories(${PROJECT_NAME}_dtl PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/src>
+    $<INSTALL_INTERFACE:${DYAD_INSTALL_INCLUDE_DIR}>)
+target_include_directories(${PROJECT_NAME}_dtl SYSTEM PUBLIC ${JANSSON_INCLUDE_DIRS})
+target_include_directories(${PROJECT_NAME}_dtl SYSTEM PUBLIC ${FluxCore_INCLUDE_DIRS})
+
+if (TARGET DYAD_C_FLAGS_werror)
+  target_link_libraries(${PROJECT_NAME}_dtl PRIVATE DYAD_C_FLAGS_werror)
+endif ()
 
 install(
         TARGETS ${PROJECT_NAME}_dtl

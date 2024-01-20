@@ -1,6 +1,12 @@
 #ifndef DYAD_CORE_DYAD_ENVS_H
 #define DYAD_CORE_DYAD_ENVS_H
 
+#if defined(DYAD_HAS_CONFIG)
+#include "dyad/dyad_config.hpp"
+#else
+#error "no config"
+#endif
+
 #define DYAD_PATH_PRODUCER_ENV "DYAD_PATH_PRODUCER"
 #define DYAD_PATH_CONSUMER_ENV "DYAD_PATH_CONSUMER"
 #define DYAD_KVS_NAMESPACE_ENV "DYAD_KVS_NAMESPACE"

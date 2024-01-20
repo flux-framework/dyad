@@ -24,3 +24,8 @@ else
     echo "Invalid prod test mode: $mode"
     exit 1
 fi
+
+# If this test were to be repeatable, two cleanup steps are needed
+# after consumer finishes
+# - flux module remove dyad
+# - remove the files produced and consumed

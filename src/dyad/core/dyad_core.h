@@ -1,6 +1,11 @@
 #ifndef DYAD_CORE_DYAD_CORE_H
 #define DYAD_CORE_DYAD_CORE_H
 
+#if defined(DYAD_HAS_CONFIG)
+#include "dyad/dyad_config.hpp"
+#else
+#error "no config"
+#endif
 
 #include <dyad/common/dyad_rc.h>
 #include <dyad/dtl/dyad_dtl.h>

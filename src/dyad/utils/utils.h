@@ -11,6 +11,12 @@
 #ifndef DYAD_UTILS_UTILS_H
 #define DYAD_UTILS_UTILS_H
 
+#if defined(DYAD_HAS_CONFIG)
+#include "dyad/dyad_config.hpp"
+#else
+#error "no config"
+#endif
+
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif  // _GNU_SOURCE

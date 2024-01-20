@@ -1,6 +1,11 @@
 #ifndef DYAD_DTL_DYAD_DTL_IMPL_H
 #define DYAD_DTL_DYAD_DTL_IMPL_H
 
+#if defined(DYAD_HAS_CONFIG)
+#include "dyad/dyad_config.hpp"
+#else
+#error "no config"
+#endif
 
 #include <jansson.h>
 
