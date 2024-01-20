@@ -11,9 +11,8 @@ target_link_libraries(${PROJECT_NAME}_core PRIVATE ${PROJECT_NAME}_utils ${PROJE
 target_compile_definitions(${PROJECT_NAME}_core PUBLIC BUILDING_DYAD=1)
 target_compile_definitions(${PROJECT_NAME}_core PUBLIC DYAD_HAS_CONFIG)
 target_include_directories(${PROJECT_NAME}_core PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/src>
-    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>
-    $<INSTALL_INTERFACE:${DYAD_INSTALL_INCLUDE_DIR}>)
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/src>  # will be used for generated code
+    $<INSTALL_INTERFACE:${DYAD_INSTALL_INCLUDE_DIR}>) # wil be used for sub projects
 target_include_directories(${PROJECT_NAME}_core SYSTEM PRIVATE ${JANSSON_INCLUDE_DIRS})
 target_include_directories(${PROJECT_NAME}_core SYSTEM PRIVATE ${FluxCore_INCLUDE_DIRS})
 

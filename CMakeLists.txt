@@ -101,7 +101,11 @@ set(DYAD_PROFILER "NONE" CACHE STRING "Profiler to use for DYAD")
 set_property(CACHE DYAD_PROFILER PROPERTY STRINGS PERFFLOW_ASPECT CALIPER NONE)
 
 
+#------------------------------------------------------------------------------
+# Compiler setup
+#------------------------------------------------------------------------------
 include(ExternalProject)
+# It requires include(GNUInstallDirs) before if that is needed
 include(SetupCompiler)
 
 #------------------------------------------------------------------------------
@@ -201,8 +205,9 @@ function(dyad_install_headers public_headers current_dir)
 endfunction()
 
 include(DYADUtils)
+include_directories(${CMAKE_SOURCE_DIR}/include)  # public header
 add_subdirectory(src/dyad)
-cmake_policy(SET CMP0079 NEW)
+#cmake_policy(SET CMP0079 NEW) # In case that we need more control over the target building order
 
 
 #-----------------------------------------------------------------------------
@@ -259,7 +264,7 @@ write_basic_package_version_file(
   COMPATIBILITY SameMajorVersion)
 
 #...........................................
-# There are two different places where cmake config is handled currently.
+# TODO: There are two different places where cmake config is handled currently.
 # Need to clean up and merge
 
 if (WIP_package_config)

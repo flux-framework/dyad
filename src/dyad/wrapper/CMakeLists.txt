@@ -12,7 +12,6 @@ target_compile_definitions(${PROJECT_NAME}_wrapper PUBLIC BUILDING_DYAD=1)
 target_compile_definitions(${PROJECT_NAME}_wrapper PUBLIC DYAD_HAS_CONFIG)
 target_include_directories(${PROJECT_NAME}_wrapper PUBLIC
     $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/src>
-    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>
     $<INSTALL_INTERFACE:${DYAD_INSTALL_INCLUDE_DIR}>)
 target_include_directories(${PROJECT_NAME}_wrapper SYSTEM PRIVATE ${FluxCore_INCLUDE_DIRS})
 

@@ -18,7 +18,6 @@ target_link_libraries(${PROJECT_NAME}_utils PUBLIC flux::core ${PROJECT_NAME}_ba
 target_compile_definitions(${PROJECT_NAME}_utils PUBLIC DYAD_HAS_CONFIG)
 target_include_directories(${PROJECT_NAME}_utils PUBLIC
     $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/src>
-    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>
     $<INSTALL_INTERFACE:${DYAD_INSTALL_INCLUDE_DIR}>)
 
 add_library(${PROJECT_NAME}_murmur3 SHARED ${DYAD_MURMUR3_SRC})
