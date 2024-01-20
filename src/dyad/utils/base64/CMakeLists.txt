@@ -8,7 +8,6 @@ set_target_properties(${PROJECT_NAME}_base64 PROPERTIES CMAKE_INSTALL_RPATH
                       "${CMAKE_INSTALL_PREFIX}/${DYAD_LIBDIR}")
 target_include_directories(${PROJECT_NAME}_base64 PUBLIC
     $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/src>
-    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>
     $<INSTALL_INTERFACE:${DYAD_INSTALL_INCLUDE_DIR}>)
 
 install(

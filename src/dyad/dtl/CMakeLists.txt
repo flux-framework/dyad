@@ -36,7 +36,6 @@ endif()
 target_compile_definitions(${PROJECT_NAME}_dtl PUBLIC DYAD_HAS_CONFIG)
 target_include_directories(${PROJECT_NAME}_dtl PUBLIC
     $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/src>
-    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>
     $<INSTALL_INTERFACE:${DYAD_INSTALL_INCLUDE_DIR}>)
 target_include_directories(${PROJECT_NAME}_dtl SYSTEM PUBLIC ${JANSSON_INCLUDE_DIRS})
 target_include_directories(${PROJECT_NAME}_dtl SYSTEM PUBLIC ${FluxCore_INCLUDE_DIRS})

@@ -25,6 +25,7 @@ else
     exit 1
 fi
 
-# If this test were to be repeatable, two cleanup steps are needed.
-# flux module remove dyad
-# remove the files produced after consumer finishes using them
+# If this test were to be repeatable, two cleanup steps are needed
+# after consumer finishes
+# - flux module remove dyad
+# - remove the files produced and consumed
