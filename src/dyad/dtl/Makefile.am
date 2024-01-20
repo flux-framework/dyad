@@ -33,7 +33,11 @@ libdyad_dtl_la_SOURCES += \
     ucx_dtl.c \
     ucx_dtl.h
 libdyad_dtl_la_LIBADD += $(UCX_LIBS)
-libdyad_dtl_la_CFLAGS += $(UCX_CFLAGS) -DDYAD_ENABLE_UCX=1
+libdyad_dtl_la_CFLAGS += $(UCX_CFLAGS) -DDYAD_ENABLE_UCX_DTL=1
 endif
 
+<<<<<<< HEAD
 include_HEADERS = dyad_dtl.h
+=======
+include_HEADERS = dyad_rc.h dyad_flux_log.h dyad_dtl.h
+>>>>>>> 91aeb63 (Build: change the name of CMake variable and macro definition regarding DATA_PLANE, and remove control plane)
