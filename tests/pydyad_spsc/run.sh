@@ -44,34 +44,50 @@ if [ -z "${NUM_INTS}" ]; then
     NUM_INTS=50
 fi
 
-export LD_LIBRARY_PATH="$DYAD_INSTALL_LIBDIR:$LD_LIBRARY_PATH"
+export LD_LIBRARY_PATH="${DYAD_INSTALL_LIBDIR}:${LD_LIBRARY_PATH}"
 
-flux kvs namespace create $KVS_NAMESPACE
-flux exec -r all flux module load $DYAD_INSTALL_LIBDIR/dyad.so \
-    $DYAD_PATH_PRODUCER $DYAD_DTL_MODE
+flux kvs namespace create ${DYAD_KVS_NAMESPACE}
+#flux exec -r all flux module load ${DYAD_INSTALL_LIBDIR}/dyad.so \
+#    ${DYAD_PATH_PRODUCER} ${DYAD_DTL_MODE}
+
+#### NOTE: This does not work for the same managed directory
+#### between the producer and the consumer on a shared storage
+
+cmd_cons="(rm -rf ${DYAD_PATH_CONSUMER}; \
+           mkdir -p ${DYAD_PATH_CONSUMER}; \
+           python3 consumer.py ${DYAD_PATH_CONSUMER} ${NUM_FILES} ${NUM_INTS})"
 
 flux submit -N 1 --tasks-per-node=1 --exclusive \
     --output="pydyad_cons.out" --error="pydyad_cons.err" \
-    --env=DYAD_PATH_CONSUMER=$DYAD_PATH_CONSUMER --env=DYAD_DTL_MODE=$DYAD_DTL_MODE --env=DYAD_KVS_NAMESPACE=$KVS_NAMESPACE \
+    --env=DYAD_PATH_CONSUMER=${DYAD_PATH_CONSUMER} \
+    --env=DYAD_DTL_MODE=${DYAD_DTL_MODE} \
+    --env=DYAD_KVS_NAMESPACE=${DYAD_KVS_NAMESPACE} \
     --flags=waitable \
-    python3 consumer.py $DYAD_PATH_CONSUMER $NUM_FILES $NUM_INTS
+    bash -c "${cmd_cons}"
+
+cmd_prod="(rm -rf ${DYAD_PATH_PRODUCER}; \
+           mkdir -p ${DYAD_PATH_PRODUCER}; \
+           flux module load ${DYAD_INSTALL_LIBDIR}/dyad.so ${DYAD_PATH_PRODUCER} ${DYAD_DTL_MODE}; \
+           flux getattr rank > prod_rank.txt; \
+           python3 producer.py ${DYAD_PATH_PRODUCER} ${NUM_FILES} ${NUM_INTS})"
+
 flux submit -N 1 --tasks-per-node=1 --exclusive \
     --output="pydyad_prod.out" --error="pydyad_prod.err" \
-    --env=DYAD_PATH_PRODUCER=$DYAD_PATH_PRODUCER --env=DYAD_DTL_MODE=$DYAD_DTL_MODE --env=DYAD_KVS_NAMESPACE=$KVS_NAMESPACE \
+    --env=DYAD_PATH_PRODUCER=${DYAD_PATH_PRODUCER} \
+    --env=DYAD_DTL_MODE=${DYAD_DTL_MODE} \
+    --env=DYAD_KVS_NAMESPACE=${DYAD_KVS_NAMESPACE} \
     --flags=waitable \
-    python3 producer.py $DYAD_PATH_PRODUCER $NUM_FILES $NUM_INTS
-    
+    bash -c "${cmd_prod}"
+
 flux job wait --all
 
-flux exec -r all flux module remove dyad
-flux kvs namespace remove $KVS_NAMESPACE
-
-if [ -d "$DYAD_PATH_CONSUMER" ]; then
-    rm -r $DYAD_PATH_CONSUMER
+if [ -f prod_rank.txt ] ; then
+    flux exec -r `cat prod_rank.txt` flux module remove dyad
+    rm prod_rank.txt
+else
+    flux exec -r all flux module remove dyad
 fi
-if [ -d "$DYAD_PATH_PRODUCER" ]; then
-    rm -r $DYAD_PATH_PRODUCER
-fi
+flux kvs namespace remove ${DYAD_KVS_NAMESPACE}
 
 if [ $? -ne 0 ]; then
     echo "ERROR: a job crashed with an error"
