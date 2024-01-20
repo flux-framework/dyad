@@ -72,6 +72,10 @@ jobs:
         run: |
           . ${SPACK_DIR}/share/spack/setup-env.sh
           mkdir -p /home/runner/.spack
+          GCC_VERSION="9.3.0"
+          if [[ $CC == 'gcc-10' ]]; then
+              GCC_VERSION="10.3.0"
+          fi
           cat > /home/runner/.spack/packages.yaml << 'EOF'
           packages:
             all:
@@ -188,7 +192,19 @@ jobs:
               externals:
                 - spec: "pkg-config@0.29.1"
                   prefix: /usr
+            gcc:
+              externals:
+              - spec: gcc@${GCC_VERSION} languages=c,c++
+                prefix: /usr
+                extra_attributes:
+                  compilers:
+                    c: ${CC}
+                    cxx: ${CXX}
+              buildable: False
           EOF
+          echo "-------------------------------"
+          cat /home/runner/.spack/packages.yaml
+          echo "-------------------------------"
           spack compiler find --scope=user
           if [[ $CC == 'gcc-10' ]]; then
               spack config add "packages:all:compiler:[gcc@10.3.0]"
