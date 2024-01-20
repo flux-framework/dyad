@@ -76,7 +76,7 @@ jobs:
           if [[ $CC == 'gcc-10' ]]; then
               GCC_VERSION="10.3.0"
           fi
-          cat > /home/runner/.spack/packages.yaml << 'EOF'
+          cat > /home/runner/.spack/packages.yaml <<EOF
           packages:
             all:
               target: [x86_64]
