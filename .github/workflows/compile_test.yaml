@@ -292,9 +292,9 @@ jobs:
       - name: Test DYAD with separate FS python
         run: |
           mkdir -p $DYAD_PATH
-          #. ${SPACK_DIR}/share/spack/setup-env.sh
-          #export PATH=${PATH}:${DYAD_INSTALL_PREFIX}/bin:${DYAD_INSTALL_PREFIX}/sbin
-          #export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${DYAD_INSTALL_PREFIX}/lib
-          #echo "Starting flux brokers"
-          #flux start --test-size=2 /bin/bash ${GITHUB_WORKSPACE}/.github/prod-cons/dyad_prod_cons_test.sh "python"
+          . ${SPACK_DIR}/share/spack/setup-env.sh
+          export PATH=${PATH}:${DYAD_INSTALL_PREFIX}/bin:${DYAD_INSTALL_PREFIX}/sbin
+          export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${DYAD_INSTALL_PREFIX}/lib
+          echo "Starting flux brokers"
+          flux start --test-size=2 /bin/bash ${GITHUB_WORKSPACE}/.github/prod-cons/dyad_prod_cons_test.sh "python"
 
