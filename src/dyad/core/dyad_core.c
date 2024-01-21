@@ -527,6 +527,7 @@ pull_done:
 dyad_rc_t dyad_init (bool debug,
                      bool check,
                      bool shared_storage,
+                     bool reinit,
                      unsigned int key_depth,
                      unsigned int key_bins,
                      unsigned int service_mux,
@@ -552,13 +553,14 @@ dyad_rc_t dyad_init (bool debug,
     // has either been allocated or fully initialized.
     // If it's initialized, simply print a message and
     // return DYAD_OK.
-    if (*ctx != NULL) {
+    if (!reinit && (*ctx != NULL)) {
         if ((*ctx)->initialized) {
             // TODO Indicate already initialized
             DPRINTF ((*ctx), "DYAD context already initialized\n");
             return DYAD_RC_OK;
         }
     } else {
+        if (reinit) dyad_finalize (ctx);
         // Allocate the dyad_ctx_t object and make sure the allocation
         // worked successfully
         *ctx = (dyad_ctx_t*)malloc (sizeof (struct dyad_ctx));
@@ -678,6 +680,7 @@ dyad_rc_t dyad_init_env (dyad_ctx_t** ctx)
     bool debug = false;
     bool check = false;
     bool shared_storage = false;
+    bool reinit = false;
     unsigned int key_depth = 0u;
     unsigned int key_bins = 0u;
     unsigned int service_mux = 1u;
@@ -710,6 +713,12 @@ dyad_rc_t dyad_init_env (dyad_ctx_t** ctx)
         shared_storage = true;
     } else {
         shared_storage = false;
+    }
+
+    if ((e = getenv (DYAD_REINIT_ENV))) {
+        reinit = true;
+    } else {
+        reinit = false;
     }
 
     if ((e = getenv (DYAD_KEY_DEPTH_ENV))) {
@@ -773,6 +782,7 @@ dyad_rc_t dyad_init_env (dyad_ctx_t** ctx)
     return dyad_init (debug,
                       check,
                       shared_storage,
+                      reinit,
                       key_depth,
                       key_bins,
                       service_mux,

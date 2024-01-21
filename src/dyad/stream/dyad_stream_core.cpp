@@ -69,11 +69,18 @@ void dyad_stream_core::finalize ()
     }
 }
 
-void dyad_stream_core::init ()
+void dyad_stream_core::init (const bool reinit)
 {
+    bool reinit_env = false;
     char *e = NULL;
 
-    if (m_initialized) {
+    if ((e = getenv (DYAD_REINIT_ENV))) {
+        reinit_env = true;
+    } else {
+        reinit_env = false;
+    }
+
+    if (!(reinit || reinit_env) && m_initialized) {
         return;
     }
 
@@ -101,6 +108,7 @@ void dyad_stream_core::init (const dyad_params &p)
     dyad_rc_t rc = dyad_init (p.m_debug,
                               false,
                               p.m_shared_storage,
+                              p.m_reinit,
                               p.m_key_depth,
                               p.m_key_bins,
                               p.m_service_mux,
@@ -133,12 +141,12 @@ void dyad_stream_core::log_info (const std::string &msg_head) const
     DYAD_LOG_INFO (m_ctx, "%s=%s\n", DYAD_KVS_NAMESPACE_ENV, m_ctx->kvs_namespace);
 }
 
-bool dyad_stream_core::is_dyad_producer ()
+bool dyad_stream_core::is_dyad_producer () const
 {
     return m_is_prod;
 }
 
-bool dyad_stream_core::is_dyad_consumer ()
+bool dyad_stream_core::is_dyad_consumer () const
 {
     return m_is_cons;
 }

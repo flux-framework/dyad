@@ -35,14 +35,14 @@ class dyad_stream_core
 
     ~dyad_stream_core ();
 
-    void init ();
+    void init (const bool reinit = false);
     void init (const dyad_params &p);
     void log_info (const std::string &msg_head) const;
 
     void finalize ();
 
-    bool is_dyad_producer ();
-    bool is_dyad_consumer ();
+    bool is_dyad_producer () const;
+    bool is_dyad_consumer () const;
 
     bool open_sync (const char *path);
     bool close_sync (const char *path);
