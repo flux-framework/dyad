@@ -8,6 +8,8 @@ set_target_properties(${PROJECT_NAME}_core PROPERTIES CMAKE_INSTALL_RPATH
                       "${CMAKE_INSTALL_PREFIX}/${DYAD_LIBDIR}")
 target_link_libraries(${PROJECT_NAME}_core PRIVATE Jansson::Jansson flux::core)
 target_link_libraries(${PROJECT_NAME}_core PRIVATE ${PROJECT_NAME}_utils ${PROJECT_NAME}_murmur3 ${PROJECT_NAME}_dtl)
+target_link_libraries(${PROJECT_NAME}_core PRIVATE ${PROJECT_NAME}_perf)
+
 target_compile_definitions(${PROJECT_NAME}_core PUBLIC BUILDING_DYAD=1)
 target_compile_definitions(${PROJECT_NAME}_core PUBLIC DYAD_HAS_CONFIG)
 target_include_directories(${PROJECT_NAME}_core PUBLIC

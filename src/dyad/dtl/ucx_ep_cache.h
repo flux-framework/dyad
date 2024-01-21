@@ -1,6 +1,12 @@
 #ifndef DYAD_DTL_UCX_EP_CACHE_H
 #define DYAD_DTL_UCX_EP_CACHE_H
 
+#if defined(DYAD_HAS_CONFIG)
+#include "dyad/dyad_config.hpp"
+#else
+#error "no config"
+#endif
+
 #include <dyad/common/dyad_rc.h>
 #include <dyad/perf/dyad_perf.h>
 #include <ucp/api/ucp.h>

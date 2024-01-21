@@ -22,10 +22,21 @@ endif ()
 
 add_library(${PROJECT_NAME}_perf SHARED ${DYAD_PERF_SRC})
 target_link_libraries(${PROJECT_NAME}_perf PUBLIC flux::core flux::optparse)
+target_compile_definitions(${PROJECT_NAME}_perf PUBLIC DYAD_HAS_CONFIG)
+target_include_directories(${PROJECT_NAME}_perf PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/src>  # will be used for generated code
+    $<INSTALL_INTERFACE:${DYAD_INSTALL_INCLUDE_DIR}>) # wil be used for sub projects
 
 if (DYAD_PROFILER STREQUAL "CALIPER")
     target_link_libraries(${PROJECT_NAME}_perf PUBLIC caliper)
     target_compile_definitions(${PROJECT_NAME}_perf PUBLIC WITH_CALIPER=1)
+    if (TARGET DYAD_CXX_FLAGS_werror)
+        target_link_libraries(${PROJECT_NAME}_perf PRIVATE DYAD_CXX_FLAGS_werror)
+    endif ()
+else ()
+    if (TARGET DYAD_C_FLAGS_werror)
+        target_link_libraries(${PROJECT_NAME}_perf PRIVATE DYAD_C_FLAGS_werror)
+    endif ()
 endif ()
 
 install(
