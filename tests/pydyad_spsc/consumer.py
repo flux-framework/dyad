@@ -26,7 +26,8 @@ def consume_data(i, num_ints_expected):
         raise RuntimeError("Could not read {}".format(fname))
     if int_buf.size != num_ints_expected:
         raise RuntimeError(
-            "Consumed data has incorrect size {}".format(num_ints_expected)
+            "Consumed data has incorrect size {n_read} != {expected}".format(
+             n_read = int_buf.size, expected = num_ints_expected)
         )
     if not np.array_equal(int_buf, verify_int_buf):
         raise RuntimeError("Consumed data is incorrect!")

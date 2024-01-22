@@ -21,3 +21,11 @@ $ python3 consumer.py <consumer_managed_directory> <num_files_to_transfer> <num_
 ```
 
 To run the test, you can either create your own script, or you can use `run.sh`. To use `run.sh`, first set the variables at the top of the file. Then, launch the job with `flux batch run.sh`.
+Define the following environment variables to execute run.sh
+
+```
+export DYAD_INSTALL_LIBDIR=<your dyad installation dir>
+export DYAD_PATH=/tmp/${USER}/dyad
+export DYAD_DTL_MODE=UCX
+export PYTHONPATH=${PYTHONPATH}:<dyad source location>/pydyad
+```
