@@ -770,12 +770,13 @@ dyad_rc_t dyad_init_env (dyad_ctx_t** ctx)
         } else if (strncmp (e, "UCX", dtl_mode_env_len) == 0) {
             dtl_mode = DYAD_DTL_UCX;
         } else {
-            DYAD_LOG_STDERR("Invalid DTL mode provided through %s. \
-                        Defaulting to %s\n",
-                        DYAD_DTL_MODE_ENV, dyad_dtl_mode_name[DYAD_DTL_DEFAULT]);
+            DYAD_LOG_STDERR("Invalid env %s = %s. Defaulting to %s\n",
+                        DYAD_DTL_MODE_ENV, e, dyad_dtl_mode_name[DYAD_DTL_DEFAULT]);
             dtl_mode = DYAD_DTL_DEFAULT;
         }
     } else {
+        DYAD_LOG_STDERR("%s is not set. Defaulting to %s\n",
+                        DYAD_DTL_MODE_ENV, dyad_dtl_mode_name[DYAD_DTL_DEFAULT]);
         dtl_mode = DYAD_DTL_DEFAULT;
     }
     if (debug)
