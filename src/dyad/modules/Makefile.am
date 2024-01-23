@@ -42,25 +42,5 @@ dyad_la_CFLAGS += \
 dyad_la_LIBADD += $(CALIPER_LIBS)
 endif
 
-if URPC
-lib_LTLIBRARIES += urpc.la
-urpc_la_SOURCES = urpc.c urpc_ctx.h
-# TODO replace current LDFLAGS rule with this one once libb64 is required
-# urpc_la_LDFLAGS = -module -avoid-version -no-undefined -L$(LIBB64_DIR)/src
-urpc_la_LDFLAGS = -module -avoid-version -no-undefined
-urpc_la_LIBADD = $(top_builddir)/src/utils/libutils.la $(FLUX_CORE_LIBS) $(JANSSON_LIBS)
-# TODO uncomment once libb64 is required
-# urpc_la_LIBS = -lb64
-# TODO replace current CPPFLAGS rule with this one once libb64 is required
-# urpc_la_CPPFLAGS = $(FLUX_CORE_CFLAGS) $(JANSSON_CFLAGS) -I$(LIBB64_DIR)/include -I$(top_builddir)/src/common
-urpc_la_CFLAGS = $(FLUX_CORE_CFLAGS) $(JANSSON_CFLAGS) -I$(top_builddir)/src/utils
-urpc_la_CPPFLAGS =
-if PERFFLOW
-urpc_la_LIBADD += $(PERFFLOW_LIBS)
-urpc_la_CFLAGS += $(PERFFLOW_CFLAGS) -DDYAD_PERFFLOW=1
-urpc_la_CPPFLAGS += $(PERFFLOW_PLUGIN_CPPFLAGS)
-endif
-endif
-
 install-exec-hook:
 	@(cd $(DESTDIR)$(libdir) && $(RM) dyad.la)
