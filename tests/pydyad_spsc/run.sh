@@ -48,7 +48,7 @@ export LD_LIBRARY_PATH="${DYAD_INSTALL_LIBDIR}:${LD_LIBRARY_PATH}"
 
 flux kvs namespace create ${DYAD_KVS_NAMESPACE}
 #flux exec -r all flux module load ${DYAD_INSTALL_LIBDIR}/dyad.so \
-#    ${DYAD_PATH_PRODUCER} ${DYAD_DTL_MODE}
+#    --dtl_mode=$DYAD_DTL_MODE $DYAD_PATH_PRODUCER
 
 #### NOTE: This does not work for the same managed directory
 #### between the producer and the consumer on a shared storage
@@ -67,7 +67,7 @@ flux submit -N 1 --tasks-per-node=1 --exclusive \
 
 cmd_prod="(rm -rf ${DYAD_PATH_PRODUCER}; \
            mkdir -p ${DYAD_PATH_PRODUCER}; \
-           flux module load ${DYAD_INSTALL_LIBDIR}/dyad.so ${DYAD_PATH_PRODUCER} ${DYAD_DTL_MODE}; \
+           flux module load ${DYAD_INSTALL_LIBDIR}/dyad.so --dtl_mode= ${DYAD_DTL_MODE} ${DYAD_PATH_PRODUCER}; \
            flux getattr rank > prod_rank.txt; \
            python3 producer.py ${DYAD_PATH_PRODUCER} ${NUM_FILES} ${NUM_INTS})"
 
