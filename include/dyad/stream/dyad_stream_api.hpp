@@ -12,7 +12,7 @@
 #define DYAD_STREAM_DYAD_STREAM_API_HPP
 
 #if defined(DYAD_HAS_CONFIG)
-#include "dyad/dyad_config.hpp"
+#include <dyad/dyad_config.hpp>
 #else
 #error "no config"
 #endif

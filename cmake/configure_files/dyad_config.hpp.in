@@ -25,10 +25,22 @@
 
 /* Macro flags */
 #cmakedefine DYAD_GNU_LINUX 1
-#cmakedefine DYAD_LOGGING_ON 1
-#cmakedefine DYAD_FULL_DEBUG 1
 #cmakedefine DYAD_ENABLE_UCX_DTL 1
 #cmakedefine DYAD_HAS_STD_FILESYSTEM 1
+// Profiler
+#cmakedefine DYAD_PROFILER_PERFFLOW_ASPECT 1
+#cmakedefine DYAD_PROFILER_CALIPER 1
+#cmakedefine DYAD_PROFILER_DLIO_PROFILER 1
+#cmakedefine DYAD_PROFILER_NONE 1
+// Logger
+#cmakedefine DYAD_LOGGER_FLUX 1
+#cmakedefine DYAD_LOGGER_CPP_LOGGER 1
+// Logger level
+#cmakedefine DYAD_LOGGER_NO_LOG 1
+#cmakedefine DYAD_LOGGER_LEVEL_ERROR 1
+#cmakedefine DYAD_LOGGER_LEVEL_WARN 1
+#cmakedefine DYAD_LOGGER_LEVEL_INFO 1
+#cmakedefine DYAD_LOGGER_LEVEL_DEBUG 1
 
 
 #endif /* DYAD_CONFIG_H */

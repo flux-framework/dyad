@@ -12,7 +12,7 @@
 #define DYAD_UTILS_UTILS_H
 
 #if defined(DYAD_HAS_CONFIG)
-#include "dyad/dyad_config.hpp"
+#include <dyad/dyad_config.hpp>
 #else
 #error "no config"
 #endif
@@ -32,8 +32,10 @@
 #include <stddef.h>
 #include <stdio.h>
 #endif  // defined(__cplusplus)
-
+#include <sys/file.h>
 #include <sys/stat.h>
+#include <dyad/common/dyad_structures.h>
+#include <dyad/common/dyad_rc.h>
 
 #if defined(__cplusplus)
 extern "C" {
@@ -85,6 +87,10 @@ bool get_stat (const char* path, unsigned int max_retry, long ns_sleep);
 
 ssize_t get_file_size (int fd);
 
+dyad_rc_t dyad_excl_flock (const dyad_ctx_t* ctx, int fd, struct flock* lock);
+dyad_rc_t dyad_shared_flock (const dyad_ctx_t* ctx, int fd, struct flock* lock);
+dyad_rc_t dyad_release_flock (const dyad_ctx_t* ctx, int fd, struct flock* lock);
+
 #if DYAD_SYNC_DIR
 /**
  * Run fsync for the containing directory of the given path.
@@ -95,7 +101,7 @@ int sync_containing_dir (const char* path);
 #endif  // DYAD_SYNC_DIR
 
 #if defined(__cplusplus)
-};
+}
 #endif  // defined(__cplusplus)
 
 #endif  // DYAD_UTILS_UTILS_H

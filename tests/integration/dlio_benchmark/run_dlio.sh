@@ -6,7 +6,7 @@ echo Setting up Dyad
 flux kvs namespace create ${DYAD_KVS_NAMESPACE}
 for (( c=0; c<NUM_NODES*BROKERS_PER_NODE; c++ )); do     
   echo "Loading module on broker $c"  
-  flux exec -r $c flux module load ${SPACK_ENV}/.spack-env/view/lib/dyad.so  $DYAD_PATH UCX
+  flux exec -r $c flux module load ${SPACK_ENV}/.spack-env/view/lib/dyad.so --debug --info_log=${DYAD_LOG_DIR}/dyad-broker --error_log=${DYAD_LOG_DIR}/dyad-broker --mode="UCX" $DYAD_PATH
 done
 echo Loaded Modules
 flux module list

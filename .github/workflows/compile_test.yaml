@@ -16,6 +16,7 @@ jobs:
         os: [ ubuntu-20.04 ]
         compiler: [ gcc ]
         gcc: [ 10 ]
+        profiler_mode: ["NONE"]
     name: ${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.gcc }}-${{ matrix.flux }}-${{ matrix.mode }}
     runs-on: ${{ matrix.os }} # Docker-based jobs must run on Ubuntu
     env:
@@ -213,6 +214,7 @@ jobs:
           fi
           spack external find
           spack spec flux-core@${FLUX_VERSION}
+          spack spec cpp-logger@develop
           if [[ $DYAD_DTL_MODE == 'UCX' ]]; then
             spack spec ucx@1.13.1
           fi
@@ -223,10 +225,17 @@ jobs:
           if [[ $DYAD_DTL_MODE == 'UCX' ]]; then
             spack install -j4 ucx@1.13.1
           fi
+          if [[ $DYAD_PROFILER_MODE == 'CALIPER' ]]; then
+            spack install -j4 caliper
+          fi
+          spack install cpp-logger@develop
           mkdir -p ${DYAD_INSTALL_PREFIX}
-          spack view --verbose symlink ${DYAD_INSTALL_PREFIX} flux-core@${FLUX_VERSION}
+          spack view --verbose symlink ${DYAD_INSTALL_PREFIX} flux-core@${FLUX_VERSION} cpp-logger@develop
           if [[ $DYAD_DTL_MODE == 'UCX' ]]; then
             spack view --verbose symlink ${DYAD_INSTALL_PREFIX} ucx@1.13.1
+          fi
+          if [[ $DYAD_PROFILER_MODE == 'CALIPER' ]]; then
+            spack view --verbose symlink ${DYAD_INSTALL_PREFIX} caliper
           fi
       - name: Compile DYAD
         run: |
@@ -243,7 +252,7 @@ jobs:
           if [[ $DYAD_DTL_MODE == 'UCX' ]]; then
             CONFIGURE_FLAGS="-DDYAD_ENABLE_UCX_DATA=ON -DDYAD_PROFILER=NONE"
           fi
-          TEST_CONF="-DDYAD_LIBDIR_AS_LIB:BOOL=ON -DCMAKE_BUILD_TYPE=Debug"
+          TEST_CONF="-DDYAD_LIBDIR_AS_LIB:BOOL=ON -DCMAKE_BUILD_TYPE=Debug -DDYAD_LOGGER=CPP_LOGGER -DDYAD_LOGGER_LEVEL=DEBUG"
           cmake --version
           cmake -DCMAKE_INSTALL_PREFIX=${DYAD_INSTALL_PREFIX} ${CONFIGURE_FLAGS} ${TEST_CONF} ..
           make VERBOSE=1 install -j
@@ -262,6 +271,7 @@ jobs:
           cd ${GITHUB_WORKSPACE}/docs/demos/ecp_feb_2023
           make all
       - name: Test DYAD with DLIO benchmark
+        timeout-minutes: 1
         run: |
           mkdir -p $DYAD_PATH
           #. ${SPACK_DIR}/share/spack/setup-env.sh
@@ -274,6 +284,7 @@ jobs:
           #cd ${GITHUB_WORKSPACE}/tests/integration/dlio_benchmark
           #flux start --test-size=2 /bin/bash ./script.sh ${GITHUB_WORKSPACE} ${DYAD_INSTALL_PREFIX}
       - name: Test DYAD with separate FS c
+        timeout-minutes: 1
         run: |
           mkdir -p $DYAD_PATH
           . ${SPACK_DIR}/share/spack/setup-env.sh
@@ -282,6 +293,7 @@ jobs:
           echo "Starting flux brokers"
           flux start --test-size=2 /bin/bash ${GITHUB_WORKSPACE}/.github/prod-cons/dyad_prod_cons_test.sh "c"
       - name: Test DYAD with separate FS cpp
+        timeout-minutes: 1
         run: |
           mkdir -p $DYAD_PATH
           . ${SPACK_DIR}/share/spack/setup-env.sh
@@ -290,6 +302,7 @@ jobs:
           echo "Starting flux brokers"
           flux start --test-size=2 /bin/bash ${GITHUB_WORKSPACE}/.github/prod-cons/dyad_prod_cons_test.sh "cpp"
       - name: Test DYAD with separate FS python
+        timeout-minutes: 1
         run: |
           mkdir -p $DYAD_PATH
           . ${SPACK_DIR}/share/spack/setup-env.sh

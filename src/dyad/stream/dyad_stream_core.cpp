@@ -9,7 +9,7 @@
 \************************************************************/
 
 #if defined(DYAD_HAS_CONFIG)
-#include "dyad/dyad_config.hpp"
+#include <dyad/dyad_config.hpp>
 #else
 #error "no config"
 #endif
@@ -36,7 +36,8 @@ using namespace std;  // std::clock ()
 // #include <cstdbool> // c++11
 
 #include <dlfcn.h>
-#include <dyad/common/dyad_flux_log.h>
+#include <dyad/common/dyad_logging.h>
+#include <dyad/common/dyad_profiler.h>
 #include <dyad/core/dyad_envs.h>
 #include <fcntl.h>
 #include <libgen.h>  // dirname
@@ -53,6 +54,7 @@ namespace dyad
 dyad_stream_core::dyad_stream_core ()
     : m_ctx (NULL), m_initialized (false), m_is_prod (false), m_is_cons (false)
 {
+    DYAD_CPP_FUNCTION();
 }
 
 dyad_stream_core::~dyad_stream_core ()
@@ -62,6 +64,7 @@ dyad_stream_core::~dyad_stream_core ()
 
 void dyad_stream_core::finalize ()
 {
+    DYAD_CPP_FUNCTION();
     if (m_ctx != NULL) {
         dyad_finalize (&m_ctx);
         m_ctx = NULL;
@@ -71,6 +74,7 @@ void dyad_stream_core::finalize ()
 
 void dyad_stream_core::init (const bool reinit)
 {
+    DYAD_CPP_FUNCTION();
     bool reinit_env = false;
     char *e = NULL;
 
@@ -96,7 +100,7 @@ void dyad_stream_core::init (const bool reinit)
     }
 
     dyad_rc_t rc = dyad_init_env (&m_ctx);
-
+    (void) rc;
     // TODO figure out if we want to error if init fails
     m_initialized = true;
     log_info ("Stream core is initialized by env variables.");
@@ -104,7 +108,8 @@ void dyad_stream_core::init (const bool reinit)
 
 void dyad_stream_core::init (const dyad_params &p)
 {
-    DPRINTF (m_ctx, "DYAD_WRAPPER: Initializeing DYAD wrapper\n");
+    DYAD_CPP_FUNCTION();
+    DYAD_LOG_DEBUG(m_ctx, "DYAD_WRAPPER: Initializeing DYAD wrapper");
     dyad_rc_t rc = dyad_init (p.m_debug,
                               false,
                               p.m_shared_storage,
@@ -117,6 +122,7 @@ void dyad_stream_core::init (const dyad_params &p)
                               p.m_cons_managed_path.c_str (),
                               static_cast<dyad_dtl_mode_t> (p.m_dtl_mode),
                               &m_ctx);
+    (void) rc;
     // TODO figure out if we want to error if init fails
     m_initialized = true;
     log_info ("Stream core is initialized by parameters");
@@ -124,21 +130,22 @@ void dyad_stream_core::init (const dyad_params &p)
 
 void dyad_stream_core::log_info (const std::string &msg_head) const
 {
-    DYAD_LOG_INFO (m_ctx, "=== %s ===\n", msg_head.c_str ());
-    DYAD_LOG_INFO (m_ctx, "%s=%s\n", DYAD_PATH_CONSUMER_ENV, m_ctx->cons_managed_path);
-    DYAD_LOG_INFO (m_ctx, "%s=%s\n", DYAD_PATH_PRODUCER_ENV, m_ctx->prod_managed_path);
+    DYAD_CPP_FUNCTION();
+    DYAD_LOG_INFO (m_ctx, "=== %s ===", msg_head.c_str ());
+    DYAD_LOG_INFO (m_ctx, "%s=%s", DYAD_PATH_CONSUMER_ENV, m_ctx->cons_managed_path);
+    DYAD_LOG_INFO (m_ctx, "%s=%s", DYAD_PATH_PRODUCER_ENV, m_ctx->prod_managed_path);
     DYAD_LOG_INFO (m_ctx,
-                   "%s=%s\n",
+                   "%s=%s",
                    DYAD_SYNC_DEBUG_ENV,
                    (m_ctx->debug) ? "true" : "false");
     DYAD_LOG_INFO (m_ctx,
-                   "%s=%s\n",
+                   "%s=%s",
                    DYAD_SHARED_STORAGE_ENV,
                    (m_ctx->shared_storage) ? "true" : "false");
-    DYAD_LOG_INFO (m_ctx, "%s=%u\n", DYAD_KEY_DEPTH_ENV, m_ctx->key_depth);
-    DYAD_LOG_INFO (m_ctx, "%s=%u\n", DYAD_KEY_BINS_ENV, m_ctx->key_bins);
-    DYAD_LOG_INFO (m_ctx, "%s=%u\n", DYAD_SERVICE_MUX_ENV, m_ctx->service_mux);
-    DYAD_LOG_INFO (m_ctx, "%s=%s\n", DYAD_KVS_NAMESPACE_ENV, m_ctx->kvs_namespace);
+    DYAD_LOG_INFO (m_ctx, "%s=%u", DYAD_KEY_DEPTH_ENV, m_ctx->key_depth);
+    DYAD_LOG_INFO (m_ctx, "%s=%u", DYAD_KEY_BINS_ENV, m_ctx->key_bins);
+    DYAD_LOG_INFO (m_ctx, "%s=%u", DYAD_SERVICE_MUX_ENV, m_ctx->service_mux);
+    DYAD_LOG_INFO (m_ctx, "%s=%s", DYAD_KVS_NAMESPACE_ENV, m_ctx->kvs_namespace);
 }
 
 bool dyad_stream_core::is_dyad_producer () const
@@ -153,7 +160,9 @@ bool dyad_stream_core::is_dyad_consumer () const
 
 bool dyad_stream_core::open_sync (const char *path)
 {
-    IPRINTF (m_ctx, "DYAD_SYNC OPEN: enters sync (\"%s\").\n", path);
+    DYAD_CPP_FUNCTION();
+    DYAD_CPP_FUNCTION_UPDATE ("path", path);
+    DYAD_LOG_DEBUG (m_ctx, "DYAD_SYNC OPEN: enters sync (\"%s\").", path);
     if (!m_initialized) {
         // TODO log
         return true;
@@ -166,17 +175,19 @@ bool dyad_stream_core::open_sync (const char *path)
     dyad_rc_t rc = dyad_consume (m_ctx, path);
 
     if (DYAD_IS_ERROR (rc)) {
-        DPRINTF (m_ctx, "DYAD_SYNC OPEN: failed sync (\"%s\").\n", path);
+        DPRINTF (m_ctx, "DYAD_SYNC OPEN: failed sync (\"%s\").", path);
         return false;
     }
 
-    IPRINTF (m_ctx, "DYAD_SYNC OEPN: exists sync (\"%s\").\n", path);
+    DYAD_LOG_DEBUG(m_ctx, "DYAD_SYNC OEPN: exists sync (\"%s\").\n", path);
     return true;
 }
 
 bool dyad_stream_core::close_sync (const char *path)
 {
-    IPRINTF (m_ctx, "DYAD_SYNC CLOSE: enters sync (\"%s\").\n", path);
+    DYAD_CPP_FUNCTION();
+    DYAD_CPP_FUNCTION_UPDATE ("path", path);
+    DYAD_LOG_DEBUG (m_ctx, "DYAD_SYNC CLOSE: enters sync (\"%s\").\n", path);
     if (!m_initialized) {
         // TODO log
         return true;
@@ -193,7 +204,7 @@ bool dyad_stream_core::close_sync (const char *path)
         return false;
     }
 
-    IPRINTF (m_ctx, "DYAD_SYNC CLOSE: exists sync (\"%s\").\n", path);
+    DYAD_LOG_DEBUG (m_ctx, "DYAD_SYNC CLOSE: exists sync (\"%s\").\n", path);
     return true;
 }
 

@@ -162,7 +162,7 @@ extern const base64_maps_t base64_maps_rfc4648;
  *	char dest[100];
  *	const char *src = "This string gets encoded";
  *	encoded_length = base64_encode(dest, sizeof(dest), src, strlen(src));
- *	printf("Returned data of length %zd @%p\n", encoded_length, &dest);
+ *	printf("Returned data of length %zd @%p", encoded_length, &dest);
  */
 static inline ssize_t base64_encode (char *dest,
                                      size_t destlen,
@@ -212,7 +212,7 @@ static inline void base64_encode_tail (char dest[4], const char *src, size_t src
  *	char ret[100];
  *	const char *src = "Zm9vYmFyYmF6";
  *	decoded_length = base64_decode(ret, sizeof(ret), src, strlen(src));
- *	printf("Returned data of length %zd @%p\n", decoded_length, &ret);
+ *	printf("Returned data of length %zd @%p", decoded_length, &ret);
  */
 static inline ssize_t base64_decode (char *dest,
                                      size_t destlen,

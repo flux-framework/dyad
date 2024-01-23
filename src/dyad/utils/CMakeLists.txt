@@ -15,6 +15,13 @@ add_library(${PROJECT_NAME}_utils SHARED ${DYAD_UTILS_SRC}
 set_target_properties(${PROJECT_NAME}_utils PROPERTIES CMAKE_INSTALL_RPATH
                       "${CMAKE_INSTALL_PREFIX}/${DYAD_LIBDIR}")
 target_link_libraries(${PROJECT_NAME}_utils PUBLIC flux::core ${PROJECT_NAME}_base64)
+if(DYAD_LOGGER STREQUAL "CPP_LOGGER")
+    target_link_libraries(${PROJECT_NAME}_utils PRIVATE ${CPP_LOGGER_LIBRARIES})
+endif()
+if(DYAD_PROFILER STREQUAL "DLIO_PROFILER")
+    target_link_libraries(${PROJECT_NAME}_utils PRIVATE ${DLIO_PROFILER_LIBRARIES})
+endif()
+
 target_compile_definitions(${PROJECT_NAME}_utils PUBLIC DYAD_HAS_CONFIG)
 target_include_directories(${PROJECT_NAME}_utils PUBLIC
     $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/src>
