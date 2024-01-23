@@ -47,10 +47,10 @@ using namespace std;  // std::clock ()
 
 #include <dyad/utils/utils.h>
 // #include "wrapper.h"
+#include <dyad/common/dyad_envs.h>
 #include <dyad/common/dyad_logging.h>
 #include <dyad/common/dyad_profiler.h>
 #include <dyad/core/dyad_core.h>
-#include <dyad/core/dyad_envs.h>
 
 #ifdef __cplusplus
 extern "C" {

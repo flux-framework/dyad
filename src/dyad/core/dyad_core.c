@@ -4,9 +4,9 @@
 #error "no config"
 #endif
 
-#include <dyad/core/dyad_core.h>
+#include <dyad/common/dyad_envs.h>
 #include <dyad/common/dyad_logging.h>
-#include <dyad/core/dyad_envs.h>
+#include <dyad/core/dyad_core.h>
 #include <dyad/dtl/dyad_dtl_impl.h>
 #include <dyad/utils/murmur3.h>
 #include <dyad/utils/utils.h>

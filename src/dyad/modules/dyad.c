@@ -14,6 +14,7 @@
 #error "no config"
 #endif
 
+#include <dyad/common/dyad_envs.h>
 #include <dyad/common/dyad_rc.h>
 #include <dyad/dtl/dyad_dtl_impl.h>
 #include <dyad/core/dyad_core.h>
