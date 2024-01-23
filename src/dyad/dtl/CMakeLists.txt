@@ -1,6 +1,7 @@
 # DTL Interface
-set(DTL_SRC ${CMAKE_CURRENT_SOURCE_DIR}/dyad_dtl_impl.c)
-set(DTL_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/dyad_dtl_impl.h
+set(DTL_SRC ${CMAKE_CURRENT_SOURCE_DIR}/dyad_dtl_api.c)
+set(DTL_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/dyad_dtl_api.h
+                        ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_dtl.h
                         ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_rc.h)
 set(DTL_PUBLIC_HEADERS)
 

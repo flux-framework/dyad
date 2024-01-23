@@ -9,7 +9,7 @@
 
 #include <dyad/common/dyad_rc.h>
 #include <dyad/common/dyad_structures.h>
-#include <dyad/dtl/dyad_dtl.h>
+#include <dyad/common/dyad_dtl.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <flux/core.h>

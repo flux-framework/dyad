@@ -1,7 +1,7 @@
 noinst_LTLIBRARIES = libdyad_dtl.la
 libdyad_dtl_la_SOURCES = \
-    dyad_dtl_impl.c \
-    dyad_dtl_impl.h \
+    dyad_dtl_api.c \
+    dyad_dtl_api.h \
     dyad_rc.h \
     flux_dtl.c \
     flux_dtl.h

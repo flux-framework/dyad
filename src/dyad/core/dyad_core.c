@@ -7,7 +7,7 @@
 #include <dyad/common/dyad_envs.h>
 #include <dyad/common/dyad_logging.h>
 #include <dyad/core/dyad_core.h>
-#include <dyad/dtl/dyad_dtl_impl.h>
+#include <dyad/dtl/dyad_dtl_api.h>
 #include <dyad/utils/murmur3.h>
 #include <dyad/utils/utils.h>
 #include <dyad/common/dyad_profiler.h>
@@ -612,10 +612,10 @@ dyad_rc_t dyad_init (bool debug,
     strncpy ((*ctx)->kvs_namespace, kvs_namespace, namespace_len + 1);
     // Initialize the DTL based on the value of dtl_mode
     // If an error occurs, log it and return an error
-    DYAD_LOG_INFO ((*ctx), "DYAD_CORE: inintializing DYAD DTL");
+    DYAD_LOG_INFO ((*ctx), "DYAD_CORE: inintializing DYAD DTL %s", dyad_dtl_mode_name[dtl_mode]);
     rc = dyad_dtl_init (*ctx, dtl_mode, DYAD_COMM_RECV, (*ctx)->debug);
     if (DYAD_IS_ERROR (rc)) {
-        DYAD_LOG_ERROR ((*ctx), "Cannot initialize the DTL\n");
+        DYAD_LOG_ERROR ((*ctx), "Cannot initialize the DTL %s\n", dyad_dtl_mode_name[dtl_mode]);
         goto init_region_finish;
     }
     // If the producer-managed path is provided, copy it into
@@ -695,7 +695,7 @@ dyad_rc_t dyad_init_env (dyad_ctx_t** ctx)
     char* prod_managed_path = NULL;
     char* cons_managed_path = NULL;
     size_t dtl_mode_env_len = 0ul;
-    dyad_dtl_mode_t dtl_mode = DYAD_DTL_UCX;
+    dyad_dtl_mode_t dtl_mode = DYAD_DTL_DEFAULT;
 
     if ((e = getenv (DYAD_SYNC_DEBUG_ENV))) {
         debug = true;
@@ -770,11 +770,9 @@ dyad_rc_t dyad_init_env (dyad_ctx_t** ctx)
         } else if (strncmp (e, "UCX", dtl_mode_env_len) == 0) {
             dtl_mode = DYAD_DTL_UCX;
         } else {
-            if (debug) {
-                DYAD_LOG_STDERR("Invalid DTL mode provided through %s. \
-                        Defaulting to UCX\n",
-                         DYAD_DTL_MODE_ENV);
-            }
+            DYAD_LOG_STDERR("Invalid DTL mode provided through %s. \
+                        Defaulting to %s\n",
+                        DYAD_DTL_MODE_ENV, dyad_dtl_mode_name[DYAD_DTL_DEFAULT]);
             dtl_mode = DYAD_DTL_DEFAULT;
         }
     } else {

@@ -9,7 +9,7 @@
 
 #include <stdlib.h>
 
-#include <dyad/dtl/dyad_dtl_impl.h>
+#include <dyad/dtl/dyad_dtl_api.h>
 
 struct dyad_dtl_flux {
     flux_t* h;
