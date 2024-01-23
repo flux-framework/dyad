@@ -80,7 +80,7 @@ uint32_t urpc_get_my_rank (void)
 #if 0
     if ((ctx == NULL) || (ctx->h == NULL) ||
         (flux_get_rank (ctx->h, &ctx->rank) < 0) ){
-        FLUX_LOG_ERR ("flux_get_rank() failed.\n");
+        FLUX_LOG_ERR ("flux_get_rank() failed.");
         return 0u;
     }
 #endif
@@ -96,7 +96,7 @@ uint32_t urpc_get_service_rank (const char *service_name)
 
         f1 = flux_kvs_lookup (ctx->h, ctx->ns, FLUX_KVS_WAITCREATE,
        service_name); if (f1 == NULL) { FLUX_LOG_ERR ("flux_kvs_lookup(%s)
-       failed.\n", topic); goto done;
+       failed.", topic); goto done;
         }
     */
     return service_rank;
@@ -125,7 +125,7 @@ urpc_rpc_get_raw (flux_future_t *ft, const char **result, int *result_size)
 {
     // Extract the data from reply
     if (flux_rpc_get_raw (ft, (const void **)result, result_size) < 0) {
-        FLUX_LOG_ERR ("flux_rpc_get_raw() failed.\n");
+        FLUX_LOG_ERR ("flux_rpc_get_raw() failed.");
         return -1;
     }
     return 0;
@@ -156,7 +156,7 @@ int urpc_client (uint32_t server_rank, const char *cmd, const char *file_path, i
     if (!ctx->h)
         goto done;
 
-    FLUX_LOG_INFO ("URPC_CLIENT: urpc_client() for \"%s\".\n", cmd);
+    FLUX_LOG_INFO ("URPC_CLIENT: urpc_client() for \"%s\".", cmd);
 
     if (is_json) {
         if (!(ft = flux_rpc (ctx->h, "urpc.execj", cmd, server_rank, 0))) {
@@ -170,7 +170,7 @@ int urpc_client (uint32_t server_rank, const char *cmd, const char *file_path, i
     if (urpc_rpc_get_raw (ft, &result, &result_size))
         goto done;
 
-    FLUX_LOG_INFO ("The size of result received: %d.\n", result_size);
+    FLUX_LOG_INFO ("The size of result received: %d.", result_size);
 
     if ((file_path != NULL) && (strlen (file_path) > 0u)) {
         // Set output file path
@@ -182,19 +182,19 @@ int urpc_client (uint32_t server_rank, const char *cmd, const char *file_path, i
         odir = dirname (file_path_copy);
         m = (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH | S_ISGID);
         if ((strncmp (odir, ".", strlen (".")) != 0) && (mkdir_as_needed (odir, m) < 0)) {
-            FLUX_LOG_ERR ("Failed to create directory \"%s\".\n", odir);
+            FLUX_LOG_ERR ("Failed to create directory \"%s\".", odir);
             goto done;
         }
 
         // Write the file.
         of = fopen (file_path, "w");
         if (of == NULL) {
-            FLUX_LOG_ERR ("Could not open to write file: %s\n", file_path);
+            FLUX_LOG_ERR ("Could not open to write file: %s", file_path);
             goto done;
         }
         if (fwrite (result, sizeof (char), (size_t)result_size, of)
             != (size_t)result_size) {
-            FLUX_LOG_ERR ("Could not write file: %s\n", file_path);
+            FLUX_LOG_ERR ("Could not write file: %s", file_path);
             goto done;
         }
         // Close the file
@@ -229,7 +229,7 @@ void urpc_client_init (void)
 
     if (ctx != NULL) {
         if (ctx->initialized) {
-            IPRINTF ("URPC_CLIENT: Already initialized.\n");
+            IPRINTF ("URPC_CLIENT: Already initialized.");
         } else {
             *ctx = urpc_client_ctx_default;
             // init_urpc_client_ctx (ctx);
@@ -242,7 +242,7 @@ void urpc_client_init (void)
 
     ctx->initialized = true;
 
-    DPRINTF ("URPC_CLIENT: Initializeing URPC client\n");
+    DPRINTF ("URPC_CLIENT: Initializeing URPC client");
 
     if (!(ctx = (urpc_client_ctx_t *)malloc (sizeof (urpc_client_ctx_t))))
         exit (1);
@@ -256,11 +256,11 @@ void urpc_client_init (void)
     }
 
     if (!(ctx->h = flux_open (NULL, 0))) {
-        DPRINTF ("URPC_CLIENT: can't open flux/\n");
+        DPRINTF ("URPC_CLIENT: can't open flux/");
     }
 
     if (flux_get_rank (ctx->h, &ctx->rank) < 0) {
-        FLUX_LOG_ERR ("flux_get_rank() failed.\n");
+        FLUX_LOG_ERR ("flux_get_rank() failed.");
     }
 
     if ((e = getenv ("URPC_NAMESPACE")))
@@ -268,8 +268,8 @@ void urpc_client_init (void)
     else
         ctx->ns = "URPC";
 
-    FLUX_LOG_INFO ("URPC Initialized\n");
-    FLUX_LOG_INFO ("URPC_CLIENT_DEBUG=%s\n", (ctx->debug) ? "true" : "false");
+    FLUX_LOG_INFO ("URPC Initialized");
+    FLUX_LOG_INFO ("URPC_CLIENT_DEBUG=%s", (ctx->debug) ? "true" : "false");
 }
 
 void urpc_client_fini ()

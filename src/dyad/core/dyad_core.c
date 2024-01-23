@@ -99,12 +99,12 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_commit (const dyad_ctx_t* ctx, flux_kvs_t
     DYAD_C_FUNCTION_START();
     flux_future_t* f = NULL;
     dyad_rc_t rc = DYAD_RC_OK;
-    DYAD_LOG_INFO (ctx, "Committing transaction to KVS\n");
+    DYAD_LOG_INFO (ctx, "Committing transaction to KVS");
     // Commit the transaction to the Flux KVS
     f = flux_kvs_commit (ctx->h, ctx->kvs_namespace, 0, txn);
     // If the commit failed, log an error and return DYAD_BADCOMMIT
     if (f == NULL) {
-        DYAD_LOG_ERROR (ctx, "Could not commit transaction to Flux KVS\n");
+        DYAD_LOG_ERROR (ctx, "Could not commit transaction to Flux KVS");
         rc = DYAD_RC_BADCOMMIT;
         goto kvs_commit_region_finish;
     }
@@ -133,21 +133,21 @@ DYAD_CORE_FUNC_MODS dyad_rc_t publish_via_flux (const dyad_ctx_t* restrict ctx,
     memset (topic, '\0', topic_len + 1);
     // Generate the KVS key from the file path relative to
     // the producer-managed directory
-    DYAD_LOG_INFO (ctx, "Generating KVS key from path (%s)\n", upath);
+    DYAD_LOG_INFO (ctx, "Generating KVS key from path (%s)", upath);
     gen_path_key (upath, topic, topic_len, ctx->key_depth, ctx->key_bins);
     // Crete and pack a Flux KVS transaction.
     // The transaction will contain a single key-value pair
     // with the previously generated key as the key and the
     // producer's rank as the value
-    DYAD_LOG_INFO (ctx, "Creating KVS transaction under the key %s\n", topic);
+    DYAD_LOG_INFO (ctx, "Creating KVS transaction under the key %s", topic);
     txn = flux_kvs_txn_create ();
     if (txn == NULL) {
-        DYAD_LOG_ERROR (ctx, "Could not create Flux KVS transaction\n");
+        DYAD_LOG_ERROR (ctx, "Could not create Flux KVS transaction");
         rc = DYAD_RC_FLUXFAIL;
         goto publish_done;
     }
     if (flux_kvs_txn_pack (txn, 0, topic, "i", ctx->rank) < 0) {
-        DYAD_LOG_ERROR (ctx, "Could not pack Flux KVS transaction\n");
+        DYAD_LOG_ERROR (ctx, "Could not pack Flux KVS transaction");
         rc = DYAD_RC_FLUXFAIL;
         goto publish_done;
     }
@@ -155,7 +155,7 @@ DYAD_CORE_FUNC_MODS dyad_rc_t publish_via_flux (const dyad_ctx_t* restrict ctx,
     rc = dyad_kvs_commit (ctx, txn);
     // If dyad_kvs_commit failed, log an error and forward the return code
     if (DYAD_IS_ERROR (rc)) {
-        DYAD_LOG_ERROR (ctx, "dyad_kvs_commit failed!\n");
+        DYAD_LOG_ERROR (ctx, "dyad_kvs_commit failed!");
         goto publish_done;
     }
     rc = DYAD_RC_OK;
@@ -178,12 +178,12 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_commit (dyad_ctx_t* restrict ctx, const char*
     // producer-managed path
     // This relative path will be stored in upath
     if (!cmp_canonical_path_prefix (ctx->prod_managed_path, fname, upath, PATH_MAX)) {
-        DYAD_LOG_INFO (ctx, "%s is not in the Producer's managed path\n", fname);
+        DYAD_LOG_INFO (ctx, "%s is not in the Producer's managed path", fname);
         rc = DYAD_RC_OK;
         goto commit_done;
     }
     DYAD_C_FUNCTION_UPDATE_STR ("upath", upath);
-    DYAD_LOG_INFO (ctx, "Obtained file path relative to producer directory: %s\n", upath);
+    DYAD_LOG_INFO (ctx, "Obtained file path relative to producer directory: %s", upath);
     // Call publish_via_flux to actually store information about the file into
     // the Flux KVS
     // Fence this call with reassignments of reenter so that, if intercepting
@@ -237,7 +237,7 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_read (const dyad_ctx_t* restrict ctx,
     // made available
     if (should_wait)
         kvs_lookup_flags = FLUX_KVS_WAITCREATE;
-    DYAD_LOG_INFO (ctx, "Retrieving information from KVS under the key %s\n", topic);
+    DYAD_LOG_INFO (ctx, "Retrieving information from KVS under the key %s", topic);
     f = flux_kvs_lookup (ctx->h, ctx->kvs_namespace, kvs_lookup_flags, topic);
     // If the KVS lookup failed, log an error and return DYAD_BADLOOKUP
     if (f == NULL) {

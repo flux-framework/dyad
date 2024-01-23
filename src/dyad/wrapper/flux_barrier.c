@@ -45,13 +45,13 @@ int main (int argc, char** argv)
     const char* tag = "flux_barrier";
 
     if (!(h = flux_open (NULL, 0))) {
-        fprintf (stderr, "Can't open flux\n");
+        fprintf (stderr, "Can't open flux");
     }
 
     if (argc != 2) {
         FLUX_LOG_ERR (
             "flux_barrier requires a tag to distinguish different "
-            "synchronizations\n");
+            "synchronizations");
         return EXIT_FAILURE;
     }
     tag = argv[1];
@@ -60,10 +60,10 @@ int main (int argc, char** argv)
     if (flux_get_size (h, &n_ranks) < 0) {
         FLUX_LOG_ERR ("flux_get_size() failed");
     }
-    FLUX_LOG_INFO ("FLUX Instance Size: %u\n", n_ranks);
+    FLUX_LOG_INFO ("FLUX Instance Size: %u", n_ranks);
 #else
     if (argc != 3) {
-        FLUX_LOG_ERR ("flux_barrier requires number of ranks to synchronize\n");
+        FLUX_LOG_ERR ("flux_barrier requires number of ranks to synchronize");
         return EXIT_FAILURE;
     }
 
@@ -74,20 +74,20 @@ int main (int argc, char** argv)
     if ((flux_get_rank (h, &my_rank) < 0) || (my_rank >= n_ranks)) {
         FLUX_LOG_ERR (
             "flux_get_rank() failed or "
-            "an invalid number of ranks is given.\n");
+            "an invalid number of ranks is given.");
         return EXIT_FAILURE;
     }
 
-    FLUX_LOG_INFO ("Before barrier '%s' with rank %u\n", tag, my_rank);
+    FLUX_LOG_INFO ("Before barrier '%s' with rank %u", tag, my_rank);
 
     if (!(fb = flux_barrier (h, tag, n_ranks))) {
-        FLUX_LOG_ERR ("flux_barrier failed for %d ranks\n", n_ranks);
+        FLUX_LOG_ERR ("flux_barrier failed for %d ranks", n_ranks);
         flux_future_destroy (fb);
         return EXIT_FAILURE;
     }
 
     if (flux_future_get (fb, NULL) < 0) {
-        FLUX_LOG_ERR ("flux_future_get for barrir failed\n");
+        FLUX_LOG_ERR ("flux_future_get for barrir failed");
         flux_future_destroy (fb);
         return EXIT_FAILURE;
     }
@@ -99,7 +99,7 @@ int main (int argc, char** argv)
 //    char tbuf[100];
 //    strftime (tbuf, sizeof (tbuf), "%D %T", gmtime (&(t_now.tv_sec)));
 
-//    FLUX_LOG_INFO ("Synchronized at %s.%09ld\n", tbuf, t_now.tv_nsec);
+//    FLUX_LOG_INFO ("Synchronized at %s.%09ld", tbuf, t_now.tv_nsec);
 
     return EXIT_SUCCESS;
 }

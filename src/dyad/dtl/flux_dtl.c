@@ -17,7 +17,7 @@ dyad_rc_t dyad_dtl_flux_init (const dyad_ctx_t* ctx,
     DYAD_C_FUNCTION_START();
     ctx->dtl_handle->private.flux_dtl_handle = malloc (sizeof (struct dyad_dtl_flux));
     if (ctx->dtl_handle->private.flux_dtl_handle == NULL) {
-        DYAD_LOG_ERROR (ctx, "Cannot allocate the Flux DTL handle\n");
+        DYAD_LOG_ERROR (ctx, "Cannot allocate the Flux DTL handle");
         rc = DYAD_RC_SYSFAIL;
         goto dtl_flux_init_region_finish;
     }
@@ -54,7 +54,7 @@ dyad_rc_t dyad_dtl_flux_rpc_pack (const dyad_ctx_t* ctx,
     dyad_rc_t rc = DYAD_RC_OK;
     *packed_obj = json_pack ("{s:s}", "upath", upath);
     if (*packed_obj == NULL) {
-        DYAD_LOG_ERROR (ctx, "Could not pack upath for Flux DTL\n");
+        DYAD_LOG_ERROR (ctx, "Could not pack upath for Flux DTL");
         rc = DYAD_RC_BADPACK;
         goto dtl_flux_rpc_pack;
     }
@@ -71,7 +71,7 @@ dyad_rc_t dyad_dtl_flux_rpc_unpack (const dyad_ctx_t* ctx, const flux_msg_t* msg
     rc = flux_request_unpack (msg, NULL, "{s:s}", "upath", upath);
     if (FLUX_IS_ERROR (rc)) {
         DYAD_LOG_ERROR (ctx,
-                      "Could not unpack Flux message from consumer\n");
+                      "Could not unpack Flux message from consumer");
         // TODO create new RC for this
         dyad_rc = DYAD_RC_BADUNPACK;
         goto dtl_flux_rpc_unpack_region_finish;
@@ -156,13 +156,13 @@ dyad_rc_t dyad_dtl_flux_send (const dyad_ctx_t* ctx, void* buf, size_t buflen)
     if (FLUX_IS_ERROR (rc)) {
         DYAD_LOG_ERROR (ctx,
                       "Could not send Flux RPC response containing file "
-                      "contents\n");
+                      "contents");
         dyad_rc = DYAD_RC_FLUXFAIL;
         goto dtl_flux_send_region_finish;
     }
     if (ctx->dtl_handle->private.flux_dtl_handle->debug) {
         DYAD_LOG_INFO (ctx,
-                       "Successfully sent file contents to consumer\n");
+                       "Successfully sent file contents to consumer");
     }
     dyad_rc = DYAD_RC_OK;
 dtl_flux_send_region_finish:
@@ -178,9 +178,9 @@ dyad_rc_t dyad_dtl_flux_recv (const dyad_ctx_t* ctx, void** buf, size_t* buflen)
     dyad_rc_t dyad_rc = DYAD_RC_OK;
     errno = 0;
     dyad_dtl_flux_t* dtl_handle = ctx->dtl_handle->private.flux_dtl_handle;
-    DYAD_LOG_INFO (ctx, "Get file contents from module using Flux RPC\n");
+    DYAD_LOG_INFO (ctx, "Get file contents from module using Flux RPC");
     if (dtl_handle->f == NULL) {
-        DYAD_LOG_ERROR (ctx, "Cannot get data using RPC without a Flux future\n");
+        DYAD_LOG_ERROR (ctx, "Cannot get data using RPC without a Flux future");
         // TODO create new RC for this
         dyad_rc = DYAD_RC_FLUXFAIL;
         goto finish_recv;

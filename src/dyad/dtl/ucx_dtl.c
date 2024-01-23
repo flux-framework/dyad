@@ -75,7 +75,7 @@ static void dyad_ucx_ep_err_handler (void* arg, ucp_ep_h ep, ucs_status_t status
 {
     DYAD_C_FUNCTION_START();
     dyad_ctx_t *ctx = (dyad_ctx_t*)arg;
-    DYAD_LOG_ERROR (ctx, "An error occured on the UCP endpoint (status = %d)\n", status);
+    DYAD_LOG_ERROR (ctx, "An error occured on the UCP endpoint (status = %d)", status);
     DYAD_C_FUNCTION_END();
 }
 
@@ -221,7 +221,7 @@ static inline ucs_status_ptr_t ucx_send_no_wait (const dyad_ctx_t* ctx, void* bu
     if (dtl_handle->ep == NULL) {
         DYAD_LOG_ERROR (ctx,
                        "UCP endpoint was not created prior to invoking "
-                       "send!\n");
+                       "send!");
         stat_ptr = (void*)UCS_ERR_NOT_CONNECTED;
         goto ucx_send_no_wait_done;
     }
@@ -234,12 +234,12 @@ static inline ucs_status_ptr_t ucx_send_no_wait (const dyad_ctx_t* ctx, void* bu
     ucp_request_param_t params;
     params.op_attr_mask = UCP_OP_ATTR_FIELD_CALLBACK;
     params.cb.send = dyad_send_callback;
-    DYAD_LOG_INFO (ctx, "Sending data to consumer with ucp_tag_send_nbx\n");
+    DYAD_LOG_INFO (ctx, "Sending data to consumer with ucp_tag_send_nbx");
     stat_ptr = ucp_tag_send_nbx (dtl_handle->ep, buf, buflen, dtl_handle->comm_tag, &params);
 #else
     DYAD_LOG_INFO (ctx,
                    "Sending %lu bytes of data to consumer with "
-                   "ucp_tag_send_nb\n",
+                   "ucp_tag_send_nb",
                    buflen);
     stat_ptr = ucp_tag_send_nb (dtl_handle->ep,
                                 buf,
@@ -264,7 +264,7 @@ static inline ucs_status_ptr_t ucx_recv_no_wait (const dyad_ctx_t* ctx,
     ucp_tag_recv_info_t msg_info;
     ucs_status_ptr_t stat_ptr = NULL;
     dyad_dtl_ucx_t* dtl_handle = ctx->dtl_handle->private.ucx_dtl_handle;
-    DYAD_LOG_INFO (ctx, "Poll UCP for incoming data\n");
+    DYAD_LOG_INFO (ctx, "Poll UCP for incoming data");
     // TODO: replace this loop with a resiliency response over RPC
     // TODO(Ian): explore whether removing probe makes the overall
     //            recv faster or not
@@ -286,7 +286,7 @@ static inline ucs_status_ptr_t ucx_recv_no_wait (const dyad_ctx_t* ctx,
     // {
     //     // Probe the tag recv event at the top
     //     // of the worker's queue
-    //     DYAD_LOG_INFO (ctx, "Probe UCP worker with tag %lu\n",
+    //     DYAD_LOG_INFO (ctx, "Probe UCP worker with tag %lu",
     //     dtl_handle->comm_tag); msg = ucp_tag_probe_nb(
     //         dtl_handle->ucx_worker,
     //         dtl_handle->comm_tag,
@@ -301,7 +301,7 @@ static inline ucs_status_ptr_t ucx_recv_no_wait (const dyad_ctx_t* ctx,
     //     if (msg != NULL)
     //     {
     //         DYAD_LOG_INFO (ctx, "Data has arrived, so end
-    //         polling\n"); break;
+    //         polling"); break;
     //     }
     //     // If data has not arrived, check if there are
     //     // any other events in the worker's queue.
@@ -309,7 +309,7 @@ static inline ucs_status_ptr_t ucx_recv_no_wait (const dyad_ctx_t* ctx,
     //     else if (ucp_worker_progress(dtl_handle->ucx_worker))
     //     {
     //         DYAD_LOG_INFO (ctx, "Progressed UCP worker to check if
-    //         any other UCP events are available\n"); continue;
+    //         any other UCP events are available"); continue;
     //     }
     //     // No other events are queued. So, we will wait on new
     //     // events to come in. By using 'ucp_worker_wait' for this,

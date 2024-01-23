@@ -43,7 +43,7 @@ static void dyad_ucx_ep_err_handler (void* arg, ucp_ep_h ep, ucs_status_t status
 {
     DYAD_C_FUNCTION_START();
     dyad_ctx_t *ctx = (dyad_ctx_t*)arg;
-    DYAD_LOG_ERROR (ctx, "An error occured on the UCP endpoint (status = %d)\n", status);
+    DYAD_LOG_ERROR (ctx, "An error occured on the UCP endpoint (status = %d)", status);
     DYAD_C_FUNCTION_END();
 }
 
@@ -64,7 +64,7 @@ dyad_rc_t ucx_connect (const dyad_ctx_t *ctx,
     params.err_handler.arg = (void*)ctx;
     status = ucp_ep_create (worker, &params, ep);
     if (UCX_STATUS_FAIL (status)) {
-        DYAD_LOG_ERROR (ctx, "ucp_ep_create failed with status %d\n", (int)status);
+        DYAD_LOG_ERROR (ctx, "ucp_ep_create failed with status %d", (int)status);
         rc = DYAD_RC_UCXCOMM_FAIL;
         goto ucx_connect_done;
     }

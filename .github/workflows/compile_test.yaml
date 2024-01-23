@@ -214,7 +214,7 @@ jobs:
           fi
           spack external find
           spack spec flux-core@${FLUX_VERSION}
-          spack spec cpp-logger@dev
+          spack spec cpp-logger@develop
           if [[ $DYAD_DTL_MODE == 'UCX' ]]; then
             spack spec ucx@1.13.1
           fi
@@ -228,9 +228,9 @@ jobs:
           if [[ $DYAD_PROFILER_MODE == 'CALIPER' ]]; then
             spack install -j4 caliper
           fi
-          spack install cpp-logger@dev
+          spack install cpp-logger@develop
           mkdir -p ${DYAD_INSTALL_PREFIX}
-          spack view --verbose symlink ${DYAD_INSTALL_PREFIX} flux-core@${FLUX_VERSION} cpp-logger@dev
+          spack view --verbose symlink ${DYAD_INSTALL_PREFIX} flux-core@${FLUX_VERSION} cpp-logger@develop
           if [[ $DYAD_DTL_MODE == 'UCX' ]]; then
             spack view --verbose symlink ${DYAD_INSTALL_PREFIX} ucx@1.13.1
           fi
@@ -271,6 +271,7 @@ jobs:
           cd ${GITHUB_WORKSPACE}/docs/demos/ecp_feb_2023
           make all
       - name: Test DYAD with DLIO benchmark
+        timeout-minutes: 1
         run: |
           mkdir -p $DYAD_PATH
           #. ${SPACK_DIR}/share/spack/setup-env.sh
@@ -283,6 +284,7 @@ jobs:
           #cd ${GITHUB_WORKSPACE}/tests/integration/dlio_benchmark
           #flux start --test-size=2 /bin/bash ./script.sh ${GITHUB_WORKSPACE} ${DYAD_INSTALL_PREFIX}
       - name: Test DYAD with separate FS c
+        timeout-minutes: 1
         run: |
           mkdir -p $DYAD_PATH
           . ${SPACK_DIR}/share/spack/setup-env.sh
@@ -291,6 +293,7 @@ jobs:
           echo "Starting flux brokers"
           flux start --test-size=2 /bin/bash ${GITHUB_WORKSPACE}/.github/prod-cons/dyad_prod_cons_test.sh "c"
       - name: Test DYAD with separate FS cpp
+        timeout-minutes: 1
         run: |
           mkdir -p $DYAD_PATH
           . ${SPACK_DIR}/share/spack/setup-env.sh
@@ -299,6 +302,7 @@ jobs:
           echo "Starting flux brokers"
           flux start --test-size=2 /bin/bash ${GITHUB_WORKSPACE}/.github/prod-cons/dyad_prod_cons_test.sh "cpp"
       - name: Test DYAD with separate FS python
+        timeout-minutes: 1
         run: |
           mkdir -p $DYAD_PATH
           . ${SPACK_DIR}/share/spack/setup-env.sh

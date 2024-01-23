@@ -98,7 +98,7 @@ static dyad_mod_ctx_t *getctx (flux_t *h)
         mod_ctx->ctx->debug = false;
         mod_ctx->ctx->prod_managed_path = NULL;
         if (flux_aux_set (h, "dyad", mod_ctx, freectx) < 0) {
-            DYAD_LOG_STDERR ("DYAD_MOD: flux_aux_set() failed!\n");
+            DYAD_LOG_STDERR ("DYAD_MOD: flux_aux_set() failed!");
             goto getctx_error;
         }
     }
@@ -121,7 +121,7 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
 {
     DYAD_C_FUNCTION_START();
     dyad_mod_ctx_t *mod_ctx = getctx (h);
-    DYAD_LOG_INFO(mod_ctx->ctx, "Launched callback for dyad.fetch\n");
+    DYAD_LOG_INFO(mod_ctx->ctx, "Launched callback for dyad.fetch");
     ssize_t inlen = 0;
     void *inbuf = NULL;
     int fd = -1;
@@ -145,7 +145,7 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
     rc = mod_ctx->ctx->dtl_handle->rpc_unpack (mod_ctx->ctx, msg, &upath);
 
     if (DYAD_IS_ERROR (rc)) {
-        DYAD_LOG_ERROR(mod_ctx->ctx, "Could not unpack message from client\n");
+        DYAD_LOG_ERROR(mod_ctx->ctx, "Could not unpack message from client");
         errno = EPROTO;
         goto fetch_error;
     }
@@ -155,7 +155,7 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
 
     rc = mod_ctx->ctx->dtl_handle->rpc_respond (mod_ctx->ctx, msg);
     if (DYAD_IS_ERROR (rc)) {
-        DYAD_LOG_ERROR(mod_ctx, "Could not send primary RPC response to client\n");
+        DYAD_LOG_ERROR(mod_ctx, "Could not send primary RPC response to client");
         goto fetch_error;
     }
 
@@ -165,7 +165,7 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
 
 #if DYAD_SPIN_WAIT
     if (!get_stat (fullpath, 1000U, 1000L)) {
-        DYAD_LOG_ERR(mod_ctx->ctx, "DYAD_MOD: Failed to access info on \"%s\".\n", fullpath);
+        DYAD_LOG_ERR(mod_ctx->ctx, "DYAD_MOD: Failed to access info on \"%s\".", fullpath);
         // goto error;
     }
 #endif  // DYAD_SPIN_WAIT
@@ -174,7 +174,7 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
     fd = open (fullpath, O_RDONLY);
 
     if (fd < 0) {
-        DYAD_LOG_ERROR(mod_ctx, "DYAD_MOD: Failed to open file \"%s\".\n", fullpath);
+        DYAD_LOG_ERROR(mod_ctx, "DYAD_MOD: Failed to open file \"%s\".", fullpath);
         goto fetch_error;
     }
     rc = dyad_shared_flock (mod_ctx->ctx, fd, &shared_lock);
@@ -189,7 +189,7 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
         inlen = read (fd, inbuf, file_size);
         if (inlen != file_size) {
             DYAD_LOG_ERROR (mod_ctx->ctx,
-                            "DYAD_MOD: Failed to load file \"%s\" only read %u of %u.\n",
+                            "DYAD_MOD: Failed to load file \"%s\" only read %u of %u.",
                             fullpath,
                             inlen,
                             file_size);
@@ -199,12 +199,12 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
         DYAD_C_FUNCTION_UPDATE_INT ("file_size", file_size);
         DYAD_LOG_DEBUG (mod_ctx->ctx, "Closing file pointer");
         close (fd);
-        DYAD_LOG_DEBUG (mod_ctx->ctx, "Is inbuf NULL? -> %i\n", (int)(inbuf == NULL));
+        DYAD_LOG_DEBUG (mod_ctx->ctx, "Is inbuf NULL? -> %i", (int)(inbuf == NULL));
 
         DYAD_LOG_DEBUG (mod_ctx->ctx, "Establish DTL connection with consumer");
         rc = mod_ctx->ctx->dtl_handle->establish_connection (mod_ctx->ctx);
         if (DYAD_IS_ERROR (rc)) {
-            DYAD_LOG_ERROR (mod_ctx->ctx, "Could not establish DTL connection with client\n");
+            DYAD_LOG_ERROR (mod_ctx->ctx, "Could not establish DTL connection with client");
             errno = ECONNREFUSED;
             goto fetch_error;
         }

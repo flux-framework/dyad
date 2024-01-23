@@ -109,7 +109,7 @@ void dyad_stream_core::init (const bool reinit)
 void dyad_stream_core::init (const dyad_params &p)
 {
     DYAD_CPP_FUNCTION();
-    DYAD_LOG_DEBUG(m_ctx, "DYAD_WRAPPER: Initializeing DYAD wrapper\n");
+    DYAD_LOG_DEBUG(m_ctx, "DYAD_WRAPPER: Initializeing DYAD wrapper");
     dyad_rc_t rc = dyad_init (p.m_debug,
                               false,
                               p.m_shared_storage,
@@ -131,21 +131,21 @@ void dyad_stream_core::init (const dyad_params &p)
 void dyad_stream_core::log_info (const std::string &msg_head) const
 {
     DYAD_CPP_FUNCTION();
-    DYAD_LOG_INFO (m_ctx, "=== %s ===\n", msg_head.c_str ());
-    DYAD_LOG_INFO (m_ctx, "%s=%s\n", DYAD_PATH_CONSUMER_ENV, m_ctx->cons_managed_path);
-    DYAD_LOG_INFO (m_ctx, "%s=%s\n", DYAD_PATH_PRODUCER_ENV, m_ctx->prod_managed_path);
+    DYAD_LOG_INFO (m_ctx, "=== %s ===", msg_head.c_str ());
+    DYAD_LOG_INFO (m_ctx, "%s=%s", DYAD_PATH_CONSUMER_ENV, m_ctx->cons_managed_path);
+    DYAD_LOG_INFO (m_ctx, "%s=%s", DYAD_PATH_PRODUCER_ENV, m_ctx->prod_managed_path);
     DYAD_LOG_INFO (m_ctx,
-                   "%s=%s\n",
+                   "%s=%s",
                    DYAD_SYNC_DEBUG_ENV,
                    (m_ctx->debug) ? "true" : "false");
     DYAD_LOG_INFO (m_ctx,
-                   "%s=%s\n",
+                   "%s=%s",
                    DYAD_SHARED_STORAGE_ENV,
                    (m_ctx->shared_storage) ? "true" : "false");
-    DYAD_LOG_INFO (m_ctx, "%s=%u\n", DYAD_KEY_DEPTH_ENV, m_ctx->key_depth);
-    DYAD_LOG_INFO (m_ctx, "%s=%u\n", DYAD_KEY_BINS_ENV, m_ctx->key_bins);
-    DYAD_LOG_INFO (m_ctx, "%s=%u\n", DYAD_SERVICE_MUX_ENV, m_ctx->service_mux);
-    DYAD_LOG_INFO (m_ctx, "%s=%s\n", DYAD_KVS_NAMESPACE_ENV, m_ctx->kvs_namespace);
+    DYAD_LOG_INFO (m_ctx, "%s=%u", DYAD_KEY_DEPTH_ENV, m_ctx->key_depth);
+    DYAD_LOG_INFO (m_ctx, "%s=%u", DYAD_KEY_BINS_ENV, m_ctx->key_bins);
+    DYAD_LOG_INFO (m_ctx, "%s=%u", DYAD_SERVICE_MUX_ENV, m_ctx->service_mux);
+    DYAD_LOG_INFO (m_ctx, "%s=%s", DYAD_KVS_NAMESPACE_ENV, m_ctx->kvs_namespace);
 }
 
 bool dyad_stream_core::is_dyad_producer () const
@@ -162,7 +162,7 @@ bool dyad_stream_core::open_sync (const char *path)
 {
     DYAD_CPP_FUNCTION();
     DYAD_CPP_FUNCTION_UPDATE ("path", path);
-    DYAD_LOG_DEBUG (m_ctx, "DYAD_SYNC OPEN: enters sync (\"%s\").\n", path);
+    DYAD_LOG_DEBUG (m_ctx, "DYAD_SYNC OPEN: enters sync (\"%s\").", path);
     if (!m_initialized) {
         // TODO log
         return true;
@@ -175,7 +175,7 @@ bool dyad_stream_core::open_sync (const char *path)
     dyad_rc_t rc = dyad_consume (m_ctx, path);
 
     if (DYAD_IS_ERROR (rc)) {
-        DPRINTF (m_ctx, "DYAD_SYNC OPEN: failed sync (\"%s\").\n", path);
+        DPRINTF (m_ctx, "DYAD_SYNC OPEN: failed sync (\"%s\").", path);
         return false;
     }
 

@@ -110,18 +110,18 @@ void dyad_wrapper_init (void)
     rc = dyad_init_env (&ctx);
 
     if (DYAD_IS_ERROR (rc)) {
-        fprintf (stderr, "Failed to initialize DYAD (code = %d)\n", rc);
+        fprintf (stderr, "Failed to initialize DYAD (code = %d)", rc);
         ctx->initialized = false;
         ctx->reenter = false;
         DYAD_C_FUNCTION_END();
         return;
     }
 
-    DYAD_LOG_INFO (ctx, "DYAD Initialized\n");
-    DYAD_LOG_INFO (ctx, "%s=%s\n", DYAD_SYNC_DEBUG_ENV, (ctx->debug) ? "true" : "false");
-    DYAD_LOG_INFO (ctx, "%s=%s\n", DYAD_SYNC_CHECK_ENV, (ctx->check) ? "true" : "false");
-    DYAD_LOG_INFO (ctx, "%s=%u\n", DYAD_KEY_DEPTH_ENV, ctx->key_depth);
-    DYAD_LOG_INFO (ctx, "%s=%u\n", DYAD_KEY_BINS_ENV, ctx->key_bins);
+    DYAD_LOG_INFO (ctx, "DYAD Initialized");
+    DYAD_LOG_INFO (ctx, "%s=%s", DYAD_SYNC_DEBUG_ENV, (ctx->debug) ? "true" : "false");
+    DYAD_LOG_INFO (ctx, "%s=%s", DYAD_SYNC_CHECK_ENV, (ctx->check) ? "true" : "false");
+    DYAD_LOG_INFO (ctx, "%s=%u", DYAD_KEY_DEPTH_ENV, ctx->key_depth);
+    DYAD_LOG_INFO (ctx, "%s=%u", DYAD_KEY_BINS_ENV, ctx->key_bins);
     DYAD_C_FUNCTION_END();
 }
 
@@ -158,7 +158,7 @@ DYAD_DLL_EXPORTED int open (const char *path, int oflag, ...)
 
     func_ptr = (open_ptr_t)dlsym (RTLD_NEXT, "open");
     if ((error = dlerror ())) {
-        DPRINTF (ctx, "DYAD_SYNC: error in dlsym: %s\n", error);
+        DPRINTF (ctx, "DYAD_SYNC: error in dlsym: %s", error);
         DYAD_C_FUNCTION_END();
         return -1;
     }
@@ -169,16 +169,16 @@ DYAD_DLL_EXPORTED int open (const char *path, int oflag, ...)
     }
 
     if (!(ctx && ctx->h) || (ctx && !ctx->reenter)) {
-        IPRINTF (ctx, "DYAD_SYNC: open sync not applicable for \"%s\".\n", path);
+        IPRINTF (ctx, "DYAD_SYNC: open sync not applicable for \"%s\".", path);
         goto real_call;
     }
 
-    IPRINTF (ctx, "DYAD_SYNC: enters open sync (\"%s\").\n", path);
+    IPRINTF (ctx, "DYAD_SYNC: enters open sync (\"%s\").", path);
     if (DYAD_IS_ERROR (dyad_consume (ctx, path))) {
-        DPRINTF (ctx, "DYAD_SYNC: failed open sync (\"%s\").\n", path);
+        DPRINTF (ctx, "DYAD_SYNC: failed open sync (\"%s\").", path);
         goto real_call;
     }
-    IPRINTF (ctx, "DYAD_SYNC: exists open sync (\"%s\").\n", path);
+    IPRINTF (ctx, "DYAD_SYNC: exists open sync (\"%s\").", path);
 
 real_call:;
     int ret = (func_ptr (path, oflag, mode));
