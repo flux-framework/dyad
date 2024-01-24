@@ -14,8 +14,9 @@
 #error "no config"
 #endif
 
+#include <dyad/common/dyad_envs.h>
 #include <dyad/common/dyad_rc.h>
-#include <dyad/dtl/dyad_dtl_impl.h>
+#include <dyad/dtl/dyad_dtl_api.h>
 #include <dyad/core/dyad_core.h>
 #include <dyad/common/dyad_logging.h>
 #include <dyad/common/dyad_profiler.h>
@@ -297,6 +298,33 @@ static struct optparse_option cmdline_opts[] =
                "'-DDYAD_LOGGER=PRINTF'"},
      OPTPARSE_TABLE_END};
 
+/** This is a temporary measure until environment variable based initialization
+ *  is implemented */
+static dyad_dtl_mode_t get_dtl_mode_env ()
+{
+    char* e = NULL;
+
+    size_t dtl_mode_env_len = 0ul;
+
+    if ((e = getenv (DYAD_DTL_MODE_ENV))) {
+        dtl_mode_env_len = strlen (e);
+        if (strncmp (e, "FLUX_RPC", dtl_mode_env_len) == 0) {
+            return DYAD_DTL_FLUX_RPC;
+        } else if (strncmp (e, "UCX", dtl_mode_env_len) == 0) {
+            return DYAD_DTL_UCX;
+        } else {
+            DYAD_LOG_STDERR("Invalid env %s = %s. Defaulting to %s\n",
+                        DYAD_DTL_MODE_ENV, e, dyad_dtl_mode_name[DYAD_DTL_DEFAULT]);
+            return DYAD_DTL_DEFAULT;
+        }
+    } else {
+        DYAD_LOG_STDERR("%s is not set. Defaulting to %s\n",
+                        DYAD_DTL_MODE_ENV, dyad_dtl_mode_name[DYAD_DTL_DEFAULT]);
+        return DYAD_DTL_DEFAULT;
+    }
+    return DYAD_DTL_DEFAULT;
+}
+
 DYAD_DLL_EXPORTED int mod_main (flux_t *h, int argc, char **argv)
 {
     DYAD_LOGGER_INIT();
@@ -357,6 +385,7 @@ DYAD_DLL_EXPORTED int mod_main (flux_t *h, int argc, char **argv)
         }
     } else {
         DYAD_LOG_DEBUG (mod_ctx->ctx, "Did not find 'mode'");
+        dtl_mode = get_dtl_mode_env ();
     }
     DYAD_LOG_DEBUG (mod_ctx->ctx, "Test");
 
@@ -367,7 +396,7 @@ DYAD_DLL_EXPORTED int mod_main (flux_t *h, int argc, char **argv)
         DYAD_LOG_ERROR (mod_ctx->ctx, "dyad_open failed");
         goto mod_error;
     }
-    char log_file_name[4096], err_file_name[4096];
+    char log_file_name[4096] = {'\0'}, err_file_name[4096] = {'\0'};
     if (optparse_getopt (opts, "info_log", &optargp) > 0) {
         sprintf (log_file_name, "%s_%u.out", optargp, broker_rank);
         DYAD_LOG_STDOUT_REDIRECT (log_file_name);

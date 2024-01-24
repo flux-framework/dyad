@@ -67,8 +67,8 @@ static void dyad_send_callback (void* req, ucs_status_t status)
 {
     DYAD_C_FUNCTION_START();
     dyad_ucx_request_t* real_req = (dyad_ucx_request_t*)req;
-    DYAD_C_FUNCTION_END();
     real_req->completed = 1;
+    DYAD_C_FUNCTION_END();
 }
 
 static void dyad_ucx_ep_err_handler (void* arg, ucp_ep_h ep, ucs_status_t status)
@@ -76,6 +76,7 @@ static void dyad_ucx_ep_err_handler (void* arg, ucp_ep_h ep, ucs_status_t status
     DYAD_C_FUNCTION_START();
     dyad_ctx_t *ctx = (dyad_ctx_t*)arg;
     DYAD_LOG_ERROR (ctx, "An error occured on the UCP endpoint (status = %d)", status);
+    (void) ctx;
     DYAD_C_FUNCTION_END();
 }
 
@@ -568,12 +569,12 @@ dyad_rc_t dyad_dtl_ucx_init (const dyad_ctx_t* ctx,
     }
 
     // Allocate a buffer of max transfer size using UCX
-    // ucx_allocate_buffer (ctx,
-    //                      dtl_handle->ucx_ctx,
-    //                      dtl_handle->max_transfer_size,
-    //                      dtl_handle->comm_mode,
-    //                      dtl_handle->mem_handle,
-    //                      &(dtl_handle->net_buf));
+    ucx_allocate_buffer (ctx,
+                         dtl_handle->ucx_ctx,
+                         dtl_handle->max_transfer_size,
+                         dtl_handle->comm_mode,
+                         dtl_handle->mem_handle,
+                         &(dtl_handle->net_buf));
 
     ctx->dtl_handle->rpc_pack = dyad_dtl_ucx_rpc_pack;
     ctx->dtl_handle->rpc_unpack = dyad_dtl_ucx_rpc_unpack;
@@ -786,12 +787,6 @@ dyad_rc_t dyad_dtl_ucx_get_buffer (const dyad_ctx_t* ctx, size_t data_size, void
         rc = DYAD_RC_BADBUF;
         goto ucx_get_buffer_done;
     }
-    ucx_allocate_buffer (ctx,
-                         dtl_handle->ucx_ctx,
-                         data_size,  // dtl_handle->max_transfer_size,
-                         dtl_handle->comm_mode,
-                         dtl_handle->mem_handle,
-                         &(dtl_handle->net_buf));
     DYAD_LOG_INFO (dtl_handle, "Setting the data buffer pointer to the UCX-allocated buffer");
     *data_buf = dtl_handle->net_buf;
     rc = DYAD_RC_OK;
@@ -808,13 +803,6 @@ dyad_rc_t dyad_dtl_ucx_return_buffer (const dyad_ctx_t* ctx, void** data_buf)
     if (data_buf == NULL || *data_buf == NULL) {
         rc = DYAD_RC_BADBUF;
         goto dtl_ucx_return_buffer_done;
-    }
-    dyad_dtl_ucx_t* dtl_handle = ctx->dtl_handle->private.ucx_dtl_handle;
-    if (dtl_handle->mem_handle != NULL) {
-        ucx_free_buffer (ctx,
-                         dtl_handle->ucx_ctx,
-                         dtl_handle->mem_handle,
-                         &(dtl_handle->net_buf));
     }
     *data_buf = NULL;
 dtl_ucx_return_buffer_done:;
@@ -1005,12 +993,12 @@ dyad_rc_t dyad_dtl_ucx_finalize (const dyad_ctx_t* ctx)
         dtl_handle->local_address = NULL;
     }
     // Free memory buffer if not already freed
-    // if (dtl_handle->mem_handle != NULL) {
-    //     ucx_free_buffer (ctx,
-    //                      dtl_handle->ucx_ctx,
-    //                      dtl_handle->mem_handle,
-    //                      &(dtl_handle->net_buf));
-    // }
+    if (dtl_handle->mem_handle != NULL) {
+        ucx_free_buffer (ctx,
+                         dtl_handle->ucx_ctx,
+                         dtl_handle->mem_handle,
+                         &(dtl_handle->net_buf));
+    }
     // Release worker if not already released
     if (dtl_handle->ucx_worker != NULL) {
         ucp_worker_destroy (dtl_handle->ucx_worker);

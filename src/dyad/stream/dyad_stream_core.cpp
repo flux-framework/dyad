@@ -36,9 +36,9 @@ using namespace std;  // std::clock ()
 // #include <cstdbool> // c++11
 
 #include <dlfcn.h>
+#include <dyad/common/dyad_envs.h>
 #include <dyad/common/dyad_logging.h>
 #include <dyad/common/dyad_profiler.h>
-#include <dyad/core/dyad_envs.h>
 #include <fcntl.h>
 #include <libgen.h>  // dirname
 #include <unistd.h>

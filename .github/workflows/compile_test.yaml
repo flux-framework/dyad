@@ -57,7 +57,9 @@ jobs:
                               ncurses-bin \
                               hwloc \
                               lua5.3 liblua5.3-dev \
-                              python3 \
+                              python3.10 \
+                              python3-pip \
+                              python3-venv \
                               libczmq-dev \
                               lua-posix-dev \
                               lz4 \
@@ -220,6 +222,8 @@ jobs:
           fi
       - name: Install dependencies
         run: |
+          mkdir -p ${DYAD_INSTALL_PREFIX}
+          python3 -m venv ${DYAD_INSTALL_PREFIX}
           . ${SPACK_DIR}/share/spack/setup-env.sh
           spack install -j4 flux-core@${FLUX_VERSION}
           if [[ $DYAD_DTL_MODE == 'UCX' ]]; then
@@ -229,7 +233,6 @@ jobs:
             spack install -j4 caliper
           fi
           spack install cpp-logger@develop
-          mkdir -p ${DYAD_INSTALL_PREFIX}
           spack view --verbose symlink ${DYAD_INSTALL_PREFIX} flux-core@${FLUX_VERSION} cpp-logger@develop
           if [[ $DYAD_DTL_MODE == 'UCX' ]]; then
             spack view --verbose symlink ${DYAD_INSTALL_PREFIX} ucx@1.13.1
@@ -258,8 +261,9 @@ jobs:
           make VERBOSE=1 install -j
       - name: Install PyDYAD
         run: |
+          source ${DYAD_INSTALL_PREFIX}/bin/activate
           cd ${GITHUB_WORKSPACE}/pydyad
-          python3 -m pip install -e .
+          pip install -v -e .
           cd ${GITHUB_WORKSPACE}
       - name: Install Test
         run: |
@@ -271,18 +275,18 @@ jobs:
           cd ${GITHUB_WORKSPACE}/docs/demos/ecp_feb_2023
           make all
       - name: Test DYAD with DLIO benchmark
-        timeout-minutes: 1
+        timeout-minutes: 10
         run: |
           mkdir -p $DYAD_PATH
-          #. ${SPACK_DIR}/share/spack/setup-env.sh
-          #export PATH=${PATH}:${DYAD_INSTALL_PREFIX}/bin:${DYAD_INSTALL_PREFIX}/sbin
-          #export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${DYAD_INSTALL_PREFIX}/lib
-          #export PYTHONPATH=${GITHUB_WORKSPACE}/tests/integration/dlio_benchmark:${GITHUB_WORKSPACE}/pydyad:$PYTHONPATH
-          #python3 -m pip install -r ${GITHUB_WORKSPACE}/tests/integration/dlio_benchmark/requirements.txt
-          #python3 -m pip install --force-reinstall dlio_profiler_py
-          #echo "Starting flux brokers"
-          #cd ${GITHUB_WORKSPACE}/tests/integration/dlio_benchmark
-          #flux start --test-size=2 /bin/bash ./script.sh ${GITHUB_WORKSPACE} ${DYAD_INSTALL_PREFIX}
+          source ${DYAD_INSTALL_PREFIX}/bin/activate
+          . ${SPACK_DIR}/share/spack/setup-env.sh
+          export PATH=${PATH}:${DYAD_INSTALL_PREFIX}/bin:${DYAD_INSTALL_PREFIX}/sbin
+          export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${DYAD_INSTALL_PREFIX}/lib
+          export PYTHONPATH=${GITHUB_WORKSPACE}/tests/integration/dlio_benchmark:${GITHUB_WORKSPACE}/pydyad:$PYTHONPATH
+          pip install -v -r ${GITHUB_WORKSPACE}/tests/integration/dlio_benchmark/requirements.txt
+          echo "Starting flux brokers"
+          cd ${GITHUB_WORKSPACE}/tests/integration/dlio_benchmark
+          flux start --test-size=2 /bin/bash ./script.sh ${GITHUB_WORKSPACE} ${DYAD_INSTALL_PREFIX}
       - name: Test DYAD with separate FS c
         timeout-minutes: 1
         run: |
@@ -305,6 +309,7 @@ jobs:
         timeout-minutes: 1
         run: |
           mkdir -p $DYAD_PATH
+          source ${DYAD_INSTALL_PREFIX}/bin/activate
           . ${SPACK_DIR}/share/spack/setup-env.sh
           export PATH=${PATH}:${DYAD_INSTALL_PREFIX}/bin:${DYAD_INSTALL_PREFIX}/sbin
           export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${DYAD_INSTALL_PREFIX}/lib

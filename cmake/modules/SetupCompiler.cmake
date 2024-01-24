@@ -133,11 +133,12 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   if (CMAKE_BUILD_TYPE MATCHES Debug)
     dyad_add_cxx_flags(CMAKE_CXX_FLAGS
       -fsanitize=address -fno-omit-frame-pointer -fsanitize-recover=address)
-    dyad_add_cxx_flags(CMAKE_C_FLAGS
+    dyad_add_c_flags(CMAKE_C_FLAGS
       -fsanitize=address -fno-omit-frame-pointer -fsanitize-recover=address)
+    add_link_options(-fsanitize=address)
   else()
     dyad_add_cxx_flags(CMAKE_CXX_FLAGS -fno-omit-frame-pointer)
-    dyad_add_cxx_flags(CMAKE_C_FLAGS -fno-omit-frame-pointer)
+    dyad_add_c_flags(CMAKE_C_FLAGS -fno-omit-frame-pointer)
   endif ()
 endif ()
 

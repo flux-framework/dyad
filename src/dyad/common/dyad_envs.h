@@ -1,5 +1,5 @@
-#ifndef DYAD_CORE_DYAD_ENVS_H
-#define DYAD_CORE_DYAD_ENVS_H
+#ifndef DYAD_COMMON_DYAD_ENVS_H
+#define DYAD_COMMON_DYAD_ENVS_H
 
 #if defined(DYAD_HAS_CONFIG)
 #include <dyad/dyad_config.hpp>
@@ -20,4 +20,4 @@
 #define DYAD_SERVICE_MUX_ENV "DYAD_SERVICE_MUX"
 #define DYAD_REINIT_ENV "DYAD_REINIT"
 
-#endif  // DYAD_CORE_DYAD_ENVS_H
+#endif  // DYAD_COMMON_DYAD_ENVS_H

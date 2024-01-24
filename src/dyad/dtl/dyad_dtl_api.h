@@ -9,7 +9,7 @@
 
 #include <jansson.h>
 #include <sys/types.h>
-#include <dyad/dtl/dyad_dtl.h>
+#include <dyad/common/dyad_dtl.h>
 #include <dyad/common/dyad_rc.h>
 #include <flux/core.h>
 #ifdef __cplusplus
@@ -20,7 +20,6 @@ extern "C" {
 #include <stdint.h>
 #endif
 
-#define DYAD_DTL_RPC_NAME "dyad.fetch"
 
 // Forward declarations of DTL contexts for the underlying implementations
 struct dyad_dtl_ucx;
