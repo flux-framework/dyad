@@ -139,6 +139,19 @@ DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_free_metadata (dyad_metadata_
 DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_consume (dyad_ctx_t* ctx, const char* fname);
 
 /**
+ * @brief Wrapper function that performs all the common tasks needed
+ *        of a consumer
+ * @param[in] ctx    the DYAD context for the operation
+ * @param[in] fname  the name of the file being "consumed"
+ * @param[in] mdata  a dyad_metadata_t object containing the metadata for the file
+ *                   User is responsible for deallocating this object
+ *
+ * @return An error code from dyad_rc.h
+ */
+DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t* ctx, const char* fname,
+                                                                       const dyad_metadata_t* mdata);
+
+/**
  * @brief Finalizes the DYAD instance and deallocates the context
  * @param[in] ctx  the DYAD context being finalized
  *

@@ -49,7 +49,7 @@ dyad_rc_t dyad_dtl_init (dyad_ctx_t* ctx,
         goto dtl_init_done;
     }
     rc = DYAD_RC_OK;
-    DYAD_LOG_DEBUG (ctx, "Finished dyad_dtl_init without error");
+    DYAD_LOG_DEBUG (ctx, "Finished dyad_dtl_init successfully");
 dtl_init_done:;
      DYAD_C_FUNCTION_END();
     return rc;
