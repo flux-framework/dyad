@@ -7,7 +7,7 @@ module load openmpi/4.1.2
 export DLIO_WORKLOAD=dyad_unet3d # unet3d_base dyad_unet3d dyad_unet3d_small
 export NUM_NODES=2
 export PPN=8
-export BROKERS_PER_NODE=1
+export BROKERS_PER_NODE=4
 export GENERATE_DATA="0"
 
 export DYAD_INSTALL_PREFIX=/usr/workspace/haridev/dyad/env/spack/.spack-env/view

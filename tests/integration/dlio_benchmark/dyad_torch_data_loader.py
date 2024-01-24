@@ -54,6 +54,7 @@ class DYADTorchDataset(Dataset):
         self.batch_size = batch_size
         args = ConfigArguments.get_instance()
         self.serial_args = pickle.dumps(args)
+        self.dyad_io = None
         self.dlp_logger = None
         if num_workers == 0:
             self.worker_init(-1)
@@ -95,6 +96,8 @@ class DYADTorchDataset(Dataset):
     def __del__(self):
         if self.dlp_logger:
             self.dlp_logger.finalize()
+        if self.dyad_io:
+            self.dyad_io.finalize()
     @dlp.log
     def __len__(self):
         return self.num_samples
@@ -174,8 +177,7 @@ class DyadTorchDataLoader(BaseDataLoader):
         else:
             kwargs={'multiprocessing_context':self._args.multiprocessing_context,
                     'prefetch_factor': prefetch_factor}
-            if torch.__version__ != '1.3.1':
-                kwargs['persistent_workers'] = True
+            kwargs['persistent_workers'] = False
         if torch.__version__ == '1.3.1':
             if 'prefetch_factor' in kwargs:
                 del kwargs['prefetch_factor']
