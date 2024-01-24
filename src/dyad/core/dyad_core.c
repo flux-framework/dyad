@@ -128,7 +128,7 @@ DYAD_CORE_FUNC_MODS dyad_rc_t publish_via_flux (const dyad_ctx_t* restrict ctx,
     dyad_rc_t rc = DYAD_RC_OK;
     flux_kvs_txn_t* txn = NULL;
     const size_t topic_len = PATH_MAX;
-    char topic[PATH_MAX + 1];
+    char topic[PATH_MAX + 1] = {'\0'};
     memset (topic, 0, topic_len + 1);
     memset (topic, '\0', topic_len + 1);
     // Generate the KVS key from the file path relative to
@@ -172,7 +172,7 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_commit (dyad_ctx_t* restrict ctx, const char*
     DYAD_C_FUNCTION_START();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", ctx->fname);
     dyad_rc_t rc = DYAD_RC_OK;
-    char upath[PATH_MAX];
+    char upath[PATH_MAX] = {'\0'};
     memset (upath, 0, PATH_MAX);
     // Extract the path to the file specified by fname relative to the
     // producer-managed path
@@ -300,9 +300,9 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_fetch (const dyad_ctx_t* restrict ctx,
     DYAD_C_FUNCTION_START();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", fname);
     dyad_rc_t rc = DYAD_RC_OK;
-    char upath[PATH_MAX];
+    char upath[PATH_MAX] = {'\0'};
     const size_t topic_len = PATH_MAX;
-    char topic[PATH_MAX + 1];
+    char topic[PATH_MAX + 1] = {'\0'};
     memset (upath, 0, PATH_MAX);
     memset (topic, 0, topic_len + 1);
     // Extract the path to the file specified by fname relative to the
@@ -452,8 +452,8 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_cons_store (const dyad_ctx_t* restrict ctx,
     DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
     dyad_rc_t rc = DYAD_RC_OK;
     const char* odir = NULL;
-    char file_path[PATH_MAX + 1];
-    char file_path_copy[PATH_MAX + 1];
+    char file_path[PATH_MAX + 1] = {'\0'};
+    char file_path_copy[PATH_MAX + 1] = {'\0'};
     mode_t m = (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH | S_ISGID);
     size_t written_len = 0;
     memset (file_path, 0, PATH_MAX + 1);
@@ -515,7 +515,7 @@ dyad_rc_t dyad_init (bool debug,
 #ifdef DYAD_PROFILER_DLIO_PROFILER
     const char* file_prefix = getenv (DLIO_PROFILER_LOG_FILE);
     if (file_prefix == NULL) file_prefix = "./dyad_";
-    char log_file[4096];
+    char log_file[4096] = {'\0'};
     sprintf (log_file, "%s_core-%d.pfw", file_prefix, getpid());
     DLIO_PROFILER_C_INIT_NO_BIND(log_file, NULL, NULL);
 #endif
@@ -669,7 +669,8 @@ dyad_rc_t dyad_init (bool debug,
     // TODO Print logging info
     rc = DYAD_RC_OK;
     // TODO: Add folder option here.
-    char log_file_name[4096], err_file_name[4096];
+    char log_file_name[4096] = {'\0'};
+    char err_file_name[4096] = {'\0'};
     mkdir_as_needed ("logs", (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH | S_ISGID));
     sprintf (log_file_name, "logs/dyad_core_%d.out", (*ctx)->pid);
     sprintf (err_file_name, "logs/dyad_core_%d.err", (*ctx)->pid);
@@ -841,8 +842,8 @@ dyad_rc_t dyad_get_metadata (dyad_ctx_t* ctx,
     DYAD_C_FUNCTION_UPDATE_INT ("should_wait", should_wait);
     dyad_rc_t rc = DYAD_RC_OK;
     const size_t topic_len = PATH_MAX;
-    char topic[PATH_MAX + 1];
-    char upath[PATH_MAX];
+    char topic[PATH_MAX + 1] = {'\0'};
+    char upath[PATH_MAX] = {'\0'};
     memset (topic, 0, topic_len + 1);
     memset (topic, '\0', topic_len + 1);
     memset (upath, 0, PATH_MAX);
@@ -1036,7 +1037,7 @@ int dyad_sync_directory (dyad_ctx_t* restrict ctx, const char* restrict path)
     DYAD_C_FUNCTION_START();
     DYAD_C_FUNCTION_UPDATE_STR ("path", path);
     // Flush new directory entry https://lwn.net/Articles/457671/
-    char path_copy[PATH_MAX + 1];
+    char path_copy[PATH_MAX + 1] = {'\0'};
     int odir_fd = -1;
     char* odir = NULL;
     bool reenter = false;

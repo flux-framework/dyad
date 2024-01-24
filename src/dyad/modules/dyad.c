@@ -396,7 +396,7 @@ DYAD_DLL_EXPORTED int mod_main (flux_t *h, int argc, char **argv)
         DYAD_LOG_ERROR (mod_ctx->ctx, "dyad_open failed");
         goto mod_error;
     }
-    char log_file_name[4096], err_file_name[4096];
+    char log_file_name[4096] = {'\0'}, err_file_name[4096] = {'\0'};
     if (optparse_getopt (opts, "info_log", &optargp) > 0) {
         sprintf (log_file_name, "%s_%u.out", optargp, broker_rank);
         DYAD_LOG_STDOUT_REDIRECT (log_file_name);
