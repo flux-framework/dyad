@@ -15,6 +15,7 @@
 #endif
 
 #include <dyad/common/dyad_envs.h>
+#include <dyad/common/dyad_dtl.h>
 #include <dyad/common/dyad_rc.h>
 #include <dyad/dtl/dyad_dtl_api.h>
 #include <dyad/core/dyad_core.h>
@@ -122,7 +123,7 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
 {
     DYAD_C_FUNCTION_START();
     dyad_mod_ctx_t *mod_ctx = getctx (h);
-    DYAD_LOG_INFO(mod_ctx->ctx, "Launched callback for dyad.fetch");
+    DYAD_LOG_INFO(mod_ctx->ctx, "Launched callback for %s", DYAD_DTL_RPC_NAME);
     ssize_t inlen = 0;
     void *inbuf = NULL;
     int fd = -1;
@@ -135,11 +136,11 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
     struct flock shared_lock;
     if (!flux_msg_is_streaming (msg)) {
         errno = EPROTO;
-        goto fetch_error;
+        goto fetch_error_wo_flock;
     }
 
     if (flux_msg_get_userid (msg, &userid) < 0)
-        goto fetch_error;
+        goto fetch_error_wo_flock;
 
     DYAD_LOG_INFO(mod_ctx->ctx, "DYAD_MOD: unpacking RPC message");
 
@@ -148,7 +149,7 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
     if (DYAD_IS_ERROR (rc)) {
         DYAD_LOG_ERROR(mod_ctx->ctx, "Could not unpack message from client");
         errno = EPROTO;
-        goto fetch_error;
+        goto fetch_error_wo_flock;
     }
     DYAD_C_FUNCTION_UPDATE_STR ("upath", upath);
     DYAD_LOG_DEBUG(mod_ctx, "DYAD_MOD: requested user_path: %s", upath);
@@ -157,7 +158,7 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
     rc = mod_ctx->ctx->dtl_handle->rpc_respond (mod_ctx->ctx, msg);
     if (DYAD_IS_ERROR (rc)) {
         DYAD_LOG_ERROR(mod_ctx, "Could not send primary RPC response to client");
-        goto fetch_error;
+        goto fetch_error_wo_flock;
     }
 
     strncpy (fullpath, mod_ctx->ctx->prod_managed_path, PATH_MAX - 1);
@@ -176,11 +177,10 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
 
     if (fd < 0) {
         DYAD_LOG_ERROR(mod_ctx, "DYAD_MOD: Failed to open file \"%s\".", fullpath);
-        goto fetch_error;
+        goto fetch_error_wo_flock;
     }
     rc = dyad_shared_flock (mod_ctx->ctx, fd, &shared_lock);
     if (DYAD_IS_ERROR (rc)) {
-        dyad_release_flock (mod_ctx->ctx, fd, &shared_lock);
         goto fetch_error;
     }
     file_size = get_file_size (fd);
@@ -194,11 +194,11 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
                             fullpath,
                             inlen,
                             file_size);
-            close (fd);
             goto fetch_error;
         }
         DYAD_C_FUNCTION_UPDATE_INT ("file_size", file_size);
         DYAD_LOG_DEBUG (mod_ctx->ctx, "Closing file pointer");
+        dyad_release_flock (mod_ctx->ctx, fd, &shared_lock);
         close (fd);
         DYAD_LOG_DEBUG (mod_ctx->ctx, "Is inbuf NULL? -> %i", (int)(inbuf == NULL));
 
@@ -207,7 +207,7 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
         if (DYAD_IS_ERROR (rc)) {
             DYAD_LOG_ERROR (mod_ctx->ctx, "Could not establish DTL connection with client");
             errno = ECONNREFUSED;
-            goto fetch_error;
+            goto fetch_error_wo_flock;
         }
         DYAD_LOG_DEBUG (mod_ctx, "Send file to consumer with DTL");
         rc = mod_ctx->ctx->dtl_handle->send (mod_ctx->ctx, inbuf, inlen);
@@ -217,23 +217,24 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
         if (DYAD_IS_ERROR (rc)) {
             DYAD_LOG_ERROR (mod_ctx->ctx, "Could not send data to client via DTL\n");
             errno = ECOMM;
-            goto fetch_error;
+            goto fetch_error_wo_flock;
         }
-    }
-    dyad_release_flock (mod_ctx->ctx, fd, &shared_lock);
-    if (DYAD_IS_ERROR (rc)) {
+    } else {
         dyad_release_flock (mod_ctx->ctx, fd, &shared_lock);
-        goto fetch_error;
+        close (fd);
     }
     DYAD_LOG_DEBUG(mod_ctx, "Close RPC message stream with an ENODATA (%d) message", ENODATA);
     if (flux_respond_error (h, msg, ENODATA, NULL) < 0) {
         DYAD_LOG_ERROR (mod_ctx, "DYAD_MOD: %s: flux_respond_error with ENODATA failed\n", __func__ );
     }
-    errno = saved_errno;
-    DYAD_LOG_INFO(mod_ctx, "Finished dyad.fetch module invocation\n");
+    DYAD_LOG_INFO(mod_ctx, "Finished %s module invocation\n", DYAD_DTL_RPC_NAME);
     goto end_fetch_cb;
 
-fetch_error:
+fetch_error:;
+    dyad_release_flock (mod_ctx->ctx, fd, &shared_lock);
+    close (fd);
+
+fetch_error_wo_flock:;
     DYAD_LOG_ERROR(mod_ctx, "Close RPC message stream with an error (errno = %d)\n", errno);
     if (flux_respond_error (h, msg, errno, NULL) < 0) {
         DYAD_LOG_ERROR (mod_ctx, "DYAD_MOD: %s: flux_respond_error", __func__);
@@ -242,7 +243,8 @@ fetch_error:
     DYAD_C_FUNCTION_END();
     return;
 
-end_fetch_cb:
+end_fetch_cb:;
+    errno = saved_errno;
     DYAD_C_FUNCTION_END();
     return;
 }
