@@ -861,7 +861,7 @@ dyad_rc_t dyad_get_metadata (dyad_ctx_t* ctx,
     DYAD_C_FUNCTION_UPDATE_STR ("upath", upath);
     DYAD_LOG_INFO (ctx, "Generating KVS key: %s", topic);
     gen_path_key (upath, topic, topic_len, ctx->key_depth, ctx->key_bins);
-    rc = dyad_kvs_read (ctx, topic, fname, should_wait, mdata);
+    rc = dyad_kvs_read (ctx, topic, upath, should_wait, mdata);
     if (DYAD_IS_ERROR (rc)) {
         DYAD_LOG_ERROR (ctx, "Could not read data from the KVS");
         goto get_metadata_done;
