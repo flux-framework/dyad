@@ -13,7 +13,7 @@ DYAD_IO = None
 # https://peps.python.org/pep-0343/
 @contextmanager
 @dlio_log.log
-def dyad_open(*args, dyad_ctx=None, register_dyad_ctx=False, **kwargs):
+def dyad_open(*args, dyad_ctx=None, metadata_wrapper=None, register_dyad_ctx=False, **kwargs):
     global DYAD_IO
     local_dyad_io = dyad_ctx
     if dyad_ctx is None:
@@ -38,7 +38,10 @@ def dyad_open(*args, dyad_ctx=None, register_dyad_ctx=False, **kwargs):
     if mode in ("r", "rb", "rt"):
         if (local_dyad_io.cons_path is not None and
                 local_dyad_io.cons_path in fname.parents):
-            local_dyad_io.consume(str(fname))
+            if metadata_wrapper:
+                local_dyad_io.consume_w_metadata(str(fname), metadata_wrapper)
+            else:
+                local_dyad_io.consume(str(fname))
     file_obj = io.open(*args, **kwargs)
     try:
         yield file_obj

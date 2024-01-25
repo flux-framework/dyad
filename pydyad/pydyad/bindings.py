@@ -302,6 +302,22 @@ class Dyad:
             raise RuntimeError("Cannot consume data with DYAD!")
 
     @dlio_log.log
+    def consume_w_metadata(self, fname, metadata_wrapper):
+        if self.dyad_consume is None:
+            warnings.warn(
+                "Trying to consunme with metadata  with DYAD when libdyad_core.so was not found",
+                RuntimeWarning
+            )
+            return
+        res = self.dyad_consume_w_metadata(
+            self.ctx,
+            fname.encode(),
+            metadata_wrapper
+        )
+        if int(res) != 0:
+            raise RuntimeError("Cannot consume data with metadata with DYAD!")
+
+    @dlio_log.log
     def finalize(self):
         if not self.initialized:
             return
