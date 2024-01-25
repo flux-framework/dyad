@@ -28,6 +28,7 @@ struct dyad_dtl_ucx {
     ucp_ep_h ep;
     ucp_tag_t comm_tag;
     ucx_ep_cache_h ep_cache;
+    uint64_t consumer_conn_key;
 };
 
 typedef struct dyad_dtl_ucx dyad_dtl_ucx_t;
@@ -38,9 +39,9 @@ dyad_rc_t dyad_dtl_ucx_init (const dyad_ctx_t* ctx,
                              bool debug);
 
 dyad_rc_t dyad_dtl_ucx_rpc_pack (const dyad_ctx_t* ctx,
-                                 const char* restrict upath,
+                                 const char*  upath,
                                  uint32_t producer_rank,
-                                 json_t** restrict packed_obj);
+                                 json_t**  packed_obj);
 
 dyad_rc_t dyad_dtl_ucx_rpc_unpack (const dyad_ctx_t* ctx, const flux_msg_t* msg, char** upath);
 

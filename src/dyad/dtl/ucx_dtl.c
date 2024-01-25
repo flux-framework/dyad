@@ -96,7 +96,7 @@ static ucs_status_t dyad_ucx_request_wait (const dyad_ctx_t* ctx,
         // In other words, prior UCX calls should mean that this loop only runs
         // a couple of times at most.
         do {
-            ucp_worker_progress (ctx->dtl_handle->private.ucx_dtl_handle->ucx_worker);
+            ucp_worker_progress (ctx->dtl_handle->private_dtl.ucx_dtl_handle->ucx_worker);
             // usleep(100);
             // Get the final status of the communication operation
             final_request_status = ucp_request_check_status (request);
@@ -218,7 +218,7 @@ static inline ucs_status_ptr_t ucx_send_no_wait (const dyad_ctx_t* ctx, void* bu
 {
     DYAD_C_FUNCTION_START();
     ucs_status_ptr_t stat_ptr;
-    dyad_dtl_ucx_t* dtl_handle = ctx->dtl_handle->private.ucx_dtl_handle;
+    dyad_dtl_ucx_t* dtl_handle = ctx->dtl_handle->private_dtl.ucx_dtl_handle;
     if (dtl_handle->ep == NULL) {
         DYAD_LOG_ERROR (ctx,
                        "UCP endpoint was not created prior to invoking "
@@ -264,7 +264,7 @@ static inline ucs_status_ptr_t ucx_recv_no_wait (const dyad_ctx_t* ctx,
     ucp_tag_message_h msg = NULL;
     ucp_tag_recv_info_t msg_info;
     ucs_status_ptr_t stat_ptr = NULL;
-    dyad_dtl_ucx_t* dtl_handle = ctx->dtl_handle->private.ucx_dtl_handle;
+    dyad_dtl_ucx_t* dtl_handle = ctx->dtl_handle->private_dtl.ucx_dtl_handle;
     DYAD_LOG_INFO (ctx, "Poll UCP for incoming data");
     // TODO: replace this loop with a resiliency response over RPC
     // TODO(Ian): explore whether removing probe makes the overall
@@ -406,9 +406,9 @@ static dyad_rc_t ucx_warmup (const dyad_ctx_t* ctx)
     }
     DYAD_LOG_INFO (ctx, "Establishing connection with self");
     rc = ucx_connect (ctx,
-                      ctx->dtl_handle->private.ucx_dtl_handle->ucx_worker,
-                      ctx->dtl_handle->private.ucx_dtl_handle->local_address,
-                      &(ctx->dtl_handle->private.ucx_dtl_handle->ep));
+                      ctx->dtl_handle->private_dtl.ucx_dtl_handle->ucx_worker,
+                      ctx->dtl_handle->private_dtl.ucx_dtl_handle->local_address,
+                      &(ctx->dtl_handle->private_dtl.ucx_dtl_handle->ep));
     if (DYAD_IS_ERROR (rc)) {
         free (recv_buf);
         dyad_dtl_ucx_return_buffer (ctx, &send_buf);
@@ -433,8 +433,8 @@ static dyad_rc_t ucx_warmup (const dyad_ctx_t* ctx)
         dyad_ucx_request_wait (ctx, send_stat_ptr);
     DYAD_LOG_INFO (ctx, "Disconnecting from self");
     ucx_disconnect (ctx,
-                    ctx->dtl_handle->private.ucx_dtl_handle->ucx_worker,
-                    ctx->dtl_handle->private.ucx_dtl_handle->ep);
+                    ctx->dtl_handle->private_dtl.ucx_dtl_handle->ucx_worker,
+                    ctx->dtl_handle->private_dtl.ucx_dtl_handle->ep);
     dyad_dtl_ucx_return_buffer (ctx, &send_buf);
     if (UCX_STATUS_FAIL (recv_status) || UCX_STATUS_FAIL (send_status)) {
         rc = DYAD_RC_UCXCOMM_FAIL;
@@ -466,13 +466,13 @@ dyad_rc_t dyad_dtl_ucx_init (const dyad_ctx_t* ctx,
     dyad_rc_t rc = DYAD_RC_OK;
     dyad_dtl_ucx_t* dtl_handle = NULL;
 
-    ctx->dtl_handle->private.ucx_dtl_handle = malloc (sizeof (struct dyad_dtl_ucx));
-    if (ctx->dtl_handle->private.ucx_dtl_handle == NULL) {
+    ctx->dtl_handle->private_dtl.ucx_dtl_handle = malloc (sizeof (struct dyad_dtl_ucx));
+    if (ctx->dtl_handle->private_dtl.ucx_dtl_handle == NULL) {
         DYAD_LOG_ERROR (ctx, "Could not allocate UCX DTL context\n");
         DYAD_C_FUNCTION_END();
         return DYAD_RC_SYSFAIL;
     }
-    dtl_handle = ctx->dtl_handle->private.ucx_dtl_handle;
+    dtl_handle = ctx->dtl_handle->private_dtl.ucx_dtl_handle;
     // Allocation/Freeing of the Flux handle should be
     // handled by the DYAD context
     dtl_handle->h = ctx->h;
@@ -614,11 +614,12 @@ dyad_rc_t dyad_dtl_ucx_rpc_pack (const dyad_ctx_t* ctx,
     DYAD_C_FUNCTION_START();
     DYAD_C_FUNCTION_UPDATE_STR ("upath", upath);
     DYAD_C_FUNCTION_UPDATE_INT ("producer_rank", producer_rank);
+    DYAD_C_FUNCTION_UPDATE_INT ("pid", ctx->pid);
     dyad_rc_t rc = DYAD_RC_OK;
     size_t enc_len = 0;
     char* enc_buf = NULL;
     ssize_t enc_size = 0;
-    dyad_dtl_ucx_t* dtl_handle = ctx->dtl_handle->private.ucx_dtl_handle;
+    dyad_dtl_ucx_t* dtl_handle = ctx->dtl_handle->private_dtl.ucx_dtl_handle;
     if (dtl_handle->local_address == NULL) {
         DYAD_LOG_ERROR (dtl_handle, "Tried to pack an RPC payload without a local UCX address");
         rc = DYAD_RC_BADPACK;
@@ -667,13 +668,15 @@ dyad_rc_t dyad_dtl_ucx_rpc_pack (const dyad_ctx_t* ctx,
     // Use Jansson to pack the tag and UCX address into
     // the payload to be sent via RPC to the producer plugin
     DYAD_LOG_INFO (ctx, "Packing RPC payload for UCX DTL\n");
-    *packed_obj = json_pack ("{s:s, s:i, s:i, s:s%}",
+    *packed_obj = json_pack ("{s:s, s:i, s:i, s:i, s:s%}",
                              "upath",
                              upath,
                              "tag_prod",
                              (int)producer_rank,
                              "tag_cons",
                              (int)consumer_rank,
+                             "pid_cons",
+                             ctx->pid,
                              "ucx_addr",
                              enc_buf,
                              enc_len);
@@ -697,20 +700,23 @@ dyad_rc_t dyad_dtl_ucx_rpc_unpack (const dyad_ctx_t* ctx, const flux_msg_t* msg,
     char* enc_addr = NULL;
     size_t enc_addr_len = 0;
     int errcode = 0;
-    uint32_t tag_prod = 0;
-    uint32_t tag_cons = 0;
+    uint64_t tag_prod = 0;
+    uint64_t tag_cons = 0;
+    uint64_t pid = 0;
     ssize_t decoded_len = 0;
-    dyad_dtl_ucx_t* dtl_handle = ctx->dtl_handle->private.ucx_dtl_handle;
+    dyad_dtl_ucx_t* dtl_handle = ctx->dtl_handle->private_dtl.ucx_dtl_handle;
     DYAD_LOG_INFO (ctx, "Unpacking RPC payload\n");
     errcode = flux_request_unpack (msg,
                                    NULL,
-                                   "{s:s, s:i, s:i, s:s%}",
+                                   "{s:s, s:i, s:i, s:i, s:s%}",
                                    "upath",
                                    upath,
                                    "tag_prod",
                                    &tag_prod,
                                    "tag_cons",
                                    &tag_cons,
+                                   "pid_cons",
+                                    &pid,
                                    "ucx_addr",
                                    &enc_addr,
                                    &enc_addr_len);
@@ -719,7 +725,11 @@ dyad_rc_t dyad_dtl_ucx_rpc_unpack (const dyad_ctx_t* ctx, const flux_msg_t* msg,
         rc = DYAD_RC_BADUNPACK;
         goto dtl_ucx_rpc_unpack_region_finish;
     }
-    dtl_handle->comm_tag = ((uint64_t)tag_prod << 32) | (uint64_t)tag_cons;
+    DYAD_C_FUNCTION_UPDATE_INT ("pid", pid);
+    DYAD_C_FUNCTION_UPDATE_INT ("tag_cons", tag_cons);
+    dtl_handle->comm_tag = tag_prod << 32 | tag_cons;
+    dtl_handle->consumer_conn_key = pid << 32 | tag_cons;
+    DYAD_C_FUNCTION_UPDATE_INT ("cons_key", dtl_handle->consumer_conn_key);
     DYAD_LOG_INFO (ctx, "Obtained upath from RPC payload: %s\n", *upath);
     DYAD_LOG_INFO (ctx, "Obtained UCP tag from RPC payload: %lu\n", dtl_handle->comm_tag);
     DYAD_LOG_INFO (ctx, "Decoding consumer UCP address using base64\n");
@@ -767,7 +777,7 @@ dyad_rc_t dyad_dtl_ucx_get_buffer (const dyad_ctx_t* ctx, size_t data_size, void
 {
     DYAD_C_FUNCTION_START();
     dyad_rc_t rc = DYAD_RC_OK;
-    dyad_dtl_ucx_t* dtl_handle = ctx->dtl_handle->private.ucx_dtl_handle;
+    dyad_dtl_ucx_t* dtl_handle = ctx->dtl_handle->private_dtl.ucx_dtl_handle;
     DYAD_LOG_INFO (dtl_handle, "Validating data_buf in get_buffer");
     // TODO(Ian): the second part of this check is (for some reason) evaluating
     //            to true despite `data_buf` being a pointer to a NULL pointer.
@@ -781,7 +791,7 @@ dyad_rc_t dyad_dtl_ucx_get_buffer (const dyad_ctx_t* ctx, size_t data_size, void
     //     goto ucx_get_buffer_done;
     // }
     DYAD_LOG_INFO (dtl_handle, "Validating data_size in get_buffer");
-    if (data_size > ctx->dtl_handle->private.ucx_dtl_handle->max_transfer_size) {
+    if (data_size > ctx->dtl_handle->private_dtl.ucx_dtl_handle->max_transfer_size) {
         DYAD_LOG_ERROR (dtl_handle,
                       "Requested a data size that's larger than the pre-allocated UCX buffer");
         rc = DYAD_RC_BADBUF;
@@ -814,7 +824,7 @@ dyad_rc_t dyad_dtl_ucx_establish_connection (const dyad_ctx_t* ctx)
 {
     DYAD_C_FUNCTION_START();
     dyad_rc_t rc = DYAD_RC_OK;
-    dyad_dtl_ucx_t* dtl_handle = ctx->dtl_handle->private.ucx_dtl_handle;
+    dyad_dtl_ucx_t* dtl_handle = ctx->dtl_handle->private_dtl.ucx_dtl_handle;
     dyad_dtl_comm_mode_t comm_mode = dtl_handle->comm_mode;
     if (comm_mode == DYAD_COMM_SEND) {
         DYAD_LOG_INFO (ctx, "Create UCP endpoint for communication with consumer\n");
@@ -924,7 +934,7 @@ dyad_rc_t dyad_dtl_ucx_close_connection (const dyad_ctx_t* ctx)
 {
     DYAD_C_FUNCTION_START();
     dyad_rc_t rc = DYAD_RC_OK;
-    dyad_dtl_ucx_t* dtl_handle = ctx->dtl_handle->private.ucx_dtl_handle;
+    dyad_dtl_ucx_t* dtl_handle = ctx->dtl_handle->private_dtl.ucx_dtl_handle;
     dyad_dtl_comm_mode_t comm_mode = dtl_handle->comm_mode;
     if (comm_mode == DYAD_COMM_SEND) {
         if (dtl_handle != NULL) {
@@ -973,11 +983,11 @@ dyad_rc_t dyad_dtl_ucx_finalize (const dyad_ctx_t* ctx)
     DYAD_C_FUNCTION_START();
     dyad_dtl_ucx_t* dtl_handle = NULL;
     dyad_rc_t rc = DYAD_RC_OK;
-    if (ctx->dtl_handle == NULL || ctx->dtl_handle->private.ucx_dtl_handle == NULL) {
+    if (ctx->dtl_handle == NULL || ctx->dtl_handle->private_dtl.ucx_dtl_handle == NULL) {
         rc = DYAD_RC_OK;
         goto dtl_ucx_finalize_region_finish;
     }
-    dtl_handle = ctx->dtl_handle->private.ucx_dtl_handle;
+    dtl_handle = ctx->dtl_handle->private_dtl.ucx_dtl_handle;
     DYAD_LOG_INFO (ctx, "Finalizing UCX DTL\n");
     if (dtl_handle->ep != NULL) {
         dyad_dtl_ucx_close_connection (ctx);
@@ -1014,7 +1024,7 @@ dyad_rc_t dyad_dtl_ucx_finalize (const dyad_ctx_t* ctx)
     dtl_handle->h = NULL;
     // Free the handle and set to NULL to prevent double free
     free (dtl_handle);
-    ctx->dtl_handle->private.ucx_dtl_handle = NULL;
+    ctx->dtl_handle->private_dtl.ucx_dtl_handle = NULL;
     rc = DYAD_RC_OK;
 dtl_ucx_finalize_region_finish:;
     DYAD_C_FUNCTION_END();
