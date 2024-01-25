@@ -15,17 +15,17 @@ dyad_rc_t dyad_dtl_flux_init (const dyad_ctx_t* ctx,
 {
     dyad_rc_t rc = DYAD_RC_OK;
     DYAD_C_FUNCTION_START();
-    ctx->dtl_handle->private.flux_dtl_handle = malloc (sizeof (struct dyad_dtl_flux));
-    if (ctx->dtl_handle->private.flux_dtl_handle == NULL) {
+    ctx->dtl_handle->private_dtl.flux_dtl_handle = malloc (sizeof (struct dyad_dtl_flux));
+    if (ctx->dtl_handle->private_dtl.flux_dtl_handle == NULL) {
         DYAD_LOG_ERROR (ctx, "Cannot allocate the Flux DTL handle");
         rc = DYAD_RC_SYSFAIL;
         goto dtl_flux_init_region_finish;
     }
-    ctx->dtl_handle->private.flux_dtl_handle->h = ctx->h;
-    ctx->dtl_handle->private.flux_dtl_handle->comm_mode = comm_mode;
-    ctx->dtl_handle->private.flux_dtl_handle->debug = debug;
-    ctx->dtl_handle->private.flux_dtl_handle->f = NULL;
-    ctx->dtl_handle->private.flux_dtl_handle->msg = NULL;
+    ctx->dtl_handle->private_dtl.flux_dtl_handle->h = ctx->h;
+    ctx->dtl_handle->private_dtl.flux_dtl_handle->comm_mode = comm_mode;
+    ctx->dtl_handle->private_dtl.flux_dtl_handle->debug = debug;
+    ctx->dtl_handle->private_dtl.flux_dtl_handle->f = NULL;
+    ctx->dtl_handle->private_dtl.flux_dtl_handle->msg = NULL;
 
     ctx->dtl_handle->rpc_pack = dyad_dtl_flux_rpc_pack;
     ctx->dtl_handle->rpc_unpack = dyad_dtl_flux_rpc_unpack;
@@ -76,7 +76,7 @@ dyad_rc_t dyad_dtl_flux_rpc_unpack (const dyad_ctx_t* ctx, const flux_msg_t* msg
         dyad_rc = DYAD_RC_BADUNPACK;
         goto dtl_flux_rpc_unpack_region_finish;
     }
-    ctx->dtl_handle->private.flux_dtl_handle->msg = (flux_msg_t*)msg;
+    ctx->dtl_handle->private_dtl.flux_dtl_handle->msg = (flux_msg_t*)msg;
     dyad_rc = DYAD_RC_OK;
     DYAD_C_FUNCTION_UPDATE_STR ("upath", *upath);
 dtl_flux_rpc_unpack_region_finish:
@@ -94,7 +94,7 @@ dyad_rc_t dyad_dtl_flux_rpc_respond (const dyad_ctx_t* ctx, const flux_msg_t* or
 dyad_rc_t dyad_dtl_flux_rpc_recv_response (const dyad_ctx_t* ctx, flux_future_t* f)
 {
     DYAD_C_FUNCTION_START();
-    ctx->dtl_handle->private.flux_dtl_handle->f = f;
+    ctx->dtl_handle->private_dtl.flux_dtl_handle->f = f;
     DYAD_C_FUNCTION_END();
     return DYAD_RC_OK;
 }
@@ -149,8 +149,8 @@ dyad_rc_t dyad_dtl_flux_send (const dyad_ctx_t* ctx, void* buf, size_t buflen)
     int rc = 0;
     DYAD_LOG_INFO (ctx,
                    "Send data to consumer using a Flux RPC response");
-    rc = flux_respond_raw (ctx->dtl_handle->private.flux_dtl_handle->h,
-                           ctx->dtl_handle->private.flux_dtl_handle->msg,
+    rc = flux_respond_raw (ctx->dtl_handle->private_dtl.flux_dtl_handle->h,
+                           ctx->dtl_handle->private_dtl.flux_dtl_handle->msg,
                            buf,
                            (int)buflen);
     if (FLUX_IS_ERROR (rc)) {
@@ -160,7 +160,7 @@ dyad_rc_t dyad_dtl_flux_send (const dyad_ctx_t* ctx, void* buf, size_t buflen)
         dyad_rc = DYAD_RC_FLUXFAIL;
         goto dtl_flux_send_region_finish;
     }
-    if (ctx->dtl_handle->private.flux_dtl_handle->debug) {
+    if (ctx->dtl_handle->private_dtl.flux_dtl_handle->debug) {
         DYAD_LOG_INFO (ctx,
                        "Successfully sent file contents to consumer");
     }
@@ -177,7 +177,7 @@ dyad_rc_t dyad_dtl_flux_recv (const dyad_ctx_t* ctx, void** buf, size_t* buflen)
     int rc = 0;
     dyad_rc_t dyad_rc = DYAD_RC_OK;
     errno = 0;
-    dyad_dtl_flux_t* dtl_handle = ctx->dtl_handle->private.flux_dtl_handle;
+    dyad_dtl_flux_t* dtl_handle = ctx->dtl_handle->private_dtl.flux_dtl_handle;
     DYAD_LOG_INFO (ctx, "Get file contents from module using Flux RPC");
     if (dtl_handle->f == NULL) {
         DYAD_LOG_ERROR (ctx, "Cannot get data using RPC without a Flux future");
@@ -216,10 +216,10 @@ finish_recv:
 dyad_rc_t dyad_dtl_flux_close_connection (const dyad_ctx_t* ctx)
 {
     DYAD_C_FUNCTION_START();
-    if (ctx->dtl_handle->private.flux_dtl_handle->f != NULL)
-        ctx->dtl_handle->private.flux_dtl_handle->f = NULL;
-    if (ctx->dtl_handle->private.flux_dtl_handle->msg != NULL)
-        ctx->dtl_handle->private.flux_dtl_handle->msg = NULL;
+    if (ctx->dtl_handle->private_dtl.flux_dtl_handle->f != NULL)
+        ctx->dtl_handle->private_dtl.flux_dtl_handle->f = NULL;
+    if (ctx->dtl_handle->private_dtl.flux_dtl_handle->msg != NULL)
+        ctx->dtl_handle->private_dtl.flux_dtl_handle->msg = NULL;
     DYAD_C_FUNCTION_END();
     return DYAD_RC_OK;
 }
@@ -231,11 +231,11 @@ dyad_rc_t dyad_dtl_flux_finalize (const dyad_ctx_t* ctx)
     if (ctx->dtl_handle == NULL) {
         goto dtl_flux_finalize_done;
     }
-    ctx->dtl_handle->private.flux_dtl_handle->h = NULL;
-    ctx->dtl_handle->private.flux_dtl_handle->f = NULL;
-    ctx->dtl_handle->private.flux_dtl_handle->msg = NULL;
-    free (ctx->dtl_handle->private.flux_dtl_handle);
-    ctx->dtl_handle->private.flux_dtl_handle = NULL;
+    ctx->dtl_handle->private_dtl.flux_dtl_handle->h = NULL;
+    ctx->dtl_handle->private_dtl.flux_dtl_handle->f = NULL;
+    ctx->dtl_handle->private_dtl.flux_dtl_handle->msg = NULL;
+    free (ctx->dtl_handle->private_dtl.flux_dtl_handle);
+    ctx->dtl_handle->private_dtl.flux_dtl_handle = NULL;
 dtl_flux_finalize_done:;
     DYAD_C_FUNCTION_END();
     return rc;

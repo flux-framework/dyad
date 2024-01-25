@@ -37,6 +37,8 @@ struct dyad_ctx {
     char* cons_managed_path;        // consumer path managed by DYAD
 };
 typedef struct dyad_ctx dyad_ctx_t;
+typedef void* ucx_ep_cache_h;
+
 
 #ifdef __cplusplus
 }

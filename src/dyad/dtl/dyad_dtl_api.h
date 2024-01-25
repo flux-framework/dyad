@@ -42,12 +42,12 @@ enum dyad_dtl_comm_mode {
 typedef enum dyad_dtl_comm_mode dyad_dtl_comm_mode_t;
 
 struct dyad_dtl {
-    dyad_dtl_private_t private;
+    dyad_dtl_private_t private_dtl;
     dyad_dtl_mode_t mode;
     dyad_rc_t (*rpc_pack) (const dyad_ctx_t* ctx,
-                           const char* restrict upath,
+                           const char*  upath,
                            uint32_t producer_rank,
-                           json_t** restrict packed_obj);
+                           json_t**  packed_obj);
     dyad_rc_t (*rpc_unpack) (const dyad_ctx_t* ctx, const flux_msg_t* packed_obj, char** upath);
     dyad_rc_t (*rpc_respond) (const dyad_ctx_t* ctx, const flux_msg_t* orig_msg);
     dyad_rc_t (*rpc_recv_response) (const dyad_ctx_t* ctx, flux_future_t* f);

@@ -11,6 +11,7 @@
 #include <dyad/common/dyad_structures.h>
 #include <ucp/api/ucp.h>
 #include <flux/core.h>
+#include <dyad/dtl/ucx_dtl.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -20,7 +21,7 @@ extern "C" {
 // of UCX operations
 #define UCX_STATUS_FAIL(status) (status != UCS_OK)
 
-typedef void* ucx_ep_cache_h;
+
 
 dyad_rc_t ucx_connect (const dyad_ctx_t *ctx,
                        ucp_worker_h worker,

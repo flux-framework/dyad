@@ -49,7 +49,7 @@ dyad_rc_t dyad_dtl_init (dyad_ctx_t* ctx,
         goto dtl_init_done;
     }
     rc = DYAD_RC_OK;
-    DYAD_LOG_DEBUG (ctx, "Finished dyad_dtl_init without error");
+    DYAD_LOG_DEBUG (ctx, "Finished dyad_dtl_init successfully");
 dtl_init_done:;
      DYAD_C_FUNCTION_END();
     return rc;
@@ -69,7 +69,7 @@ dyad_rc_t dyad_dtl_finalize (dyad_ctx_t* ctx)
     }
 #if DYAD_ENABLE_UCX_DTL
     if ((ctx->dtl_handle)->mode == DYAD_DTL_UCX) {
-        if ((ctx->dtl_handle)->private.ucx_dtl_handle != NULL) {
+        if ((ctx->dtl_handle)->private_dtl.ucx_dtl_handle != NULL) {
             rc = dyad_dtl_ucx_finalize (ctx);
             if (DYAD_IS_ERROR (rc)) {
                 goto dtl_finalize_done;
@@ -79,7 +79,7 @@ dyad_rc_t dyad_dtl_finalize (dyad_ctx_t* ctx)
 #else
     if ((ctx->dtl_handle)->mode == DYAD_DTL_FLUX_RPC) {
 #endif
-        if ((ctx->dtl_handle)->private.flux_dtl_handle != NULL) {
+        if ((ctx->dtl_handle)->private_dtl.flux_dtl_handle != NULL) {
             rc = dyad_dtl_flux_finalize (ctx);
             if (DYAD_IS_ERROR (rc)) {
                 goto dtl_finalize_done;

@@ -83,6 +83,7 @@ class Dyad:
         self.dyad_init_env = None
         self.dyad_produce = None
         self.dyad_consume = None
+        self.dyad_consume_w_metadata = None
         self.dyad_finalize = None
         dyad_core_lib_file = None
         self.cons_path = None
@@ -94,6 +95,7 @@ class Dyad:
         if self.dyad_core_lib is None:
             raise FileNotFoundError("Cannot find libdyad_core")
         self.ctx = ctypes.POINTER(DyadCtxWrapper)()
+
         self.dyad_init = self.dyad_core_lib.dyad_init
         self.dyad_init.argtypes = [
             ctypes.c_bool,                                   # debug
@@ -110,17 +112,20 @@ class Dyad:
             ctypes.POINTER(ctypes.POINTER(DyadCtxWrapper)),  # ctx
         ]
         self.dyad_init.restype = ctypes.c_int
+
         self.dyad_init_env = self.dyad_core_lib.dyad_init_env
         self.dyad_init_env.argtypes = [
             ctypes.POINTER(ctypes.POINTER(DyadCtxWrapper))
         ]
         self.dyad_init_env.restype = ctypes.c_int
+
         self.dyad_produce = self.dyad_core_lib.dyad_produce
         self.dyad_produce.argtypes = [
             ctypes.POINTER(DyadCtxWrapper),
             ctypes.c_char_p,
         ]
         self.dyad_produce.restype = ctypes.c_int
+
         self.dyad_get_metadata = self.dyad_core_lib.dyad_get_metadata
         self.dyad_get_metadata.argtypes = [
             ctypes.POINTER(DyadCtxWrapper),
@@ -129,22 +134,34 @@ class Dyad:
             ctypes.POINTER(ctypes.POINTER(DyadMetadataWrapper)),
         ]
         self.dyad_get_metadata.restype = ctypes.c_int
+
         self.dyad_free_metadata = self.dyad_core_lib.dyad_free_metadata
         self.dyad_free_metadata.argtypes = [
             ctypes.POINTER(ctypes.POINTER(DyadMetadataWrapper))
         ]
         self.dyad_free_metadata.restype = ctypes.c_int
+
         self.dyad_consume = self.dyad_core_lib.dyad_consume
         self.dyad_consume.argtypes = [
             ctypes.POINTER(DyadCtxWrapper),
             ctypes.c_char_p,
         ]
         self.dyad_consume.restype = ctypes.c_int
+
+        self.dyad_consume_w_metadata = self.dyad_core_lib.dyad_consume_w_metadata
+        self.dyad_consume_w_metadata.argtypes = [
+            ctypes.POINTER(DyadCtxWrapper),
+            ctypes.c_char_p,
+            ctypes.POINTER(DyadMetadataWrapper),
+        ]
+        self.dyad_consume_w_metadata.restype = ctypes.c_int
+
         self.dyad_finalize = self.dyad_core_lib.dyad_finalize
         self.dyad_finalize.argtypes = [
             ctypes.POINTER(ctypes.POINTER(DyadCtxWrapper)),
         ]
         self.dyad_finalize.restype = ctypes.c_int
+
         self.cons_path = None
         self.prod_path = None
         self.log_inst = None
@@ -283,6 +300,22 @@ class Dyad:
         )
         if int(res) != 0:
             raise RuntimeError("Cannot consume data with DYAD!")
+
+    @dlio_log.log
+    def consume_w_metadata(self, fname, metadata_wrapper):
+        if self.dyad_consume is None:
+            warnings.warn(
+                "Trying to consunme with metadata  with DYAD when libdyad_core.so was not found",
+                RuntimeWarning
+            )
+            return
+        res = self.dyad_consume_w_metadata(
+            self.ctx,
+            fname.encode(),
+            metadata_wrapper
+        )
+        if int(res) != 0:
+            raise RuntimeError("Cannot consume data with metadata with DYAD!")
 
     @dlio_log.log
     def finalize(self):

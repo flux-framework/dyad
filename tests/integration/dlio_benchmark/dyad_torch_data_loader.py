@@ -110,23 +110,25 @@ class DYADTorchDataset(Dataset):
         dlp.update(args={"fname":filename})
         dlp.update(args={"image_idx":image_idx})
         if self.dyad_managed_directory != "":
+            logging.info(f"{utcnow()} Rank {DLIOMPI.get_instance().rank()} reading metadata")
             base_fname = os.path.join(self.dyad_managed_directory, os.path.basename(filename))
-            file_obj = self.dyad_io.get_metadata(fname=base_fname, should_wait=False)
+            file_obj = self.dyad_io.get_metadata(fname=base_fname, should_wait=False, raw=True)
             logging.debug(f"Using managed directory {self.dyad_managed_directory} {base_fname} {file_obj}")
             is_present = True
         if file_obj:
             access_mode = "remote"
-            file_node_index = int(file_obj.owner_rank*1.0 / self.broker_per_node)
+            file_node_index = int(file_obj.contents.owner_rank*1.0 / self.broker_per_node)
             if self.my_node_index == file_node_index:
                 access_mode = "local"
-            dlp.update(args={"owner_rank":str(file_obj.owner_rank)})
+            dlp.update(args={"owner_rank":str(file_obj.contents.owner_rank)})
             dlp.update(args={"my_broker":str(self.broker_rank)})
             dlp.update(args={"mode":"dyad"})
             dlp.update(args={"access":access_mode})
-            logging.info(f"{utcnow()} Rank {DLIOMPI.get_instance().rank()} reading {image_idx} sample from {access_mode} dyad {file_obj.owner_rank}")
+            logging.info(f"{utcnow()} Rank {DLIOMPI.get_instance().rank()} reading {image_idx} sample from {access_mode} dyad {file_obj.contents.owner_rank}")
             logging.debug(f"Reading from managed directory {base_fname}")
-            with dyad_open(base_fname, "rb", dyad_ctx=self.dyad_io) as f:
+            with dyad_open(base_fname, "rb", dyad_ctx=self.dyad_io, metadata_wrapper=file_obj) as f:
                 data = np.load(f, allow_pickle=True)["x"]
+            self.dyad_io.free_metadata(file_obj)
         else:
             dlp.update(args={"mode":"pfs"})
             dlp.update(args={"access":"remote"})

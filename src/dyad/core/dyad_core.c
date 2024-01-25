@@ -303,6 +303,10 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_fetch (const dyad_ctx_t* restrict ctx,
     char upath[PATH_MAX] = {'\0'};
     const size_t topic_len = PATH_MAX;
     char topic[PATH_MAX + 1] = {'\0'};
+    if (ctx->shared_storage) {
+        rc = DYAD_RC_OK;
+        goto fetch_done;
+    }
     memset (upath, 0, PATH_MAX);
     memset (topic, 0, topic_len + 1);
     // Extract the path to the file specified by fname relative to the
@@ -336,12 +340,10 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_fetch (const dyad_ctx_t* restrict ctx,
     // skipped
     DYAD_C_FUNCTION_UPDATE_INT ("owner_rank", (*mdata)->owner_rank);
     DYAD_C_FUNCTION_UPDATE_INT ("node_idx", ctx->node_idx);
-    if (ctx->shared_storage ||
-        (((*mdata)->owner_rank / ctx->service_mux) == ctx->node_idx)) {
+    if (((*mdata)->owner_rank / ctx->service_mux) == ctx->node_idx) {
         DYAD_LOG_INFO (ctx,
-                       "Either shared-storage is enabled or the producer rank (%u) "
-                       "is the "
-                       "same as the consumer rank (%u)", (*mdata)->owner_rank, ctx->rank);
+                       "Either shared-storage is indicated or the producer rank (%u) is the"
+                       " same as the consumer rank (%u)", (*mdata)->owner_rank, ctx->rank);
         if (mdata != NULL && *mdata != NULL) {
             dyad_free_metadata (mdata);
         }
@@ -859,7 +861,7 @@ dyad_rc_t dyad_get_metadata (dyad_ctx_t* ctx,
     DYAD_C_FUNCTION_UPDATE_STR ("upath", upath);
     DYAD_LOG_INFO (ctx, "Generating KVS key: %s", topic);
     gen_path_key (upath, topic, topic_len, ctx->key_depth, ctx->key_bins);
-    rc = dyad_kvs_read (ctx, topic, fname, should_wait, mdata);
+    rc = dyad_kvs_read (ctx, topic, upath, should_wait, mdata);
     if (DYAD_IS_ERROR (rc)) {
         DYAD_LOG_ERROR (ctx, "Could not read data from the KVS");
         goto get_metadata_done;
@@ -903,13 +905,13 @@ dyad_rc_t dyad_consume (dyad_ctx_t* ctx, const char* fname)
     // So, return DYAD_NOCTX
     if (!ctx || !ctx->h) {
         rc = DYAD_RC_NOCTX;
-        goto consume_done;
+        goto consume_close;
     }
     // If the consumer-managed path is NULL or empty, then the context is not
     // valid for a consumer operation. So, return DYAD_BADMANAGEDPATH
     if (ctx->cons_managed_path == NULL || strlen (ctx->cons_managed_path) == 0) {
         rc = DYAD_RC_BADMANAGEDPATH;
-        goto consume_done;
+        goto consume_close;
     }
     // Set reenter to false to avoid recursively performing
     // DYAD operations
@@ -919,12 +921,12 @@ dyad_rc_t dyad_consume (dyad_ctx_t* ctx, const char* fname)
     if (fd == -1) {
         DYAD_LOG_ERROR (ctx, "Cannot create file (%s) for dyad_consume!\n", fname);
         rc = DYAD_RC_BADFIO;
-        goto consume_done;
+        goto consume_close;
     }
     rc = dyad_excl_flock (ctx, fd, &exclusive_lock);
     if (DYAD_IS_ERROR (rc)) {
         dyad_release_flock (ctx, fd, &exclusive_lock);
-        goto consume_done;
+        goto consume_close;
     }
     if ((file_size = get_file_size (fd)) <= 0) {
         DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] File (%s with fd %d) is not fetched yet", \
@@ -937,17 +939,17 @@ dyad_rc_t dyad_consume (dyad_ctx_t* ctx, const char* fname)
         if (DYAD_IS_ERROR (rc)) {
             DYAD_LOG_ERROR (ctx, "dyad_fetch failed!\n");
             dyad_release_flock (ctx, fd, &exclusive_lock);
-            goto consume_done;
+            goto consume_close;
         }
         // If dyad_fetch was successful, but resp is still NULL,
         // then we need to skip data transfer.
         // This will most likely happend because shared_storage
         // is enabled
         if (mdata == NULL) {
-            DYAD_LOG_INFO (ctx, "The KVS response is NULL! Skipping dyad_pull!\n");
+            DYAD_LOG_INFO (ctx, "File '%s' is local!\n", fname);
             rc = DYAD_RC_OK;
             dyad_release_flock (ctx, fd, &exclusive_lock);
-            goto consume_done;
+            goto consume_close;
         }
 
         // Call dyad_get_data to dispatch a RPC to the producer's Flux broker
@@ -989,6 +991,99 @@ consume_done:;
     if (file_data != NULL) {
         ctx->dtl_handle->return_buffer (ctx, (void**)&file_data);
     }
+    // Set reenter to true to allow additional intercepting
+consume_close:;
+    ctx->reenter = true;
+    DYAD_C_FUNCTION_END();
+    return rc;
+}
+
+dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t* ctx, const char* fname,
+                                   const dyad_metadata_t* restrict mdata)
+{
+    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_UPDATE_STR ("fname", fname);
+    dyad_rc_t rc = DYAD_RC_OK;
+    int fd = -1;
+    ssize_t file_size = -1;
+    char* file_data = NULL;
+    size_t data_len = 0ul;
+    struct flock exclusive_lock;
+    // If the context is not defined, then it is not valid.
+    // So, return DYAD_NOCTX
+    if (!ctx || !ctx->h) {
+        rc = DYAD_RC_NOCTX;
+        goto consume_close;
+    }
+    // If dyad_fetch was successful, but resp is still NULL,
+    // then we need to skip data transfer.
+    // This will most likely happend because shared_storage
+    // is enabled
+    if (mdata == NULL) {
+        DYAD_LOG_INFO (ctx, "File '%s' is local!\n", fname);
+        rc = DYAD_RC_OK;
+        goto consume_close;
+    }
+    // If the consumer-managed path is NULL or empty, then the context is not
+    // valid for a consumer operation. So, return DYAD_BADMANAGEDPATH
+    if (ctx->cons_managed_path == NULL || strlen (ctx->cons_managed_path) == 0) {
+        rc = DYAD_RC_BADMANAGEDPATH;
+        goto consume_close;
+    }
+    // Set reenter to false to avoid recursively performing
+    // DYAD operations
+    ctx->reenter = false;
+    fd = open (fname, O_RDWR | O_CREAT, 0666);
+    DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
+    if (fd == -1) {
+        DYAD_LOG_ERROR (ctx, "Cannot create file (%s) for dyad_consume!\n", fname);
+        rc = DYAD_RC_BADFIO;
+        goto consume_close;
+    }
+    rc = dyad_excl_flock (ctx, fd, &exclusive_lock);
+    if (DYAD_IS_ERROR (rc)) {
+        dyad_release_flock (ctx, fd, &exclusive_lock);
+        goto consume_close;
+    }
+    if ((file_size = get_file_size (fd)) <= 0) {
+        DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] File (%s with fd %d) is not fetched yet", \
+                       ctx->node_idx, ctx->rank, ctx->pid, fname, fd);
+
+        // Call dyad_get_data to dispatch a RPC to the producer's Flux broker
+        // and retrieve the data associated with the file
+        rc = dyad_get_data (ctx, mdata, &file_data, &data_len);
+        if (DYAD_IS_ERROR (rc)) {
+            DYAD_LOG_ERROR (ctx, "dyad_get_data failed!\n");
+            dyad_release_flock (ctx, fd, &exclusive_lock);
+            goto consume_done;
+        }
+        DYAD_C_FUNCTION_UPDATE_INT ("data_len", data_len);
+
+        // Call dyad_pull to fetch the data from the producer's
+        // Flux broker
+        rc = dyad_cons_store (ctx, mdata, fd, data_len, file_data);
+        // If an error occured in dyad_pull, log it
+        // and return the corresponding DYAD return code
+        if (DYAD_IS_ERROR (rc)) {
+            DYAD_LOG_ERROR (ctx, "dyad_cons_store failed!\n");
+            dyad_release_flock (ctx, fd, &exclusive_lock);
+            goto consume_done;
+        };
+        fsync (fd);
+    }
+    dyad_release_flock (ctx, fd, &exclusive_lock);
+    DYAD_C_FUNCTION_UPDATE_INT ("file_size", file_size);
+
+    if (close (fd) != 0) {
+        rc = DYAD_RC_BADFIO;
+        goto consume_done;
+    }
+    rc = DYAD_RC_OK;
+consume_done:;
+    if (file_data != NULL) {
+        ctx->dtl_handle->return_buffer (ctx, (void**)&file_data);
+    }
+consume_close:;
     // Set reenter to true to allow additional intercepting
     ctx->reenter = true;
     DYAD_C_FUNCTION_END();

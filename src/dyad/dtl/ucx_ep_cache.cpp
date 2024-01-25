@@ -14,30 +14,8 @@
 #include <unordered_map>
 #include <utility>
 
-using key_type = std::pair<ucp_address_t*, size_t>;
+using key_type = uint64_t;
 using cache_type = std::unordered_map<key_type, ucp_ep_h>;
-
-// Adapted from the following code:
-// https://github.com/LLNL/wcs/blob/6590f592a69fe0c553ebf27a1bc348ff1fbbd813/src/utils/seed.hpp#L23
-namespace std
-{
-template <>
-struct hash<key_type> {
-    using arg_t = key_type;
-    using result_t = size_t;
-
-    result_t operator() (const arg_t& a) const
-    {
-        hash<uint8_t> hasher;
-        result_t hashed_val = 0ul;
-        uint8_t* byte_buf = reinterpret_cast<uint8_t*> (a.first);
-        for (size_t i = 0ul; i < a.second; ++i) {
-            hashed_val = hashed_val * 31 + hasher (*(byte_buf + i));
-        }
-        return hashed_val;
-    }
-};
-}  // namespace std
 
 static void dyad_ucx_ep_err_handler (void* arg, ucp_ep_h ep, ucs_status_t status)
 {
@@ -160,10 +138,9 @@ dyad_rc_t dyad_ucx_ep_cache_find (const dyad_ctx_t *ctx,
         goto ucx_ep_cache_find_done;
     }
     try {
-        const cache_type* cpp_cache = reinterpret_cast<const cache_type*> (cache);
-        auto key = std::make_pair<ucp_address_t*, size_t> (const_cast<ucp_address_t*> (addr),
-                                                           static_cast<size_t> (addr_size));
-        cache_type::const_iterator cache_it = cpp_cache->find (key);
+        const auto* cpp_cache = reinterpret_cast<const cache_type*> (cache);
+        auto key = ctx->dtl_handle->private_dtl.ucx_dtl_handle->consumer_conn_key;
+        auto cache_it = cpp_cache->find (key);
         if (cache_it == cpp_cache->cend ()) {
             *ep = nullptr;
             rc = DYAD_RC_NOTFOUND;
@@ -190,16 +167,16 @@ dyad_rc_t dyad_ucx_ep_cache_insert (const dyad_ctx_t *ctx,
     dyad_rc_t rc = DYAD_RC_OK;
     try {
         cache_type* cpp_cache = reinterpret_cast<cache_type*> (cache);
-        auto key = std::make_pair<ucp_address_t*, size_t> (const_cast<ucp_address_t*> (addr),
-                                                           static_cast<size_t> (addr_size));
-        cache_type::const_iterator cache_it = cpp_cache->find (key);
-        if (cache_it != cpp_cache->cend ()) {
+        uint64_t key = ctx->dtl_handle->private_dtl.ucx_dtl_handle->consumer_conn_key;
+        DYAD_C_FUNCTION_UPDATE_INT("cons_key", ctx->dtl_handle->private_dtl.ucx_dtl_handle->consumer_conn_key)
+        auto cache_it = cpp_cache->find (key);
+        if (cache_it != cpp_cache->end ()) {
             rc = DYAD_RC_OK;
         } else {
             ucp_ep_h ep;
             rc = ucx_connect (ctx, worker, addr, &ep);
             if (!DYAD_IS_ERROR (rc)) {
-                cpp_cache->emplace (key, ep);
+                cpp_cache->insert_or_assign(key, ep);
                 rc = DYAD_RC_OK;
             }
         }
@@ -221,9 +198,7 @@ static inline cache_type::iterator cache_remove_impl (const dyad_ctx_t *ctx,
         // The UCP address was allocated with 'malloc' while unpacking
         // the RPC message. So, we extract it from the key and free
         // it after erasing the iterator
-        ucp_address_t* addr = it->first.first;
         auto next_it = cache->erase (it);
-        free (addr);
         DYAD_C_FUNCTION_END();
         return next_it;
     }
@@ -241,8 +216,7 @@ dyad_rc_t dyad_ucx_ep_cache_remove (const dyad_ctx_t *ctx,
     dyad_rc_t rc = DYAD_RC_OK;
     try {
         cache_type* cpp_cache = reinterpret_cast<cache_type*> (cache);
-        auto key = std::make_pair<ucp_address_t*, size_t> (const_cast<ucp_address_t*> (addr),
-                                                           static_cast<size_t> (addr_size));
+        auto key = ctx->dtl_handle->private_dtl.ucx_dtl_handle->consumer_conn_key;
         cache_type::iterator cache_it = cpp_cache->find (key);
         cache_remove_impl (ctx, cpp_cache, cache_it, worker);
         rc = DYAD_RC_OK;
