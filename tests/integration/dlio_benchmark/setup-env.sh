@@ -4,11 +4,11 @@ module load python/3.9.12
 module load openmpi/4.1.2
 
 # Configurations
-export DLIO_WORKLOAD=dyad_unet3d # unet3d_base dyad_unet3d dyad_unet3d_small
+export DLIO_WORKLOAD=dyad_unet3d_io # unet3d_base dyad_unet3d dyad_unet3d_small dyad_unet3d_io
 export NUM_NODES=2
 export PPN=8
 export BROKERS_PER_NODE=1
-export GENERATE_DATA="0"
+export GENERATE_DATA="1"
 
 export DYAD_INSTALL_PREFIX=/usr/workspace/haridev/dyad/env/spack/.spack-env/view
 export DYAD_KVS_NAMESPACE=dyad
