@@ -10,7 +10,7 @@
 #include <dyad/common/dyad_profiler.h>
 
 #if DYAD_ENABLE_UCX_DTL
-#include "ucx_dtl.h"
+#include <dyad/dtl/ucx_dtl.h>
 #endif
 
 dyad_rc_t dyad_dtl_init (dyad_ctx_t* ctx,

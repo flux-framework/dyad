@@ -149,17 +149,11 @@ static dyad_rc_t ucx_allocate_buffer (const dyad_ctx_t *ctx,
     }
     DYAD_LOG_INFO (ctx, "Allocating memory with UCX");
     mmap_params.field_mask = UCP_MEM_MAP_PARAM_FIELD_ADDRESS | UCP_MEM_MAP_PARAM_FIELD_LENGTH
-                             | UCP_MEM_MAP_PARAM_FIELD_FLAGS | UCP_MEM_MAP_PARAM_FIELD_MEMORY_TYPE
-                             | UCP_MEM_MAP_PARAM_FIELD_PROT;
+                             | UCP_MEM_MAP_PARAM_FIELD_FLAGS | UCP_MEM_MAP_PARAM_FIELD_MEMORY_TYPE;
     mmap_params.address = NULL;
     mmap_params.memory_type = UCS_MEMORY_TYPE_HOST;
-    mmap_params.length = buf_size;
+    mmap_params.length = buf_size + sizeof(ssize_t);
     mmap_params.flags = UCP_MEM_MAP_ALLOCATE;
-    if (comm_mode == DYAD_COMM_SEND) {
-        mmap_params.prot = UCP_MEM_MAP_PROT_LOCAL_READ;
-    } else {
-        mmap_params.prot = UCP_MEM_MAP_PROT_REMOTE_WRITE;
-    }
     status = ucp_mem_map (ucp_ctx, &mmap_params, &mem_handle);
     if (UCX_STATUS_FAIL (status)) {
         rc = DYAD_RC_UCXMMAP_FAIL;
@@ -175,6 +169,16 @@ static dyad_rc_t ucx_allocate_buffer (const dyad_ctx_t *ctx,
         goto ucx_allocate_done;
     }
     *buf = attr.address;
+    dyad_dtl_ucx_t* dtl_handle = ctx->dtl_handle->private_dtl.ucx_dtl_handle;
+    ucp_memh_pack_params_t params;
+    params.field_mask = UCP_MEMH_PACK_PARAM_FIELD_FLAGS;
+    params.flags = UCP_MEMH_PACK_FLAG_EXPORT;
+    status = ucp_memh_pack(mem_handle, &params, &(dtl_handle->rkey_buf), &(dtl_handle->rkey_size));
+    if (UCX_STATUS_FAIL (status)) {
+        rc = DYAD_RC_UCXRKEY_FAIL;
+        DYAD_LOG_ERROR (ctx, "ucp_rkey_pack failed");
+        goto ucx_allocate_done;
+    }
     rc = DYAD_RC_OK;
 
 ucx_allocate_done:;
@@ -214,7 +218,7 @@ ucx_free_buf_done:;
     return rc;
 }
 
-static inline ucs_status_ptr_t ucx_send_no_wait (const dyad_ctx_t* ctx, void* buf, size_t buflen)
+static inline ucs_status_ptr_t ucx_send_no_wait (const dyad_ctx_t* ctx, bool is_warmup, void* buf, size_t buflen)
 {
     DYAD_C_FUNCTION_START();
     ucs_status_ptr_t stat_ptr;
@@ -226,29 +230,21 @@ static inline ucs_status_ptr_t ucx_send_no_wait (const dyad_ctx_t* ctx, void* bu
         stat_ptr = (void*)UCS_ERR_NOT_CONNECTED;
         goto ucx_send_no_wait_done;
     }
-    // ucp_tag_send_sync_nbx is the prefered version of this send since UCX 1.9
-    // However, some systems (e.g., Lassen) may have an older verison
-    // This conditional compilation will use ucp_tag_send_sync_nbx if using
-    // UCX 1.9+, and it will use the deprecated ucp_tag_send_sync_nb if using
-    // UCX < 1.9.
-#if UCP_API_VERSION >= UCP_VERSION(1, 10)
+    ucp_rkey_h rkey;
+    ucs_status_t status = ucp_ep_rkey_unpack (dtl_handle->ep, dtl_handle->rkey_buf, &rkey);
+    if (UCX_STATUS_FAIL (status)) {
+        DYAD_LOG_ERROR (ctx, "ucp_ep_rkey_unpack failed");
+        return stat_ptr;
+    }
     ucp_request_param_t params;
     params.op_attr_mask = UCP_OP_ATTR_FIELD_CALLBACK;
     params.cb.send = dyad_send_callback;
-    DYAD_LOG_INFO (ctx, "Sending data to consumer with ucp_tag_send_nbx");
-    stat_ptr = ucp_tag_send_nbx (dtl_handle->ep, buf, buflen, dtl_handle->comm_tag, &params);
-#else
-    DYAD_LOG_INFO (ctx,
-                   "Sending %lu bytes of data to consumer with "
-                   "ucp_tag_send_nb",
-                   buflen);
-    stat_ptr = ucp_tag_send_nb (dtl_handle->ep,
-                                buf,
-                                buflen,
-                                UCP_DATATYPE_CONTIG,
-                                dtl_handle->comm_tag,
-                                dyad_send_callback);
-#endif
+    DYAD_LOG_INFO (ctx, "Sending data to consumer with ucp_put_nbx");
+    memcpy (buf+dtl_handle->max_transfer_size, &buflen, sizeof(buflen));
+    ucp_address_t* address;
+    if (is_warmup) address = dtl_handle->local_address;
+    else address = dtl_handle->remote_address;
+    stat_ptr = ucp_put_nbx(dtl_handle->ep, buf, buflen, (uint64_t)address, rkey, &params);
 ucx_send_no_wait_done:;
     DYAD_C_FUNCTION_END();
     return stat_ptr;
@@ -260,121 +256,122 @@ static inline ucs_status_ptr_t ucx_recv_no_wait (const dyad_ctx_t* ctx,
                                                  size_t* buflen)
 {
     DYAD_C_FUNCTION_START();
-    dyad_rc_t rc = DYAD_RC_OK;
-    ucp_tag_message_h msg = NULL;
-    ucp_tag_recv_info_t msg_info;
     ucs_status_ptr_t stat_ptr = NULL;
-    dyad_dtl_ucx_t* dtl_handle = ctx->dtl_handle->private_dtl.ucx_dtl_handle;
-    DYAD_LOG_INFO (ctx, "Poll UCP for incoming data");
-    // TODO: replace this loop with a resiliency response over RPC
-    // TODO(Ian): explore whether removing probe makes the overall
-    //            recv faster or not
-    do {
-        ucp_worker_progress (dtl_handle->ucx_worker);
-        msg = ucp_tag_probe_nb (dtl_handle->ucx_worker,
-                                dtl_handle->comm_tag,
-                                DYAD_UCX_TAG_MASK,
-                                1,  // Remove the message from UCP tracking
-                                // Requires calling ucp_tag_msg_recv_nb
-                                // with the ucp_tag_message_h to retrieve message
-                                &msg_info);
-    } while (msg == NULL);
-    // TODO: This version of the polling code is not supposed to spin-lock,
-    // unlike the code above. Currently, it does not work. Once it starts
-    // working, we can replace the code above with a version of this code.
-    //
-    // while (true)
-    // {
-    //     // Probe the tag recv event at the top
-    //     // of the worker's queue
-    //     DYAD_LOG_INFO (ctx, "Probe UCP worker with tag %lu",
-    //     dtl_handle->comm_tag); msg = ucp_tag_probe_nb(
-    //         dtl_handle->ucx_worker,
-    //         dtl_handle->comm_tag,
-    //         DYAD_UCX_TAG_MASK,
-    //         1, // Remove the message from UCP tracking
-    //         // Requires calling ucp_tag_msg_recv_nb
-    //         // with the ucp_tag_message_h to retrieve message
-    //         &msg_info
-    //     );
-    //     // If data has arrived from the producer plugin,
-    //     // break the loop
-    //     if (msg != NULL)
-    //     {
-    //         DYAD_LOG_INFO (ctx, "Data has arrived, so end
-    //         polling"); break;
-    //     }
-    //     // If data has not arrived, check if there are
-    //     // any other events in the worker's queue.
-    //     // If so, start the loop over to handle the next event
-    //     else if (ucp_worker_progress(dtl_handle->ucx_worker))
-    //     {
-    //         DYAD_LOG_INFO (ctx, "Progressed UCP worker to check if
-    //         any other UCP events are available"); continue;
-    //     }
-    //     // No other events are queued. So, we will wait on new
-    //     // events to come in. By using 'ucp_worker_wait' for this,
-    //     // we let the OS do other work in the meantime (no spin locking).
-    //     DYAD_LOG_INFO (ctx, "Launch pre-emptable wait until UCP
-    //     worker gets new events\n"); status =
-    //     ucp_worker_wait(dtl_handle->ucx_worker);
-    //     // If the wait fails, log an error
-    //     if (UCX_STATUS_FAIL(status))
-    //     {
-    //         DYAD_LOG_INFO (ctx, "Could not wait on the message from
-    //         the producer plugin\n"); return DYAD_RC_UCXWAIT_FAIL;
-    //     }
-    // }
-    // The metadata retrived from the probed tag recv event contains
-    // the size of the data to be sent.
-    // So, use that size to allocate a buffer
-    DYAD_LOG_INFO (ctx,
-                   "Got message with tag %lu and size %lu\n",
-                   msg_info.sender_tag,
-                   msg_info.length);
-    *buflen = msg_info.length;
-    if (is_warmup) {
-        if (*buflen > dtl_handle->max_transfer_size) {
-            *buflen = 0;
-            stat_ptr = (ucs_status_ptr_t)UCS_ERR_BUFFER_TOO_SMALL;
-            goto ucx_recv_no_wait_done;
-        }
-    } else {
-        rc = ctx->dtl_handle->get_buffer (ctx, *buflen, buf);
-        if (DYAD_IS_ERROR (rc)) {
-            *buf = NULL;
-            *buflen = 0;
-            stat_ptr = (ucs_status_ptr_t)UCS_ERR_NO_MEMORY;
-            goto ucx_recv_no_wait_done;
-        }
-    }
-    DYAD_LOG_INFO (ctx, "Receive data using async UCX operation\n");
-#if UCP_API_VERSION >= UCP_VERSION(1, 10)
-    // Define the settings for the recv operation
-    //
-    // The settings enabled are:
-    //   * Define callback for the recv because it is async
-    //   * Restrict memory buffers to host-only since we aren't directly
-    //     dealing with GPU memory
-    ucp_request_param_t recv_params;
-    // TODO consider enabling UCP_OP_ATTR_FIELD_MEMH to speedup
-    // the recv operation if using RMA behind the scenes
-    recv_params.op_attr_mask = UCP_OP_ATTR_FIELD_CALLBACK | UCP_OP_ATTR_FIELD_MEMORY_TYPE;
-    recv_params.cb.recv = dyad_recv_callback;
-    // Constraining to Host memory (as opposed to GPU memory)
-    // allows UCX to potentially perform some optimizations
-    recv_params.memory_type = UCS_MEMORY_TYPE_HOST;
-    // Perform the async recv operation using the probed tag recv event
-    stat_ptr = ucp_tag_msg_recv_nbx (dtl_handle->ucx_worker, *buf, *buflen, msg, &recv_params);
-#else
-    stat_ptr = ucp_tag_msg_recv_nb (dtl_handle->ucx_worker,
-                                    *buf,
-                                    *buflen,
-                                    UCP_DATATYPE_CONTIG,
-                                    msg,
-                                    dyad_recv_callback);
-#endif
-ucx_recv_no_wait_done:;
+//    dyad_rc_t rc = DYAD_RC_OK;
+//    ucp_tag_message_h msg = NULL;
+//    ucp_tag_recv_info_t msg_info;
+//
+//    dyad_dtl_ucx_t* dtl_handle = ctx->dtl_handle->private_dtl.ucx_dtl_handle;
+//    DYAD_LOG_INFO (ctx, "Poll UCP for incoming data");
+//    // TODO: replace this loop with a resiliency response over RPC
+//    // TODO(Ian): explore whether removing probe makes the overall
+//    //            recv faster or not
+//    do {
+//        ucp_worker_progress (dtl_handle->ucx_worker);
+//        msg = ucp_tag_probe_nb (dtl_handle->ucx_worker,
+//                                dtl_handle->comm_tag,
+//                                DYAD_UCX_TAG_MASK,
+//                                1,  // Remove the message from UCP tracking
+//                                // Requires calling ucp_tag_msg_recv_nb
+//                                // with the ucp_tag_message_h to retrieve message
+//                                &msg_info);
+//    } while (msg == NULL);
+//    // TODO: This version of the polling code is not supposed to spin-lock,
+//    // unlike the code above. Currently, it does not work. Once it starts
+//    // working, we can replace the code above with a version of this code.
+//    //
+//    // while (true)
+//    // {
+//    //     // Probe the tag recv event at the top
+//    //     // of the worker's queue
+//    //     DYAD_LOG_INFO (ctx, "Probe UCP worker with tag %lu",
+//    //     dtl_handle->comm_tag); msg = ucp_tag_probe_nb(
+//    //         dtl_handle->ucx_worker,
+//    //         dtl_handle->comm_tag,
+//    //         DYAD_UCX_TAG_MASK,
+//    //         1, // Remove the message from UCP tracking
+//    //         // Requires calling ucp_tag_msg_recv_nb
+//    //         // with the ucp_tag_message_h to retrieve message
+//    //         &msg_info
+//    //     );
+//    //     // If data has arrived from the producer plugin,
+//    //     // break the loop
+//    //     if (msg != NULL)
+//    //     {
+//    //         DYAD_LOG_INFO (ctx, "Data has arrived, so end
+//    //         polling"); break;
+//    //     }
+//    //     // If data has not arrived, check if there are
+//    //     // any other events in the worker's queue.
+//    //     // If so, start the loop over to handle the next event
+//    //     else if (ucp_worker_progress(dtl_handle->ucx_worker))
+//    //     {
+//    //         DYAD_LOG_INFO (ctx, "Progressed UCP worker to check if
+//    //         any other UCP events are available"); continue;
+//    //     }
+//    //     // No other events are queued. So, we will wait on new
+//    //     // events to come in. By using 'ucp_worker_wait' for this,
+//    //     // we let the OS do other work in the meantime (no spin locking).
+//    //     DYAD_LOG_INFO (ctx, "Launch pre-emptable wait until UCP
+//    //     worker gets new events\n"); status =
+//    //     ucp_worker_wait(dtl_handle->ucx_worker);
+//    //     // If the wait fails, log an error
+//    //     if (UCX_STATUS_FAIL(status))
+//    //     {
+//    //         DYAD_LOG_INFO (ctx, "Could not wait on the message from
+//    //         the producer plugin\n"); return DYAD_RC_UCXWAIT_FAIL;
+//    //     }
+//    // }
+//    // The metadata retrived from the probed tag recv event contains
+//    // the size of the data to be sent.
+//    // So, use that size to allocate a buffer
+//    DYAD_LOG_INFO (ctx,
+//                   "Got message with tag %lu and size %lu\n",
+//                   msg_info.sender_tag,
+//                   msg_info.length);
+//    *buflen = msg_info.length;
+//    if (is_warmup) {
+//        if (*buflen > dtl_handle->max_transfer_size) {
+//            *buflen = 0;
+//            stat_ptr = (ucs_status_ptr_t)UCS_ERR_BUFFER_TOO_SMALL;
+//            goto ucx_recv_no_wait_done;
+//        }
+//    } else {
+//        rc = ctx->dtl_handle->get_buffer (ctx, *buflen, buf);
+//        if (DYAD_IS_ERROR (rc)) {
+//            *buf = NULL;
+//            *buflen = 0;
+//            stat_ptr = (ucs_status_ptr_t)UCS_ERR_NO_MEMORY;
+//            goto ucx_recv_no_wait_done;
+//        }
+//    }
+//    DYAD_LOG_INFO (ctx, "Receive data using async UCX operation\n");
+//#if UCP_API_VERSION >= UCP_VERSION(1, 10)
+//    // Define the settings for the recv operation
+//    //
+//    // The settings enabled are:
+//    //   * Define callback for the recv because it is async
+//    //   * Restrict memory buffers to host-only since we aren't directly
+//    //     dealing with GPU memory
+//    ucp_request_param_t recv_params;
+//    // TODO consider enabling UCP_OP_ATTR_FIELD_MEMH to speedup
+//    // the recv operation if using RMA behind the scenes
+//    recv_params.op_attr_mask = UCP_OP_ATTR_FIELD_CALLBACK | UCP_OP_ATTR_FIELD_MEMORY_TYPE;
+//    recv_params.cb.recv = dyad_recv_callback;
+//    // Constraining to Host memory (as opposed to GPU memory)
+//    // allows UCX to potentially perform some optimizations
+//    recv_params.memory_type = UCS_MEMORY_TYPE_HOST;
+//    // Perform the async recv operation using the probed tag recv event
+//    stat_ptr = ucp_tag_msg_recv_nbx (dtl_handle->ucx_worker, *buf, *buflen, msg, &recv_params);
+//#else
+//    stat_ptr = ucp_tag_msg_recv_nb (dtl_handle->ucx_worker,
+//                                    *buf,
+//                                    *buflen,
+//                                    UCP_DATATYPE_CONTIG,
+//                                    msg,
+//                                    dyad_recv_callback);
+//#endif
+//ucx_recv_no_wait_done:;
     DYAD_C_FUNCTION_END();
     return stat_ptr;
 }
@@ -416,7 +413,7 @@ static dyad_rc_t ucx_warmup (const dyad_ctx_t* ctx)
         goto warmup_region_done;
     }
     DYAD_LOG_INFO (ctx, "Starting non-blocking send for warmup");
-    send_stat_ptr = ucx_send_no_wait (ctx, send_buf, 1);
+    send_stat_ptr = ucx_send_no_wait (ctx, true, send_buf, 1);
     if ((uintptr_t)send_stat_ptr == (uintptr_t)UCS_ERR_NOT_CONNECTED) {
         DYAD_LOG_ERROR (ctx, "Send failed because there's no endpoint");
         free (recv_buf);
@@ -425,9 +422,6 @@ static dyad_rc_t ucx_warmup (const dyad_ctx_t* ctx)
     }
     DYAD_LOG_INFO (ctx, "Starting non-blocking recv for warmup");
     recv_stat_ptr = ucx_recv_no_wait (ctx, true, &recv_buf, &recv_buf_len);
-    DYAD_LOG_INFO (ctx, "Waiting on warmup recv to finish");
-    recv_status =
-        dyad_ucx_request_wait (ctx, recv_stat_ptr);
     DYAD_LOG_INFO (ctx, "Waiting on warmup send to finish");
     send_status =
         dyad_ucx_request_wait (ctx, send_stat_ptr);
@@ -616,8 +610,8 @@ dyad_rc_t dyad_dtl_ucx_rpc_pack (const dyad_ctx_t* ctx,
     DYAD_C_FUNCTION_UPDATE_INT ("producer_rank", producer_rank);
     DYAD_C_FUNCTION_UPDATE_INT ("pid", ctx->pid);
     dyad_rc_t rc = DYAD_RC_OK;
-    size_t enc_len = 0;
-    char* enc_buf = NULL;
+    size_t encoded_address_len = 0;
+    char* encoded_address_buf = NULL;
     ssize_t enc_size = 0;
     dyad_dtl_ucx_t* dtl_handle = ctx->dtl_handle->private_dtl.ucx_dtl_handle;
     if (dtl_handle->local_address == NULL) {
@@ -625,12 +619,13 @@ dyad_rc_t dyad_dtl_ucx_rpc_pack (const dyad_ctx_t* ctx,
         rc = DYAD_RC_BADPACK;
         goto dtl_ucx_rpc_pack_region_finish;
     }
-    DYAD_LOG_INFO (ctx, "Encode UCP address using base64\n");
-    enc_len = base64_encoded_length (dtl_handle->local_addr_len);
+    DYAD_LOG_DEBUG (ctx, "Encode UCP address using base64\n");
+    encoded_address_len = base64_encoded_length (dtl_handle->local_addr_len);
     // Add 1 to encoded length because the encoded buffer will be
     // packed as if it is a string
-    enc_buf = malloc (enc_len + 1);
-    if (enc_buf == NULL) {
+    encoded_address_buf = malloc (encoded_address_len + 1);
+    DYAD_LOG_DEBUG(ctx, "Encode UCP address len %d", encoded_address_len);
+    if (encoded_address_buf == NULL) {
         DYAD_LOG_ERROR (ctx, "Could not allocate buffer for packed address\n");
         rc = DYAD_RC_SYSFAIL;
         goto dtl_ucx_rpc_pack_region_finish;
@@ -639,16 +634,49 @@ dyad_rc_t dyad_dtl_ucx_rpc_pack (const dyad_ctx_t* ctx,
     // This is valid because it is a pointer to an opaque struct,
     // so the cast can be treated like a void*->char* cast.
     enc_size = base64_encode_using_maps (&base64_maps_rfc4648,
-                                         enc_buf,
-                                         enc_len + 1,
+                                         encoded_address_buf,
+                                         encoded_address_len + 1,
                                          (const char*)dtl_handle->local_address,
                                          dtl_handle->local_addr_len);
+    DYAD_LOG_DEBUG(ctx, "Encode UCP address size %d", enc_size);
     if (enc_size < 0) {
         // TODO log error
-        free (enc_buf);
+        DYAD_LOG_ERROR (ctx, "Could not encode local address\n");
+        free (encoded_address_buf);
         rc = DYAD_RC_BADPACK;
         goto dtl_ucx_rpc_pack_region_finish;
     }
+
+    DYAD_LOG_DEBUG (ctx, "Encode UCP rkey using base64\n");
+    size_t encoded_rkey_len = 0;
+    char* encoded_rkey_buf = NULL;
+    encoded_rkey_len = base64_encoded_length (dtl_handle->rkey_size);
+    // Add 1 to encoded length because the encoded buffer will be
+    // packed as if it is a string
+    encoded_rkey_buf = malloc (encoded_rkey_len + 1);
+    DYAD_LOG_DEBUG(ctx, "Encode UCP rkey len %d", encoded_rkey_len);
+    if (encoded_rkey_buf == NULL) {
+        DYAD_LOG_ERROR (ctx, "Could not allocate buffer for rkey\n");
+        rc = DYAD_RC_SYSFAIL;
+        goto dtl_ucx_rpc_pack_region_finish;
+    }
+    // remote_address is casted to const char* to avoid warnings
+    // This is valid because it is a pointer to an opaque struct,
+    // so the cast can be treated like a void*->char* cast.
+    enc_size = base64_encode_using_maps (&base64_maps_rfc4648,
+                                         encoded_rkey_buf,
+                                         encoded_rkey_len + 1,
+                                         (const char*)dtl_handle->rkey_buf,
+                                         dtl_handle->rkey_size);
+    DYAD_LOG_DEBUG(ctx, "Encode UCP rkey size %d", enc_size);
+    if (enc_size < 0) {
+        DYAD_LOG_ERROR (ctx, "Could not encode rkey address\n");
+        // TODO log error
+        free (encoded_rkey_buf);
+        rc = DYAD_RC_BADPACK;
+        goto dtl_ucx_rpc_pack_region_finish;
+    }
+
     DYAD_LOG_INFO (ctx, "Creating UCP tag for tag matching\n");
     // Because we're using tag-matching send/recv for communication,
     // there's no need to do any real connection establishment here.
@@ -668,7 +696,7 @@ dyad_rc_t dyad_dtl_ucx_rpc_pack (const dyad_ctx_t* ctx,
     // Use Jansson to pack the tag and UCX address into
     // the payload to be sent via RPC to the producer plugin
     DYAD_LOG_INFO (ctx, "Packing RPC payload for UCX DTL\n");
-    *packed_obj = json_pack ("{s:s, s:i, s:i, s:i, s:s%}",
+    *packed_obj = json_pack ("{s:s, s:i, s:i, s:i, s:s, s:i, s:s%}",
                              "upath",
                              upath,
                              "tag_prod",
@@ -678,9 +706,14 @@ dyad_rc_t dyad_dtl_ucx_rpc_pack (const dyad_ctx_t* ctx,
                              "pid_cons",
                              ctx->pid,
                              "ucx_addr",
-                             enc_buf,
-                             enc_len);
-    free (enc_buf);
+                             encoded_address_buf,
+                             "ucx_addr_len",
+                             encoded_address_len,
+                             "ucx_rkey",
+                             encoded_rkey_buf,
+                             encoded_rkey_len);
+    free (encoded_address_buf);
+    free (encoded_rkey_buf);
     // If the packing failed, log an error
     if (*packed_obj == NULL) {
         DYAD_LOG_ERROR (ctx, "Could not pack upath and UCX address for RPC\n");
@@ -697,18 +730,20 @@ dyad_rc_t dyad_dtl_ucx_rpc_unpack (const dyad_ctx_t* ctx, const flux_msg_t* msg,
 {
     DYAD_C_FUNCTION_START();
     dyad_rc_t rc = DYAD_RC_OK;
-    char* enc_addr = NULL;
-    size_t enc_addr_len = 0;
+    char* encoded_address_buf = NULL;
+    size_t encoded_address_len = 0;
+    char* encoded_rkey_buf = NULL;
+    size_t encoded_rkey_len = 0;
     int errcode = 0;
     uint64_t tag_prod = 0;
     uint64_t tag_cons = 0;
     uint64_t pid = 0;
-    ssize_t decoded_len = 0;
+    ssize_t decoded_address_len = 0;
     dyad_dtl_ucx_t* dtl_handle = ctx->dtl_handle->private_dtl.ucx_dtl_handle;
     DYAD_LOG_INFO (ctx, "Unpacking RPC payload\n");
     errcode = flux_request_unpack (msg,
                                    NULL,
-                                   "{s:s, s:i, s:i, s:i, s:s%}",
+                                   "{s:s, s:i, s:i, s:i, s:s, s:i, s:s%}",
                                    "upath",
                                    upath,
                                    "tag_prod",
@@ -718,8 +753,12 @@ dyad_rc_t dyad_dtl_ucx_rpc_unpack (const dyad_ctx_t* ctx, const flux_msg_t* msg,
                                    "pid_cons",
                                     &pid,
                                    "ucx_addr",
-                                   &enc_addr,
-                                   &enc_addr_len);
+                                   &encoded_address_buf,
+                                   "ucx_addr_len",
+                                   &encoded_address_len,
+                                   "ucx_rkey",
+                                   &encoded_rkey_buf,
+                                   &encoded_rkey_len);
     if (errcode < 0) {
         DYAD_LOG_ERROR (ctx, "Could not unpack Flux message from consumer!\n");
         rc = DYAD_RC_BADUNPACK;
@@ -733,23 +772,44 @@ dyad_rc_t dyad_dtl_ucx_rpc_unpack (const dyad_ctx_t* ctx, const flux_msg_t* msg,
     DYAD_LOG_INFO (ctx, "Obtained upath from RPC payload: %s\n", *upath);
     DYAD_LOG_INFO (ctx, "Obtained UCP tag from RPC payload: %lu\n", dtl_handle->comm_tag);
     DYAD_LOG_INFO (ctx, "Decoding consumer UCP address using base64\n");
-    dtl_handle->remote_addr_len = base64_decoded_length (enc_addr_len);
+    dtl_handle->remote_addr_len = base64_decoded_length (encoded_address_len);
     dtl_handle->remote_address = (ucp_address_t*)malloc (dtl_handle->remote_addr_len);
     if (dtl_handle->remote_address == NULL) {
         DYAD_LOG_ERROR (ctx, "Could not allocate memory for consumer address");
         rc = DYAD_RC_SYSFAIL;
         goto dtl_ucx_rpc_unpack_region_finish;
     }
-    decoded_len = base64_decode_using_maps (&base64_maps_rfc4648,
+    decoded_address_len = base64_decode_using_maps (&base64_maps_rfc4648,
                                             (char*)dtl_handle->remote_address,
                                             dtl_handle->remote_addr_len,
-                                            enc_addr,
-                                            enc_addr_len);
-    if (decoded_len < 0) {
+                                            encoded_address_buf,
+                                            encoded_address_len);
+    if (decoded_address_len < 0) {
         DYAD_LOG_ERROR (dtl_handle, "Failed to decode remote address");
         free (dtl_handle->remote_address);
         dtl_handle->remote_address = NULL;
         dtl_handle->remote_addr_len = 0;
+        rc = DYAD_RC_BAD_B64DECODE;
+        goto dtl_ucx_rpc_unpack_region_finish;
+    }
+    dtl_handle->rkey_size = base64_decoded_length (encoded_rkey_len);
+    dtl_handle->rkey_buf = (ucp_address_t*)malloc (dtl_handle->rkey_size);
+    ssize_t decoded_rkey_len = 0;
+    if (dtl_handle->rkey_buf == NULL) {
+        DYAD_LOG_ERROR (ctx, "Could not allocate memory for consumer rkey");
+        rc = DYAD_RC_SYSFAIL;
+        goto dtl_ucx_rpc_unpack_region_finish;
+    }
+    decoded_rkey_len = base64_decode_using_maps (&base64_maps_rfc4648,
+                                            (char*)dtl_handle->rkey_buf,
+                                            dtl_handle->rkey_size,
+                                            encoded_rkey_buf,
+                                            encoded_rkey_len);
+    if (decoded_rkey_len < 0) {
+        DYAD_LOG_ERROR (dtl_handle, "Failed to decode remote rkey");
+        free (dtl_handle->rkey_buf);
+        dtl_handle->rkey_buf = NULL;
+        dtl_handle->rkey_size = 0;
         rc = DYAD_RC_BAD_B64DECODE;
         goto dtl_ucx_rpc_unpack_region_finish;
     }
@@ -888,7 +948,7 @@ dyad_rc_t dyad_dtl_ucx_send (const dyad_ctx_t* ctx, void* buf, size_t buflen)
     dyad_rc_t rc = DYAD_RC_OK;
     ucs_status_ptr_t stat_ptr;
     ucs_status_t status = UCS_OK;
-    stat_ptr = ucx_send_no_wait (ctx, buf, buflen);
+    stat_ptr = ucx_send_no_wait (ctx, false, buf, buflen);
     DYAD_LOG_INFO (ctx, "Processing UCP send request\n");
     status = dyad_ucx_request_wait (ctx, stat_ptr);
     if (status != UCS_OK) {
@@ -909,21 +969,22 @@ dyad_rc_t dyad_dtl_ucx_recv (const dyad_ctx_t* ctx, void** buf, size_t* buflen)
 {
     DYAD_C_FUNCTION_START();
     dyad_rc_t rc = DYAD_RC_OK;
-    ucs_status_ptr_t stat_ptr = NULL;
-    ucs_status_t status = UCS_OK;
-    // Wait on the recv operation to complete
-    stat_ptr = ucx_recv_no_wait (ctx, false, buf, buflen);
-    DYAD_LOG_INFO (ctx, "Wait for UCP recv operation to complete\n");
-    status = dyad_ucx_request_wait (ctx, stat_ptr);
-    // If the recv operation failed, log an error, free the data buffer,
-    // and set the buffer pointer to NULL
-    if (UCX_STATUS_FAIL (status)) {
-        DYAD_LOG_ERROR (ctx, "UCX recv failed!\n");
-        rc = DYAD_RC_UCXCOMM_FAIL;
-        goto dtl_ucx_recv_region_finish;
-    }
-    DYAD_LOG_INFO (ctx, "Data receive using UCX is successful\n");
-    DYAD_LOG_INFO (ctx, "Received %lu bytes from producer\n", *buflen);
+//    ucs_status_ptr_t stat_ptr = NULL;
+//    ucs_status_t status = UCS_OK;
+//    // Wait on the recv operation to complete
+//    stat_ptr = ucx_recv_no_wait (ctx, false, buf, buflen);
+//    DYAD_LOG_INFO (ctx, "Wait for UCP recv operation to complete\n");
+//    status = dyad_ucx_request_wait (ctx, stat_ptr);
+//    // If the recv operation failed, log an error, free the data buffer,
+//    // and set the buffer pointer to NULL
+//    if (UCX_STATUS_FAIL (status)) {
+//        DYAD_LOG_ERROR (ctx, "UCX recv failed!\n");
+//        rc = DYAD_RC_UCXCOMM_FAIL;
+//        goto dtl_ucx_recv_region_finish;
+//    }
+//    DYAD_LOG_INFO (ctx, "Data receive using UCX is successful\n");
+//    DYAD_LOG_INFO (ctx, "Received %lu bytes from producer\n", *buflen);
+    *buflen = ctx->dtl_handle->private_dtl.ucx_dtl_handle->max_transfer_size;
     rc = DYAD_RC_OK;
 dtl_ucx_recv_region_finish:;
     DYAD_C_FUNCTION_END();

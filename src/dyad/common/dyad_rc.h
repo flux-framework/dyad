@@ -61,6 +61,7 @@ enum dyad_core_return_codes {
     DYAD_RC_UCXEP_FAIL = -3003,       // An operation on a ucp_ep_h failed
     DYAD_RC_UCXCOMM_FAIL = -3004,     // UCX communication routine failed
     DYAD_RC_UCXMMAP_FAIL = -3005,     // Failed to perform operations with ucp_mem_map
+    DYAD_RC_UCXRKEY_FAIL = -3006,     // Failed to perform operations with ucp_mem_map
 
 };
 

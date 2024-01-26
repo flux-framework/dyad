@@ -415,6 +415,26 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_get_data (const dyad_ctx_t* ctx,
     }
     DYAD_C_FUNCTION_UPDATE_INT ("file_len", *file_len);
 
+    ssize_t file_size = 0;
+    DYAD_LOG_INFO (ctx, "Wait for end-of-stream message from module (current RC = %d)\n", rc);
+    if (rc != DYAD_RC_RPC_FINISHED && rc != DYAD_RC_BADRPC) {
+        char msg[256];
+        if (!(flux_rpc_get (f, msg) < 0 && errno == ENODATA)) {
+            DYAD_LOG_ERROR (ctx,
+                            "An error occured at end of getting data! Either the "
+                            "module sent too many responses, or the module "
+                            "failed with a bad error (errno = %d)\n",
+                            errno);
+            rc = DYAD_RC_BADRPC;
+        } else {
+            // Correct end of RPC.
+            rc = ctx->dtl_handle->get_buffer (ctx, file_size, file_data);
+            memcpy (&file_size, (*file_data)+(*file_len), sizeof(file_size));
+            *file_len = file_size;
+            (*file_data)[file_size] = '\0';
+            DYAD_LOG_ERROR (ctx, "msg %s file_size %zu", msg, file_size);
+        }
+    }
     rc = DYAD_RC_OK;
 
 get_done:;
@@ -428,17 +448,7 @@ get_done:;
     // well in the module, this last message will set errno to ENODATA (i.e.,
     // end of stream). Otherwise, something went wrong, so we'll return
     // DYAD_RC_BADRPC.
-    DYAD_LOG_INFO (ctx, "Wait for end-of-stream message from module (current RC = %d)\n", rc);
-    if (rc != DYAD_RC_RPC_FINISHED && rc != DYAD_RC_BADRPC) {
-        if (!(flux_rpc_get (f, NULL) < 0 && errno == ENODATA)) {
-            DYAD_LOG_ERROR (ctx,
-                          "An error occured at end of getting data! Either the "
-                          "module sent too many responses, or the module "
-                          "failed with a bad error (errno = %d)\n",
-                          errno);
-            rc = DYAD_RC_BADRPC;
-        }
-    }
+
     DYAD_LOG_INFO (ctx, "Destroy the Flux future for the RPC\n");
     flux_future_destroy (f);
     DYAD_C_FUNCTION_END();

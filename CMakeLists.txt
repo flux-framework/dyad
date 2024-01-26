@@ -103,6 +103,7 @@ set(DYAD_LOGGER "NONE" CACHE STRING "Logger to use for DYAD")
 set_property(CACHE DYAD_LOGGER PROPERTY STRINGS FLUX CPP_LOGGER NONE)
 set(DYAD_LOGGER_LEVEL "NONE" CACHE STRING "Logging level to use for DYAD")
 set_property(CACHE DYAD_LOGGER_LEVEL PROPERTY STRINGS DEBUG INFO WARN ERROR NONE)
+option(DYAD_ENABLE_TESTS "Enable internal tests" Off)
 
 
 #------------------------------------------------------------------------------
@@ -499,3 +500,20 @@ install(FILES "${CMAKE_BINARY_DIR}/dyad_module.lua.install"
   RENAME "${DYAD_MODULEFILE_NAME}"
   DESTINATION
   "${DYAD_INSTALL_SYSCONFDIR}")
+
+
+if(DYAD_ENABLE_TESTS)
+    message("-- " "[DYAD] Enabling Testing")
+    if(CMAKE_BUILD_TYPE STREQUAL "PROFILE")
+        message("-- " "[DYAD] building with CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE}")
+        set(CMAKE_C_FLAGS_PROFILE --coverage)
+        set(CMAKE_CXX_FLAGS_PROFILE --coverage)
+    endif()
+    enable_testing()
+    add_subdirectory(tests)
+    if(CMAKE_BUILD_TYPE STREQUAL "PROFILE")
+        get_property(COVERAGE_FILE_LIST GLOBAL PROPERTY COVERAGE_FILES)
+        add_custom_command(OUTPUT default.profdata COMMAND llvm-profdata merge -sparse ${COVERAGE_FILE_LIST} -o default.profdata VERBATIM)
+        add_custom_target(merged_coverage DEPENDS default.profdata)
+    endif()
+endif()

@@ -56,6 +56,8 @@ struct dyad_dtl {
     dyad_rc_t (*establish_connection) (const dyad_ctx_t* ctx);
     dyad_rc_t (*send) (const dyad_ctx_t* ctx, void* buf, size_t buflen);
     dyad_rc_t (*recv) (const dyad_ctx_t* ctx, void** buf, size_t* buflen);
+    dyad_rc_t (*send_rma) (const dyad_ctx_t* ctx, void* buf, size_t buflen);
+    dyad_rc_t (*recv_rma) (const dyad_ctx_t* ctx, void** buf, size_t* buflen);
     dyad_rc_t (*close_connection) (const dyad_ctx_t* ctx);
 };
 typedef struct dyad_dtl dyad_dtl_t;

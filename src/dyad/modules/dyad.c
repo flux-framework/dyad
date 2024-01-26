@@ -224,7 +224,9 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
         close (fd);
     }
     DYAD_LOG_DEBUG(mod_ctx, "Close RPC message stream with an ENODATA (%d) message", ENODATA);
-    if (flux_respond_error (h, msg, ENODATA, NULL) < 0) {
+    char err_msg[256];
+    sprintf (err_msg,"%zd", file_size);
+    if (flux_respond_error (h, msg, ENODATA, err_msg) < 0) {
         DYAD_LOG_ERROR (mod_ctx, "DYAD_MOD: %s: flux_respond_error with ENODATA failed\n", __func__ );
     }
     DYAD_LOG_INFO(mod_ctx, "Finished %s module invocation\n", DYAD_DTL_RPC_NAME);
