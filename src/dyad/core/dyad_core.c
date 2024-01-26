@@ -843,6 +843,41 @@ dyad_rc_t dyad_get_metadata (dyad_ctx_t* ctx,
     DYAD_C_FUNCTION_UPDATE_STR ("fname", fname);
     DYAD_C_FUNCTION_UPDATE_INT ("should_wait", should_wait);
     dyad_rc_t rc = DYAD_RC_OK;
+    // check if file exist locally, if so skip kvs
+    int fd = open (fname, O_RDONLY);
+    if (fd != -1) {
+        close (fd);
+        if (mdata == NULL) {
+            DYAD_LOG_ERROR (ctx,
+                            "Metadata double pointer is NULL. Cannot correctly create metadata "
+                            "object");
+            rc = DYAD_RC_NOTFOUND;
+            goto get_metadata_done;
+        }
+        if (*mdata != NULL) {
+            DYAD_LOG_INFO (ctx, "Metadata object is already allocated. Skipping allocation");
+        } else {
+            *mdata = (dyad_metadata_t*)malloc (sizeof (struct dyad_metadata));
+            if (*mdata == NULL) {
+                DYAD_LOG_ERROR (ctx, "Cannot allocate memory for metadata object");
+                rc = DYAD_RC_SYSFAIL;
+                goto get_metadata_done;
+            }
+        }
+        size_t fname_len = strlen (fname);
+        (*mdata)->fpath = (char*)malloc (fname_len + 1);
+        if ((*mdata)->fpath == NULL) {
+            DYAD_LOG_ERROR (ctx, "Cannot allocate memory for fpath in metadata object");
+            rc = DYAD_RC_SYSFAIL;
+            goto get_metadata_done;
+        }
+        memset ((*mdata)->fpath, '\0', fname_len + 1);
+        strncpy ((*mdata)->fpath, fname, fname_len);
+        (*mdata)->owner_rank = ctx->rank;
+        rc = DYAD_RC_OK;
+        goto get_metadata_done;
+    }
+
     const size_t topic_len = PATH_MAX;
     char topic[PATH_MAX + 1] = {'\0'};
     char upath[PATH_MAX] = {'\0'};
