@@ -29,6 +29,12 @@ struct dyad_dtl_ucx {
     ucp_tag_t comm_tag;
     ucx_ep_cache_h ep_cache;
     uint64_t consumer_conn_key;
+    // Required for RMA
+    void* rkey_buf;
+    size_t rkey_size;
+    uint64_t cons_buf_ptr;
+    // Internal for Sender
+    ucp_rkey_h 	rkey;
 };
 
 typedef struct dyad_dtl_ucx dyad_dtl_ucx_t;

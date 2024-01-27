@@ -19,7 +19,7 @@ extern "C" {
 #else
 #include <stdint.h>
 #endif
-
+#define UCX_RMA 1
 
 // Forward declarations of DTL contexts for the underlying implementations
 struct dyad_dtl_ucx;

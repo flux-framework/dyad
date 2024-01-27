@@ -34,12 +34,8 @@ dyad_rc_t ucx_connect (const dyad_ctx_t *ctx,
     dyad_rc_t rc = DYAD_RC_OK;
     ucp_ep_params_t params;
     ucs_status_t status = UCS_OK;
-    params.field_mask = UCP_EP_PARAM_FIELD_REMOTE_ADDRESS | UCP_EP_PARAM_FIELD_ERR_HANDLING_MODE
-                        | UCP_EP_PARAM_FIELD_ERR_HANDLER;
+    params.field_mask = UCP_EP_PARAM_FIELD_REMOTE_ADDRESS;
     params.address = addr;
-    params.err_mode = UCP_ERR_HANDLING_MODE_PEER;
-    params.err_handler.cb = dyad_ucx_ep_err_handler;
-    params.err_handler.arg = (void*)ctx;
     status = ucp_ep_create (worker, &params, ep);
     if (UCX_STATUS_FAIL (status)) {
         DYAD_LOG_ERROR (ctx, "ucp_ep_create failed with status %d", (int)status);
@@ -173,10 +169,10 @@ dyad_rc_t dyad_ucx_ep_cache_insert (const dyad_ctx_t *ctx,
         if (cache_it != cpp_cache->end ()) {
             rc = DYAD_RC_OK;
         } else {
-            ucp_ep_h ep;
-            rc = ucx_connect (ctx, worker, addr, &ep);
+            DYAD_LOG_INFO (ctx, "No cache entry found. Creating new connection");
+            rc = ucx_connect (ctx, worker, addr, &ctx->dtl_handle->private_dtl.ucx_dtl_handle->ep);
             if (!DYAD_IS_ERROR (rc)) {
-                cpp_cache->insert_or_assign(key, ep);
+                cpp_cache->insert_or_assign(key, ctx->dtl_handle->private_dtl.ucx_dtl_handle->ep);
                 rc = DYAD_RC_OK;
             }
         }

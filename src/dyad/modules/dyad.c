@@ -125,7 +125,7 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
     dyad_mod_ctx_t *mod_ctx = getctx (h);
     DYAD_LOG_INFO(mod_ctx->ctx, "Launched callback for %s", DYAD_DTL_RPC_NAME);
     ssize_t inlen = 0;
-    void *inbuf = NULL;
+    char *inbuf = NULL;
     int fd = -1;
     uint32_t userid = 0u;
     char *upath = NULL;
@@ -186,8 +186,10 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
     file_size = get_file_size (fd);
     DYAD_LOG_DEBUG (mod_ctx->ctx, "file %s has size %u", fullpath, file_size);
     if (file_size > 0) {
-        rc = mod_ctx->ctx->dtl_handle->get_buffer (mod_ctx->ctx, file_size, &inbuf);
-        inlen = read (fd, inbuf, file_size);
+        size_t fs = file_size;
+        rc = mod_ctx->ctx->dtl_handle->get_buffer (mod_ctx->ctx, file_size, (void**)&inbuf);
+        memcpy (inbuf, &fs, sizeof(fs));
+        inlen = read (fd, inbuf + sizeof(size_t), file_size);
         if (inlen != file_size) {
             DYAD_LOG_ERROR (mod_ctx->ctx,
                             "DYAD_MOD: Failed to load file \"%s\" only read %u of %u.",
@@ -196,12 +198,12 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
                             file_size);
             goto fetch_error;
         }
+        inlen = file_size + sizeof(size_t);
         DYAD_C_FUNCTION_UPDATE_INT ("file_size", file_size);
         DYAD_LOG_DEBUG (mod_ctx->ctx, "Closing file pointer");
         dyad_release_flock (mod_ctx->ctx, fd, &shared_lock);
         close (fd);
         DYAD_LOG_DEBUG (mod_ctx->ctx, "Is inbuf NULL? -> %i", (int)(inbuf == NULL));
-
         DYAD_LOG_DEBUG (mod_ctx->ctx, "Establish DTL connection with consumer");
         rc = mod_ctx->ctx->dtl_handle->establish_connection (mod_ctx->ctx);
         if (DYAD_IS_ERROR (rc)) {
