@@ -25,6 +25,9 @@ endif()
 if(DYAD_PROFILER STREQUAL "DLIO_PROFILER")
     target_link_libraries(${PROJECT_NAME}_utils PRIVATE ${DLIO_PROFILER_LIBRARIES})
 endif()
+if (DYAD_PROFILER STREQUAL "CALIPER")
+    target_link_libraries(${PROJECT_NAME}_utils PRIVATE caliper)
+endif()
 
 target_compile_definitions(${PROJECT_NAME}_utils PUBLIC DYAD_HAS_CONFIG)
 target_include_directories(${PROJECT_NAME}_utils PUBLIC

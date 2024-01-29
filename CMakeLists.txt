@@ -255,6 +255,13 @@ elseif(DYAD_PROFILER STREQUAL "DLIO_PROFILER")
     else ()
         message(FATAL_ERROR "-- [${PROJECT_NAME}] dlio_profiler is not found but selected in cmake options ${PROJECT_NAME} build")
     endif ()
+elseif (DYAD_PROFILER STREQUAL "CALIPER")
+    find_package(caliper REQUIRED)
+    if (${caliper_FOUND})
+        message(STATUS "[${PROJECT_NAME}] found caliper at ${caliper_INCLUDE_DIR}")
+    else ()
+        message(FATAL_ERROR "-- [${PROJECT_NAME}] caliper is not found but selected in cmake options ${PROJECT_NAME} build")
+    endif ()
 endif()
 if(DYAD_ENABLE_UCX_DATA OR DYAD_ENABLE_UCX_DATA_RMA)
     find_package(ucx 1.6 REQUIRED)
@@ -389,6 +396,9 @@ install(DIRECTORY cmake/modules
         FILES_MATCHING PATTERN "*.cmake")
 endif (WIP_package_config)
 #...........................................
+install(DIRECTORY cmake/modules
+        DESTINATION "${DYAD_LIBDIR}/cmake/dyad"
+        FILES_MATCHING PATTERN "*.cmake")
 
 install(FILES
         "${CMAKE_INCLUDE_OUTPUT_DIRECTORY}/dyad/dyad_config.hpp"
