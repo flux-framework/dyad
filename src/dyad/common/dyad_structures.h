@@ -20,6 +20,7 @@ struct dyad_ctx {
     flux_t* h;                      // the Flux handle for DYAD
     struct dyad_dtl* dtl_handle;    // Opaque handle to DTL info
     const char* fname;              // Used to track which file is getting processed.
+    bool use_fs_locks;              // Used to track if fs locks should be used.
     // User Facing
     bool debug;                     // if true, perform debug logging
     bool check;                     // if true, perform some check logging

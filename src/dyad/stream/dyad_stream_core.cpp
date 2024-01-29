@@ -122,6 +122,8 @@ void dyad_stream_core::init (const dyad_params &p)
                               p.m_cons_managed_path.c_str (),
                               static_cast<dyad_dtl_mode_t> (p.m_dtl_mode),
                               &m_ctx);
+    // TODO:  implement a lock file based synchronization scheme.
+    m_ctx->use_fs_locks = false; // this is to disable checking for fs lock based logic.
     (void) rc;
     // TODO figure out if we want to error if init fails
     m_initialized = true;

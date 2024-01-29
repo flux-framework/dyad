@@ -33,7 +33,7 @@ export DLIO_PROFILER_LOG_LEVEL=ERROR
 export DLIO_PROFILER_BIND_SIGNALS=0
 export MV2_BCAST_HWLOC_TOPOLOGY=0
 
-mkdir -p ${DYAD_PATH}
+mkdir -m 775 -p ${DYAD_PATH}
 mkdir -p ${DLIO_PROFILER_LOG_FILE}
 # Activate Environments
 . ${SPACK_DIR}/share/spack/setup-env.sh
