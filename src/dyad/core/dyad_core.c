@@ -439,7 +439,7 @@ get_done:;
             rc = DYAD_RC_BADRPC;
         }
     }
-#ifdef UCX_RMA
+#ifdef DYAD_ENABLE_UCX_RMA
     ctx->dtl_handle->get_buffer(ctx, 0, (void**)file_data);
     memcpy (file_len, *file_data, sizeof(size_t));
     *file_data = ((char*)*file_data) + sizeof(size_t);

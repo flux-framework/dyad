@@ -186,10 +186,19 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
     file_size = get_file_size (fd);
     DYAD_LOG_DEBUG (mod_ctx->ctx, "file %s has size %u", fullpath, file_size);
     if (file_size > 0) {
+#ifdef DYAD_ENABLE_UCX_RMA
+        /**
+         * To reduce the number of RMA calls, we are encoding file size at the start of the buffer
+         */
         size_t fs = file_size;
+#endif
         rc = mod_ctx->ctx->dtl_handle->get_buffer (mod_ctx->ctx, file_size, (void**)&inbuf);
+#ifdef DYAD_ENABLE_UCX_RMA
         memcpy (inbuf, &fs, sizeof(fs));
         inlen = read (fd, inbuf + sizeof(size_t), file_size);
+#else
+        inlen = read (fd, inbuf, file_size);
+#endif
         if (inlen != file_size) {
             DYAD_LOG_ERROR (mod_ctx->ctx,
                             "DYAD_MOD: Failed to load file \"%s\" only read %u of %u.",
@@ -198,7 +207,9 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
                             file_size);
             goto fetch_error;
         }
+#ifdef DYAD_ENABLE_UCX_RMA
         inlen = file_size + sizeof(size_t);
+#endif
         DYAD_C_FUNCTION_UPDATE_INT ("file_size", file_size);
         DYAD_LOG_DEBUG (mod_ctx->ctx, "Closing file pointer");
         dyad_release_flock (mod_ctx->ctx, fd, &shared_lock);
@@ -215,7 +226,7 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
         rc = mod_ctx->ctx->dtl_handle->send (mod_ctx->ctx, inbuf, inlen);
         DYAD_LOG_DEBUG (mod_ctx, "Close DTL connection with consumer");
         mod_ctx->ctx->dtl_handle->close_connection (mod_ctx->ctx);
-        mod_ctx->ctx->dtl_handle->return_buffer (mod_ctx->ctx, &inbuf);
+        mod_ctx->ctx->dtl_handle->return_buffer (mod_ctx->ctx, (void**)&inbuf);
         if (DYAD_IS_ERROR (rc)) {
             DYAD_LOG_ERROR (mod_ctx->ctx, "Could not send data to client via DTL\n");
             errno = ECOMM;
