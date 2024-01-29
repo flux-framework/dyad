@@ -69,6 +69,9 @@ void dyad_mod_fini (void)
 
     if (h != NULL) {
     }
+#ifdef DYAD_PROFILER_DLIO_PROFILER
+    DLIO_PROFILER_C_FINI ();
+#endif
 }
 
 static void freectx (void *arg)
@@ -428,7 +431,7 @@ DYAD_DLL_EXPORTED int mod_main (flux_t *h, int argc, char **argv)
         DYAD_LOG_DEBUG (mod_ctx->ctx, "flux_reactor_run: %s", strerror (errno));
         goto mod_error;
     }
-
+    DYAD_LOG_DEBUG (mod_ctx->ctx, "DYAD Module finished");
     goto mod_done;
 
 mod_error:;
