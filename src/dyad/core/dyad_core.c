@@ -432,13 +432,19 @@ get_done:;
     if (rc != DYAD_RC_RPC_FINISHED && rc != DYAD_RC_BADRPC) {
         if (!(flux_rpc_get (f, NULL) < 0 && errno == ENODATA)) {
             DYAD_LOG_ERROR (ctx,
-                          "An error occured at end of getting data! Either the "
-                          "module sent too many responses, or the module "
-                          "failed with a bad error (errno = %d)\n",
-                          errno);
+                            "An error occured at end of getting data! Either the "
+                            "module sent too many responses, or the module "
+                            "failed with a bad error (errno = %d)\n",
+                            errno);
             rc = DYAD_RC_BADRPC;
         }
     }
+#ifdef DYAD_ENABLE_UCX_RMA
+    ctx->dtl_handle->get_buffer(ctx, 0, (void**)file_data);
+    memcpy (file_len, *file_data, sizeof(size_t));
+    *file_data = ((char*)*file_data) + sizeof(size_t);
+    DYAD_LOG_INFO (ctx, "Read %d bytes from %s file", *file_len, mdata->fpath);
+#endif
     DYAD_LOG_INFO (ctx, "Destroy the Flux future for the RPC\n");
     flux_future_destroy (f);
     DYAD_C_FUNCTION_END();

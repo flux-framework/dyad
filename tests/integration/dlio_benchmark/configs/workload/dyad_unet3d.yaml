@@ -19,7 +19,7 @@ dataset:
 reader: 
   data_loader: pytorch
   batch_size: 4
-  read_threads: 6
+  read_threads: 3
   file_shuffle: seed
   sample_shuffle: seed
   multiprocessing_context: spawn
@@ -27,8 +27,8 @@ reader:
   data_loader_sampler: index
 
 train:
-  epochs: 5
-  computation_time: 1.3604
+  epochs: 10
+  computation_time: 0 #1.3604
 
 checkpoint:
   checkpoint_folder: checkpoints/unet3d

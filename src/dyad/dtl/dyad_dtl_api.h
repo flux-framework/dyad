@@ -20,7 +20,6 @@ extern "C" {
 #include <stdint.h>
 #endif
 
-
 // Forward declarations of DTL contexts for the underlying implementations
 struct dyad_dtl_ucx;
 struct dyad_dtl_flux;

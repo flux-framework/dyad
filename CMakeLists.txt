@@ -97,6 +97,11 @@ option (DYAD_ENABLE_UCX_DATA "Allow to dynamically select UCX for DYAD's Data Pl
 if (DYAD_ENABLE_UCX_DATA)
     set (DYAD_ENABLE_UCX_DTL 1)
 endif ()
+option (DYAD_ENABLE_UCX_DATA_RMA "Use UCX's RMA for DYAD's Data Plane" ON)
+if (DYAD_ENABLE_UCX_DATA_RMA)
+    set (DYAD_ENABLE_UCX_RMA 1)
+endif ()
+
 set(DYAD_PROFILER "NONE" CACHE STRING "Profiler to use for DYAD")
 set_property(CACHE DYAD_PROFILER PROPERTY STRINGS PERFFLOW_ASPECT CALIPER DLIO_PROFILER NONE)
 set(DYAD_LOGGER "NONE" CACHE STRING "Logger to use for DYAD")
@@ -448,6 +453,8 @@ string(APPEND _str
   "  DYAD_CONTROL_PLANE:          ${DYAD_CONTROL_PLANE}\n")
 string(APPEND _str
   "  DYAD_DATA_PLANE:             ${DYAD_DATA_PLANE}\n")
+string(APPEND _str
+  "  DYAD_ENABLE_UCX_RMA:         ${DYAD_ENABLE_UCX_RMA}\n")
 string(APPEND _str
   "  DYAD_PROFILER:               ${DYAD_PROFILER}\n")
 string(APPEND _str
