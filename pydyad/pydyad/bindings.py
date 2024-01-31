@@ -28,7 +28,7 @@ class DyadCtxWrapper(ctypes.Structure):
         ("reenter", ctypes.c_bool),
         ("initialized", ctypes.c_bool),
         ("shared_storage", ctypes.c_bool),
-        ("sync_started", ctypes.c_bool),
+        ("async_publish", ctypes.c_bool),
         ("key_depth", ctypes.c_uint),
         ("key_bins", ctypes.c_uint),
         ("rank", ctypes.c_uint32),
@@ -103,6 +103,7 @@ class Dyad:
             ctypes.c_bool,                                   # check
             ctypes.c_bool,                                   # shared_storage
             ctypes.c_bool,                                   # reinit
+            ctypes.c_bool,                                   # async_publish
             ctypes.c_uint,                                   # key_depth
             ctypes.c_uint,                                   # key_bins
             ctypes.c_uint,                                   # service_mux
@@ -174,6 +175,7 @@ class Dyad:
         check=False,
         shared_storage=False,
         reinit=False,
+        async_publish=False,
         key_depth=3,
         key_bins=1024,
         service_mux=1,
@@ -194,6 +196,7 @@ class Dyad:
             ctypes.c_bool(check),
             ctypes.c_bool(shared_storage),
             ctypes.c_bool(reinit),
+            ctypes.c_bool(async_publish),
             ctypes.c_uint(key_depth),
             ctypes.c_uint(key_bins),
             ctypes.c_uint(service_mux),

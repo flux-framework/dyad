@@ -41,6 +41,7 @@ const struct dyad_ctx dyad_ctx_default = {
     false,  // reenter
     true,   // initialized
     false,  // shared_storage
+    false,  // async_publish
     3u,     // key_depth
     1024u,  // key_bins
     0u,     // rank
@@ -95,6 +96,14 @@ static int gen_path_key (const char* str,
     return 0;
 }
 
+static void future_cleanup_cb (flux_future_t *f, void *arg)
+{
+    if (flux_future_get (f, NULL) < 0) {
+        DYAD_LOG_ERROR ("future_cleanup: future error detected with.%s", "");
+    }
+    flux_future_destroy (f);
+}
+
 DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_commit (const dyad_ctx_t* ctx, flux_kvs_txn_t* txn)
 {
     DYAD_C_FUNCTION_START();
@@ -109,11 +118,17 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_commit (const dyad_ctx_t* ctx, flux_kvs_t
         rc = DYAD_RC_BADCOMMIT;
         goto kvs_commit_region_finish;
     }
-    // If the commit is pending, wait for it to complete
-    flux_future_wait_for (f, -1.0);
-    // Once the commit is complete, destroy the future and transaction
-    flux_future_destroy (f);
-    f = NULL;
+    if (ctx->async_publish) {
+        if (flux_future_then (f, -1, future_cleanup_cb, NULL) < 0) {
+            DYAD_LOG_ERROR (ctx, "Error with flux_future_then");
+        }
+    } else {
+        // If the commit is pending, wait for it to complete
+        flux_future_wait_for (f, -1.0);
+        // Once the commit is complete, destroy the future and transaction
+        flux_future_destroy (f);
+        f = NULL;
+    }
     rc = DYAD_RC_OK;
 kvs_commit_region_finish:;
     DYAD_C_FUNCTION_END();
@@ -507,6 +522,7 @@ dyad_rc_t dyad_init (bool debug,
                      bool check,
                      bool shared_storage,
                      bool reinit,
+                     bool async_publish,
                      unsigned int key_depth,
                      unsigned int key_bins,
                      unsigned int service_mux,
@@ -695,6 +711,7 @@ dyad_rc_t dyad_init_env (dyad_ctx_t** ctx)
     bool check = false;
     bool shared_storage = false;
     bool reinit = false;
+    bool async_publish = false;
     unsigned int key_depth = 0u;
     unsigned int key_bins = 0u;
     unsigned int service_mux = 1u;
@@ -734,6 +751,11 @@ dyad_rc_t dyad_init_env (dyad_ctx_t** ctx)
         reinit = false;
     }
 
+    if ((e = getenv (DYAD_ASYNC_PUBLISH_ENV))) {
+        async_publish = true;
+    } else {
+        async_publish = false;
+    }
     if ((e = getenv (DYAD_KEY_DEPTH_ENV))) {
         key_depth = atoi (e);
     } else {
@@ -793,6 +815,7 @@ dyad_rc_t dyad_init_env (dyad_ctx_t** ctx)
                       check,
                       shared_storage,
                       reinit,
+                      async_publish,
                       key_depth,
                       key_bins,
                       service_mux,

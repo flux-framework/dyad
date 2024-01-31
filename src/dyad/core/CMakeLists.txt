@@ -1,5 +1,6 @@
 set(DYAD_CORE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/dyad_core.c)
-set(DYAD_CORE_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_envs.h ${CMAKE_CURRENT_SOURCE_DIR}/dyad_core.h)
+set(DYAD_CORE_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_envs.h
+                              ${CMAKE_CURRENT_SOURCE_DIR}/dyad_core.h)
 set(DYAD_CORE_PUBLIC_HEADERS)
 
 add_library(${PROJECT_NAME}_core SHARED ${DYAD_CORE_SRC}
