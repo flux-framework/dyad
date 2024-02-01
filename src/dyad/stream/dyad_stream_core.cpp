@@ -114,6 +114,7 @@ void dyad_stream_core::init (const dyad_params &p)
                               false,
                               p.m_shared_storage,
                               p.m_reinit,
+                              p.m_asynch_publish,
                               p.m_key_depth,
                               p.m_key_bins,
                               p.m_service_mux,

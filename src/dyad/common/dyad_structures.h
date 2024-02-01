@@ -27,6 +27,7 @@ struct dyad_ctx {
     bool reenter;                   // if false, do not recursively enter DYAD
     bool initialized;               // if true, DYAD is initialized
     bool shared_storage;            // if true, the managed path is shared
+    bool async_publish;             // Enable asynchronous publish by producer
     unsigned int key_depth;         // Depth of bins for the Flux KVS
     unsigned int key_bins;          // Number of bins for the Flux KVS
     uint32_t rank;                  // Flux rank for DYAD
