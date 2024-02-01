@@ -592,6 +592,7 @@ dyad_rc_t dyad_init (bool debug,
     (*ctx)->debug = debug;
     (*ctx)->check = check;
     (*ctx)->shared_storage = shared_storage;
+    (*ctx)->async_publish = async_publish;
     (*ctx)->key_depth = key_depth;
     (*ctx)->key_bins = key_bins;
     // Open a Flux handle and store it in the dyad_ctx_t
