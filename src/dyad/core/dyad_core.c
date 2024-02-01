@@ -116,11 +116,13 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_commit (const dyad_ctx_t* restrict ctx,
             DYAD_LOG_ERROR (ctx, "Error with flux_future_then");
         }
     } else {
+        DYAD_C_REGION_START("dyad_kvs_commit_wait");
         // If the commit is pending, wait for it to complete
         flux_future_wait_for (f, -1.0);
         // Once the commit is complete, destroy the future and transaction
         flux_future_destroy (f);
         f = NULL;
+        DYAD_C_REGION_END("dyad_kvs_commit_wait");
     }
     rc = DYAD_RC_OK;
 kvs_commit_region_finish:;
