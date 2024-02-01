@@ -35,6 +35,7 @@ const struct dyad_ctx dyad_ctx_default = {
     NULL,   // h
     NULL,   // dtl_handle
     NULL,   // fname
+    false,  // use_fs_locks
     false,  // debug
     false,  // check
     false,  // reenter
@@ -303,10 +304,6 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_fetch (const dyad_ctx_t* restrict ctx,
     char upath[PATH_MAX] = {'\0'};
     const size_t topic_len = PATH_MAX;
     char topic[PATH_MAX + 1] = {'\0'};
-    if (ctx->shared_storage) {
-        rc = DYAD_RC_OK;
-        goto fetch_done;
-    }
     memset (upath, 0, PATH_MAX);
     memset (topic, 0, topic_len + 1);
     // Extract the path to the file specified by fname relative to the
@@ -674,6 +671,7 @@ dyad_rc_t dyad_init (bool debug,
     // Set reenter and initialized to indicate this.
     (*ctx)->reenter = true;
     (*ctx)->initialized = true;
+    (*ctx)->use_fs_locks = true; // This is default value except for streams which dont have a fp.
     // TODO Print logging info
     rc = DYAD_RC_OK;
     // TODO: Add folder option here.
@@ -969,58 +967,72 @@ dyad_rc_t dyad_consume (dyad_ctx_t* ctx, const char* fname)
         dyad_release_flock (ctx, fd, &exclusive_lock);
         goto consume_close;
     }
-    if ((file_size = get_file_size (fd)) <= 0) {
-        DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] File (%s with fd %d) is not fetched yet", \
+    file_size = get_file_size (fd);
+    if (ctx->shared_storage) {
+        dyad_release_flock (ctx, fd, &exclusive_lock);
+        if (!ctx->use_fs_locks || file_size <= 0) {
+            // as file size was zero that means consumer won the lock first so has to wait for kvs.
+            // or we cannot use file lock based synchronization as it does not work with the
+            // files managed by c++ fstream.
+            dyad_fetch(ctx, fname, &mdata);
+        }
+    } else {
+        if (file_size <= 0) {
+            DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] File (%s with fd %d) is not fetched yet", \
                        ctx->node_idx, ctx->rank, ctx->pid, fname, fd);
-        // Call dyad_fetch to get (and possibly wait on)
-        // data from the Flux KVS
-        rc = dyad_fetch (ctx, fname, &mdata);
-        // If an error occured in dyad_fetch, log an error
-        // and return the corresponding DYAD return code
-        if (DYAD_IS_ERROR (rc)) {
-            DYAD_LOG_ERROR (ctx, "dyad_fetch failed!\n");
-            dyad_release_flock (ctx, fd, &exclusive_lock);
-            goto consume_close;
-        }
-        // If dyad_fetch was successful, but resp is still NULL,
-        // then we need to skip data transfer.
-        // This will most likely happend because shared_storage
-        // is enabled
-        if (mdata == NULL) {
-            DYAD_LOG_INFO (ctx, "File '%s' is local!\n", fname);
-            rc = DYAD_RC_OK;
-            dyad_release_flock (ctx, fd, &exclusive_lock);
-            goto consume_close;
-        }
+            // Call dyad_fetch to get (and possibly wait on)
+            // data from the Flux KVS
+            rc = dyad_fetch (ctx, fname, &mdata);
+            // If an error occured in dyad_fetch, log an error
+            // and return the corresponding DYAD return code
+            if (DYAD_IS_ERROR (rc)) {
+                DYAD_LOG_ERROR (ctx, "dyad_fetch failed!\n");
+                dyad_release_flock (ctx, fd, &exclusive_lock);
+                goto consume_close;
+            }
+            // If dyad_fetch was successful, but resp is still NULL,
+            // then we need to skip data transfer.
+            // This will most likely happend because shared_storage
+            // is enabled
+            if (mdata == NULL) {
+                DYAD_LOG_INFO (ctx, "File '%s' is local!\n", fname);
+                rc = DYAD_RC_OK;
+                dyad_release_flock (ctx, fd, &exclusive_lock);
+                goto consume_close;
+            }
 
-        // Call dyad_get_data to dispatch a RPC to the producer's Flux broker
-        // and retrieve the data associated with the file
-        rc = dyad_get_data (ctx, mdata, &file_data, &data_len);
-        if (DYAD_IS_ERROR (rc)) {
-            DYAD_LOG_ERROR (ctx, "dyad_get_data failed!\n");
-            dyad_release_flock (ctx, fd, &exclusive_lock);
-            goto consume_done;
-        }
-        DYAD_C_FUNCTION_UPDATE_INT ("data_len", data_len);
+            // Call dyad_get_data to dispatch a RPC to the producer's Flux broker
+            // and retrieve the data associated with the file
+            rc = dyad_get_data (ctx, mdata, &file_data, &data_len);
+            if (DYAD_IS_ERROR (rc)) {
+                DYAD_LOG_ERROR (ctx, "dyad_get_data failed!\n");
+                dyad_release_flock (ctx, fd, &exclusive_lock);
+                goto consume_done;
+            }
+            DYAD_C_FUNCTION_UPDATE_INT ("data_len", data_len);
 
-        // Call dyad_pull to fetch the data from the producer's
-        // Flux broker
-        rc = dyad_cons_store (ctx, mdata, fd, data_len, file_data);
-        // Regardless if there was an error in dyad_pull,
-        // free the KVS response object
-        if (mdata != NULL) {
-            dyad_free_metadata (&mdata);
+            // Call dyad_pull to fetch the data from the producer's
+            // Flux broker
+            rc = dyad_cons_store (ctx, mdata, fd, data_len, file_data);
+            // Regardless if there was an error in dyad_pull,
+            // free the KVS response object
+            if (mdata != NULL) {
+                dyad_free_metadata (&mdata);
+            }
+            // If an error occured in dyad_pull, log it
+            // and return the corresponding DYAD return code
+            if (DYAD_IS_ERROR (rc)) {
+                DYAD_LOG_ERROR (ctx, "dyad_cons_store failed!\n");
+                dyad_release_flock (ctx, fd, &exclusive_lock);
+                goto consume_done;
+            };
+            fsync (fd);
         }
-        // If an error occured in dyad_pull, log it
-        // and return the corresponding DYAD return code
-        if (DYAD_IS_ERROR (rc)) {
-            DYAD_LOG_ERROR (ctx, "dyad_cons_store failed!\n");
-            dyad_release_flock (ctx, fd, &exclusive_lock);
-            goto consume_done;
-        };
-        fsync (fd);
+        dyad_release_flock (ctx, fd, &exclusive_lock);
     }
-    dyad_release_flock (ctx, fd, &exclusive_lock);
+
+
+
     DYAD_C_FUNCTION_UPDATE_INT ("file_size", file_size);
 
     if (close (fd) != 0) {

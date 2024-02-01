@@ -22,6 +22,7 @@ class DyadCtxWrapper(ctypes.Structure):
         ("h", ctypes.POINTER(FluxHandle)),
         ("dtl_handle", ctypes.POINTER(DyadDTLHandle)),
         ("fname", ctypes.c_char_p),
+        ("use_fs_locks", ctypes.c_bool),
         ("debug", ctypes.c_bool),
         ("check", ctypes.c_bool),
         ("reenter", ctypes.c_bool),

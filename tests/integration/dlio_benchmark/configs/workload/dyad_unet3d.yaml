@@ -28,7 +28,7 @@ reader:
 
 train:
   epochs: 10
-  computation_time: 0 #1.3604
+  computation_time: 1.3604
 
 checkpoint:
   checkpoint_folder: checkpoints/unet3d

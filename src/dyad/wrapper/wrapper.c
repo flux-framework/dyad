@@ -182,6 +182,13 @@ DYAD_DLL_EXPORTED int open (const char *path, int oflag, ...)
 
 real_call:;
     int ret = (func_ptr (path, oflag, mode));
+    if ((mode == O_WRONLY || mode == O_APPEND) && !is_path_dir (path)) {
+        struct flock exclusive_lock;
+        dyad_rc_t rc = dyad_excl_flock (ctx, ret, &exclusive_lock);
+        if (DYAD_IS_ERROR (rc)) {
+            dyad_release_flock (ctx, ret, &exclusive_lock);
+        }
+    }
     DYAD_C_FUNCTION_END();
     return ret;
 }
@@ -220,6 +227,15 @@ DYAD_DLL_EXPORTED FILE *fopen (const char *path, const char *mode)
 
 real_call:;
     FILE *fh = (func_ptr (path, mode));
+
+    if (((strcmp (mode, "w") == 0)  || (strcmp (mode, "a") == 0)) && !is_path_dir (path)) {
+        int fd = fileno (fh);
+        struct flock exclusive_lock;
+        dyad_rc_t rc = dyad_excl_flock (ctx, fd, &exclusive_lock);
+        if (DYAD_IS_ERROR (rc)) {
+            dyad_release_flock (ctx, fd, &exclusive_lock);
+        }
+    }
     DYAD_C_FUNCTION_END();
     return fh;
 }
@@ -300,6 +316,8 @@ real_call:;  // semicolon here to avoid the error
             DPRINTF (ctx, "DYAD_SYNC: failed close sync (\"%s\").\n", path);
         }
         IPRINTF (ctx, "DYAD_SYNC: exits close sync (\"%s\").\n", path);
+        struct flock exclusive_lock;
+        dyad_release_flock (ctx, fd, &exclusive_lock);
     } else {
         rc = func_ptr (fd);
     }
@@ -383,6 +401,8 @@ real_call:;
             DPRINTF (ctx, "DYAD_SYNC: failed fclose sync (\"%s\").\n", path);
         }
         IPRINTF (ctx, "DYAD_SYNC: exits fclose sync (\"%s\").\n", path);
+        struct flock exclusive_lock;
+        dyad_release_flock (ctx, fd, &exclusive_lock);
     } else {
         rc = func_ptr (fp);
     }
