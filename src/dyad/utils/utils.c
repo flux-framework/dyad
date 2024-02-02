@@ -222,6 +222,7 @@ bool cmp_prefix (const char* __restrict__ prefix,
 }
 
 bool cmp_canonical_path_prefix (const char* __restrict__ prefix,
+                                const char* __restrict__ canprefix,
                                 const char* __restrict__ path,
                                 char* __restrict__ upath,
                                 const size_t upath_capacity)
@@ -237,42 +238,55 @@ bool cmp_canonical_path_prefix (const char* __restrict__ prefix,
         }
     }
 
+    size_t upath_len = 0ul;
+
+    if (cmp_prefix (prefix, path, DYAD_PATH_DELIM, &upath_len)) {
+        extract_user_path (path, upath, upath_len);
+        if (upath_len + 1 > upath_capacity) {
+            return false;
+        }
+        return true;
+    }
+
     // Only works when there are no multiple absolute paths via hardlinks
     char can_prefix[PATH_MAX] = {'\0'};  // canonical form of the managed path
     char can_path[PATH_MAX] = {'\0'};    // canonical form of the given path
 
     // The path prefix needs to translate to a real path
-    if (!realpath (prefix, can_prefix)) {
+    if (!canprefix && !realpath (prefix, can_prefix)) {
         DYAD_LOG_DEBUG (NULL,"DYAD UTIL: error in realpath for %s\n", prefix);
         DYAD_LOG_DEBUG (NULL, "DYAD UTIL: %s\n", strerror (errno));
         return false;
     }
 
-    size_t upath_len = 0ul;
-    bool match = false;
+    char* _can_prefix = canprefix? canprefix : can_prefix;
+
+    if (cmp_prefix (_can_prefix, path, DYAD_PATH_DELIM, &upath_len)) {
+        extract_user_path (path, upath, upath_len);
+        if (upath_len + 1 > upath_capacity) {
+            return false;
+        }
+        return true;
+    }
 
     // See if the prefix of the path in question matches that of either the
     // dyad managed path or its canonical form when the path is not a real one.
     if (!realpath (path, can_path)) {
-        DYAD_LOG_DEBUG (NULL, "DYAD UTIL: %s is NOT a realpath.\n", path);
-        if (!cmp_prefix (prefix, path, DYAD_PATH_DELIM, &upath_len)) {
-            match = cmp_prefix (can_prefix, path, DYAD_PATH_DELIM, &upath_len);
-        } else {
-            match = true;
-        }
-        extract_user_path (path, upath, upath_len);
-        return match;
+        DYAD_LOG_DEBUG (NULL, "DYAD UTIL: %s does not include prefix %s.\n", path, prefix);
+        return false;
     }
 
     // For a real path, see if the prefix of either the path or its canonical
     // form matches the managed path.
-    match = cmp_prefix (can_prefix, can_path, DYAD_PATH_DELIM, &upath_len);
+    if (!cmp_prefix (_can_prefix, can_path, DYAD_PATH_DELIM, &upath_len)) {
+        return false;
+    }
     if (upath_len + 1 > upath_capacity) {
         return false;
     }
     extract_user_path (can_path, upath, upath_len);
 
-    return match;
+    return true;
 }
 
 /**
