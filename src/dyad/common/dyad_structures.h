@@ -38,6 +38,8 @@ struct dyad_ctx {
     char* kvs_namespace;            // Flux KVS namespace for DYAD
     char* prod_managed_path;        // producer path managed by DYAD
     char* cons_managed_path;        // consumer path managed by DYAD
+    char* prod_real_path;           // producer managed real path
+    char* cons_real_path;           // consumer managed real path
 };
 typedef struct dyad_ctx dyad_ctx_t;
 typedef void* ucx_ep_cache_h;

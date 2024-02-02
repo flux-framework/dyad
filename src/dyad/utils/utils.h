@@ -65,6 +65,7 @@ bool cmp_prefix (const char* __restrict__ prefix,
                  size_t* __restrict__ u_len);
 
 bool cmp_canonical_path_prefix (const char* __restrict__ prefix,
+                                const char* __restrict__ can_prefix,
                                 const char* __restrict__ path,
                                 char* __restrict__ upath,
                                 const size_t upath_capacity);
