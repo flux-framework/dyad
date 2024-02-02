@@ -259,7 +259,7 @@ bool cmp_canonical_path_prefix (const char* __restrict__ prefix,
         return false;
     }
 
-    char* _can_prefix = canprefix? canprefix : can_prefix;
+    const char* _can_prefix = canprefix? canprefix : can_prefix;
 
     if (cmp_prefix (_can_prefix, path, DYAD_PATH_DELIM, &upath_len)) {
         extract_user_path (path, upath, upath_len);

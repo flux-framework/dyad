@@ -15,6 +15,7 @@ add_library(${PROJECT_NAME}_utils SHARED ${DYAD_UTILS_SRC}
 set_target_properties(${PROJECT_NAME}_utils PROPERTIES CMAKE_INSTALL_RPATH
                       "${CMAKE_INSTALL_PREFIX}/${DYAD_LIBDIR}")
 target_link_libraries(${PROJECT_NAME}_utils PUBLIC flux::core ${PROJECT_NAME}_base64)
+
 if(DYAD_LOGGER STREQUAL "CPP_LOGGER")
     target_link_libraries(${PROJECT_NAME}_utils PRIVATE ${CPP_LOGGER_LIBRARIES})
 endif()
@@ -30,6 +31,17 @@ target_include_directories(${PROJECT_NAME}_utils PUBLIC
 add_library(${PROJECT_NAME}_murmur3 SHARED ${DYAD_MURMUR3_SRC})
 set_target_properties(${PROJECT_NAME}_murmur3 PROPERTIES CMAKE_INSTALL_RPATH
                       "${CMAKE_INSTALL_PREFIX}/${DYAD_LIBDIR}")
+
+add_executable(test_cmp_canonical_path_prefix test_cmp_canonical_path_prefix.c)
+target_compile_definitions(test_cmp_canonical_path_prefix PUBLIC DYAD_HAS_CONFIG)
+target_link_libraries(test_cmp_canonical_path_prefix PUBLIC ${PROJECT_NAME}_utils)
+if(DYAD_LOGGER STREQUAL "CPP_LOGGER")
+    target_link_libraries(test_cmp_canonical_path_prefix PRIVATE ${CPP_LOGGER_LIBRARIES})
+endif()
+if(DYAD_PROFILER STREQUAL "DLIO_PROFILER")
+    target_link_libraries(test_cmp_canonical_path_prefix PRIVATE ${DLIO_PROFILER_LIBRARIES})
+endif()
+
 
 if (TARGET DYAD_C_FLAGS_werror)
   target_link_libraries(${PROJECT_NAME}_utils PRIVATE DYAD_C_FLAGS_werror)
