@@ -232,7 +232,7 @@ bool dyad_stream_core::chk_fsync_write () const
     return m_ctx->fsync_write;
 }
 
-int dyad_stream_core::file_lock(int fd) const
+int dyad_stream_core::file_lock_exclusive (int fd) const
 {
     struct flock exclusive_flock;
 
@@ -245,11 +245,24 @@ int dyad_stream_core::file_lock(int fd) const
     return rc;
 }
 
-int dyad_stream_core::file_unlock(int fd) const
+int dyad_stream_core::file_lock_shared (int fd) const
 {
-    struct flock exclusive_flock;
+    struct flock shared_flock;
 
-    return dyad_release_flock (m_ctx, fd, &exclusive_flock);
+    dyad_rc_t rc = dyad_excl_flock (m_ctx, fd, &shared_flock);
+
+    if (DYAD_IS_ERROR (rc)) {
+        dyad_release_flock (m_ctx, fd, &shared_flock);
+    }
+
+    return rc;
+}
+
+int dyad_stream_core::file_unlock (int fd) const
+{
+    struct flock a_flock;
+
+    return dyad_release_flock (m_ctx, fd, &a_flock);
 }
 
 }  // end of namespace dyad

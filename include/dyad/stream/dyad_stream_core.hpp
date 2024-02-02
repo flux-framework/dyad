@@ -52,7 +52,8 @@ class dyad_stream_core
 
     bool chk_fsync_write () const;
 
-    int file_lock(int fd) const;
+    int file_lock_exclusive(int fd) const;
+    int file_lock_shared(int fd) const;
     int file_unlock(int fd) const;
 
    private:
