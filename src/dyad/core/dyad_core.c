@@ -51,7 +51,9 @@ const struct dyad_ctx dyad_ctx_default = {
     -1,     // pid
     NULL,   // kvs_namespace
     NULL,   // prod_managed_path
-    NULL    // cons_managed_path
+    NULL,   // cons_managed_path
+    NULL,   // prod_real_path
+    NULL    // cons_real_path
 };
 
 static int gen_path_key (const char* str,
@@ -194,7 +196,9 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_commit (dyad_ctx_t* restrict ctx, const char*
     // Extract the path to the file specified by fname relative to the
     // producer-managed path
     // This relative path will be stored in upath
-    if (!cmp_canonical_path_prefix (ctx->prod_managed_path, fname, upath, PATH_MAX)) {
+    if (!cmp_canonical_path_prefix (ctx->prod_managed_path, ctx->prod_real_path,
+                                    fname, upath, PATH_MAX))
+    {
         DYAD_LOG_INFO (ctx, "%s is not in the Producer's managed path", fname);
         rc = DYAD_RC_OK;
         goto commit_done;
@@ -324,7 +328,9 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_fetch_metadata (dyad_ctx_t* restrict ctx,
     // Extract the path to the file specified by fname relative to the
     // consumer-managed path
     // This relative path will be stored in upath
-    if (!cmp_canonical_path_prefix (ctx->cons_managed_path, fname, upath, PATH_MAX)) {
+    if (!cmp_canonical_path_prefix (ctx->cons_managed_path, ctx->cons_real_path,
+                                    fname, upath, PATH_MAX))
+    {
         DYAD_LOG_INFO (ctx, "%s is not in the Consumer's managed path\n", fname);
         rc = DYAD_RC_OK;
         goto fetch_done;
@@ -649,11 +655,16 @@ dyad_rc_t dyad_init (bool debug,
     if (prod_managed_path == NULL) {
         (*ctx)->prod_managed_path = NULL;
     } else {
+        char prod_real_path[PATH_MAX+1] = {'\0'};
+        realpath (prod_managed_path, prod_real_path);
         const size_t prod_path_len = strlen (prod_managed_path);
+        const size_t prod_realpath_len = strlen (prod_real_path);
         (*ctx)->prod_managed_path = (char*)malloc (prod_path_len + 1);
-        if ((*ctx)->prod_managed_path == NULL) {
-            DYAD_LOG_ERROR ((*ctx), "Could not allocate buffer for " \
-                                    "Producer managed path!\n");
+        if ((*ctx)->prod_managed_path == NULL ||
+            prod_realpath_len == 0ul || (*ctx)->prod_real_path == NULL) {
+            DYAD_LOG_ERROR ((*ctx),
+                          "Could not allocate buffer for Producer managed "
+                          "path!\n");
             free ((*ctx)->kvs_namespace);
             free (*ctx);
             *ctx = NULL;
@@ -661,6 +672,7 @@ dyad_rc_t dyad_init (bool debug,
             goto init_region_finish;
         }
         strncpy ((*ctx)->prod_managed_path, prod_managed_path, prod_path_len + 1);
+        strncpy ((*ctx)->prod_real_path, prod_real_path, prod_realpath_len + 1);
     }
     // If the consumer-managed path is provided, copy it into
     // the dyad_ctx_t object
@@ -668,11 +680,16 @@ dyad_rc_t dyad_init (bool debug,
     if (cons_managed_path == NULL) {
         (*ctx)->cons_managed_path = NULL;
     } else {
+        char cons_real_path[PATH_MAX+1] = {'\0'};
+        realpath (cons_managed_path, cons_real_path);
         const size_t cons_path_len = strlen (cons_managed_path);
+        const size_t cons_realpath_len = strlen (cons_real_path);
         (*ctx)->cons_managed_path = (char*)malloc (cons_path_len + 1);
-        if ((*ctx)->cons_managed_path == NULL) {
-            DYAD_LOG_ERROR ((*ctx), \
-                          "Could not allocate buffer for Consumer managed " \
+        (*ctx)->cons_real_path = (char*)malloc (cons_realpath_len + 1);
+        if ((*ctx)->cons_managed_path == NULL ||
+            cons_realpath_len == 0ul || (*ctx)->cons_real_path == NULL) {
+            DYAD_LOG_ERROR ((*ctx),
+                          "Could not allocate buffer for Consumer managed "
                           "path!\n");
             free ((*ctx)->kvs_namespace);
             free ((*ctx)->prod_managed_path);
@@ -682,6 +699,7 @@ dyad_rc_t dyad_init (bool debug,
             goto init_region_finish;
         }
         strncpy ((*ctx)->cons_managed_path, cons_managed_path, cons_path_len + 1);
+        strncpy ((*ctx)->cons_real_path, cons_real_path, cons_realpath_len + 1);
     }
 
     DYAD_C_FUNCTION_UPDATE_STR ("prod_managed_path", (*ctx)->prod_managed_path);
@@ -928,7 +946,9 @@ dyad_rc_t dyad_get_metadata (dyad_ctx_t* ctx,
     // producer-managed path
     // This relative path will be stored in upath
     DYAD_LOG_INFO (ctx, "Obtaining file path relative to consumer directory: %s", upath);
-    if (!cmp_canonical_path_prefix (ctx->cons_managed_path, fname, upath, PATH_MAX)) {
+    if (!cmp_canonical_path_prefix (ctx->cons_managed_path, ctx->cons_real_path,
+                                    fname, upath, PATH_MAX))
+    {
         DYAD_LOG_INFO (ctx, "%s is not in the Consumer's managed path\n", fname);
         rc = DYAD_RC_UNTRACKED;
         goto get_metadata_done;
@@ -1199,9 +1219,17 @@ dyad_rc_t dyad_finalize (dyad_ctx_t** ctx)
         free ((*ctx)->prod_managed_path);
         (*ctx)->prod_managed_path = NULL;
     }
+    if ((*ctx)->prod_real_path != NULL) {
+        free ((*ctx)->prod_real_path);
+        (*ctx)->prod_real_path = NULL;
+    }
     if ((*ctx)->cons_managed_path != NULL) {
         free ((*ctx)->cons_managed_path);
         (*ctx)->cons_managed_path = NULL;
+    }
+    if ((*ctx)->cons_real_path != NULL) {
+        free ((*ctx)->cons_real_path);
+        (*ctx)->cons_real_path = NULL;
     }
     free (*ctx);
     *ctx = NULL;
