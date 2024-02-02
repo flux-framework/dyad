@@ -86,7 +86,8 @@ class DYADTorchDataset(Dataset):
         logging.info(f"{utcnow()} Rank {DLIOMPI.get_instance().rank()} init dyad {self.dyad_managed_directory} {dtl_str} {namespace}")
         if dtl_str == "UCX":
             mode = DTLMode.DYAD_DTL_UCX
-        self.dyad_io.init(debug=self._args.debug, check=False, shared_storage=False, reinit=False, async_publish=False, key_depth=3,
+        self.dyad_io.init(debug=self._args.debug, check=False, shared_storage=False, reinit=False,
+                          async_publish=False, fsync_write=False, key_depth=3,
                           service_mux=self.broker_per_node,
                           key_bins=1024, kvs_namespace=os.getenv("DYAD_KVS_NAMESPACE"),
                           prod_managed_path=self.dyad_managed_directory, cons_managed_path=self.dyad_managed_directory,

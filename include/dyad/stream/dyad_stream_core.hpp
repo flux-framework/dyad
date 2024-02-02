@@ -50,6 +50,10 @@ class dyad_stream_core
     void set_initialized ();
     bool chk_initialized () const;
 
+    bool chk_fsync_write () const;
+
+    const dyad_ctx* get_ctx () const;
+
    private:
     dyad_ctx *m_ctx;
     bool m_initialized;
