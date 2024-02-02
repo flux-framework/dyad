@@ -537,6 +537,8 @@ dyad_rc_t dyad_init (bool debug,
                      dyad_ctx_t** ctx)
 {
     DYAD_LOGGER_INIT();
+    unsigned my_rank = 0u;
+
 #ifdef DYAD_PROFILER_DLIO_PROFILER
     const char* file_prefix = getenv (DLIO_PROFILER_LOG_FILE);
     if (file_prefix == NULL) file_prefix = "./dyad_";
@@ -616,9 +618,20 @@ dyad_rc_t dyad_init (bool debug,
         rc = DYAD_RC_FLUXFAIL;
         goto init_region_finish;
     }
+    my_rank = (*ctx)->rank;
     (*ctx)->service_mux = (service_mux < 1u)? 1u : service_mux;
     (*ctx)->node_idx = (*ctx)->rank / (*ctx)->service_mux;
     (*ctx)->pid = getpid ();
+    if (my_rank == 0) {
+        DYAD_LOG_INFO (*ctx, "DYAD_CORE INIT: debug %s", (*ctx)->debug ? "true" : "false");
+        DYAD_LOG_INFO (*ctx, "DYAD_CORE INIT: shared_storage %s", (*ctx)->shared_storage ? "true" : "false");
+        DYAD_LOG_INFO (*ctx, "DYAD_CORE INIT: async_publish %s", (*ctx)->async_publish ? "true" : "false");
+        DYAD_LOG_INFO (*ctx, "DYAD_CORE INIT: kvs key depth %u", (*ctx)->key_depth);
+        DYAD_LOG_INFO (*ctx, "DYAD_CORE INIT: kvs key bins %u", (*ctx)->key_bins);
+        DYAD_LOG_INFO (*ctx, "DYAD_CORE INIT: broker rank %u", my_rank);
+        DYAD_LOG_INFO (*ctx, "DYAD_CORE INIT: pid %u", (*ctx)->pid);
+    }
+
     // If the namespace is provided, copy it into the dyad_ctx_t object
     DYAD_LOG_INFO (*ctx, "DYAD_CORE: saving KVS namespace");
     if (kvs_namespace == NULL) {
@@ -637,6 +650,10 @@ dyad_rc_t dyad_init (bool debug,
         goto init_region_finish;
     }
     strncpy ((*ctx)->kvs_namespace, kvs_namespace, namespace_len + 1);
+    if (my_rank == 0) {
+        DYAD_LOG_INFO (*ctx, "DYAD_CORE INIT: kvs_namespace %s", (*ctx)->kvs_namespace);
+    }
+
     // Initialize the DTL based on the value of dtl_mode
     // If an error occurs, log it and return an error
     DYAD_LOG_INFO ((*ctx), "DYAD_CORE: inintializing DYAD DTL %s", \
@@ -647,6 +664,10 @@ dyad_rc_t dyad_init (bool debug,
                                 dyad_dtl_mode_name[dtl_mode]);
         goto init_region_finish;
     }
+    if (my_rank == 0) {
+        DYAD_LOG_INFO (*ctx, "DYAD_CORE INIT: dtl_mode %s", dyad_dtl_mode_name[dtl_mode]);
+    }
+
     // If the producer-managed path is provided, copy it into
     // the dyad_ctx_t object
     DYAD_LOG_INFO ((*ctx), "DYAD_CORE: saving producer path");
@@ -658,6 +679,7 @@ dyad_rc_t dyad_init (bool debug,
         const size_t prod_path_len = strlen (prod_managed_path);
         const size_t prod_realpath_len = strlen (prod_real_path);
         (*ctx)->prod_managed_path = (char*)malloc (prod_path_len + 1);
+        (*ctx)->prod_real_path = (char*)malloc (prod_realpath_len + 1);
         if ((*ctx)->prod_managed_path == NULL ||
             prod_realpath_len == 0ul || (*ctx)->prod_real_path == NULL) {
             DYAD_LOG_ERROR ((*ctx),
@@ -671,6 +693,10 @@ dyad_rc_t dyad_init (bool debug,
         }
         strncpy ((*ctx)->prod_managed_path, prod_managed_path, prod_path_len + 1);
         strncpy ((*ctx)->prod_real_path, prod_real_path, prod_realpath_len + 1);
+        if (my_rank == 0) {
+            DYAD_LOG_INFO (*ctx, "DYAD_CORE INIT: prod_managed_path %s", (*ctx)->prod_managed_path);
+            DYAD_LOG_INFO (*ctx, "DYAD_CORE INIT: prod_real_path %s", (*ctx)->prod_real_path);
+        }
     }
     // If the consumer-managed path is provided, copy it into
     // the dyad_ctx_t object
@@ -698,6 +724,10 @@ dyad_rc_t dyad_init (bool debug,
         }
         strncpy ((*ctx)->cons_managed_path, cons_managed_path, cons_path_len + 1);
         strncpy ((*ctx)->cons_real_path, cons_real_path, cons_realpath_len + 1);
+        if (my_rank == 0) {
+            DYAD_LOG_INFO (*ctx, "DYAD_CORE INIT: cons_managed_path %s", (*ctx)->cons_managed_path);
+            DYAD_LOG_INFO (*ctx, "DYAD_CORE INIT: cons_real_path %s", (*ctx)->cons_real_path);
+        }
     }
 
     DYAD_C_FUNCTION_UPDATE_STR ("prod_managed_path", (*ctx)->prod_managed_path);
