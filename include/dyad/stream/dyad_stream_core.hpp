@@ -52,7 +52,8 @@ class dyad_stream_core
 
     bool chk_fsync_write () const;
 
-    const dyad_ctx* get_ctx () const;
+    int file_lock(int fd) const;
+    int file_unlock(int fd) const;
 
    private:
     dyad_ctx *m_ctx;

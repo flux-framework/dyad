@@ -146,8 +146,6 @@ void dyad_stream_core::log_info (const std::string &msg_head) const
                    (m_ctx->debug) ? "true" : "false");
     DYAD_LOG_INFO (m_ctx, "%s=%s", DYAD_SHARED_STORAGE_ENV,
                    (m_ctx->shared_storage) ? "true" : "false");
-    DYAD_LOG_INFO (m_ctx, "%s=%s", DYAD_REINIT_ENV,
-                   (m_ctx->reinit) ? "true" : "false");
     DYAD_LOG_INFO (m_ctx, "%s=%s", DYAD_ASYNC_PUBLISH_ENV,
                    (m_ctx->async_publish) ? "true" : "false");
     DYAD_LOG_INFO (m_ctx, "%s=%s", DYAD_FSYNC_WRITE_ENV,
@@ -234,9 +232,24 @@ bool dyad_stream_core::chk_fsync_write () const
     return m_ctx->fsync_write;
 }
 
-const dyad_ctx* dyad_stream_core::get_ctx () const
+int dyad_stream_core::file_lock(int fd) const
 {
-    return m_ctx;
+    struct flock exclusive_flock;
+
+    dyad_rc_t rc = dyad_excl_flock (m_ctx, fd, &exclusive_flock);
+
+    if (DYAD_IS_ERROR (rc)) {
+        dyad_release_flock (m_ctx, fd, &exclusive_flock);
+    }
+
+    return rc;
+}
+
+int dyad_stream_core::file_unlock(int fd) const
+{
+    struct flock exclusive_flock;
+
+    return dyad_release_flock (m_ctx, fd, &exclusive_flock);
 }
 
 }  // end of namespace dyad
