@@ -39,6 +39,8 @@ class DyadCtxWrapper(ctypes.Structure):
         ("kvs_namespace", ctypes.c_char_p),
         ("prod_managed_path", ctypes.c_char_p),
         ("cons_managed_path", ctypes.c_char_p),
+        ("prod_real_path", ctypes.c_char_p),
+        ("cons_real_path", ctypes.c_char_p),
     ]
 
 
