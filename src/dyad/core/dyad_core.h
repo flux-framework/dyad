@@ -48,8 +48,8 @@ typedef struct dyad_metadata dyad_metadata_t;
 #ifndef DPRINTF
 #define DPRINTF(curr_dyad_ctx, fmt, ...)           \
     do {                                           \
-        if (curr_dyad_ctx && curr_dyad_ctx->debug) \
-            fprintf (stderr, fmt, ##__VA_ARGS__);  \
+        if ((curr_dyad_ctx) && (curr_dyad_ctx)->debug) \
+            fprintf (stderr, (fmt) __VA_OPT__(,) __VA_ARGS__);  \
     } while (0)
 #endif  // DPRINTF
 

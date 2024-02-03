@@ -99,7 +99,7 @@ static int gen_path_key (const char* str,
 static void future_cleanup_cb (flux_future_t *f, void *arg)
 {
     if (flux_future_get (f, NULL) < 0) {
-        DYAD_LOG_ERROR ("future_cleanup: future error detected with.%s", "");
+        DYAD_LOG_STDERR ("future_cleanup: future error detected with.%s", "");
     }
     flux_future_destroy (f);
 }
@@ -242,9 +242,8 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_read (const dyad_ctx_t* restrict ctx,
     int kvs_lookup_flags = 0;
     flux_future_t* f = NULL;
     if (mdata == NULL) {
-        DYAD_LOG_ERROR (ctx,
-                      "Metadata double pointer is NULL. Cannot correctly create metadata "
-                      "object");
+        DYAD_LOG_ERROR (ctx, "Metadata double pointer is NULL. " \
+                        "Cannot correctly create metadata object");
         rc = DYAD_RC_NOTFOUND;
         goto kvs_read_end;
     }
@@ -353,8 +352,8 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_fetch (const dyad_ctx_t* restrict ctx,
     DYAD_C_FUNCTION_UPDATE_INT ("owner_rank", (*mdata)->owner_rank);
     DYAD_C_FUNCTION_UPDATE_INT ("node_idx", ctx->node_idx);
     if (((*mdata)->owner_rank / ctx->service_mux) == ctx->node_idx) {
-        DYAD_LOG_INFO (ctx,
-                       "Either shared-storage is indicated or the producer rank (%u) is the"
+        DYAD_LOG_INFO (ctx, \
+                       "Either shared-storage is indicated or the producer rank (%u) is the" \
                        " same as the consumer rank (%u)", (*mdata)->owner_rank, ctx->rank);
         if (mdata != NULL && *mdata != NULL) {
             dyad_free_metadata (mdata);
@@ -378,16 +377,15 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_get_data (const dyad_ctx_t* ctx,
 {
     DYAD_C_FUNCTION_START();
     dyad_rc_t rc = DYAD_RC_OK;
-    flux_future_t* f;
-    json_t* rpc_payload;
+    flux_future_t* f = NULL;
+    json_t* rpc_payload = NULL;
     DYAD_LOG_INFO (ctx, "Packing payload for RPC to DYAD module");
     DYAD_C_FUNCTION_UPDATE_INT ("owner_rank", mdata->owner_rank);
     DYAD_C_FUNCTION_UPDATE_STR ("fpath", mdata->fpath);
     rc = ctx->dtl_handle->rpc_pack (ctx, mdata->fpath, mdata->owner_rank, &rpc_payload);
     if (DYAD_IS_ERROR (rc)) {
-        DYAD_LOG_ERROR (ctx,
-                      "Cannot create JSON payload for Flux RPC to DYAD "
-                      "module\n");
+        DYAD_LOG_ERROR (ctx, "Cannot create JSON payload for Flux RPC to " \
+                             "DYAD module\n");
         goto get_done;
     }
     DYAD_LOG_INFO (ctx, "Sending payload for RPC to DYAD module");
@@ -411,9 +409,9 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_get_data (const dyad_ctx_t* ctx,
     DYAD_LOG_INFO (ctx, "Establish DTL connection with DYAD module");
     rc = ctx->dtl_handle->establish_connection (ctx);
     if (DYAD_IS_ERROR (rc)) {
-        DYAD_LOG_ERROR (ctx,
-                      "Cannot establish connection with DYAD module on broker "
-                      "%u\n",
+        DYAD_LOG_ERROR (ctx, \
+                      "Cannot establish connection with DYAD module on broker " \
+                      "%u\n", \
                       mdata->owner_rank);
         goto get_done;
     }
@@ -443,10 +441,10 @@ get_done:;
     DYAD_LOG_INFO (ctx, "Wait for end-of-stream message from module (current RC = %d)\n", rc);
     if (rc != DYAD_RC_RPC_FINISHED && rc != DYAD_RC_BADRPC) {
         if (!(flux_rpc_get (f, NULL) < 0 && errno == ENODATA)) {
-            DYAD_LOG_ERROR (ctx,
-                            "An error occured at end of getting data! Either the "
-                            "module sent too many responses, or the module "
-                            "failed with a bad error (errno = %d)\n",
+            DYAD_LOG_ERROR (ctx, \
+                            "An error occured at end of getting data! Either the " \
+                            "module sent too many responses, or the module " \
+                            "failed with a bad error (errno = %d)\n", \
                             errno);
             rc = DYAD_RC_BADRPC;
         }
@@ -455,7 +453,7 @@ get_done:;
     ctx->dtl_handle->get_buffer(ctx, 0, (void**)file_data);
     memcpy (file_len, *file_data, sizeof(size_t));
     *file_data = ((char*)*file_data) + sizeof(size_t);
-    DYAD_LOG_INFO (ctx, "Read %d bytes from %s file", *file_len, mdata->fpath);
+    DYAD_LOG_INFO (ctx, "Read %zd bytes from %s file", *file_len, mdata->fpath);
 #endif
     DYAD_LOG_INFO (ctx, "Destroy the Flux future for the RPC\n");
     flux_future_destroy (f);
@@ -492,9 +490,7 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_cons_store (const dyad_ctx_t* restrict ctx,
     // TODO: Need to be consistent with the mode at the source
     odir = dirname (file_path_copy);
     if ((strncmp (odir, ".", strlen (".")) != 0) && (mkdir_as_needed (odir, m) < 0)) {
-        DYAD_LOG_ERROR (ctx,
-                      "Cannot create needed directories for pulled "
-                      "file\n");
+        DYAD_LOG_ERROR (ctx, "Cannot create needed directories for pulled file\n");
         rc = DYAD_RC_BADFIO;
         goto pull_done;
     }
@@ -634,10 +630,12 @@ dyad_rc_t dyad_init (bool debug,
     strncpy ((*ctx)->kvs_namespace, kvs_namespace, namespace_len + 1);
     // Initialize the DTL based on the value of dtl_mode
     // If an error occurs, log it and return an error
-    DYAD_LOG_INFO ((*ctx), "DYAD_CORE: inintializing DYAD DTL %s", dyad_dtl_mode_name[dtl_mode]);
+    DYAD_LOG_INFO ((*ctx), "DYAD_CORE: inintializing DYAD DTL %s", \
+                           dyad_dtl_mode_name[dtl_mode]);
     rc = dyad_dtl_init (*ctx, dtl_mode, DYAD_COMM_RECV, (*ctx)->debug);
     if (DYAD_IS_ERROR (rc)) {
-        DYAD_LOG_ERROR ((*ctx), "Cannot initialize the DTL %s\n", dyad_dtl_mode_name[dtl_mode]);
+        DYAD_LOG_ERROR ((*ctx), "Cannot initialize the DTL %s\n", \
+                                dyad_dtl_mode_name[dtl_mode]);
         goto init_region_finish;
     }
     // If the producer-managed path is provided, copy it into
@@ -649,9 +647,8 @@ dyad_rc_t dyad_init (bool debug,
         const size_t prod_path_len = strlen (prod_managed_path);
         (*ctx)->prod_managed_path = (char*)malloc (prod_path_len + 1);
         if ((*ctx)->prod_managed_path == NULL) {
-            DYAD_LOG_ERROR ((*ctx),
-                          "Could not allocate buffer for Producer managed "
-                          "path!\n");
+            DYAD_LOG_ERROR ((*ctx), "Could not allocate buffer for " \
+                                    "Producer managed path!\n");
             free ((*ctx)->kvs_namespace);
             free (*ctx);
             *ctx = NULL;
@@ -669,8 +666,8 @@ dyad_rc_t dyad_init (bool debug,
         const size_t cons_path_len = strlen (cons_managed_path);
         (*ctx)->cons_managed_path = (char*)malloc (cons_path_len + 1);
         if ((*ctx)->cons_managed_path == NULL) {
-            DYAD_LOG_ERROR ((*ctx),
-                          "Could not allocate buffer for Consumer managed "
+            DYAD_LOG_ERROR ((*ctx), \
+                          "Could not allocate buffer for Consumer managed " \
                           "path!\n");
             free ((*ctx)->kvs_namespace);
             free ((*ctx)->prod_managed_path);
@@ -692,6 +689,7 @@ dyad_rc_t dyad_init (bool debug,
     // TODO Print logging info
     rc = DYAD_RC_OK;
     // TODO: Add folder option here.
+  #ifndef DYAD_LOGGER_NO_LOG
     char log_file_name[4096] = {'\0'};
     char err_file_name[4096] = {'\0'};
     mkdir_as_needed ("logs", (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH | S_ISGID));
@@ -699,6 +697,7 @@ dyad_rc_t dyad_init (bool debug,
     sprintf (err_file_name, "logs/dyad_core_%d.err", (*ctx)->pid);
     DYAD_LOG_STDERR_REDIRECT (err_file_name);
     DYAD_LOG_STDERR_REDIRECT (log_file_name);
+  #endif // DYAD_LOGGER_NO_LOG
 init_region_finish:;
     DYAD_C_FUNCTION_END();
     return rc;
@@ -730,9 +729,10 @@ dyad_rc_t dyad_init_env (dyad_ctx_t** ctx)
         disable_debug_dyad_utils ();
     }
 
-    if (debug)
-        DYAD_LOG_STDERR("DYAD_CORE: Initializing with environment "
-                 "variables\n");
+    if (debug) {
+        DYAD_LOG_STDERR("DYAD_CORE: Initializing with environment " \
+                        "variables\n");
+    }
 
     if ((e = getenv (DYAD_SYNC_CHECK_ENV))) {
         check = true;
@@ -800,18 +800,19 @@ dyad_rc_t dyad_init_env (dyad_ctx_t** ctx)
         } else if (strncmp (e, "UCX", dtl_mode_env_len) == 0) {
             dtl_mode = DYAD_DTL_UCX;
         } else {
-            DYAD_LOG_STDERR("Invalid env %s = %s. Defaulting to %s\n",
+            DYAD_LOG_STDERR("Invalid env %s = %s. Defaulting to %s\n", \
                         DYAD_DTL_MODE_ENV, e, dyad_dtl_mode_name[DYAD_DTL_DEFAULT]);
             dtl_mode = DYAD_DTL_DEFAULT;
         }
     } else {
-        DYAD_LOG_STDERR("%s is not set. Defaulting to %s\n",
+        DYAD_LOG_STDERR("%s is not set. Defaulting to %s\n", \
                         DYAD_DTL_MODE_ENV, dyad_dtl_mode_name[DYAD_DTL_DEFAULT]);
         dtl_mode = DYAD_DTL_DEFAULT;
     }
-    if (debug)
-        DYAD_LOG_STDERR("DYAD_CORE: retrieved configuration from environment. Now "
-                 "initializing DYAD\n");
+    if (debug) {
+        DYAD_LOG_STDERR("DYAD_CORE: retrieved configuration from environment. " \
+                        "Now initializing DYAD\n");
+    }
     dyad_rc_t rc = dyad_init (debug,
                       check,
                       shared_storage,
@@ -834,19 +835,19 @@ dyad_rc_t dyad_produce (dyad_ctx_t* ctx, const char* fname)
     DYAD_C_FUNCTION_START();
     ctx->fname = fname;
     DYAD_C_FUNCTION_UPDATE_STR ("fname", ctx->fname);
-    DYAD_LOG_DEBUG (ctx, "Executing dyad_produce")
+    DYAD_LOG_DEBUG (ctx, "Executing dyad_produce");
     dyad_rc_t rc = DYAD_RC_OK;
     // If the context is not defined, then it is not valid.
     // So, return DYAD_NOCTX
     if (!ctx || !ctx->h) {
-        DYAD_LOG_ERROR(ctx, "No CTX found in dyad_produce")
+        DYAD_LOG_ERROR(ctx, "No CTX found in dyad_produce");
         rc = DYAD_RC_NOCTX;
         goto produce_done;
     }
     // If the producer-managed path is NULL or empty, then the context is not
     // valid for a producer operation. So, return DYAD_BADMANAGEDPATH
     if (ctx->prod_managed_path == NULL || strlen (ctx->prod_managed_path) == 0) {
-        DYAD_LOG_ERROR(ctx, "No or empty producer managed path was found")
+        DYAD_LOG_ERROR(ctx, "No or empty producer managed path was found");
         rc = DYAD_RC_BADMANAGEDPATH;
         goto produce_done;
     }
@@ -876,9 +877,8 @@ dyad_rc_t dyad_get_metadata (dyad_ctx_t* ctx,
     if (fd != -1) {
         close (fd);
         if (mdata == NULL) {
-            DYAD_LOG_ERROR (ctx,
-                            "Metadata double pointer is NULL. Cannot correctly create metadata "
-                            "object");
+            DYAD_LOG_ERROR (ctx, "Metadata double pointer is NULL. " \
+                                 "Cannot correctly create metadata object");
             rc = DYAD_RC_NOTFOUND;
             goto get_metadata_done;
         }
@@ -1003,7 +1003,7 @@ dyad_rc_t dyad_consume (dyad_ctx_t* ctx, const char* fname)
     } else {
         if (file_size <= 0) {
             DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] File (%s with fd %d) is not fetched yet", \
-                       ctx->node_idx, ctx->rank, ctx->pid, fname, fd);
+                           ctx->node_idx, ctx->rank, ctx->pid, fname, fd);
             // Call dyad_fetch to get (and possibly wait on)
             // data from the Flux KVS
             rc = dyad_fetch (ctx, fname, &mdata);

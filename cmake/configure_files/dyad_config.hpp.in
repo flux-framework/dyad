@@ -43,5 +43,7 @@
 #cmakedefine DYAD_LOGGER_LEVEL_INFO 1
 #cmakedefine DYAD_LOGGER_LEVEL_DEBUG 1
 
+//#define DYAD_NOOP_MACRO do {} while (0)
+#define DYAD_NOOP_MACRO
 
 #endif /* DYAD_CONFIG_H */
