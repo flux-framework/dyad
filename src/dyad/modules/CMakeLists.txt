@@ -10,7 +10,6 @@ set_target_properties(${PROJECT_NAME} PROPERTIES CMAKE_INSTALL_RPATH
 target_link_libraries(${PROJECT_NAME} PRIVATE Jansson::Jansson flux::core)
 target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_dtl)
 target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_utils)
-target_link_libraries(${PROJECT_NAME} PRIVATE flux::optparse)
 target_compile_definitions(${PROJECT_NAME} PUBLIC BUILDING_DYAD=1)
 target_compile_definitions(${PROJECT_NAME} PUBLIC DYAD_HAS_CONFIG)
 target_include_directories(${PROJECT_NAME} PUBLIC
@@ -19,8 +18,15 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${JANSSON_INCLUDE_DIRS})
 target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${FluxCore_INCLUDE_DIRS})
 
+add_executable(test_opt_parse test_opt_parse.c)
+target_compile_definitions(test_opt_parse PUBLIC DYAD_HAS_CONFIG)
+target_include_directories(test_opt_parse PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/src>
+    $<INSTALL_INTERFACE:${DYAD_INSTALL_INCLUDE_DIR}>)
+
 if (TARGET DYAD_C_FLAGS_werror)
   target_link_libraries(${PROJECT_NAME} PRIVATE DYAD_C_FLAGS_werror)
+  target_link_libraries(test_opt_parse PRIVATE DYAD_C_FLAGS_werror)
 endif ()
 
 if(DYAD_PROFILER STREQUAL "PERFFLOW_ASPECT")
