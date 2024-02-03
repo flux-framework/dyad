@@ -131,14 +131,14 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
     DYAD_C_FUNCTION_START();
     dyad_mod_ctx_t *mod_ctx = getctx (h);
     DYAD_LOG_INFO(mod_ctx->ctx, "Launched callback for %s", DYAD_DTL_RPC_NAME);
-    ssize_t inlen = 0;
+    ssize_t inlen = 0l;
     char *inbuf = NULL;
     int fd = -1;
     uint32_t userid = 0u;
     char *upath = NULL;
     char fullpath[PATH_MAX + 1] = {'\0'};
     int saved_errno = errno;
-    ssize_t file_size = 0;
+    ssize_t file_size = 0l;
     dyad_rc_t rc = 0;
     struct flock shared_lock;
     if (!flux_msg_is_streaming (msg)) {
@@ -192,17 +192,12 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
     }
     file_size = get_file_size (fd);
     DYAD_LOG_DEBUG (mod_ctx->ctx, "file %s has size %zd", fullpath, file_size);
-    if (file_size > 0) {
-#ifdef DYAD_ENABLE_UCX_RMA
-        /**
-         * To reduce the number of RMA calls, we are encoding file size at the start of the buffer
-         */
-        size_t fs = file_size;
-#endif
+    if (file_size > 0l) {
         rc = mod_ctx->ctx->dtl_handle->get_buffer (mod_ctx->ctx, file_size, (void**)&inbuf);
 #ifdef DYAD_ENABLE_UCX_RMA
-        memcpy (inbuf, &fs, sizeof(fs));
-        inlen = read (fd, inbuf + sizeof(size_t), file_size);
+        //  To reduce the number of RMA calls, we are encoding file size at the start of the buffer
+        memcpy (inbuf, &file_size, sizeof(file_size));
+        inlen = read (fd, inbuf + sizeof(file_size), file_size);
 #else
         inlen = read (fd, inbuf, file_size);
 #endif
@@ -215,7 +210,7 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
             goto fetch_error;
         }
 #ifdef DYAD_ENABLE_UCX_RMA
-        inlen = file_size + sizeof(size_t);
+        inlen = file_size + sizeof(file_size);
 #endif
         DYAD_C_FUNCTION_UPDATE_INT ("file_size", file_size);
         DYAD_LOG_DEBUG (mod_ctx->ctx, "Closing file pointer");
@@ -293,8 +288,10 @@ static dyad_dtl_mode_t get_dtl_mode_env ()
     if ((e = getenv (DYAD_DTL_MODE_ENV))) {
         dtl_mode_env_len = strlen (e);
         if (strncmp (e, "FLUX_RPC", dtl_mode_env_len) == 0) {
+            DYAD_LOG_STDERR ("DYAD MOD: FLUX_RPC DTL mode found in environment\n");
             return DYAD_DTL_FLUX_RPC;
         } else if (strncmp (e, "UCX", dtl_mode_env_len) == 0) {
+            DYAD_LOG_STDERR ("DYAD MOD: UCX DTL mode found in environment\n");
             return DYAD_DTL_UCX;
         } else {
             DYAD_LOG_STDERR ("DYAD MOD: Invalid env %s = %s. Defaulting to %s\n", \

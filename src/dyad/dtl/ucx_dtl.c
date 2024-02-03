@@ -62,16 +62,23 @@ static void dyad_recv_callback (void* request, ucs_status_t status, ucp_tag_recv
 
 #if UCP_API_VERSION >= UCP_VERSION(1, 10)
 static void dyad_send_callback (void* req, ucs_status_t status, void* ctx)
-#else  // UCP_API_VERSION
-static void dyad_send_callback (void* req, ucs_status_t status)
-#endif // UCP_API_VERSION
 {
     DYAD_C_FUNCTION_START();
-    DYAD_LOG_INFO (ctx, "Calling send callback");
+    DYAD_LOG_INFO ((dyad_ctx_t*) ctx, "Calling send callback");
     dyad_ucx_request_t* real_req = (dyad_ucx_request_t*)req;
     real_req->completed = 1;
     DYAD_C_FUNCTION_END();
 }
+#else  // UCP_API_VERSION
+static void dyad_send_callback (void* req, ucs_status_t status)
+{
+    DYAD_C_FUNCTION_START();
+    DYAD_LOG_STDOUT ("Calling send callback");
+    dyad_ucx_request_t* real_req = (dyad_ucx_request_t*)req;
+    real_req->completed = 1;
+    DYAD_C_FUNCTION_END();
+}
+#endif // UCP_API_VERSION
 
 // Simple function used to wait on the async receive
 static ucs_status_t dyad_ucx_request_wait (const dyad_ctx_t* ctx,
@@ -227,9 +234,7 @@ static inline ucs_status_ptr_t ucx_send_no_wait (const dyad_ctx_t* ctx, bool is_
     ucs_status_ptr_t stat_ptr = NULL;
     dyad_dtl_ucx_t* dtl_handle = ctx->dtl_handle->private_dtl.ucx_dtl_handle;
     if (dtl_handle->ep == NULL) {
-        DYAD_LOG_ERROR (ctx,
-                       "UCP endpoint was not created prior to invoking "
-                       "send!");
+        DYAD_LOG_ERROR (ctx, "UCP endpoint was not created prior to invoking send!");
         stat_ptr = (void*)UCS_ERR_NOT_CONNECTED;
         goto ucx_send_no_wait_done;
     }
@@ -246,9 +251,7 @@ static inline ucs_status_ptr_t ucx_send_no_wait (const dyad_ctx_t* ctx, bool is_
     DYAD_LOG_INFO (ctx, "Sending data to consumer with ucp_tag_send_nbx");
     stat_ptr = ucp_tag_send_nbx (dtl_handle->ep, buf, buflen, dtl_handle->comm_tag, &params);
 #else  // UCP_API_VERSION
-    DYAD_LOG_INFO (ctx,
-                   "Sending %lu bytes of data to consumer with "
-                   "ucp_tag_send_nb",
+    DYAD_LOG_INFO (ctx, "Sending %lu bytes of data to consumer with ucp_tag_send_nb", \
                    buflen);
     stat_ptr = ucp_tag_send_nb (dtl_handle->ep,
                                 buf,
@@ -269,13 +272,13 @@ static inline ucs_status_ptr_t ucx_send_no_wait (const dyad_ctx_t* ctx, bool is_
     params.cb.send = dyad_send_callback;
     stat_ptr = ucp_put_nbx(dtl_handle->ep, buf, buflen, dtl_handle->cons_buf_ptr, dtl_handle->rkey, &params);
     if (UCS_PTR_IS_ERR(stat_ptr)) {
-        fprintf(stderr, "ucp_put_nbx() failed %s (%d)\n",
-                ucs_status_string(UCS_PTR_STATUS(stat_ptr)),
-                UCS_PTR_STATUS(stat_ptr));
+        DYAD_LOG_ERROR (ctx, "ucp_put_nbx() failed %s (%d)\n", \
+                        ucs_status_string(UCS_PTR_STATUS(stat_ptr)), \
+                        UCS_PTR_STATUS(stat_ptr));
         stat_ptr = (void*)UCS_ERR_NOT_CONNECTED;
         goto ucx_send_no_wait_done;
     }
-    DYAD_LOG_INFO (ctx, "written data buf of length %d", buflen);
+    DYAD_LOG_INFO (ctx, "written data buf of length %lu", buflen);
 #endif // DYAD_ENABLE_UCX_RMA
 ucx_send_no_wait_done:;
     DYAD_C_FUNCTION_END();
@@ -357,10 +360,8 @@ static inline ucs_status_ptr_t ucx_recv_no_wait (const dyad_ctx_t* ctx,
     // The metadata retrived from the probed tag recv event contains
     // the size of the data to be sent.
     // So, use that size to allocate a buffer
-    DYAD_LOG_INFO (ctx,
-                   "Got message with tag %lu and size %lu\n",
-                   msg_info.sender_tag,
-                   msg_info.length);
+    DYAD_LOG_INFO (ctx, "Got message with tag %lu and size %lu\n", \
+                   msg_info.sender_tag, msg_info.length);
     *buflen = msg_info.length;
     if (is_warmup) {
         if (*buflen > dtl_handle->max_transfer_size) {
@@ -911,8 +912,8 @@ dyad_rc_t dyad_dtl_ucx_get_buffer (const dyad_ctx_t* ctx, size_t data_size, void
     // }
     DYAD_LOG_INFO (dtl_handle, "Validating data_size in get_buffer");
     if (data_size > ctx->dtl_handle->private_dtl.ucx_dtl_handle->max_transfer_size) {
-        DYAD_LOG_ERROR (dtl_handle,
-                      "Requested a data size that's larger than the pre-allocated UCX buffer");
+        DYAD_LOG_ERROR (dtl_handle, \
+                        "Requested a data size that's larger than the pre-allocated UCX buffer");
         rc = DYAD_RC_BADBUF;
         goto ucx_get_buffer_done;
     }
@@ -968,9 +969,7 @@ dyad_rc_t dyad_dtl_ucx_establish_connection (const dyad_ctx_t* ctx)
         }
         rc = DYAD_RC_OK;
     } else if (comm_mode == DYAD_COMM_RECV) {
-        DYAD_LOG_INFO (ctx,
-                       "No explicit connection establishment needed for UCX "
-                       "receiver\n");
+        DYAD_LOG_INFO (ctx, "No explicit connection establishment needed for UCX receiver\n");
         rc = DYAD_RC_OK;
     } else {
         DYAD_LOG_ERROR (ctx, "Invalid communication mode: %d\n", comm_mode);
@@ -1080,9 +1079,7 @@ dyad_rc_t dyad_dtl_ucx_close_connection (const dyad_ctx_t* ctx)
         dtl_handle->comm_tag = 0;
         rc = DYAD_RC_OK;
     } else {
-        DYAD_LOG_ERROR (ctx,
-                      "Somehow, an invalid comm mode reached "
-                      "'close_connection'\n");
+        DYAD_LOG_ERROR (ctx, "Somehow, an invalid comm mode reached 'close_connection'\n");
         // TODO create new RC for this case
         rc = DYAD_RC_BAD_COMM_MODE;
     }
