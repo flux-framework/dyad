@@ -460,7 +460,7 @@ dyad_rc_t dyad_excl_flock (const dyad_ctx_t* ctx, int fd, struct flock* lock)
     lock->l_len = 0;
     lock->l_pid = ctx->pid; //getpid();
     if (fcntl (fd, F_SETLKW, lock) == -1) { // will wait until able to lock
-        DYAD_LOG_ERROR (ctx, "Cannot apply exclusive lock on fd %d", fd);
+        DYAD_LOG_ERROR (ctx, "Cannot apply exclusive lock on fd %d\n", fd);
         rc = DYAD_RC_BADFIO;
         goto excl_flock_end;
     }
@@ -489,7 +489,7 @@ dyad_rc_t dyad_shared_flock (const dyad_ctx_t* ctx, int fd, struct flock* lock)
     lock->l_len = 0;
     lock->l_pid = ctx->pid; //getpid();
     if (fcntl (fd, F_SETLKW, lock) == -1) { // will wait until able to lock
-        DYAD_LOG_ERROR (ctx, "Cannot apply shared lock on fd %d", fd);
+        DYAD_LOG_ERROR (ctx, "Cannot apply shared lock on fd %d\n", fd);
         rc = DYAD_RC_BADFIO;
         goto shared_flock_end;
     }
@@ -514,7 +514,7 @@ dyad_rc_t dyad_release_flock (const dyad_ctx_t* ctx, int fd, struct flock* lock)
     }
     lock->l_type = F_UNLCK;
     if (fcntl (fd, F_SETLKW, lock) == -1) { // will just unlock
-        DYAD_LOG_ERROR (ctx, "Cannot release lock on fd %d", fd);
+        DYAD_LOG_ERROR (ctx, "Cannot release lock on fd %d\n", fd);
         rc = DYAD_RC_BADFIO;
         goto release_flock_end;
     }
