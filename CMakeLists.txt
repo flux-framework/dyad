@@ -224,7 +224,11 @@ endif ()
 # Optional Dependencies
 # =============================================================================
 if (DYAD_LOGGER STREQUAL "CPP_LOGGER")
-    find_package(cpp-logger REQUIRED)
+    find_package(cpp-logger REQUIRED
+                 HINTS ${CPP_LOGGER_DIR} ${cpp-logger_DIR}
+                       ${CPP_LOGGER_PATH} ${cpp-logger_PATH}
+                       $ENV{CPP_LOGGER_DIR} $ENV{cpp-logger_DIR}
+                       $ENV{CPP_LOGGER_PATH} $ENV{cpp-logger_PATH})
     if (${CPP_LOGGER_FOUND})
         message(STATUS "[${PROJECT_NAME}] found cpp-logger at ${CPP_LOGGER_INCLUDE_DIRS}")
         include_directories(${CPP_LOGGER_INCLUDE_DIRS})
