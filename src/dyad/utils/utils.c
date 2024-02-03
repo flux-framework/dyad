@@ -17,6 +17,10 @@
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif  // _GNU_SOURCE
+
+// logger for utils where it does not depend on flux
+#define DYAD_UTIL_LOGGER 1
+
 #include <dyad/utils/utils.h>
 
 #include <dyad/common/dyad_logging.h>
@@ -441,7 +445,7 @@ dyad_rc_t dyad_excl_flock (const dyad_ctx_t* ctx, int fd, struct flock* lock)
     dyad_rc_t rc = DYAD_RC_OK;
     DYAD_C_FUNCTION_START();
     DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
-    DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] Applies an exclusive lock on fd %d", \
+    DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] Applies an exclusive lock on fd %d\n", \
                    ctx->node_idx, ctx->rank, ctx->pid, fd);
     if (!lock) {
         rc = DYAD_RC_BADFIO;
@@ -457,7 +461,7 @@ dyad_rc_t dyad_excl_flock (const dyad_ctx_t* ctx, int fd, struct flock* lock)
         rc = DYAD_RC_BADFIO;
         goto excl_flock_end;
     }
-    DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] Exclusive lock placed on fd %d", \
+    DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] Exclusive lock placed on fd %d\n", \
                    ctx->node_idx, ctx->rank, ctx->pid, fd);
     rc = DYAD_RC_OK;
 excl_flock_end:;
@@ -470,7 +474,7 @@ dyad_rc_t dyad_shared_flock (const dyad_ctx_t* ctx, int fd, struct flock* lock)
     DYAD_C_FUNCTION_START();
     DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
     dyad_rc_t rc = DYAD_RC_OK;
-    DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] Applies a shared lock on fd %d", \
+    DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] Applies a shared lock on fd %d\n", \
                    ctx->node_idx, ctx->rank, ctx->pid, fd);
     if (!lock) {
         rc = DYAD_RC_BADFIO;
@@ -486,7 +490,7 @@ dyad_rc_t dyad_shared_flock (const dyad_ctx_t* ctx, int fd, struct flock* lock)
         rc = DYAD_RC_BADFIO;
         goto shared_flock_end;
     }
-    DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] Shared lock placed on fd %d", \
+    DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] Shared lock placed on fd %d\n", \
                    ctx->node_idx, ctx->rank, ctx->pid, fd);
     rc = DYAD_RC_OK;
 shared_flock_end:;
@@ -499,7 +503,7 @@ dyad_rc_t dyad_release_flock (const dyad_ctx_t* ctx, int fd, struct flock* lock)
     DYAD_C_FUNCTION_START();
     DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
     dyad_rc_t rc = DYAD_RC_OK;
-    DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] Releases a lock on fd %d", \
+    DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] Releases a lock on fd %d\n", \
                    ctx->node_idx, ctx->rank, ctx->pid, fd);
     if (!lock) {
         rc = DYAD_RC_BADFIO;
@@ -511,7 +515,7 @@ dyad_rc_t dyad_release_flock (const dyad_ctx_t* ctx, int fd, struct flock* lock)
         rc = DYAD_RC_BADFIO;
         goto release_flock_end;
     }
-    DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] lock lifted from fd %d", \
+    DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] lock lifted from fd %d\n", \
                    ctx->node_idx, ctx->rank, ctx->pid, fd);
     rc = DYAD_RC_OK;
 release_flock_end:;
