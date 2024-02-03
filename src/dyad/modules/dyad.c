@@ -25,8 +25,6 @@
 #include <dyad/utils/read_all.h>
 #include <dyad/utils/utils.h>
 
-#include <flux/optparse.h>
-
 #if defined(__cplusplus)
 #include <cerrno>
 #include <cstddef>
@@ -48,6 +46,7 @@
 #include <linux/limits.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <getopt.h>
 
 #define TIME_DIFF(Tstart, Tend)                                                                    \
     ((double)(1000000000L * ((Tend).tv_sec - (Tstart).tv_sec) + (Tend).tv_nsec - (Tstart).tv_nsec) \
@@ -80,9 +79,13 @@ static void freectx (void *arg)
     dyad_mod_ctx_t *mod_ctx = (dyad_mod_ctx_t *)arg;
     flux_msg_handler_delvec (mod_ctx->handlers);
     if (mod_ctx->ctx) {
-        if ( mod_ctx->ctx->dtl_handle ) dyad_dtl_finalize (mod_ctx->ctx);
+        if (mod_ctx->ctx->dtl_handle) dyad_dtl_finalize (mod_ctx->ctx);
+        if (mod_ctx->ctx->prod_managed_path) {
+            free (mod_ctx->ctx->prod_managed_path);
+            mod_ctx->ctx->prod_managed_path = NULL;
+        }
         mod_ctx->ctx->dtl_handle = NULL;
-        free(mod_ctx->ctx);
+        free (mod_ctx->ctx);
         mod_ctx->ctx = NULL;
     }
     free (mod_ctx);
@@ -266,13 +269,11 @@ end_fetch_cb:;
     return;
 }
 
-static dyad_rc_t dyad_open (flux_t *h, dyad_dtl_mode_t dtl_mode, bool debug, optparse_t *opts)
+static dyad_rc_t dyad_open (dyad_ctx_t* ctx, dyad_dtl_mode_t dtl_mode)
 {
     DYAD_C_FUNCTION_START();
-    dyad_mod_ctx_t *mod_ctx = getctx (h);
     dyad_rc_t rc = DYAD_RC_OK;
-    mod_ctx->ctx->debug = debug;
-    rc = dyad_dtl_init (mod_ctx->ctx, dtl_mode, DYAD_COMM_SEND, mod_ctx->ctx->debug);
+    rc = dyad_dtl_init (ctx, dtl_mode, DYAD_COMM_SEND, ctx->debug);
     DYAD_C_FUNCTION_END();
     return rc;
 }
@@ -280,42 +281,6 @@ static dyad_rc_t dyad_open (flux_t *h, dyad_dtl_mode_t dtl_mode, bool debug, opt
 static const struct flux_msg_handler_spec htab[] =
     {{FLUX_MSGTYPE_REQUEST, DYAD_DTL_RPC_NAME, dyad_fetch_request_cb, 0},
      FLUX_MSGHANDLER_TABLE_END};
-
-static struct optparse_option cmdline_opts[] =
-    {{.name = "test",
-         .key = 't',
-         .has_arg = 0,
-         .usage = "Show help"},
-     {.name = "mode",
-      .key = 'm',
-      .has_arg = 1,
-      .arginfo = "DTL_MODE",
-      .usage = "Specify the data transport "
-               "layer mode. Can be one of "
-               "'FLUX_RPC' (default) or "
-               "'UCX'"},
-     {.name = "debug",
-      .key = 'd',
-      .has_arg = 0,
-      .usage = "If provided, add debugging "
-               "log messages"},
-     {.name = "info_log",
-      .key = 'i',
-      .has_arg = 1,
-      .arginfo = "INFO_LOG_FILE",
-      .usage = "Specify the file into which to redirect "
-               "info logging. Does nothing if DYAD was "
-               "not configured with "
-               "'-DDYAD_LOGGER=PRINTF'"},
-     {.name = "error_log",
-      .key = 'e',
-      .has_arg = 1,
-      .arginfo = "ERROR_LOG_FILE",
-      .usage = "Specify the file into which to redirect "
-               "error logging. Does nothing if DYAD was "
-               "not configured with "
-               "'-DDYAD_LOGGER=PRINTF'"},
-     OPTPARSE_TABLE_END};
 
 /** This is a temporary measure until environment variable based initialization
  *  is implemented */
@@ -332,131 +297,200 @@ static dyad_dtl_mode_t get_dtl_mode_env ()
         } else if (strncmp (e, "UCX", dtl_mode_env_len) == 0) {
             return DYAD_DTL_UCX;
         } else {
-            DYAD_LOG_STDERR("Invalid env %s = %s. Defaulting to %s\n", \
-                        DYAD_DTL_MODE_ENV, e, dyad_dtl_mode_name[DYAD_DTL_DEFAULT]);
+            DYAD_LOG_STDERR ("DYAD MOD: Invalid env %s = %s. Defaulting to %s\n", \
+                         DYAD_DTL_MODE_ENV, e, dyad_dtl_mode_name[DYAD_DTL_DEFAULT]);
             return DYAD_DTL_DEFAULT;
         }
     } else {
-        DYAD_LOG_STDERR("%s is not set. Defaulting to %s\n", \
-                        DYAD_DTL_MODE_ENV, dyad_dtl_mode_name[DYAD_DTL_DEFAULT]);
+        DYAD_LOG_STDERR ("DYAD MOD: %s is not set. Defaulting to %s\n", \
+                         DYAD_DTL_MODE_ENV, dyad_dtl_mode_name[DYAD_DTL_DEFAULT]);
         return DYAD_DTL_DEFAULT;
     }
     return DYAD_DTL_DEFAULT;
 }
 
+static void show_help (void)
+{
+    DYAD_LOG_STDOUT ("dyad module options and arguments\n");
+    DYAD_LOG_STDOUT ("    -h, --help:  Show help.\n");
+    DYAD_LOG_STDOUT ("    -d, --debug: Enable debugging log message.\n");
+    DYAD_LOG_STDOUT ("    -m, --mode:  DTL mode. Need an argument.\n"
+                     "                 Either 'FLUX_RPC' (default) or 'UCX'.\n");
+    DYAD_LOG_STDOUT ("    -i, --info_log: Specify the file into which to redirect\n"
+                     "                    info logging. Does nothing if DYAD was not\n"
+                     "                    configured with '-DDYAD_LOGGER=PRINTF'.\n"
+                     "                    Need a filename as an argument.\n");
+    DYAD_LOG_STDOUT ("    -e, --error_log: Specify the file into which to redirect\n"
+                     "                     error logging. Does nothing if DYAD was\n"
+                     "                     not configured with '-DDYAD_LOGGER=PRINTF'\n"
+                     "                     Need a filename as an argument.\n");
+}
+
+static int opt_parse (dyad_ctx_t* ctx, const unsigned broker_rank,
+                      dyad_dtl_mode_t *dtl_mode, int* argc, char*** argv)
+{
+    size_t arglen = 0ul;
+    const mode_t m = (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH | S_ISGID);
+  #ifndef DYAD_LOGGER_NO_LOG
+    char log_file_name[PATH_MAX+1] = {'\0'};
+    char err_file_name[PATH_MAX+1] = {'\0'};
+    sprintf (log_file_name, "dyad_mod_%u.out", broker_rank);
+    sprintf (err_file_name, "dyad_mod_%d.err", broker_rank);
+  #endif // DYAD_LOGGER_NO_LOG
+    *dtl_mode = DYAD_DTL_END;
+
+    while (1)
+    {
+        static struct option long_options[] =
+        {
+            {"help",       no_argument,       0, 'h'},
+            {"debug"   ,   no_argument,       0, 'd'},
+            {"mode",       required_argument, 0, 'm'},
+            {"info_log",  required_argument, 0, 'i'},
+            {"error_log", required_argument, 0, 'e'},
+            {0, 0, 0, 0}
+	    };
+        /* getopt_long stores the option index here. */
+        int option_index = 0;
+        int c = -1;
+
+        c = getopt_long (*argc, *argv, "hdm:i:e:", long_options, &option_index);
+
+        /* Detect the end of the options. */
+        if (c == -1) {
+            DYAD_LOG_DEBUG (ctx, "DYAD_MOD: no more option\n");
+            break;
+        }
+        DYAD_LOG_DEBUG (ctx, "DYAD_MOD: opt %c, index %d\n", (char) c, optind);
+
+        switch (c)
+        {
+            case 'h':
+                show_help ();
+                break;
+            case 'd':
+                DYAD_LOG_DEBUG (ctx, "DYAD_MOD: 'debug' option -d \n");
+                ctx->debug = true;
+                break;
+            case 'm':
+                DYAD_LOG_DEBUG (ctx, "DYAD_MOD: DTL 'mode' option -m with value `%s'\n", optarg);
+                arglen = strlen (optarg);
+                if (strncmp (optarg, "FLUX_RPC", arglen) == 0) {
+                    *dtl_mode = DYAD_DTL_FLUX_RPC;
+                } else if (strncmp (optarg, "UCX", arglen) == 0) {
+                    *dtl_mode = DYAD_DTL_UCX;
+                } else {
+                    DYAD_LOG_ERROR (ctx, "DYAD_MOD: Invalid DTL 'mode' (%s) provided\n", optarg);
+                    *dtl_mode = DYAD_DTL_END;
+                    show_help ();
+                    return DYAD_RC_SYSFAIL ;
+                }
+                break;
+            case 'i':
+              #ifndef DYAD_LOGGER_NO_LOG
+                DYAD_LOG_DEBUG (ctx, "DYAD_MOD: 'info_log' option -i with value `%s'\n", optarg);
+                sprintf (log_file_name, "%s_%u.out", optarg, broker_rank);
+              #endif // DYAD_LOGGER_NO_LOG
+                break;
+            case 'e':
+              #ifndef DYAD_LOGGER_NO_LOG
+                DYAD_LOG_DEBUG (ctx, "DYAD_MOD: 'error_log' option -e with value `%s'\n", optarg);
+                sprintf (err_file_name, "%s_%d.err", optarg, broker_rank);
+              #endif // DYAD_LOGGER_NO_LOG
+                break;
+            case '?':
+                /* getopt_long already printed an error message. */
+                break;
+            default:
+                DYAD_LOG_DEBUG (ctx, "DYAD_MOD: option parsing failed %d\n", c);
+                return DYAD_RC_SYSFAIL ;
+        }
+    }
+
+  #ifndef DYAD_LOGGER_NO_LOG
+    DYAD_LOG_STDOUT_REDIRECT (log_file_name);
+    DYAD_LOG_STDERR_REDIRECT (err_file_name);
+  #endif // DYAD_LOGGER_NO_LOG
+
+    if (*dtl_mode == DYAD_DTL_END) {
+        DYAD_LOG_DEBUG (ctx, "DYAD_MOD: Did not find DTL 'mode' option");
+        *dtl_mode = get_dtl_mode_env ();
+    }
+
+    /* Print any remaining command line arguments (not options). */
+    while (optind < *argc) {
+        DYAD_LOG_DEBUG (ctx, "DYAD_MOD: positional arguments %s\n", (*argv)[optind]);
+        ctx->prod_managed_path = (*argv)[optind++];
+    }
+    if (ctx->prod_managed_path) {
+        const size_t prod_path_len = strlen (ctx->prod_managed_path);
+        const char* tmp_ptr = ctx->prod_managed_path;
+        ctx->prod_managed_path = (char*)malloc (prod_path_len + 1);
+        if (ctx->prod_managed_path == NULL) {
+            DYAD_LOG_ERROR (ctx, "DYAD_MOD: Could not allocate buffer for " \
+                                 "Producer managed path!\n");
+            return DYAD_RC_SYSFAIL ;
+        }
+        strncpy (ctx->prod_managed_path, tmp_ptr, prod_path_len + 1);
+        (ctx->prod_managed_path)[prod_path_len] = '\0';
+        mkdir_as_needed (ctx->prod_managed_path, m);
+        DYAD_LOG_INFO (ctx, "DYAD_MOD: Loading DYAD Module with Path %s and DTL Mode %s", \
+                       ctx->prod_managed_path, dyad_dtl_mode_name[*dtl_mode]);
+    }
+    return DYAD_RC_OK;
+}
+
 DYAD_DLL_EXPORTED int mod_main (flux_t *h, int argc, char **argv)
 {
-    DYAD_LOGGER_INIT();
-    DYAD_LOG_STDOUT("Loading mod_main\n");
-    const mode_t m = (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH | S_ISGID);
+    DYAD_LOGGER_INIT ();
+    DYAD_LOG_STDOUT ("Loading mod_main\n");
     dyad_mod_ctx_t *mod_ctx = NULL;
-    size_t arglen = 0;
-    bool debug = false;
     dyad_dtl_mode_t dtl_mode = DYAD_DTL_DEFAULT;
-    const char* optargp;
-    int optindex = 0;
-    optparse_t *opts = NULL;
+
     if (!h) {
-        DYAD_LOG_STDERR("Failed to get flux handle\n");
+        DYAD_LOG_STDERR ("Failed to get flux handle\n");
         goto mod_done;
     }
 
     mod_ctx = getctx (h);
 
-    DYAD_LOG_DEBUG(mod_ctx->ctx, "Creating optparser");
-    opts = optparse_create ("dyad.so");
-    DYAD_LOG_DEBUG(mod_ctx->ctx, "Adding option table to parser");
-    if (optparse_add_option_table (opts, cmdline_opts) < 0) {
-        DYAD_LOG_ERROR(mod_ctx->ctx, "Cannot add option table for DYAD module");
-        goto mod_error;
-    }
     uint32_t broker_rank;
     flux_get_rank (h, &broker_rank);
 #ifdef DYAD_PROFILER_DLIO_PROFILER
     int pid = broker_rank;
     DLIO_PROFILER_C_INIT (NULL, NULL, &pid);
 #endif
-    DYAD_C_FUNCTION_START();
-    DYAD_LOG_DEBUG(mod_ctx->ctx, "Adding perf options to parser");
-    DYAD_LOG_DEBUG(mod_ctx->ctx, "Parsing command line options");
-    if ((optindex = optparse_parse_args (opts, argc, argv)) < 0) {
-        DYAD_LOG_ERROR(mod_ctx->ctx, "Cannot parse command line arguments to dyad.so");
-        goto mod_error;
-    }
-    if (optindex >= argc) {
-        DYAD_LOG_ERROR(mod_ctx->ctx, "Positional arguments not provided to dyad.so");
-        optparse_print_usage (opts);
+    DYAD_C_FUNCTION_START ();
+
+    DYAD_LOG_DEBUG (mod_ctx->ctx, "DYAD_MOD: Parsing command line options");
+    if (opt_parse (mod_ctx->ctx, broker_rank, &dtl_mode, &argc, &argv) != DYAD_RC_OK) {
+        DYAD_LOG_ERROR (mod_ctx->ctx, "DYAD_MOD: Cannot parse command line arguments");
         goto mod_error;
     }
 
-
-    if (optparse_getopt (opts, "mode", &optargp) > 0) {
-        DYAD_LOG_DEBUG (mod_ctx->ctx, "Found 'mode': %s", optargp);
-        arglen = strlen (optargp);
-        if (strncmp (optargp, "FLUX_RPC", arglen) == 0) {
-            dtl_mode = DYAD_DTL_FLUX_RPC;
-        } else if (strncmp (optargp, "UCX", arglen) == 0) {
-            dtl_mode = DYAD_DTL_UCX;
-        } else {
-            DYAD_LOG_ERROR (mod_ctx->ctx, "Invalid DTL mode provided\n");
-            optparse_print_usage (opts);
-            goto mod_error;
-        }
-    } else {
-        DYAD_LOG_DEBUG (mod_ctx->ctx, "Did not find 'mode'");
-        dtl_mode = get_dtl_mode_env ();
-    }
-    DYAD_LOG_DEBUG (mod_ctx->ctx, "Test");
-
-    (mod_ctx->ctx->prod_managed_path) = argv[optindex];
-    mkdir_as_needed (mod_ctx->ctx->prod_managed_path, m);
-    DYAD_LOG_INFO (mod_ctx->ctx, "Loading DYAD Module with Path %s and DTL Mode %d", \
-                   mod_ctx->ctx->prod_managed_path, dtl_mode);
-    if (DYAD_IS_ERROR (dyad_open (h, dtl_mode, debug, opts))) {
-        DYAD_LOG_ERROR (mod_ctx->ctx, "dyad_open failed");
+    if (DYAD_IS_ERROR (dyad_open (mod_ctx->ctx, dtl_mode))) {
+        DYAD_LOG_ERROR (mod_ctx->ctx, "DYAD_MOD: dyad_open failed");
         goto mod_error;
     }
-
-  #ifndef DYAD_LOGGER_NO_LOG
-    char log_file_name[4096] = {'\0'}, err_file_name[4096] = {'\0'};
-    if (optparse_getopt (opts, "info_log", &optargp) > 0) {
-        sprintf (log_file_name, "%s_%u.out", optargp, broker_rank);
-        DYAD_LOG_STDOUT_REDIRECT (log_file_name);
-    } else {
-        sprintf (log_file_name, "dyad_core_%u.out", broker_rank);
-        DYAD_LOG_STDOUT_REDIRECT (log_file_name);
-    }
-    if (optparse_getopt (opts, "error_log", &optargp) > 0) {
-        sprintf (err_file_name, "%s_%d.err", optargp, broker_rank);
-        DYAD_LOG_STDERR_REDIRECT (err_file_name);
-    } else {
-        sprintf (err_file_name, "dyad_core_%d.err", broker_rank);
-        DYAD_LOG_STDERR_REDIRECT (err_file_name);
-    }
-  #endif // DYAD_LOGGER_NO_LOG
-
-    optparse_destroy (opts);
-
-    DYAD_LOG_DEBUG (mod_ctx->ctx, "dyad module begins using \"%s\"\n", argv[optindex]);
 
     if (flux_msg_handler_addvec (mod_ctx->ctx->h, htab, (void *)h, &mod_ctx->handlers) < 0) {
-        DYAD_LOG_ERROR (mod_ctx->ctx, "flux_msg_handler_addvec: %s\n", strerror (errno));
+        DYAD_LOG_ERROR (mod_ctx->ctx, "DYAD_MOD: flux_msg_handler_addvec: %s\n", strerror (errno));
         goto mod_error;
     }
 
     if (flux_reactor_run (flux_get_reactor (mod_ctx->ctx->h), 0) < 0) {
-        DYAD_LOG_DEBUG (mod_ctx->ctx, "flux_reactor_run: %s", strerror (errno));
+        DYAD_LOG_DEBUG (mod_ctx->ctx, "DYAD_MOD: flux_reactor_run: %s", strerror (errno));
         goto mod_error;
     }
-    DYAD_LOG_DEBUG (mod_ctx->ctx, "DYAD Module finished");
+    DYAD_LOG_DEBUG (mod_ctx->ctx, "DYAD_MOD: Finished");
     goto mod_done;
 
 mod_error:;
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return EXIT_FAILURE;
 
 mod_done:;
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return EXIT_SUCCESS;
 }
 
