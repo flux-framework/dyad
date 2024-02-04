@@ -17,6 +17,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <flux/core.h>
+#include <errno.h>
 
 #ifdef __cplusplus
 #include <climits>
@@ -40,7 +41,7 @@ static int gen_path_key (const char* restrict str,
                          const uint32_t depth,
                          const uint32_t width)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     static const uint32_t seeds[10] =
         {104677u, 104681u, 104683u, 104693u, 104701u, 104707u, 104711u, 104717u, 104723u, 104729u};
 
@@ -74,21 +75,21 @@ static int gen_path_key (const char* restrict str,
         n = snprintf (path_key + cx, len - cx, "%x.", bin);
         cx += n;
         if (cx >= len || n < 0) {
-            DYAD_C_FUNCTION_END();
+            DYAD_C_FUNCTION_END ();
             return -1;
         }
     }
     n = snprintf (path_key + cx, len - cx, "%s", str);
     if (cx + n >= len || n < 0) {
-        DYAD_C_FUNCTION_END();
+        DYAD_C_FUNCTION_END ();
         return -1;
     }
     DYAD_C_FUNCTION_UPDATE_STR ("path_key", path_key);
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return 0;
 }
 
-static void future_cleanup_cb (flux_future_t *f, void *arg)
+static void future_cleanup_cb (flux_future_t* f, void* arg)
 {
     if (flux_future_get (f, NULL) < 0) {
         DYAD_LOG_STDERR ("future_cleanup: future error detected with.%s", "");
@@ -99,7 +100,7 @@ static void future_cleanup_cb (flux_future_t *f, void *arg)
 DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_commit (const dyad_ctx_t* restrict ctx,
                                                flux_kvs_txn_t* restrict txn)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     flux_future_t* f = NULL;
     dyad_rc_t rc = DYAD_RC_OK;
     DYAD_LOG_INFO (ctx, "Committing transaction to KVS");
@@ -116,27 +117,28 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_commit (const dyad_ctx_t* restrict ctx,
             DYAD_LOG_ERROR (ctx, "Error with flux_future_then");
         }
     } else {
-        DYAD_C_REGION_START("dyad_kvs_commit_wait");
+        DYAD_C_REGION_START ("dyad_kvs_commit_wait");
         // If the commit is pending, wait for it to complete
         flux_future_wait_for (f, -1.0);
         // Once the commit is complete, destroy the future and transaction
         flux_future_destroy (f);
         f = NULL;
-        DYAD_C_REGION_END("dyad_kvs_commit_wait");
+        DYAD_C_REGION_END ("dyad_kvs_commit_wait");
     }
     rc = DYAD_RC_OK;
 kvs_commit_region_finish:;
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 
 DYAD_CORE_FUNC_MODS dyad_rc_t publish_via_flux (const dyad_ctx_t* restrict ctx,
                                                 const char* restrict upath)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", ctx->fname);
     DYAD_C_FUNCTION_UPDATE_STR ("upath", upath);
     dyad_rc_t rc = DYAD_RC_OK;
+    int flux_rc = 0;
     flux_kvs_txn_t* txn = NULL;
     const size_t topic_len = PATH_MAX;
     char topic[PATH_MAX + 1] = {'\0'};
@@ -151,13 +153,18 @@ DYAD_CORE_FUNC_MODS dyad_rc_t publish_via_flux (const dyad_ctx_t* restrict ctx,
     // with the previously generated key as the key and the
     // producer's rank as the value
     DYAD_LOG_INFO (ctx, "Creating KVS transaction under the key %s", topic);
+    DYAD_C_REGION_START ("flux_kvs_txn_create");
     txn = flux_kvs_txn_create ();
+    DYAD_C_REGION_END ("flux_kvs_txn_create");
     if (txn == NULL) {
         DYAD_LOG_ERROR (ctx, "Could not create Flux KVS transaction");
         rc = DYAD_RC_FLUXFAIL;
         goto publish_done;
     }
-    if (flux_kvs_txn_pack (txn, 0, topic, "i", ctx->rank) < 0) {
+    DYAD_C_REGION_START ("flux_kvs_txn_pack");
+    flux_rc = flux_kvs_txn_pack (txn, 0, topic, "i", ctx->rank);
+    DYAD_C_REGION_END ("flux_kvs_txn_pack");
+    if (flux_rc < 0) {
         DYAD_LOG_ERROR (ctx, "Could not pack Flux KVS transaction");
         rc = DYAD_RC_FLUXFAIL;
         goto publish_done;
@@ -174,13 +181,13 @@ publish_done:;
     if (txn != NULL) {
         flux_kvs_txn_destroy (txn);
     }
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 
 DYAD_CORE_FUNC_MODS dyad_rc_t dyad_commit (dyad_ctx_t* restrict ctx, const char* restrict fname)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", ctx->fname);
     dyad_rc_t rc = DYAD_RC_OK;
     char upath[PATH_MAX+1] = {'\0'};
@@ -222,7 +229,7 @@ commit_done:;
     if (rc == DYAD_RC_OK && (ctx && ctx->check)) {
         setenv (DYAD_CHECK_ENV, "ok", 1);
     }
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 
@@ -244,7 +251,7 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_read (const dyad_ctx_t* restrict ctx,
                                              bool should_wait,
                                              dyad_metadata_t** restrict mdata)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("upath", upath);
     dyad_rc_t rc = DYAD_RC_OK;
     int kvs_lookup_flags = 0;
@@ -310,7 +317,7 @@ kvs_read_end:;
         flux_future_destroy (f);
         f = NULL;
     }
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 
@@ -321,7 +328,7 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_fetch_metadata (const dyad_ctx_t* restrict ct
                                                    const char* restrict upath,
                                                    dyad_metadata_t** restrict mdata)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", fname);
     dyad_rc_t rc = DYAD_RC_OK;
     const size_t topic_len = PATH_MAX;
@@ -372,7 +379,7 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_fetch_metadata (const dyad_ctx_t* restrict ct
     rc = DYAD_RC_OK;
 
 fetch_done:;
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 
@@ -381,7 +388,7 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_get_data (const dyad_ctx_t* restrict ctx,
                                              char** restrict file_data,
                                              size_t* restrict file_len)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     dyad_rc_t rc = DYAD_RC_OK;
     flux_future_t* f = NULL;
     json_t* rpc_payload = NULL;
@@ -470,16 +477,17 @@ get_done:;
 #endif
     DYAD_LOG_INFO (ctx, "Destroy the Flux future for the RPC\n");
     flux_future_destroy (f);
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 
 DYAD_CORE_FUNC_MODS dyad_rc_t dyad_cons_store (const dyad_ctx_t* restrict ctx,
                                                const dyad_metadata_t* restrict mdata,
-                                               int fd, const size_t data_len,
+                                               int fd,
+                                               const size_t data_len,
                                                char* restrict file_data)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
     dyad_rc_t rc = DYAD_RC_OK;
     const char* odir = NULL;
@@ -522,14 +530,14 @@ pull_done:;
     // If "check" is set and the operation was successful, set the
     // DYAD_CHECK_ENV environment variable to "ok"
     if (rc == DYAD_RC_OK && (ctx && ctx->check))
-        setenv(DYAD_CHECK_ENV, "ok", 1);
-    DYAD_C_FUNCTION_END();
+        setenv (DYAD_CHECK_ENV, "ok", 1);
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 
 dyad_rc_t dyad_produce (dyad_ctx_t* restrict ctx, const char* restrict fname)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     ctx->fname = fname;
     DYAD_C_FUNCTION_UPDATE_STR ("fname", ctx->fname);
     DYAD_LOG_DEBUG (ctx, "Executing dyad_produce");
@@ -537,7 +545,7 @@ dyad_rc_t dyad_produce (dyad_ctx_t* restrict ctx, const char* restrict fname)
     // If the context is not defined, then it is not valid.
     // So, return DYAD_NOCTX
     if (!ctx || !ctx->h) {
-        DYAD_LOG_ERROR(ctx, "No CTX found in dyad_produce");
+        DYAD_LOG_ERROR (ctx, "No CTX found in dyad_produce")
         rc = DYAD_RC_NOCTX;
         goto produce_done;
     }
@@ -553,7 +561,7 @@ dyad_rc_t dyad_produce (dyad_ctx_t* restrict ctx, const char* restrict fname)
     // the producer operation
     rc = dyad_commit (ctx, fname);
 produce_done:;
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 
@@ -565,7 +573,7 @@ dyad_rc_t dyad_get_metadata (dyad_ctx_t* restrict ctx,
                              bool should_wait,
                              dyad_metadata_t** restrict mdata)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", fname);
     DYAD_C_FUNCTION_UPDATE_INT ("should_wait", should_wait);
     dyad_rc_t rc = DYAD_RC_OK;
@@ -658,7 +666,7 @@ get_metadata_done:;
 
 dyad_rc_t dyad_free_metadata (dyad_metadata_t** mdata)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     if (mdata == NULL || *mdata == NULL) {
         return DYAD_RC_OK;
     }
@@ -666,13 +674,13 @@ dyad_rc_t dyad_free_metadata (dyad_metadata_t** mdata)
         free ((*mdata)->fpath);
     free (*mdata);
     *mdata = NULL;
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return DYAD_RC_OK;
 }
 
 dyad_rc_t dyad_consume (dyad_ctx_t* restrict ctx, const char* restrict fname)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", fname);
     dyad_rc_t rc = DYAD_RC_OK;
     int lock_fd = -1, io_fd = -1;
@@ -810,14 +818,14 @@ consume_done:;
     // Set reenter to true to allow additional intercepting
 consume_close:;
     ctx->reenter = true;
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 
 dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t* restrict ctx, const char* fname,
                                    const dyad_metadata_t* restrict mdata)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", fname);
     dyad_rc_t rc = DYAD_RC_OK;
     int fd = -1;
@@ -859,8 +867,13 @@ dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t* restrict ctx, const char* fname,
         goto consume_close;
     }
     if ((file_size = get_file_size (fd)) <= 0) {
-        DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] File (%s with fd %d) is not fetched yet", \
-                       ctx->node_idx, ctx->rank, ctx->pid, fname, fd);
+        DYAD_LOG_INFO (ctx,
+                       "[node %u rank %u pid %d] File (%s with fd %d) is not fetched yet",
+                       ctx->node_idx,
+                       ctx->rank,
+                       ctx->pid,
+                       fname,
+                       fd);
 
         // Call dyad_get_data to dispatch a RPC to the producer's Flux broker
         // and retrieve the data associated with the file
@@ -899,14 +912,14 @@ consume_done:;
 consume_close:;
     // Set reenter to true to allow additional intercepting
     ctx->reenter = true;
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 
 #if DYAD_SYNC_DIR
 int dyad_sync_directory (dyad_ctx_t* restrict ctx, const char* restrict path)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("path", path);
     // Flush new directory entry https://lwn.net/Articles/457671/
     char path_copy[PATH_MAX + 1] = {'\0'};
@@ -938,7 +951,7 @@ int dyad_sync_directory (dyad_ctx_t* restrict ctx, const char* restrict path)
     }
     if (ctx != NULL)
         ctx->reenter = reenter;
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 #endif
