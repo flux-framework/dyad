@@ -17,11 +17,9 @@
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif  // _GNU_SOURCE
-#include <dyad/utils/utils.h>
-
 #include <dyad/common/dyad_logging.h>
 #include <dyad/common/dyad_profiler.h>
-
+#include <dyad/utils/utils.h>
 #include <fcntl.h>      // open
 #include <libgen.h>     // basename dirname
 #include <sys/stat.h>   // open
@@ -91,9 +89,8 @@ char* concat_str (char* __restrict__ str,
     const size_t str_len = (con_end ? (str_len_org - con_len) : str_len_org);
 
     const char* const str_end = str + str_capacity;
-    bool no_overlap =
-        ((to_append + strlen (to_append) <= str) || (str_end <= to_append))
-        && ((connector + strlen (connector) <= str) || (str_end <= connector));
+    bool no_overlap = ((to_append + strlen (to_append) <= str) || (str_end <= to_append))
+                      && ((connector + strlen (connector) <= str) || (str_end <= connector));
 
     if (!no_overlap) {
         DYAD_LOG_DEBUG (NULL, "DYAD UTIL: buffers overlap.\n");
@@ -150,10 +147,9 @@ bool cmp_prefix (const char* __restrict__ prefix,
 {
     {
         const char* const u_len_end = ((const char*)u_len) + sizeof (size_t);
-        bool no_overlap =
-            ((prefix + strlen (prefix) <= (char*)u_len) || (u_len_end <= prefix))
-            && ((full + strlen (full) <= (char*)u_len) || (u_len_end <= full))
-            && ((delim + strlen (delim) <= (char*)u_len) || (u_len_end <= delim));
+        bool no_overlap = ((prefix + strlen (prefix) <= (char*)u_len) || (u_len_end <= prefix))
+                          && ((full + strlen (full) <= (char*)u_len) || (u_len_end <= full))
+                          && ((delim + strlen (delim) <= (char*)u_len) || (u_len_end <= delim));
 
         if (!no_overlap) {
             DYAD_LOG_DEBUG (NULL, "DYAD UTIL: buffers overlap.\n");
@@ -219,6 +215,8 @@ bool cmp_canonical_path_prefix (const char* __restrict__ prefix,
                                 char* __restrict__ upath,
                                 const size_t upath_capacity)
 {
+    DYAD_C_FUNCTION_START ();
+    bool match = false;
     {
         const char* const upath_end = upath + upath_capacity;
         bool no_overlap = ((prefix + strlen (prefix) <= upath) || (upath_end <= prefix))
@@ -226,7 +224,8 @@ bool cmp_canonical_path_prefix (const char* __restrict__ prefix,
 
         if (!no_overlap) {
             DYAD_LOG_DEBUG (NULL, "DYAD UTIL: buffers overlap\n");
-            return false;
+            match = false;
+            goto cmp_canonical_path_prefix_done;
         }
     }
 
@@ -236,13 +235,13 @@ bool cmp_canonical_path_prefix (const char* __restrict__ prefix,
 
     // The path prefix needs to translate to a real path
     if (!realpath (prefix, can_prefix)) {
-        DYAD_LOG_DEBUG (NULL,"DYAD UTIL: error in realpath for %s\n", prefix);
+        DYAD_LOG_DEBUG (NULL, "DYAD UTIL: error in realpath for %s\n", prefix);
         DYAD_LOG_DEBUG (NULL, "DYAD UTIL: %s\n", strerror (errno));
-        return false;
+        match = false;
+        goto cmp_canonical_path_prefix_done;
     }
 
     size_t upath_len = 0ul;
-    bool match = false;
 
     // See if the prefix of the path in question matches that of either the
     // dyad managed path or its canonical form when the path is not a real one.
@@ -254,17 +253,20 @@ bool cmp_canonical_path_prefix (const char* __restrict__ prefix,
             match = true;
         }
         extract_user_path (path, upath, upath_len);
-        return match;
+        goto cmp_canonical_path_prefix_done;
     }
 
     // For a real path, see if the prefix of either the path or its canonical
     // form matches the managed path.
     match = cmp_prefix (can_prefix, can_path, DYAD_PATH_DELIM, &upath_len);
     if (upath_len + 1 > upath_capacity) {
-        return false;
+        match = false;
+        goto cmp_canonical_path_prefix_done;
     }
     extract_user_path (can_path, upath, upath_len);
 
+cmp_canonical_path_prefix_done:;
+    DYAD_C_FUNCTION_END ();
     return match;
 }
 
@@ -306,12 +308,12 @@ int mkdir_as_needed (const char* path, const mode_t m)
             return -2;
         } else if ((sb.st_mode & RWX_UGO) ^ (m & RWX_UGO)) {
             DYAD_LOG_DEBUG (NULL,
-                "Directory \"%s\" already exists with "
-                "different permission bits %o from "
-                "the requested %o\n",
-                path,
-                (sb.st_mode & RWX_UGO),
-                (m & RWX_UGO));
+                            "Directory \"%s\" already exists with "
+                            "different permission bits %o from "
+                            "the requested %o\n",
+                            path,
+                            (sb.st_mode & RWX_UGO),
+                            (m & RWX_UGO));
             return 5;  // already exists but with different mode
         }
         return 1;  // already exists
@@ -322,16 +324,16 @@ int mkdir_as_needed (const char* path, const mode_t m)
     if (mkpath (path, m) != 0) {
         if (stat (path, &sb) == 0) {          // already exist
             if (S_ISDIR (sb.st_mode) == 0) {  // not a directory
-                DYAD_LOG_DEBUG (NULL,"\"%s\" already exists not as a directory\n", path);
+                DYAD_LOG_DEBUG (NULL, "\"%s\" already exists not as a directory\n", path);
                 return -4;
             } else if ((sb.st_mode & RWX_UGO) ^ (m & RWX_UGO)) {
                 DYAD_LOG_DEBUG (NULL,
-                    "Directory \"%s\" already exists with "
-                    "different permission bits %o from "
-                    "the requested %o\n",
-                    path,
-                    (sb.st_mode & RWX_UGO),
-                    (m & RWX_UGO));
+                                "Directory \"%s\" already exists with "
+                                "different permission bits %o from "
+                                "the requested %o\n",
+                                path,
+                                (sb.st_mode & RWX_UGO),
+                                (m & RWX_UGO));
                 return 5;  // already exists but with different mode
             }
             return 1;  // already exists
@@ -361,9 +363,10 @@ int get_path (const int fd, const size_t max_size, char* path)
     sprintf (proclink, "/proc/self/fd/%d", fd);
     ssize_t rc = readlink (proclink, path, max_size);
     if (rc < (ssize_t)0) {
-        DYAD_LOG_DEBUG (NULL, "DYAD UTIL: error reading the file link (%s): %s\n",
-                 strerror (errno),
-                 proclink);
+        DYAD_LOG_DEBUG (NULL,
+                        "DYAD UTIL: error reading the file link (%s): %s\n",
+                        strerror (errno),
+                        proclink);
         return -1;
     } else if ((size_t)rc == max_size) {
         DYAD_LOG_DEBUG (NULL, "DYAD UTIL: truncation might have happend with %s\n", proclink);
@@ -439,10 +442,14 @@ ssize_t get_file_size (int fd)
 dyad_rc_t dyad_excl_flock (const dyad_ctx_t* ctx, int fd, struct flock* lock)
 {
     dyad_rc_t rc = DYAD_RC_OK;
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
-    DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] Applies an exclusive lock on fd %d", \
-                   ctx->node_idx, ctx->rank, ctx->pid, fd);
+    DYAD_LOG_INFO (ctx,
+                   "[node %u rank %u pid %d] Applies an exclusive lock on fd %d",
+                   ctx->node_idx,
+                   ctx->rank,
+                   ctx->pid,
+                   fd);
     if (!lock) {
         rc = DYAD_RC_BADFIO;
         goto excl_flock_end;
@@ -451,27 +458,35 @@ dyad_rc_t dyad_excl_flock (const dyad_ctx_t* ctx, int fd, struct flock* lock)
     lock->l_whence = SEEK_SET;
     lock->l_start = 0;
     lock->l_len = 0;
-    lock->l_pid = ctx->pid; //getpid();
-    if (fcntl (fd, F_SETLKW, lock) == -1) { // will wait until able to lock
+    lock->l_pid = ctx->pid;                  // getpid();
+    if (fcntl (fd, F_SETLKW, lock) == -1) {  // will wait until able to lock
         DYAD_LOG_ERROR (ctx, "Cannot apply exclusive lock on fd %d", fd);
         rc = DYAD_RC_BADFIO;
         goto excl_flock_end;
     }
-    DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] Exclusive lock placed on fd %d", \
-                   ctx->node_idx, ctx->rank, ctx->pid, fd);
+    DYAD_LOG_INFO (ctx,
+                   "[node %u rank %u pid %d] Exclusive lock placed on fd %d",
+                   ctx->node_idx,
+                   ctx->rank,
+                   ctx->pid,
+                   fd);
     rc = DYAD_RC_OK;
 excl_flock_end:;
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 
 dyad_rc_t dyad_shared_flock (const dyad_ctx_t* ctx, int fd, struct flock* lock)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
     dyad_rc_t rc = DYAD_RC_OK;
-    DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] Applies a shared lock on fd %d", \
-                   ctx->node_idx, ctx->rank, ctx->pid, fd);
+    DYAD_LOG_INFO (ctx,
+                   "[node %u rank %u pid %d] Applies a shared lock on fd %d",
+                   ctx->node_idx,
+                   ctx->rank,
+                   ctx->pid,
+                   fd);
     if (!lock) {
         rc = DYAD_RC_BADFIO;
         goto shared_flock_end;
@@ -480,42 +495,54 @@ dyad_rc_t dyad_shared_flock (const dyad_ctx_t* ctx, int fd, struct flock* lock)
     lock->l_whence = SEEK_SET;
     lock->l_start = 0;
     lock->l_len = 0;
-    lock->l_pid = ctx->pid; //getpid();
-    if (fcntl (fd, F_SETLKW, lock) == -1) { // will wait until able to lock
+    lock->l_pid = ctx->pid;                  // getpid();
+    if (fcntl (fd, F_SETLKW, lock) == -1) {  // will wait until able to lock
         DYAD_LOG_ERROR (ctx, "Cannot apply shared lock on fd %d", fd);
         rc = DYAD_RC_BADFIO;
         goto shared_flock_end;
     }
-    DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] Shared lock placed on fd %d", \
-                   ctx->node_idx, ctx->rank, ctx->pid, fd);
+    DYAD_LOG_INFO (ctx,
+                   "[node %u rank %u pid %d] Shared lock placed on fd %d",
+                   ctx->node_idx,
+                   ctx->rank,
+                   ctx->pid,
+                   fd);
     rc = DYAD_RC_OK;
 shared_flock_end:;
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 
 dyad_rc_t dyad_release_flock (const dyad_ctx_t* ctx, int fd, struct flock* lock)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
     dyad_rc_t rc = DYAD_RC_OK;
-    DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] Releases a lock on fd %d", \
-                   ctx->node_idx, ctx->rank, ctx->pid, fd);
+    DYAD_LOG_INFO (ctx,
+                   "[node %u rank %u pid %d] Releases a lock on fd %d",
+                   ctx->node_idx,
+                   ctx->rank,
+                   ctx->pid,
+                   fd);
     if (!lock) {
         rc = DYAD_RC_BADFIO;
         goto release_flock_end;
     }
     lock->l_type = F_UNLCK;
-    if (fcntl (fd, F_SETLKW, lock) == -1) { // will just unlock
+    if (fcntl (fd, F_SETLKW, lock) == -1) {  // will just unlock
         DYAD_LOG_ERROR (ctx, "Cannot release lock on fd %d", fd);
         rc = DYAD_RC_BADFIO;
         goto release_flock_end;
     }
-    DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] lock lifted from fd %d", \
-                   ctx->node_idx, ctx->rank, ctx->pid, fd);
+    DYAD_LOG_INFO (ctx,
+                   "[node %u rank %u pid %d] lock lifted from fd %d",
+                   ctx->node_idx,
+                   ctx->rank,
+                   ctx->pid,
+                   fd);
     rc = DYAD_RC_OK;
 release_flock_end:;
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 
@@ -535,10 +562,7 @@ int sync_containing_dir (const char* path)
 
     if (dir_fd < 0) {
         char errmsg[PATH_MAX + 256] = {'\0'};
-        snprintf (errmsg,
-                  PATH_MAX + 256,
-                  "Failed to open directory %s\n",
-                  containing_dir);
+        snprintf (errmsg, PATH_MAX + 256, "Failed to open directory %s\n", containing_dir);
         perror (errmsg);
         return -1;  // exit (SYS_ERR);
     }
