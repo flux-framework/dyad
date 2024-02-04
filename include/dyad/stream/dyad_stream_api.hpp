@@ -19,14 +19,13 @@
 
 #include <unistd.h>  // fsync
 
-#include <climits>   // realpath
+#include <climits>  // realpath
 #include <cstdlib>
+#include <dyad/stream/dyad_stream_core.hpp>
 #include <fstream>
 #include <memory>
 #include <string>
 #include <type_traits>
-
-#include <dyad/stream/dyad_stream_core.hpp>
 
 #define DYAD_PATH_ENV "DYAD_PATH"
 
@@ -48,8 +47,7 @@ inline bool cmp_canonical_path_prefix (const char* __restrict__ prefix,
 // Enable if _Path is a filesystem::path or experimental::filesystem::path
 template <typename _Path,
           typename _Result = _Path,
-          typename _Path2 =
-              decltype (std::declval<_Path&> ().make_preferred ().filename ())>
+          typename _Path2 = decltype (std::declval<_Path&> ().make_preferred ().filename ())>
 using dyad_if_fs_path = std::enable_if_t<std::is_same_v<_Path, _Path2>, _Result>;
 #endif  // c++17 filesystem
 
@@ -105,8 +103,7 @@ class basic_ifstream_dyad
 
     basic_ifstream_dyad (const dyad_stream_core& core);
     basic_ifstream_dyad ();
-    explicit basic_ifstream_dyad (const char* filename,
-                                  ios_base::openmode mode = ios_base::in);
+    explicit basic_ifstream_dyad (const char* filename, ios_base::openmode mode = ios_base::in);
     ~basic_ifstream_dyad ();
 
     void open (const char* filename, ios_base::openmode mode = ios_base::in);
@@ -114,14 +111,12 @@ class basic_ifstream_dyad
 #if __cplusplus < 201103L
     bool is_open ();
 #else
-    explicit basic_ifstream_dyad (const string& filename,
-                                  ios_base::openmode mode = ios_base::in);
+    explicit basic_ifstream_dyad (const string& filename, ios_base::openmode mode = ios_base::in);
     basic_ifstream_dyad (const basic_ifstream_dyad&) = delete;
     basic_ifstream_dyad (basic_ifstream_dyad&& rhs);
 #if (__cplusplus >= 201703L) && __has_include(<filesystem>)
     template <typename _Path, typename _Require = dyad_if_fs_path<_Path> >
-    basic_ifstream_dyad (const _Path& filepath,
-                         std::ios_base::openmode mode = std::ios_base::in);
+    basic_ifstream_dyad (const _Path& filepath, std::ios_base::openmode mode = std::ios_base::in);
 #endif  // c++17 filesystem
 
     void open (const string& filename, ios_base::openmode mode = ios_base::in);
@@ -240,8 +235,7 @@ basic_ifstream_dyad<_CharT, _Traits>::basic_ifstream_dyad (const _Path& filepath
 {
     m_core.init ();
     m_core.open_sync (filepath.c_str ());
-    m_stream =
-        std::unique_ptr<basic_ifstream> (new basic_ifstream (filepath.c_str (), mode));
+    m_stream = std::unique_ptr<basic_ifstream> (new basic_ifstream (filepath.c_str (), mode));
 }
 #endif  // c++17 filesystem
 
@@ -293,8 +287,7 @@ void basic_ifstream_dyad<_CharT, _Traits>::swap (basic_ifstream_dyad& rhs)
 #endif  //-----------------------------------------------------------------------
 
 template <typename _CharT, typename _Traits>
-void basic_ifstream_dyad<_CharT, _Traits>::open (const char* filename,
-                                                 std::ios_base::openmode mode)
+void basic_ifstream_dyad<_CharT, _Traits>::open (const char* filename, std::ios_base::openmode mode)
 {
     if (m_stream == nullptr) {
         // TODO: set fail bit if nullptr
@@ -326,8 +319,7 @@ std::filebuf* basic_ifstream_dyad<_CharT, _Traits>::rdbuf () const
 }
 
 template <typename _CharT, typename _Traits>
-std::basic_ifstream<_CharT, _Traits>& basic_ifstream_dyad<_CharT,
-                                                          _Traits>::get_stream ()
+std::basic_ifstream<_CharT, _Traits>& basic_ifstream_dyad<_CharT, _Traits>::get_stream ()
 {
     if (m_stream == nullptr) {
         // TODO: throw
@@ -358,8 +350,7 @@ class basic_ofstream_dyad
 
     basic_ofstream_dyad (const dyad_stream_core& core);
     basic_ofstream_dyad ();
-    explicit basic_ofstream_dyad (const char* filename,
-                                  ios_base::openmode mode = ios_base::out);
+    explicit basic_ofstream_dyad (const char* filename, ios_base::openmode mode = ios_base::out);
     ~basic_ofstream_dyad ();
 
     void open (const char* filename, ios_base::openmode mode = ios_base::out);
@@ -367,14 +358,12 @@ class basic_ofstream_dyad
 #if __cplusplus < 201103L
     bool is_open ();
 #else
-    explicit basic_ofstream_dyad (const string& filename,
-                                  ios_base::openmode mode = ios_base::out);
+    explicit basic_ofstream_dyad (const string& filename, ios_base::openmode mode = ios_base::out);
     basic_ofstream_dyad (const basic_ofstream_dyad&) = delete;
     basic_ofstream_dyad (basic_ofstream_dyad&& rhs);
 #if (__cplusplus >= 201703L) && __has_include(<filesystem>)
     template <typename _Path, typename _Require = dyad_if_fs_path<_Path> >
-    basic_ofstream_dyad (const _Path& filepath,
-                         std::ios_base::openmode mode = std::ios_base::out);
+    basic_ofstream_dyad (const _Path& filepath, std::ios_base::openmode mode = std::ios_base::out);
 #endif  // c++18 filesystem
 
     void open (const string& filename, ios_base::openmode mode = ios_base::out);
@@ -489,8 +478,7 @@ basic_ofstream_dyad<_CharT, _Traits>::basic_ofstream_dyad (const _Path& filepath
                                                            std::ios_base::openmode mode)
 {
     m_core.init ();
-    m_stream =
-        std::unique_ptr<basic_ofstream> (new basic_ofstream (filepath.c_str (), mode));
+    m_stream = std::unique_ptr<basic_ofstream> (new basic_ofstream (filepath.c_str (), mode));
 }
 #endif  // c++17 filesystem
 
@@ -510,7 +498,7 @@ basic_ofstream_dyad<_CharT, _Traits>::~basic_ofstream_dyad ()
         return;
     }
     if (m_stream->is_open ()) {
-        fsync_ofstream (*m_stream);
+        // `fsync_ofstream (*m_stream);
 #if __cplusplus < 201103L
         delete m_stream;
         m_stream = nullptr;
@@ -553,8 +541,7 @@ void basic_ofstream_dyad<_CharT, _Traits>::swap (basic_ofstream_dyad& rhs)
 #endif  //-----------------------------------------------------------------------
 
 template <typename _CharT, typename _Traits>
-void basic_ofstream_dyad<_CharT, _Traits>::open (const char* filename,
-                                                 std::ios_base::openmode mode)
+void basic_ofstream_dyad<_CharT, _Traits>::open (const char* filename, std::ios_base::openmode mode)
 {
     if (m_stream == nullptr) {
         // TODO: set fail bit if nullptr
@@ -572,7 +559,7 @@ void basic_ofstream_dyad<_CharT, _Traits>::close ()
     if (m_stream == nullptr) {
         return;
     }
-    fsync_ofstream (*m_stream);
+    // fsync_ofstream (*m_stream);
     m_stream->close ();
     m_core.close_sync (m_filename.c_str ());
 }
@@ -587,8 +574,7 @@ std::filebuf* basic_ofstream_dyad<_CharT, _Traits>::rdbuf () const
 }
 
 template <typename _CharT, typename _Traits>
-std::basic_ofstream<_CharT, _Traits>& basic_ofstream_dyad<_CharT,
-                                                          _Traits>::get_stream ()
+std::basic_ofstream<_CharT, _Traits>& basic_ofstream_dyad<_CharT, _Traits>::get_stream ()
 {
     if (m_stream == nullptr) {
         // TODO: throw
@@ -620,29 +606,24 @@ class basic_fstream_dyad
     basic_fstream_dyad (const dyad_stream_core& core);
     basic_fstream_dyad ();
     explicit basic_fstream_dyad (const char* filename,
-                                 ios_base::openmode mode = ios_base::in
-                                                           | ios_base::out);
+                                 ios_base::openmode mode = ios_base::in | ios_base::out);
     ~basic_fstream_dyad ();
 
-    void open (const char* filename,
-               ios_base::openmode mode = ios_base::in | ios_base::out);
+    void open (const char* filename, ios_base::openmode mode = ios_base::in | ios_base::out);
 
 #if __cplusplus < 201103L
     bool is_open ();
 #else
     explicit basic_fstream_dyad (const string& filename,
-                                 ios_base::openmode mode = ios_base::in
-                                                           | ios_base::out);
+                                 ios_base::openmode mode = ios_base::in | ios_base::out);
     basic_fstream_dyad (const basic_fstream_dyad&) = delete;
     basic_fstream_dyad (basic_fstream_dyad&& rhs);
 #if (__cplusplus >= 201703L) && __has_include(<filesystem>)
     template <typename _Path, typename _Require = dyad_if_fs_path<_Path> >
-    basic_fstream_dyad (const _Path& filepath,
-                        std::ios_base::openmode mode = std::ios_base::out);
+    basic_fstream_dyad (const _Path& filepath, std::ios_base::openmode mode = std::ios_base::out);
 #endif  // c++18 filesystem
 
-    void open (const string& filename,
-               ios_base::openmode mode = ios_base::in | ios_base::out);
+    void open (const string& filename, ios_base::openmode mode = ios_base::in | ios_base::out);
     bool is_open () const;
 
     basic_fstream_dyad& operator= (basic_fstream_dyad&& rhs);
@@ -758,8 +739,7 @@ basic_fstream_dyad<_CharT, _Traits>::basic_fstream_dyad (const _Path& filepath,
 {
     m_core.init ();
     m_core.open_sync (filepath.c_str ());
-    m_stream =
-        std::unique_ptr<basic_fstream> (new basic_fstream (filepath.c_str (), mode));
+    m_stream = std::unique_ptr<basic_fstream> (new basic_fstream (filepath.c_str (), mode));
 }
 #endif  // c++17 filesystem
 
@@ -779,7 +759,7 @@ basic_fstream_dyad<_CharT, _Traits>::~basic_fstream_dyad ()
         return;
     }
     if (m_stream->is_open ()) {
-        fsync_fstream (*m_stream);
+        // fsync_fstream (*m_stream);
 #if __cplusplus < 201103L
         delete m_stream;
         m_stream = nullptr;
@@ -822,8 +802,7 @@ void basic_fstream_dyad<_CharT, _Traits>::swap (basic_fstream_dyad& rhs)
 #endif  //-----------------------------------------------------------------------
 
 template <typename _CharT, typename _Traits>
-void basic_fstream_dyad<_CharT, _Traits>::open (const char* filename,
-                                                std::ios_base::openmode mode)
+void basic_fstream_dyad<_CharT, _Traits>::open (const char* filename, std::ios_base::openmode mode)
 {
     if (m_stream == nullptr) {
         // TODO: set fail bit if nullptr
@@ -842,7 +821,7 @@ void basic_fstream_dyad<_CharT, _Traits>::close ()
     if (m_stream == nullptr) {
         return;
     }
-    fsync_fstream (*m_stream);
+    // fsync_fstream (*m_stream);
     m_stream->close ();
     m_core.close_sync (m_filename.c_str ());
 }

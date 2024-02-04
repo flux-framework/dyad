@@ -8,6 +8,9 @@
 #ifdef DYAD_PROFILER_DLIO_PROFILER // DLIO_PROFILER
 #include <dlio_profiler/dlio_profiler.h>
 #endif
+#ifdef DYAD_PROFILER_CALIPER
+#include <caliper/cali.h>
+#endif
 
 #ifdef __cplusplus
 #ifdef DYAD_PROFILER_NONE
@@ -23,10 +26,10 @@
 #define DYAD_CPP_REGION_END(name) ;
 #define DYAD_CPP_REGION_UPDATE(name) ;
 #elif defined(DYAD_PROFILER_CALIPER) // CALIPER
-#define DYAD_CPP_FUNCTION() ;
+#define DYAD_CPP_FUNCTION() CALI_CXX_MARK_FUNCTION;
 #define DYAD_CPP_FUNCTION_UPDATE(key, value) ;
-#define DYAD_CPP_REGION_START(name) ;
-#define DYAD_CPP_REGION_END(name) ;
+#define DYAD_CPP_REGION_START(name) CALI_MARK_BEGIN(name);
+#define DYAD_CPP_REGION_END(name) CALI_MARK_END(name);
 #define DYAD_CPP_REGION_UPDATE(name) ;
 #elif defined(DYAD_PROFILER_DLIO_PROFILER) // DLIO_PROFILER
 #define DYAD_CPP_FUNCTION() DLIO_PROFILER_CPP_FUNCTION();
@@ -58,12 +61,12 @@ extern "C" {
 #define DYAD_C_REGION_UPDATE_INT(name) ;
 #define DYAD_C_REGION_UPDATE_STR(name) ;
 #elif defined(DYAD_PROFILER_CALIPER) // CALIPER
-#define DYAD_C_FUNCTION_START() ;
-#define DYAD_C_FUNCTION_END() ;
+#define DYAD_C_FUNCTION_START() CALI_MARK_FUNCTION_BEGIN;
+#define DYAD_C_FUNCTION_END() CALI_MARK_FUNCTION_END;
 #define DYAD_C_FUNCTION_UPDATE_INT(key, value) ;
 #define DYAD_C_FUNCTION_UPDATE_STR(key, value) ;
-#define DYAD_C_REGION_START(name) ;
-#define DYAD_C_REGION_END(name) ;
+#define DYAD_C_REGION_START(name) CALI_MARK_BEGIN(name);
+#define DYAD_C_REGION_END(name) CALI_MARK_END(name);
 #define DYAD_C_REGION_UPDATE_INT(name) ;
 #define DYAD_C_REGION_UPDATE_STR(name) ;
 #elif defined(DYAD_PROFILER_DLIO_PROFILER) // DLIO_PROFILER

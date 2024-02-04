@@ -6,15 +6,16 @@
 
 #include <dyad/common/dyad_envs.h>
 #include <dyad/common/dyad_logging.h>
+#include <dyad/common/dyad_profiler.h>
 #include <dyad/core/dyad_core.h>
 #include <dyad/dtl/dyad_dtl_api.h>
 #include <dyad/utils/murmur3.h>
 #include <dyad/utils/utils.h>
-#include <dyad/common/dyad_profiler.h>
 #include <fcntl.h>
 #include <libgen.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <errno.h>
 
 #ifdef __cplusplus
 #include <climits>
@@ -59,7 +60,7 @@ static int gen_path_key (const char* str,
                          const uint32_t depth,
                          const uint32_t width)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     static const uint32_t seeds[10] =
         {104677u, 104681u, 104683u, 104693u, 104701u, 104707u, 104711u, 104717u, 104723u, 104729u};
 
@@ -69,7 +70,7 @@ static int gen_path_key (const char* str,
     int n = 0;
 
     if (path_key == NULL || len == 0ul) {
-        DYAD_C_FUNCTION_END();
+        DYAD_C_FUNCTION_END ();
         return -1;
     }
     path_key[0] = '\0';
@@ -82,21 +83,21 @@ static int gen_path_key (const char* str,
         n = snprintf (path_key + cx, len - cx, "%x.", bin);
         cx += n;
         if (cx >= len || n < 0) {
-            DYAD_C_FUNCTION_END();
+            DYAD_C_FUNCTION_END ();
             return -1;
         }
     }
     n = snprintf (path_key + cx, len - cx, "%s", str);
     if (cx + n >= len || n < 0) {
-        DYAD_C_FUNCTION_END();
+        DYAD_C_FUNCTION_END ();
         return -1;
     }
     DYAD_C_FUNCTION_UPDATE_STR ("path_key", path_key);
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return 0;
 }
 
-static void future_cleanup_cb (flux_future_t *f, void *arg)
+static void future_cleanup_cb (flux_future_t* f, void* arg)
 {
     if (flux_future_get (f, NULL) < 0) {
         DYAD_LOG_ERROR ("future_cleanup: future error detected with.%s", "");
@@ -106,7 +107,7 @@ static void future_cleanup_cb (flux_future_t *f, void *arg)
 
 DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_commit (const dyad_ctx_t* ctx, flux_kvs_txn_t* txn)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     flux_future_t* f = NULL;
     dyad_rc_t rc = DYAD_RC_OK;
     DYAD_LOG_INFO (ctx, "Committing transaction to KVS");
@@ -123,25 +124,28 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_commit (const dyad_ctx_t* ctx, flux_kvs_t
             DYAD_LOG_ERROR (ctx, "Error with flux_future_then");
         }
     } else {
+        DYAD_C_REGION_START ("dyad_kvs_commit_wait");
         // If the commit is pending, wait for it to complete
         flux_future_wait_for (f, -1.0);
         // Once the commit is complete, destroy the future and transaction
         flux_future_destroy (f);
         f = NULL;
+        DYAD_C_REGION_END ("dyad_kvs_commit_wait");
     }
     rc = DYAD_RC_OK;
 kvs_commit_region_finish:;
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 
 DYAD_CORE_FUNC_MODS dyad_rc_t publish_via_flux (const dyad_ctx_t* restrict ctx,
                                                 const char* restrict upath)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", ctx->fname);
     DYAD_C_FUNCTION_UPDATE_STR ("upath", upath);
     dyad_rc_t rc = DYAD_RC_OK;
+    int flux_rc = 0;
     flux_kvs_txn_t* txn = NULL;
     const size_t topic_len = PATH_MAX;
     char topic[PATH_MAX + 1] = {'\0'};
@@ -156,13 +160,18 @@ DYAD_CORE_FUNC_MODS dyad_rc_t publish_via_flux (const dyad_ctx_t* restrict ctx,
     // with the previously generated key as the key and the
     // producer's rank as the value
     DYAD_LOG_INFO (ctx, "Creating KVS transaction under the key %s", topic);
+    DYAD_C_REGION_START ("flux_kvs_txn_create");
     txn = flux_kvs_txn_create ();
+    DYAD_C_REGION_END ("flux_kvs_txn_create");
     if (txn == NULL) {
         DYAD_LOG_ERROR (ctx, "Could not create Flux KVS transaction");
         rc = DYAD_RC_FLUXFAIL;
         goto publish_done;
     }
-    if (flux_kvs_txn_pack (txn, 0, topic, "i", ctx->rank) < 0) {
+    DYAD_C_REGION_START ("flux_kvs_txn_pack");
+    flux_rc = flux_kvs_txn_pack (txn, 0, topic, "i", ctx->rank);
+    DYAD_C_REGION_END ("flux_kvs_txn_pack");
+    if (flux_rc < 0) {
         DYAD_LOG_ERROR (ctx, "Could not pack Flux KVS transaction");
         rc = DYAD_RC_FLUXFAIL;
         goto publish_done;
@@ -179,13 +188,13 @@ publish_done:;
     if (txn != NULL) {
         flux_kvs_txn_destroy (txn);
     }
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 
 DYAD_CORE_FUNC_MODS dyad_rc_t dyad_commit (dyad_ctx_t* restrict ctx, const char* restrict fname)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", ctx->fname);
     dyad_rc_t rc = DYAD_RC_OK;
     char upath[PATH_MAX] = {'\0'};
@@ -214,12 +223,11 @@ commit_done:;
     if (rc == DYAD_RC_OK && (ctx && ctx->check)) {
         setenv (DYAD_CHECK_ENV, "ok", 1);
     }
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 
-static void print_mdata (const dyad_ctx_t* restrict ctx,
-                         const dyad_metadata_t* mdata)
+static void print_mdata (const dyad_ctx_t* restrict ctx, const dyad_metadata_t* mdata)
 {
     if (mdata == NULL) {
         DYAD_LOG_INFO (ctx, "Cannot print a NULL metadata object!");
@@ -236,15 +244,15 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_read (const dyad_ctx_t* restrict ctx,
                                              bool should_wait,
                                              dyad_metadata_t** mdata)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("upath", upath);
     dyad_rc_t rc = DYAD_RC_OK;
     int kvs_lookup_flags = 0;
     flux_future_t* f = NULL;
     if (mdata == NULL) {
         DYAD_LOG_ERROR (ctx,
-                      "Metadata double pointer is NULL. Cannot correctly create metadata "
-                      "object");
+                        "Metadata double pointer is NULL. Cannot correctly create metadata "
+                        "object");
         rc = DYAD_RC_NOTFOUND;
         goto kvs_read_end;
     }
@@ -303,17 +311,15 @@ kvs_read_end:;
         flux_future_destroy (f);
         f = NULL;
     }
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
-
-
 
 DYAD_CORE_FUNC_MODS dyad_rc_t dyad_fetch (const dyad_ctx_t* restrict ctx,
                                           const char* restrict fname,
                                           dyad_metadata_t** restrict mdata)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", fname);
     dyad_rc_t rc = DYAD_RC_OK;
     char upath[PATH_MAX] = {'\0'};
@@ -355,7 +361,9 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_fetch (const dyad_ctx_t* restrict ctx,
     if (((*mdata)->owner_rank / ctx->service_mux) == ctx->node_idx) {
         DYAD_LOG_INFO (ctx,
                        "Either shared-storage is indicated or the producer rank (%u) is the"
-                       " same as the consumer rank (%u)", (*mdata)->owner_rank, ctx->rank);
+                       " same as the consumer rank (%u)",
+                       (*mdata)->owner_rank,
+                       ctx->rank);
         if (mdata != NULL && *mdata != NULL) {
             dyad_free_metadata (mdata);
         }
@@ -367,7 +375,7 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_fetch (const dyad_ctx_t* restrict ctx,
     rc = DYAD_RC_OK;
 
 fetch_done:;
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 
@@ -376,7 +384,7 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_get_data (const dyad_ctx_t* ctx,
                                              char** file_data,
                                              size_t* file_len)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     dyad_rc_t rc = DYAD_RC_OK;
     flux_future_t* f;
     json_t* rpc_payload;
@@ -386,8 +394,8 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_get_data (const dyad_ctx_t* ctx,
     rc = ctx->dtl_handle->rpc_pack (ctx, mdata->fpath, mdata->owner_rank, &rpc_payload);
     if (DYAD_IS_ERROR (rc)) {
         DYAD_LOG_ERROR (ctx,
-                      "Cannot create JSON payload for Flux RPC to DYAD "
-                      "module\n");
+                        "Cannot create JSON payload for Flux RPC to DYAD "
+                        "module\n");
         goto get_done;
     }
     DYAD_LOG_INFO (ctx, "Sending payload for RPC to DYAD module");
@@ -412,9 +420,9 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_get_data (const dyad_ctx_t* ctx,
     rc = ctx->dtl_handle->establish_connection (ctx);
     if (DYAD_IS_ERROR (rc)) {
         DYAD_LOG_ERROR (ctx,
-                      "Cannot establish connection with DYAD module on broker "
-                      "%u\n",
-                      mdata->owner_rank);
+                        "Cannot establish connection with DYAD module on broker "
+                        "%u\n",
+                        mdata->owner_rank);
         goto get_done;
     }
     DYAD_LOG_INFO (ctx, "Receive file data via DTL");
@@ -452,23 +460,24 @@ get_done:;
         }
     }
 #ifdef DYAD_ENABLE_UCX_RMA
-    ctx->dtl_handle->get_buffer(ctx, 0, (void**)file_data);
-    memcpy (file_len, *file_data, sizeof(size_t));
-    *file_data = ((char*)*file_data) + sizeof(size_t);
+    ctx->dtl_handle->get_buffer (ctx, 0, (void**)file_data);
+    memcpy (file_len, *file_data, sizeof (size_t));
+    *file_data = ((char*)*file_data) + sizeof (size_t);
     DYAD_LOG_INFO (ctx, "Read %d bytes from %s file", *file_len, mdata->fpath);
 #endif
     DYAD_LOG_INFO (ctx, "Destroy the Flux future for the RPC\n");
     flux_future_destroy (f);
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 
 DYAD_CORE_FUNC_MODS dyad_rc_t dyad_cons_store (const dyad_ctx_t* restrict ctx,
                                                const dyad_metadata_t* restrict mdata,
-                                               int fd, const size_t data_len,
+                                               int fd,
+                                               const size_t data_len,
                                                char* restrict file_data)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
     dyad_rc_t rc = DYAD_RC_OK;
     const char* odir = NULL;
@@ -493,8 +502,8 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_cons_store (const dyad_ctx_t* restrict ctx,
     odir = dirname (file_path_copy);
     if ((strncmp (odir, ".", strlen (".")) != 0) && (mkdir_as_needed (odir, m) < 0)) {
         DYAD_LOG_ERROR (ctx,
-                      "Cannot create needed directories for pulled "
-                      "file\n");
+                        "Cannot create needed directories for pulled "
+                        "file\n");
         rc = DYAD_RC_BADFIO;
         goto pull_done;
     }
@@ -513,8 +522,8 @@ pull_done:;
     // If "check" is set and the operation was successful, set the
     // DYAD_CHECK_ENV environment variable to "ok"
     if (rc == DYAD_RC_OK && (ctx && ctx->check))
-        setenv(DYAD_CHECK_ENV, "ok", 1);
-    DYAD_C_FUNCTION_END();
+        setenv (DYAD_CHECK_ENV, "ok", 1);
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 
@@ -532,15 +541,16 @@ dyad_rc_t dyad_init (bool debug,
                      dyad_dtl_mode_t dtl_mode,
                      dyad_ctx_t** ctx)
 {
-    DYAD_LOGGER_INIT();
+    DYAD_LOGGER_INIT ();
 #ifdef DYAD_PROFILER_DLIO_PROFILER
     const char* file_prefix = getenv (DLIO_PROFILER_LOG_FILE);
-    if (file_prefix == NULL) file_prefix = "./dyad_";
+    if (file_prefix == NULL)
+        file_prefix = "./dyad_";
     char log_file[4096] = {'\0'};
-    sprintf (log_file, "%s_core-%d.pfw", file_prefix, getpid());
-    DLIO_PROFILER_C_INIT_NO_BIND(log_file, NULL, NULL);
+    sprintf (log_file, "%s_core-%d.pfw", file_prefix, getpid ());
+    DLIO_PROFILER_C_INIT_NO_BIND (log_file, NULL, NULL);
 #endif
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     dyad_rc_t rc = DYAD_RC_OK;
     // If ctx is NULL, we won't be able to return a dyad_ctx_t
     // to the user. In that case, print an error and return
@@ -561,12 +571,13 @@ dyad_rc_t dyad_init (bool debug,
     if (!reinit && (*ctx != NULL)) {
         if ((*ctx)->initialized) {
             // TODO Indicate already initialized
-            DYAD_LOG_DEBUG((*ctx), "DYAD context already initialized\n");
+            DYAD_LOG_DEBUG ((*ctx), "DYAD context already initialized\n");
             rc = DYAD_RC_OK;
             goto init_region_finish;
         }
     } else {
-        if (reinit) dyad_finalize (ctx);
+        if (reinit)
+            dyad_finalize (ctx);
         // Allocate the dyad_ctx_t object and make sure the allocation
         // worked successfully
         *ctx = (dyad_ctx_t*)malloc (sizeof (struct dyad_ctx));
@@ -611,7 +622,7 @@ dyad_rc_t dyad_init (bool debug,
         rc = DYAD_RC_FLUXFAIL;
         goto init_region_finish;
     }
-    (*ctx)->service_mux = (service_mux < 1u)? 1u : service_mux;
+    (*ctx)->service_mux = (service_mux < 1u) ? 1u : service_mux;
     (*ctx)->node_idx = (*ctx)->rank / (*ctx)->service_mux;
     (*ctx)->pid = getpid ();
     // If the namespace is provided, copy it into the dyad_ctx_t object
@@ -650,8 +661,8 @@ dyad_rc_t dyad_init (bool debug,
         (*ctx)->prod_managed_path = (char*)malloc (prod_path_len + 1);
         if ((*ctx)->prod_managed_path == NULL) {
             DYAD_LOG_ERROR ((*ctx),
-                          "Could not allocate buffer for Producer managed "
-                          "path!\n");
+                            "Could not allocate buffer for Producer managed "
+                            "path!\n");
             free ((*ctx)->kvs_namespace);
             free (*ctx);
             *ctx = NULL;
@@ -670,8 +681,8 @@ dyad_rc_t dyad_init (bool debug,
         (*ctx)->cons_managed_path = (char*)malloc (cons_path_len + 1);
         if ((*ctx)->cons_managed_path == NULL) {
             DYAD_LOG_ERROR ((*ctx),
-                          "Could not allocate buffer for Consumer managed "
-                          "path!\n");
+                            "Could not allocate buffer for Consumer managed "
+                            "path!\n");
             free ((*ctx)->kvs_namespace);
             free ((*ctx)->prod_managed_path);
             free (*ctx);
@@ -688,7 +699,7 @@ dyad_rc_t dyad_init (bool debug,
     // Set reenter and initialized to indicate this.
     (*ctx)->reenter = true;
     (*ctx)->initialized = true;
-    (*ctx)->use_fs_locks = true; // This is default value except for streams which dont have a fp.
+    (*ctx)->use_fs_locks = true;  // This is default value except for streams which dont have a fp.
     // TODO Print logging info
     rc = DYAD_RC_OK;
     // TODO: Add folder option here.
@@ -700,13 +711,13 @@ dyad_rc_t dyad_init (bool debug,
     DYAD_LOG_STDERR_REDIRECT (err_file_name);
     DYAD_LOG_STDERR_REDIRECT (log_file_name);
 init_region_finish:;
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 
 dyad_rc_t dyad_init_env (dyad_ctx_t** ctx)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     char* e = NULL;
     bool debug = false;
     bool check = false;
@@ -731,8 +742,9 @@ dyad_rc_t dyad_init_env (dyad_ctx_t** ctx)
     }
 
     if (debug)
-        DYAD_LOG_STDERR("DYAD_CORE: Initializing with environment "
-                 "variables\n");
+        DYAD_LOG_STDERR (
+            "DYAD_CORE: Initializing with environment "
+            "variables\n");
 
     if ((e = getenv (DYAD_SYNC_CHECK_ENV))) {
         check = true;
@@ -772,7 +784,7 @@ dyad_rc_t dyad_init_env (dyad_ctx_t** ctx)
     if ((e = getenv (DYAD_SERVICE_MUX_ENV))) {
         service_mux = atoi (e);
     } else {
-        service_mux= 1u;
+        service_mux = 1u;
     }
 
     if ((e = getenv (DYAD_KVS_NAMESPACE_ENV))) {
@@ -800,38 +812,42 @@ dyad_rc_t dyad_init_env (dyad_ctx_t** ctx)
         } else if (strncmp (e, "UCX", dtl_mode_env_len) == 0) {
             dtl_mode = DYAD_DTL_UCX;
         } else {
-            DYAD_LOG_STDERR("Invalid env %s = %s. Defaulting to %s\n",
-                        DYAD_DTL_MODE_ENV, e, dyad_dtl_mode_name[DYAD_DTL_DEFAULT]);
+            DYAD_LOG_STDERR ("Invalid env %s = %s. Defaulting to %s\n",
+                             DYAD_DTL_MODE_ENV,
+                             e,
+                             dyad_dtl_mode_name[DYAD_DTL_DEFAULT]);
             dtl_mode = DYAD_DTL_DEFAULT;
         }
     } else {
-        DYAD_LOG_STDERR("%s is not set. Defaulting to %s\n",
-                        DYAD_DTL_MODE_ENV, dyad_dtl_mode_name[DYAD_DTL_DEFAULT]);
+        DYAD_LOG_STDERR ("%s is not set. Defaulting to %s\n",
+                         DYAD_DTL_MODE_ENV,
+                         dyad_dtl_mode_name[DYAD_DTL_DEFAULT]);
         dtl_mode = DYAD_DTL_DEFAULT;
     }
     if (debug)
-        DYAD_LOG_STDERR("DYAD_CORE: retrieved configuration from environment. Now "
-                 "initializing DYAD\n");
+        DYAD_LOG_STDERR (
+            "DYAD_CORE: retrieved configuration from environment. Now "
+            "initializing DYAD\n");
     dyad_rc_t rc = dyad_init (debug,
-                      check,
-                      shared_storage,
-                      reinit,
-                      async_publish,
-                      key_depth,
-                      key_bins,
-                      service_mux,
-                      kvs_namespace,
-                      prod_managed_path,
-                      cons_managed_path,
-                      dtl_mode,
-                      ctx);
-    DYAD_C_FUNCTION_END();
+                              check,
+                              shared_storage,
+                              reinit,
+                              async_publish,
+                              key_depth,
+                              key_bins,
+                              service_mux,
+                              kvs_namespace,
+                              prod_managed_path,
+                              cons_managed_path,
+                              dtl_mode,
+                              ctx);
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 
 dyad_rc_t dyad_produce (dyad_ctx_t* ctx, const char* fname)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     ctx->fname = fname;
     DYAD_C_FUNCTION_UPDATE_STR ("fname", ctx->fname);
     DYAD_LOG_DEBUG (ctx, "Executing dyad_produce")
@@ -839,14 +855,14 @@ dyad_rc_t dyad_produce (dyad_ctx_t* ctx, const char* fname)
     // If the context is not defined, then it is not valid.
     // So, return DYAD_NOCTX
     if (!ctx || !ctx->h) {
-        DYAD_LOG_ERROR(ctx, "No CTX found in dyad_produce")
+        DYAD_LOG_ERROR (ctx, "No CTX found in dyad_produce")
         rc = DYAD_RC_NOCTX;
         goto produce_done;
     }
     // If the producer-managed path is NULL or empty, then the context is not
     // valid for a producer operation. So, return DYAD_BADMANAGEDPATH
     if (ctx->prod_managed_path == NULL || strlen (ctx->prod_managed_path) == 0) {
-        DYAD_LOG_ERROR(ctx, "No or empty producer managed path was found")
+        DYAD_LOG_ERROR (ctx, "No or empty producer managed path was found")
         rc = DYAD_RC_BADMANAGEDPATH;
         goto produce_done;
     }
@@ -854,7 +870,7 @@ dyad_rc_t dyad_produce (dyad_ctx_t* ctx, const char* fname)
     // the producer operation
     rc = dyad_commit (ctx, fname);
 produce_done:;
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 
@@ -867,7 +883,7 @@ dyad_rc_t dyad_get_metadata (dyad_ctx_t* ctx,
                              bool should_wait,
                              dyad_metadata_t** mdata)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", fname);
     DYAD_C_FUNCTION_UPDATE_INT ("should_wait", should_wait);
     dyad_rc_t rc = DYAD_RC_OK;
@@ -935,13 +951,13 @@ get_metadata_done:;
     if (DYAD_IS_ERROR (rc) && mdata != NULL && *mdata != NULL) {
         dyad_free_metadata (mdata);
     }
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 
 dyad_rc_t dyad_free_metadata (dyad_metadata_t** mdata)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     if (mdata == NULL || *mdata == NULL) {
         return DYAD_RC_OK;
     }
@@ -949,13 +965,13 @@ dyad_rc_t dyad_free_metadata (dyad_metadata_t** mdata)
         free ((*mdata)->fpath);
     free (*mdata);
     *mdata = NULL;
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return DYAD_RC_OK;
 }
 
 dyad_rc_t dyad_consume (dyad_ctx_t* ctx, const char* fname)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", fname);
     dyad_rc_t rc = DYAD_RC_OK;
     int fd = -1;
@@ -982,12 +998,13 @@ dyad_rc_t dyad_consume (dyad_ctx_t* ctx, const char* fname)
     fd = open (fname, O_RDWR | O_CREAT, 0666);
     DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
     if (fd == -1) {
-        DYAD_LOG_ERROR (ctx, "Cannot create file (%s) for dyad_consume!\n", fname);
+        DYAD_LOG_ERROR (ctx, "Cannot create file (%s) for dyad_consume! Err Msg: %s\n", fname, strerror(errno));
         rc = DYAD_RC_BADFIO;
         goto consume_close;
     }
     rc = dyad_excl_flock (ctx, fd, &exclusive_lock);
     if (DYAD_IS_ERROR (rc)) {
+        DYAD_LOG_ERROR (ctx, "Cannot establish file lock for dyad_consume\n");
         dyad_release_flock (ctx, fd, &exclusive_lock);
         goto consume_close;
     }
@@ -998,12 +1015,17 @@ dyad_rc_t dyad_consume (dyad_ctx_t* ctx, const char* fname)
             // as file size was zero that means consumer won the lock first so has to wait for kvs.
             // or we cannot use file lock based synchronization as it does not work with the
             // files managed by c++ fstream.
-            dyad_fetch(ctx, fname, &mdata);
+            dyad_fetch (ctx, fname, &mdata);
         }
     } else {
         if (file_size <= 0) {
-            DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] File (%s with fd %d) is not fetched yet", \
-                       ctx->node_idx, ctx->rank, ctx->pid, fname, fd);
+            DYAD_LOG_INFO (ctx,
+                           "[node %u rank %u pid %d] File (%s with fd %d) is not fetched yet",
+                           ctx->node_idx,
+                           ctx->rank,
+                           ctx->pid,
+                           fname,
+                           fd);
             // Call dyad_fetch to get (and possibly wait on)
             // data from the Flux KVS
             rc = dyad_fetch (ctx, fname, &mdata);
@@ -1055,11 +1077,10 @@ dyad_rc_t dyad_consume (dyad_ctx_t* ctx, const char* fname)
         dyad_release_flock (ctx, fd, &exclusive_lock);
     }
 
-
-
     DYAD_C_FUNCTION_UPDATE_INT ("file_size", file_size);
 
     if (close (fd) != 0) {
+        DYAD_LOG_ERROR (ctx, "Failed to close file descriptor in dyad_consume\n");
         rc = DYAD_RC_BADFIO;
         goto consume_done;
     }
@@ -1071,14 +1092,15 @@ consume_done:;
     // Set reenter to true to allow additional intercepting
 consume_close:;
     ctx->reenter = true;
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 
-dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t* ctx, const char* fname,
+dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t* ctx,
+                                   const char* fname,
                                    const dyad_metadata_t* restrict mdata)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", fname);
     dyad_rc_t rc = DYAD_RC_OK;
     int fd = -1;
@@ -1123,8 +1145,13 @@ dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t* ctx, const char* fname,
         goto consume_close;
     }
     if ((file_size = get_file_size (fd)) <= 0) {
-        DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] File (%s with fd %d) is not fetched yet", \
-                       ctx->node_idx, ctx->rank, ctx->pid, fname, fd);
+        DYAD_LOG_INFO (ctx,
+                       "[node %u rank %u pid %d] File (%s with fd %d) is not fetched yet",
+                       ctx->node_idx,
+                       ctx->rank,
+                       ctx->pid,
+                       fname,
+                       fd);
 
         // Call dyad_get_data to dispatch a RPC to the producer's Flux broker
         // and retrieve the data associated with the file
@@ -1163,13 +1190,13 @@ consume_done:;
 consume_close:;
     // Set reenter to true to allow additional intercepting
     ctx->reenter = true;
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 
 dyad_rc_t dyad_finalize (dyad_ctx_t** ctx)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     dyad_rc_t rc = DYAD_RC_OK;
     if (ctx == NULL || *ctx == NULL) {
         rc = DYAD_RC_OK;
@@ -1196,9 +1223,9 @@ dyad_rc_t dyad_finalize (dyad_ctx_t** ctx)
     *ctx = NULL;
     rc = DYAD_RC_OK;
 finalize_region_finish:;
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
 #ifdef DYAD_PROFILER_DLIO_PROFILER
-    DLIO_PROFILER_C_FINI();
+    DLIO_PROFILER_C_FINI ();
 #endif
     return rc;
 }
@@ -1206,7 +1233,7 @@ finalize_region_finish:;
 #if DYAD_SYNC_DIR
 int dyad_sync_directory (dyad_ctx_t* restrict ctx, const char* restrict path)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("path", path);
     // Flush new directory entry https://lwn.net/Articles/457671/
     char path_copy[PATH_MAX + 1] = {'\0'};
@@ -1238,7 +1265,7 @@ int dyad_sync_directory (dyad_ctx_t* restrict ctx, const char* restrict path)
     }
     if (ctx != NULL)
         ctx->reenter = reenter;
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 #endif
