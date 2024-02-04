@@ -81,7 +81,8 @@ char* concat_str (char* __restrict__ str,
 {
     const size_t str_len_org = strlen (str);
     const size_t con_len = strlen (connector);
-    const size_t all_len = str_len_org + con_len + strlen (to_append);
+    const size_t app_len = strlen (to_append);
+    const size_t all_len = str_len_org + con_len + app_len;
 
     if (all_len + 1ul > str_capacity) {
         DYAD_LOG_DEBUG (NULL, "DYAD UTIL: buffer is too small.\n");
@@ -106,14 +107,16 @@ char* concat_str (char* __restrict__ str,
 
     char* buf = (char*)calloc (all_len + 1ul, sizeof (char));
 
-    strncpy (buf, str, str_len);
+    memcpy (buf, str, str_len);
+    char* buf_pos = buf + str_len;
 
     if (connector != NULL) {
-        strncat (buf, connector, all_len);
+        memcpy (buf_pos, connector, con_len);
+        buf_pos += con_len;
     }
-    strncat (buf, to_append, all_len);
+    memcpy (buf_pos, to_append, app_len);
 
-    strncpy (str, buf, all_len);
+    memcpy (str, buf, all_len);
     str[all_len] = '\0';
     free (buf);
 
