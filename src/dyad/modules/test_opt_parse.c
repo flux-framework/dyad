@@ -84,7 +84,7 @@ static void show_help (void)
 }
 
 static int opt_parse (dyad_ctx_t* ctx, const unsigned broker_rank,
-                      dyad_dtl_mode_t *dtl_mode, int* argc, char*** argv)
+                      dyad_dtl_mode_t *dtl_mode, int argc, char** argv)
 {
     size_t arglen = 0ul;
   #ifndef DYAD_LOGGER_NO_LOG
@@ -102,9 +102,9 @@ static int opt_parse (dyad_ctx_t* ctx, const unsigned broker_rank,
     {
         static struct option long_options[] =
         {
-            {"help",       no_argument,       0, 'h'},
-            {"debug"   ,   no_argument,       0, 'd'},
-            {"mode",       required_argument, 0, 'm'},
+            {"help",      no_argument,       0, 'h'},
+            {"debug",     no_argument,       0, 'd'},
+            {"mode",      required_argument, 0, 'm'},
             {"info_log",  required_argument, 0, 'i'},
             {"error_log", required_argument, 0, 'e'},
             {0, 0, 0, 0}
@@ -113,7 +113,7 @@ static int opt_parse (dyad_ctx_t* ctx, const unsigned broker_rank,
         int option_index = 0;
         int c = -1;
 
-        c = getopt_long (*argc, *argv, "hdm:i:e:", long_options, &option_index);
+        c = getopt_long (argc, argv, "hdm:i:e:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (c == -1) {
@@ -176,11 +176,11 @@ static int opt_parse (dyad_ctx_t* ctx, const unsigned broker_rank,
         *dtl_mode = get_dtl_mode_env ();
     }
 
-    DYAD_LOG_DEBUG (ctx, "DYAD_MOD: optind %d argc %d\n", optind, *argc);
+    DYAD_LOG_DEBUG (ctx, "DYAD_MOD: optind %d argc %d\n", optind, argc);
     /* Print any remaining command line arguments (not options). */
-    while (optind < *argc) {
-        DYAD_LOG_DEBUG (ctx, "DYAD_MOD: positional arguments %s\n", (*argv)[optind]);
-        prod_managed_path = (*argv)[optind++];
+    while (optind < argc) {
+        DYAD_LOG_DEBUG (ctx, "DYAD_MOD: positional arguments %s\n", argv[optind]);
+        prod_managed_path = argv[optind++];
     }
     if (prod_managed_path) {
         const size_t prod_path_len = strlen (prod_managed_path);
@@ -206,7 +206,7 @@ int main (int argc, char **argv)
     uint32_t broker_rank = 0u;
 
     DYAD_LOG_DEBUG (NULL, "DYAD_MOD: Parsing command line options");
-    if (opt_parse (NULL, broker_rank, &dtl_mode, &argc, &argv) != DYAD_RC_OK) {
+    if (opt_parse (NULL, broker_rank, &dtl_mode, argc, argv) != DYAD_RC_OK) {
         DYAD_LOG_ERROR (NULL, "DYAD_MOD: Cannot parse command line arguments");
         return EXIT_FAILURE;
     }
