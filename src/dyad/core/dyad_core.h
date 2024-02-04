@@ -46,11 +46,19 @@ typedef struct dyad_metadata dyad_metadata_t;
 
 // Debug message
 #ifndef DPRINTF
+#if VA_OPT_SUPPORTED
 #define DPRINTF(curr_dyad_ctx, fmt, ...)           \
     do {                                           \
         if ((curr_dyad_ctx) && (curr_dyad_ctx)->debug) \
             fprintf (stderr, (fmt) __VA_OPT__(,) __VA_ARGS__);  \
     } while (0)
+#else
+#define DPRINTF(curr_dyad_ctx, fmt, ...)           \
+    do {                                           \
+        if ((curr_dyad_ctx) && (curr_dyad_ctx)->debug) \
+            fprintf (stderr, (fmt), ##__VA_ARGS__);  \
+    } while (0)
+#endif
 #endif  // DPRINTF
 
 #define TIME_DIFF(Tstart, Tend)                                                                    \

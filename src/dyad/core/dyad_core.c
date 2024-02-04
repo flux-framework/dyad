@@ -280,7 +280,7 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_read (const dyad_ctx_t* restrict ctx,
         goto kvs_read_end;
     }
     memset ((*mdata)->fpath, '\0', upath_len + 1);
-    strncpy ((*mdata)->fpath, upath, upath_len);
+    memcpy ((*mdata)->fpath, upath, upath_len);
     rc = flux_kvs_lookup_get_unpack (f, "i", &((*mdata)->owner_rank));
     // If the extraction did not work, log an error and return DYAD_BADFETCH
     if (rc < 0) {
@@ -480,7 +480,7 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_cons_store (const dyad_ctx_t* restrict ctx,
     // Build the full path to the file being consumed
     strncpy (file_path, ctx->cons_managed_path, PATH_MAX - 1);
     concat_str (file_path, mdata->fpath, "/", PATH_MAX);
-    strncpy (file_path_copy, file_path, PATH_MAX);  // dirname modifies the arg
+    memcpy (file_path_copy, file_path, PATH_MAX);  // dirname modifies the arg
     DYAD_C_FUNCTION_UPDATE_STR ("cons_managed_path", ctx->cons_managed_path);
     DYAD_C_FUNCTION_UPDATE_STR ("fpath", mdata->fpath);
     DYAD_C_FUNCTION_UPDATE_STR ("file_path_copy", file_path_copy);
@@ -900,7 +900,7 @@ dyad_rc_t dyad_get_metadata (dyad_ctx_t* ctx,
             goto get_metadata_done;
         }
         memset ((*mdata)->fpath, '\0', fname_len + 1);
-        strncpy ((*mdata)->fpath, fname, fname_len);
+        memcpy ((*mdata)->fpath, fname, fname_len);
         (*mdata)->owner_rank = ctx->rank;
         rc = DYAD_RC_OK;
         goto get_metadata_done;
