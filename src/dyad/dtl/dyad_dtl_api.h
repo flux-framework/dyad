@@ -9,6 +9,7 @@
 
 #include <jansson.h>
 #include <sys/types.h>
+#include <dyad/common/dyad_structures.h>
 #include <dyad/common/dyad_dtl.h>
 #include <dyad/common/dyad_rc.h>
 #include <flux/core.h>
