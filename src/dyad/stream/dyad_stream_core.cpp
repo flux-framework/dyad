@@ -101,6 +101,8 @@ void dyad_stream_core::init (const bool reinit)
 
     dyad_rc_t rc = dyad_init_env (&m_ctx);
     (void) rc;
+    // TODO:  implement a lock file based synchronization scheme.
+    m_ctx->use_fs_locks = false; // this is to disable checking for fs lock based logic.
     // TODO figure out if we want to error if init fails
     m_initialized = true;
     log_info ("Stream core is initialized by env variables.");
