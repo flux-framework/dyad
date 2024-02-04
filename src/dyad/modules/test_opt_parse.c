@@ -10,8 +10,9 @@
 #include <dyad/common/dyad_envs.h>
 #include <dyad/common/dyad_dtl.h>
 #include <dyad/common/dyad_rc.h>
-#include <dyad/common/dyad_structures.h>
 #include <dyad/common/dyad_logging.h>
+#include <inttypes.h>
+typedef void dyad_ctx_t;
 
 #if defined(__cplusplus)
 #include <cerrno>
