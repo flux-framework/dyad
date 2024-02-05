@@ -723,10 +723,8 @@ dyad_rc_t dyad_init_env (dyad_ctx_t** ctx)
 
     if ((e = getenv (DYAD_SYNC_DEBUG_ENV))) {
         debug = true;
-        enable_debug_dyad_utils ();
     } else {
         debug = false;
-        disable_debug_dyad_utils ();
     }
 
     if (debug) {
