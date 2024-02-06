@@ -41,6 +41,14 @@ class DyadCtxWrapper(ctypes.Structure):
         ("cons_managed_path", ctypes.c_char_p),
         ("prod_real_path", ctypes.c_char_p),
         ("cons_real_path", ctypes.c_char_p),
+        ("prod_managed_len", ctypes.c_uint32),
+        ("cons_managed_len", ctypes.c_uint32),
+        ("prod_real_len", ctypes.c_uint32),
+        ("cons_real_len", ctypes.c_uint32),
+        ("prod_managed_hash", ctypes.c_uint32),
+        ("cons_managed_hash", ctypes.c_uint32),
+        ("prod_real_hash", ctypes.c_uint32),
+        ("cons_real_hash", ctypes.c_uint32),
     ]
 
 
