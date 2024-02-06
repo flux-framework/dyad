@@ -49,6 +49,8 @@ struct dyad_params {
     std::string m_cons_managed_path;
     /// The path managed by DYAD for producer
     std::string m_prod_managed_path;
+    /// A relative path is relative to a managed path
+    bool m_relative_to_managed_path;
 
     dyad_params ()
         : m_debug (false),
@@ -62,7 +64,8 @@ struct dyad_params {
           m_dtl_mode (0),
           m_kvs_namespace (""),
           m_cons_managed_path (""),
-          m_prod_managed_path ("")
+          m_prod_managed_path (""),
+          m_relative_to_managed_path (false)
     {
     }
 };

@@ -32,10 +32,23 @@
 #endif
 
 const struct dyad_ctx dyad_ctx_default = {
+    // Internal
     NULL,   // h
     NULL,   // dtl_handle
     NULL,   // fname
     false,  // use_fs_locks
+    NULL,   // prod_real_path
+    NULL,   // cons_real_path
+    0u,     // prod_managed_len
+    0u,     // cons_managed_len
+    0u,     // prod_real_len
+    0u,     // cons_real_len
+    0u,     // prod_managed_hash
+    0u,     // cons_managed_hash
+    0u,     // prod_real_hash
+    0u,     // cons_real_hash
+    0u,     // delim_len
+    // User facing
     false,  // debug
     false,  // check
     false,  // reenter
@@ -52,16 +65,7 @@ const struct dyad_ctx dyad_ctx_default = {
     NULL,   // kvs_namespace
     NULL,   // prod_managed_path
     NULL,   // cons_managed_path
-    NULL,   // prod_real_path
-    NULL,   // cons_real_path
-    0u,     // length of prod_managed_path
-    0u,     // length of cons_managed_path
-    0u,     // length of prod_real_path
-    0u,     // length of cons_real_path
-    0u,     // hash of prod_managed_path
-    0u,     // hash of cons_managed_path
-    0u,     // hash of prod_real_path
-    0u,     // hash of cons_real_path
+    false   // relative_to_managed_path
 };
 
 dyad_rc_t dyad_finalize (dyad_ctx_t** ctx);
@@ -202,16 +206,26 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_commit (dyad_ctx_t* restrict ctx, const char*
     DYAD_C_FUNCTION_START();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", ctx->fname);
     dyad_rc_t rc = DYAD_RC_OK;
-    char upath[PATH_MAX] = {'\0'};
-    memset (upath, 0, PATH_MAX);
-    // Extract the path to the file specified by fname relative to the
-    // producer-managed path
-    // This relative path will be stored in upath
+    char upath[PATH_MAX+1] = {'\0'};
+#if 0
+    if (fname == NULL || strlen (fname) > PATH_MAX) {
+        rc = DYAD_RC_SYSFAIL;
+        goto get_metadata_done;
+    }
+#endif
+    if (ctx->relative_to_managed_path &&
+        (strncmp (ctx->prod_managed_path, DYAD_PATH_DELIM, ctx->delim_len) != 0))
+    {
+        memcpy (upath, fname, strlen (fname));
+    } else
     if (!cmp_canonical_path_prefix (ctx->prod_managed_path, ctx->prod_real_path,
                                     ctx->prod_managed_len,  ctx->prod_real_len,
                                     ctx->prod_managed_hash, ctx->prod_real_hash,
                                     fname, upath, PATH_MAX))
     {
+        // Extract the path to the file specified by fname relative to the
+        // producer-managed path
+        // This relative path will be stored in upath
         DYAD_LOG_INFO (ctx, "%s is not in the Producer's managed path", fname);
         rc = DYAD_RC_OK;
         goto commit_done;
@@ -333,19 +347,28 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_fetch_metadata (dyad_ctx_t* restrict ctx,
     DYAD_C_FUNCTION_START();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", fname);
     dyad_rc_t rc = DYAD_RC_OK;
-    char upath[PATH_MAX] = {'\0'};
+    char upath[PATH_MAX+1] = {'\0'};
     const size_t topic_len = PATH_MAX;
-    char topic[PATH_MAX + 1] = {'\0'};
-    memset (upath, 0, PATH_MAX);
-    memset (topic, 0, topic_len + 1);
-    // Extract the path to the file specified by fname relative to the
-    // consumer-managed path
-    // This relative path will be stored in upath
+    char topic[PATH_MAX+1] = {'\0'};
+#if 0
+    if (fname == NULL || strlen (fname) > PATH_MAX) {
+        rc = DYAD_RC_SYSFAIL;
+        goto get_metadata_done;
+    }
+#endif
+    if (ctx->relative_to_managed_path &&
+        (strncmp (ctx->cons_managed_path, DYAD_PATH_DELIM, ctx->delim_len) != 0))
+    {
+        memcpy (upath, fname, strlen (fname));
+    } else
     if (!cmp_canonical_path_prefix (ctx->cons_managed_path, ctx->cons_real_path,
                                     ctx->cons_managed_len,  ctx->cons_real_len,
                                     ctx->cons_managed_hash, ctx->cons_real_hash,
                                     fname, upath, PATH_MAX))
     {
+        // Extract the path to the file specified by fname relative to the
+        // consumer-managed path
+        // This relative path will be stored in upath
         DYAD_LOG_INFO (ctx, "%s is not in the Consumer's managed path\n", fname);
         rc = DYAD_RC_OK;
         goto fetch_done;
@@ -550,6 +573,7 @@ dyad_rc_t dyad_init (bool debug,
                      const char* kvs_namespace,
                      const char* prod_managed_path,
                      const char* cons_managed_path,
+                     bool relative_to_managed_path,
                      dyad_dtl_mode_t dtl_mode,
                      dyad_ctx_t** ctx)
 {
@@ -572,14 +596,22 @@ dyad_rc_t dyad_init (bool debug,
 #endif
     DYAD_C_FUNCTION_START();
     dyad_rc_t rc = DYAD_RC_OK;
+    // If neither managed path is provided, DYAD will not do anything.
+    // So, simply print a warning and return DYAD_OK.
+    if (prod_managed_path == NULL && cons_managed_path == NULL) {
+        fprintf (stderr,
+                 "Warning: no managed path provided! DYAD will not do "
+                 "anything!\n");
+        rc = DYAD_RC_OK;
+        goto init_region_finish;
+    }
     // If ctx is NULL, we won't be able to return a dyad_ctx_t
     // to the user. In that case, print an error and return
     // immediately with DYAD_NOCTX.
     if (ctx == NULL) {
         fprintf (stderr,
                  "'ctx' argument to dyad_init is NULL! This prevents us from "
-                 "returning "
-                 "a dyad_ctx_t object!\n");
+                 "returning a dyad_ctx_t object!\n");
         rc = DYAD_RC_NOCTX;
         goto init_region_finish;
     }
@@ -609,15 +641,18 @@ dyad_rc_t dyad_init (bool debug,
     // Set the initial contents of the dyad_ctx_t object
     // to dyad_ctx_default.
     **ctx = dyad_ctx_default;
-    // If neither managed path is provided, DYAD will not do anything.
-    // So, simply print a warning and return DYAD_OK.
-    if (prod_managed_path == NULL && cons_managed_path == NULL) {
-        fprintf (stderr,
-                 "Warning: no managed path provided! DYAD will not do "
-                 "anything!\n");
-        rc = DYAD_RC_OK;
-        goto init_region_finish;
+#ifdef DYAD_PATH_DELIM
+    if (DYAD_PATH_DELIM == NULL || strlen (DYAD_PATH_DELIM) == 0ul) {
+        fprintf (stderr, "Invalid DYAD_PATH_DELIM defined in 'dyad_config.h'!\n");
+        rc = DYAD_RC_NOCTX;
+        goto init_region_failed;
     }
+    (*ctx)->delim_len = strlen (DYAD_PATH_DELIM);
+#else
+    fprintf (stderr, "DYAD_PATH_DELIM is not defined in 'dyad_config.h'!\n");
+    rc = DYAD_RC_NOCTX;
+    goto init_region_failed;
+#endif
     // Set the values in dyad_ctx_t that don't need allocation
     (*ctx)->debug = debug;
     (*ctx)->check = check;
@@ -819,6 +854,9 @@ dyad_rc_t dyad_init (bool debug,
             DYAD_LOG_INFO (*ctx, "DYAD_CORE INIT: cons_real_hash %u", (*ctx)->cons_real_hash);
         }
     }
+    (*ctx)->relative_to_managed_path = relative_to_managed_path;
+    DYAD_LOG_INFO (*ctx, "DYAD_CORE INIT: relative_to_managed_path %s", \
+                   (*ctx)->relative_to_managed_path ? "true" : "false");
 
     DYAD_C_FUNCTION_UPDATE_STR ("prod_managed_path", (*ctx)->prod_managed_path);
     DYAD_C_FUNCTION_UPDATE_STR ("cons_managed_path", (*ctx)->cons_managed_path);
@@ -859,6 +897,7 @@ dyad_rc_t dyad_init_env (dyad_ctx_t** ctx)
     bool reinit = false;
     bool async_publish = false;
     bool fsync_write = false;
+    bool relative_to_managed_path = false;
     unsigned int key_depth = 0u;
     unsigned int key_bins = 0u;
     unsigned int service_mux = 1u;
@@ -945,6 +984,12 @@ dyad_rc_t dyad_init_env (dyad_ctx_t** ctx)
         prod_managed_path = NULL;
     }
 
+    if ((e = getenv (DYAD_PATH_RELATIVE_ENV))) {
+        relative_to_managed_path = true;
+    } else {
+        relative_to_managed_path = false;
+    }
+
     if ((e = getenv (DYAD_DTL_MODE_ENV))) {
         dtl_mode_env_len = strlen (e);
         if (strncmp (e, "FLUX_RPC", dtl_mode_env_len) == 0) {
@@ -977,6 +1022,7 @@ dyad_rc_t dyad_init_env (dyad_ctx_t** ctx)
                       kvs_namespace,
                       prod_managed_path,
                       cons_managed_path,
+                      relative_to_managed_path,
                       dtl_mode,
                       ctx);
     DYAD_C_FUNCTION_END();
@@ -1026,6 +1072,15 @@ dyad_rc_t dyad_get_metadata (dyad_ctx_t* ctx,
     DYAD_C_FUNCTION_UPDATE_STR ("fname", fname);
     DYAD_C_FUNCTION_UPDATE_INT ("should_wait", should_wait);
     dyad_rc_t rc = DYAD_RC_OK;
+
+#if 0
+    if (fname == NULL || strlen (fname) > PATH_MAX) {
+        rc = DYAD_RC_SYSFAIL;
+        goto get_metadata_done;
+    }
+#endif
+    const size_t fname_len = strlen (fname);
+
     // check if file exist locally, if so skip kvs
     int fd = open (fname, O_RDONLY);
     if (fd != -1) {
@@ -1046,7 +1101,6 @@ dyad_rc_t dyad_get_metadata (dyad_ctx_t* ctx,
                 goto get_metadata_done;
             }
         }
-        size_t fname_len = strlen (fname);
         (*mdata)->fpath = (char*)malloc (fname_len + 1);
         if ((*mdata)->fpath == NULL) {
             DYAD_LOG_ERROR (ctx, "Cannot allocate memory for fpath in metadata object");
@@ -1061,20 +1115,23 @@ dyad_rc_t dyad_get_metadata (dyad_ctx_t* ctx,
     }
 
     const size_t topic_len = PATH_MAX;
-    char topic[PATH_MAX + 1] = {'\0'};
-    char upath[PATH_MAX] = {'\0'};
-    memset (topic, 0, topic_len + 1);
-    memset (topic, '\0', topic_len + 1);
-    memset (upath, 0, PATH_MAX);
-    // Extract the path to the file specified by fname relative to the
-    // producer-managed path
-    // This relative path will be stored in upath
+    char topic[PATH_MAX+1] = {'\0'};
+    char upath[PATH_MAX+1] = {'\0'};
     DYAD_LOG_INFO (ctx, "Obtaining file path relative to consumer directory: %s", upath);
+
+    if (ctx->relative_to_managed_path &&
+        (strncmp (ctx->cons_managed_path, DYAD_PATH_DELIM, ctx->delim_len) != 0))
+    {   // fname is a relative path that is relative to the cons_managed_path
+        memcpy (upath, fname, fname_len);
+    } else
     if (!cmp_canonical_path_prefix (ctx->cons_managed_path, ctx->cons_real_path,
                                     ctx->cons_managed_len,  ctx->cons_real_len,
                                     ctx->cons_managed_hash, ctx->cons_real_hash,
                                     fname, upath, PATH_MAX))
     {
+        // Extract the path to the file specified by fname relative to the
+        // producer-managed path
+        // This relative path will be stored in upath
         DYAD_LOG_INFO (ctx, "%s is not in the Consumer's managed path\n", fname);
         rc = DYAD_RC_UNTRACKED;
         goto get_metadata_done;
