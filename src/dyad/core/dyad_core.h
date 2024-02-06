@@ -7,12 +7,12 @@
 #error "no config"
 #endif
 
+#include <flux/core.h>
 #include <dyad/common/dyad_rc.h>
 #include <dyad/common/dyad_structures.h>
 #include <dyad/common/dyad_dtl.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <flux/core.h>
 
 #ifdef __cplusplus
 #include <cstdio>

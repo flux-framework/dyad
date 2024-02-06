@@ -40,13 +40,11 @@ using namespace std;  // std::clock ()
 #endif  // defined(__cplusplus)
 
 #include <dlfcn.h>
-#include <dyad/utils/utils.h>
 #include <fcntl.h>
 #include <libgen.h>  // dirname
 #include <unistd.h>
 
 #include <dyad/utils/utils.h>
-// #include "wrapper.h"
 #include <dyad/common/dyad_envs.h>
 #include <dyad/common/dyad_logging.h>
 #include <dyad/common/dyad_profiler.h>
@@ -111,8 +109,10 @@ void dyad_wrapper_init (void)
 
     if (DYAD_IS_ERROR (rc)) {
         fprintf (stderr, "Failed to initialize DYAD (code = %d)", rc);
-        ctx->initialized = false;
-        ctx->reenter = false;
+        if (ctx != NULL) {
+            ctx->initialized = false;
+            ctx->reenter = false;
+        }
         DYAD_C_FUNCTION_END();
         return;
     }
