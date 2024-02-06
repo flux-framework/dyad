@@ -23,6 +23,17 @@ class DyadCtxWrapper(ctypes.Structure):
         ("dtl_handle", ctypes.POINTER(DyadDTLHandle)),
         ("fname", ctypes.c_char_p),
         ("use_fs_locks", ctypes.c_bool),
+        ("prod_real_path", ctypes.c_char_p),
+        ("cons_real_path", ctypes.c_char_p),
+        ("prod_managed_len", ctypes.c_uint32),
+        ("cons_managed_len", ctypes.c_uint32),
+        ("prod_real_len", ctypes.c_uint32),
+        ("cons_real_len", ctypes.c_uint32),
+        ("prod_managed_hash", ctypes.c_uint32),
+        ("cons_managed_hash", ctypes.c_uint32),
+        ("prod_real_hash", ctypes.c_uint32),
+        ("cons_real_hash", ctypes.c_uint32),
+        ("delim_len", ctypes.c_uint32),
         ("debug", ctypes.c_bool),
         ("check", ctypes.c_bool),
         ("reenter", ctypes.c_bool),
@@ -39,16 +50,7 @@ class DyadCtxWrapper(ctypes.Structure):
         ("kvs_namespace", ctypes.c_char_p),
         ("prod_managed_path", ctypes.c_char_p),
         ("cons_managed_path", ctypes.c_char_p),
-        ("prod_real_path", ctypes.c_char_p),
-        ("cons_real_path", ctypes.c_char_p),
-        ("prod_managed_len", ctypes.c_uint32),
-        ("cons_managed_len", ctypes.c_uint32),
-        ("prod_real_len", ctypes.c_uint32),
-        ("cons_real_len", ctypes.c_uint32),
-        ("prod_managed_hash", ctypes.c_uint32),
-        ("cons_managed_hash", ctypes.c_uint32),
-        ("prod_real_hash", ctypes.c_uint32),
-        ("cons_real_hash", ctypes.c_uint32),
+        ("relative_to_managed_path", ctypes.c_bool),
     ]
 
 
@@ -122,6 +124,7 @@ class Dyad:
             ctypes.c_char_p,                                 # kvs_namespace
             ctypes.c_char_p,                                 # prod_managed_path
             ctypes.c_char_p,                                 # cons_managed_path
+            ctypes.c_bool,                                   # relative_to_managed_path
             ctypes.c_int,                                    # dtl_mode
             ctypes.POINTER(ctypes.POINTER(DyadCtxWrapper)),  # ctx
         ]
@@ -195,6 +198,7 @@ class Dyad:
         kvs_namespace=None,
         prod_managed_path=None,
         cons_managed_path=None,
+        relative_to_managed_path=False,
         dtl_mode=DTLMode.DYAD_DTL_FLUX_RPC,
     ):
         self.log_inst = dlio_logger.initialize_log(logfile=None, data_dir=None, process_id=-1)
@@ -217,6 +221,7 @@ class Dyad:
             kvs_namespace.encode() if kvs_namespace is not None else None,
             prod_managed_path.encode() if prod_managed_path is not None else None,
             cons_managed_path.encode() if cons_managed_path is not None else None,
+            ctypes.c_bool(relative_to_managed_path),
             ctypes.c_int(dtl_mode),
             ctypes.byref(self.ctx),
         )
