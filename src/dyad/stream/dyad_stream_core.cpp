@@ -122,6 +122,7 @@ void dyad_stream_core::init (const dyad_params &p)
                               p.m_kvs_namespace.c_str (),
                               p.m_prod_managed_path.c_str (),
                               p.m_cons_managed_path.c_str (),
+                              p.m_relative_to_managed_path,
                               static_cast<dyad_dtl_mode_t> (p.m_dtl_mode),
                               &m_ctx);
 #if defined(DYAD_HAS_STD_FSTREAM_FD)
@@ -142,6 +143,8 @@ void dyad_stream_core::log_info (const std::string &msg_head) const
     DYAD_LOG_INFO (m_ctx, "=== %s ===", msg_head.c_str ());
     DYAD_LOG_INFO (m_ctx, "%s=%s", DYAD_PATH_CONSUMER_ENV, m_ctx->cons_managed_path);
     DYAD_LOG_INFO (m_ctx, "%s=%s", DYAD_PATH_PRODUCER_ENV, m_ctx->prod_managed_path);
+    DYAD_LOG_INFO (m_ctx, "%s=%s", DYAD_PATH_RELATIVE_ENV,
+                   (m_ctx->relative_to_managed_path) ? "true" : "false");
     DYAD_LOG_INFO (m_ctx, "%s=%s", DYAD_SYNC_DEBUG_ENV,
                    (m_ctx->debug) ? "true" : "false");
     DYAD_LOG_INFO (m_ctx, "%s=%s", DYAD_SHARED_STORAGE_ENV,

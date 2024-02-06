@@ -56,6 +56,9 @@
 #include <stdint.h>
 #endif
 
+#ifndef DYAD_PATH_DELIM
+#define DYAD_PATH_DELIM "/"
+#endif
 
 /// If hashing is not possible, returns 0. Otherwise, returns a non-zero hash value.
 uint32_t hash_str (const char* str, const uint32_t seed)

@@ -21,8 +21,6 @@
 #define _GNU_SOURCE
 #endif  // _GNU_SOURCE
 
-#define DYAD_PATH_DELIM "/"
-
 #if defined(__cplusplus)
 // #include <cstdbool> // c++11
 #include <cstddef>
