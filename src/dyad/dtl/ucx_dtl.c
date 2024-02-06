@@ -523,7 +523,7 @@ dyad_rc_t dyad_dtl_ucx_init (const dyad_ctx_t* ctx,
     dtl_handle = ctx->dtl_handle->private_dtl.ucx_dtl_handle;
     // Allocation/Freeing of the Flux handle should be
     // handled by the DYAD context
-    dtl_handle->h = ctx->h;
+    dtl_handle->h = (flux_t*) ctx->h;
     dtl_handle->comm_mode = comm_mode;
     dtl_handle->debug = debug;
     dtl_handle->ucx_ctx = NULL;

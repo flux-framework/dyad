@@ -5,6 +5,8 @@
 #else
 #error "no config"
 #endif
+
+#include <dyad/common/dyad_structures.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -64,13 +66,13 @@ extern "C" {
   #else  // DYAD_UTIL_LOGGER
     #include <flux/core.h>
     #ifdef DYAD_LOGGER_LEVEL_DEBUG
-      #define DYAD_LOG_DEBUG(dyad_ctx, ...) flux_log (((dyad_ctx_t*) dyad_ctx)->h, LOG_DEBUG, __VA_ARGS__);
+      #define DYAD_LOG_DEBUG(dyad_ctx, ...) flux_log ((flux_t*)(((dyad_ctx_t*) dyad_ctx)->h), LOG_DEBUG, __VA_ARGS__);
     #else
       #define DYAD_LOG_DEBUG(dyad_ctx, ...) DYAD_NOOP_MACRO
     #endif
 
     #ifdef DYAD_LOGGER_LEVEL_INFO
-      #define DYAD_LOG_INFO(dyad_ctx, ...) flux_log (((dyad_ctx_t*) dyad_ctx)->h, LOG_INFO, __VA_ARGS__);
+      #define DYAD_LOG_INFO(dyad_ctx, ...) flux_log ((flux_t*)(((dyad_ctx_t*) dyad_ctx)->h), LOG_INFO, __VA_ARGS__);
     #else
       #define DYAD_LOG_INFO(dyad_ctx, ...) DYAD_NOOP_MACRO
     #endif
@@ -82,7 +84,7 @@ extern "C" {
     #endif
 
     #ifdef DYAD_LOGGER_LEVEL_ERROR
-      #define DYAD_LOG_ERROR(dyad_ctx, ...) flux_log_error (((dyad_ctx_t*) dyad_ctx)->h, __VA_ARGS__);
+      #define DYAD_LOG_ERROR(dyad_ctx, ...) flux_log_error ((flux_t*)(((dyad_ctx_t*) dyad_ctx)->h), __VA_ARGS__);
     #else
       #define DYAD_LOG_ERROR(dyad_ctx, ...) DYAD_NOOP_MACRO
     #endif

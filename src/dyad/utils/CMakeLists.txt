@@ -14,7 +14,9 @@ add_library(${PROJECT_NAME}_utils SHARED ${DYAD_UTILS_SRC}
             ${DYAD_UTILS_PRIVATE_HEADERS} ${DYAD_UTILS_PUBLIC_HEADERS})
 set_target_properties(${PROJECT_NAME}_utils PROPERTIES CMAKE_INSTALL_RPATH
                       "${CMAKE_INSTALL_PREFIX}/${DYAD_LIBDIR}")
-target_link_libraries(${PROJECT_NAME}_utils PUBLIC flux::core ${PROJECT_NAME}_base64)
+target_link_libraries(${PROJECT_NAME}_utils PUBLIC
+                      ${PROJECT_NAME}_base64
+                      ${PROJECT_NAME}_murmur3)
 
 if(DYAD_LOGGER STREQUAL "CPP_LOGGER")
     target_link_libraries(${PROJECT_NAME}_utils PRIVATE ${CPP_LOGGER_LIBRARIES})

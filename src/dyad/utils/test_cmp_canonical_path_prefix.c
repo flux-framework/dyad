@@ -7,6 +7,8 @@
 #include <dyad/utils/utils.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <stdint.h>
+#include <string.h>
 
 int main (int argc, char** argv)
 {
@@ -28,13 +30,21 @@ int main (int argc, char** argv)
         can_prefix = argv[3];
     }
 
-    ret = cmp_canonical_path_prefix (prefix, can_prefix, path, upath, PATH_MAX);
+    const size_t prefix_len = strlen (prefix);
+    const size_t can_prefix_len = can_prefix? strlen (can_prefix) : 0u;;
+    uint32_t prefix_hash = hash_str (prefix, DYAD_SEED);
+    uint32_t can_prefix_hash = hash_str (can_prefix, DYAD_SEED);
+
+    ret = cmp_canonical_path_prefix (prefix, can_prefix,
+                                     prefix_len, can_prefix_len,
+                                     prefix_hash, can_prefix_hash,
+                                     path, upath, PATH_MAX);
     if (!ret) {
         printf ("path '%s' does not include prefix '%s' ('%s')\n", path, prefix, can_prefix);
         return EXIT_FAILURE;
     }
-    printf ("path '%s' include prefix '%s' ('%s')\n", path, prefix, can_prefix);
-    printf ("%s under %s\n", upath, prefix);
+    printf ("path '%s' include prefix '%s' (canonical form: '%s')\n", path, prefix, can_prefix);
+    printf ("'%s' is under '%s'\n", upath, prefix);
 
     return EXIT_SUCCESS;
 }

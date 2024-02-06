@@ -25,11 +25,13 @@
 
 #include <dyad/common/dyad_logging.h>
 #include <dyad/common/dyad_profiler.h>
+#include <dyad/utils/murmur3.h>
 
 #include <fcntl.h>      // open
 #include <libgen.h>     // basename dirname
 #include <sys/stat.h>   // open
 #include <sys/types.h>  // open
+#include <sys/file.h>
 #include <unistd.h>     // readlink
 
 #if defined(__cplusplus)
@@ -40,6 +42,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <cstdint>
 // #include <cstdbool> // c++11
 #else
 #include <errno.h>
@@ -50,23 +53,41 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <stdint.h>
 #endif
 
-static __thread bool debug_dyad_utils = false;
 
-void enable_debug_dyad_utils (void)
+/// If hashing is not possible, returns 0. Otherwise, returns a non-zero hash value.
+uint32_t hash_str (const char* str, const uint32_t seed)
 {
-    debug_dyad_utils = true;
+    if (!str) return 0u;
+    const size_t len = strlen (str);
+    if (len == 0ul) return 0u;
+
+    uint32_t hash[4] = {0u};  // Output for the hash
+    MurmurHash3_x64_128 (str, strlen (str), seed, hash);
+    return (hash[0] ^ hash[1] ^ hash[2] ^ hash[3]) + 1;
 }
 
-void disable_debug_dyad_utils (void)
+/** If hashing is not possible, returns 0. Otherwise, returns a non-zero hash value.
+ *  This does not check if the length of string is correct, but simply use it */
+uint32_t hash_path_prefix (const char* str, const uint32_t seed,
+                           const size_t len)
 {
-    debug_dyad_utils = false;
-}
+    char strbuf [PATH_MAX+1] = {'\0'};
+    uint32_t hash[4] = {0u};  // Output for the first hash with len1
 
-bool check_debug_dyad_utils (void)
-{
-    return debug_dyad_utils;
+    if (!str || len == 0ul) {
+        return 0u;
+    }
+
+    memcpy (strbuf, str, (len > PATH_MAX)? PATH_MAX : len);
+    const size_t buf_len = strlen (strbuf);
+    if (buf_len != len) {
+        return 0u;
+    }
+    MurmurHash3_x64_128 (str, buf_len, seed, hash);
+    return (hash[0] ^ hash[1] ^ hash[2] ^ hash[3]) + 1;
 }
 
 /**
@@ -124,43 +145,31 @@ char* concat_str (char* __restrict__ str,
 }
 
 /**
- * Copies the last upath_len characters of the path into upath
- */
-bool extract_user_path (const char* __restrict__ path,
-                        char* __restrict__ upath,
-                        const size_t upath_len)
-{
-    if ((upath_len > PATH_MAX) || (upath == NULL)) {
-        return false;
-    }
-
-    if (!(((upath + PATH_MAX) <= path) || ((path + PATH_MAX) <= upath))) {
-        return false;  // buffers overlap
-    }
-
-    size_t upath_pos = strlen (path) - upath_len;
-    strncpy (upath, path + upath_pos, upath_len);
-    upath[upath_len] = '\0';
-
-    return true;
-}
-
-/**
  * Compares a path (full) against a path prefix considering the path
  * delimiter. Then, returns the length of the user added path string
  * that follows the path prefix via the last argument.
  */
-bool cmp_prefix (const char* __restrict__ prefix,
-                 const char* __restrict__ full,
-                 const char* __restrict__ delim,
-                 size_t* __restrict__ u_len)
+bool extract_user_path (const char* __restrict__ prefix,
+                        const char* __restrict__ full,
+                        const char* __restrict__ delim,
+                        char* __restrict__ upath,
+                        const size_t upath_capacity)
 {
+    size_t prefix_len = strlen (prefix);
+    const size_t full_len = strlen (full);
+    const size_t delim_len = ((delim == NULL) ? 0ul : strlen (delim));
+    size_t u_len = 0ul;
+
+    if (upath == NULL) {
+        return false;
+    }
+
     {
-        const char* const u_len_end = ((const char*)u_len) + sizeof (size_t);
+        const char* const upath_end = upath + upath_capacity;
         bool no_overlap =
-            ((prefix + strlen (prefix) <= (char*)u_len) || (u_len_end <= prefix))
-            && ((full + strlen (full) <= (char*)u_len) || (u_len_end <= full))
-            && ((delim + strlen (delim) <= (char*)u_len) || (u_len_end <= delim));
+             ((prefix + prefix_len <= upath) || (upath_end <= prefix))
+            && ((full + full_len <= upath)   || (upath_end <= full))
+            && ((delim + delim_len <= upath) || (upath_end <= delim));
 
         if (!no_overlap) {
             DYAD_LOG_DEBUG (NULL, "DYAD UTIL: buffers overlap.\n");
@@ -168,25 +177,14 @@ bool cmp_prefix (const char* __restrict__ prefix,
         }
     }
 
-    const size_t full_len = strlen (full);
-    const size_t delim_len = ((delim == NULL) ? 0ul : strlen (delim));
-    size_t prefix_len = strlen (prefix);
-    if (full_len > PATH_MAX || delim_len > PATH_MAX || prefix_len > PATH_MAX) {
-        DYAD_LOG_DEBUG (NULL, "DYAD UTIL: path length cannot be larger than PATH_MAX\n");
+    // Check if the full path begins with the prefix string
+    if (strncmp (prefix, full, prefix_len) != 0) {
         return false;
     }
 
-    if (delim_len == 0ul) {  // no delimiter is defined
-        if (strncmp (prefix, full, prefix_len) != 0) {
-            return false;
-        }
-        if (u_len != NULL) {
-            // Without a path delimiter used, the length of the substring that
-            // follows the prefix (user path) is the total length of the full
-            // string minus that of the prefix string.
-            *u_len = full_len - prefix_len;
-        }
-        return true;
+    if (full_len > PATH_MAX || delim_len > PATH_MAX || prefix_len > PATH_MAX) {
+        DYAD_LOG_DEBUG (NULL, "DYAD UTIL: path length cannot be larger than PATH_MAX\n");
+        return false;
     }
 
     if (prefix_len >= delim_len) {
@@ -196,77 +194,67 @@ bool cmp_prefix (const char* __restrict__ prefix,
         }
     }
 
-    // Check if the full path begins with the prefix string
-    if (strncmp (prefix, full, prefix_len) != 0) {
-        return false;
-    }
-
-    if (full_len == prefix_len) {
+    if (full_len <= prefix_len + delim_len) {
         // The full path string is exactly the same as the prefix string.
-        if (u_len != NULL) {
-            *u_len = 0ul;
-        }
-        return true;
-    } else if (full_len < prefix_len + delim_len) {
         return false;
     }
 
-    if (u_len != NULL) {
-        *u_len = full_len - prefix_len - delim_len;
-    }
-
-    // Finally, make sure that the user path begins with the delimiter.
+    // Finally, make sure that the the delimiter is at the right position.
     // This check correctly identifies, for example, "prefix_path2/user_path" as
     // a mismatch when "prefix_path/user_path" is a match.
-    return (strncmp (full + prefix_len, delim, delim_len) == 0);
+    if (strncmp (full + prefix_len, delim, delim_len) != 0) {
+        return false;
+    }
+
+    u_len = full_len - prefix_len - delim_len;
+    if (u_len + 1 > upath_capacity) {
+        return false;
+    }
+
+    memcpy (upath, full + full_len - u_len, u_len);
+
+    return true;
 }
 
+/**
+ * This function checks if the 'path' string provided has the prefix that matches
+ * the dyad manage path ('prefix') or the canonical version of it ('can_prefix').
+ * Then, it returns true if it matches or false otherwise. It also checks with the
+ * canonical version of the 'path' if it does not match as is. The portion of the
+ * path string without the prefix is written to `upath` buffer. 'upath_capacity'
+ * indicates the capacity of the buffer.
+ * This does not check if the length of prefix string and can_prefix string
+ * actually match the ones provided. It is also assume that the internal hashing
+ * relies on the same hash algorithm and the seed as used to compute the hash
+ * arguments provided.
+ */
 bool cmp_canonical_path_prefix (const char* __restrict__ prefix,
-                                const char* __restrict__ canprefix,
+                                const char* __restrict__ can_prefix,
+                                const uint32_t prefix_len,
+                                const uint32_t can_prefix_len,
+                                const uint32_t prefix_hash,
+                                const uint32_t can_prefix_hash,
                                 const char* __restrict__ path,
                                 char* __restrict__ upath,
                                 const size_t upath_capacity)
 {
-    {
-        const char* const upath_end = upath + upath_capacity;
-        bool no_overlap = ((prefix + strlen (prefix) <= upath) || (upath_end <= prefix))
-                          && ((path + strlen (path) <= upath) || (upath_end <= path));
-
-        if (!no_overlap) {
-            DYAD_LOG_DEBUG (NULL, "DYAD UTIL: buffers overlap\n");
-            return false;
-        }
-    }
-
-    size_t upath_len = 0ul;
-
-    if (cmp_prefix (prefix, path, DYAD_PATH_DELIM, &upath_len)) {
-        extract_user_path (path, upath, upath_len);
-        if (upath_len + 1 > upath_capacity) {
-            return false;
-        }
-        return true;
-    }
-
     // Only works when there are no multiple absolute paths via hardlinks
-    char can_prefix[PATH_MAX] = {'\0'};  // canonical form of the managed path
     char can_path[PATH_MAX] = {'\0'};    // canonical form of the given path
 
-    // The path prefix needs to translate to a real path
-    if (!canprefix && !realpath (prefix, can_prefix)) {
-        DYAD_LOG_DEBUG (NULL,"DYAD UTIL: error in realpath for %s\n", prefix);
-        DYAD_LOG_DEBUG (NULL, "DYAD UTIL: %s\n", strerror (errno));
-        return false;
+    const uint32_t path_hash1 = hash_path_prefix (path, DYAD_SEED, prefix_len);
+
+    if ((path_hash1 == prefix_hash) &&
+        extract_user_path (prefix, path, DYAD_PATH_DELIM, upath, upath_capacity)) {
+        return true;
     }
 
-    const char* _can_prefix = canprefix? canprefix : can_prefix;
-
-    if (cmp_prefix (_can_prefix, path, DYAD_PATH_DELIM, &upath_len)) {
-        extract_user_path (path, upath, upath_len);
-        if (upath_len + 1 > upath_capacity) {
-            return false;
+    if (can_prefix_len > 0u) {
+        const uint32_t path_hash2 = hash_path_prefix (path, DYAD_SEED, can_prefix_len);
+        if (path_hash2 == can_prefix_hash) {
+            if (extract_user_path (can_prefix, path, DYAD_PATH_DELIM, upath, upath_capacity)) {
+                return true;
+            }
         }
-        return true;
     }
 
     // See if the prefix of the path in question matches that of either the
@@ -276,17 +264,22 @@ bool cmp_canonical_path_prefix (const char* __restrict__ prefix,
         return false;
     }
 
-    // For a real path, see if the prefix of either the path or its canonical
-    // form matches the managed path.
-    if (!cmp_prefix (_can_prefix, can_path, DYAD_PATH_DELIM, &upath_len)) {
-        return false;
-    }
-    if (upath_len + 1 > upath_capacity) {
-        return false;
-    }
-    extract_user_path (can_path, upath, upath_len);
+    const uint32_t can_path_hash1 = hash_path_prefix (can_path, DYAD_SEED, prefix_len);
 
-    return true;
+    if ((can_path_hash1 == prefix_hash) &&
+        extract_user_path (prefix, can_path, DYAD_PATH_DELIM, upath, upath_capacity)) {
+        return true;
+    }
+
+    if (can_prefix_len > 0u) {
+        const uint32_t can_path_hash2 = hash_path_prefix (can_path, DYAD_SEED, can_prefix_len);
+        if ((can_path_hash2 == can_prefix_hash) &&
+            extract_user_path (can_prefix, can_path, DYAD_PATH_DELIM, upath, upath_capacity)) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 /**
@@ -457,7 +450,8 @@ ssize_t get_file_size (int fd)
     return file_size;
 }
 
-dyad_rc_t dyad_excl_flock (const dyad_ctx_t* ctx, int fd, struct flock* lock)
+dyad_rc_t dyad_excl_flock (const dyad_ctx_t* __restrict__ ctx, int fd,
+                           struct flock* __restrict__ lock)
 {
     dyad_rc_t rc = DYAD_RC_OK;
     DYAD_C_FUNCTION_START();
@@ -486,7 +480,8 @@ excl_flock_end:;
     return rc;
 }
 
-dyad_rc_t dyad_shared_flock (const dyad_ctx_t* ctx, int fd, struct flock* lock)
+dyad_rc_t dyad_shared_flock (const dyad_ctx_t* __restrict__ ctx, int fd,
+                             struct flock* __restrict__ lock)
 {
     DYAD_C_FUNCTION_START();
     DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
@@ -515,7 +510,8 @@ shared_flock_end:;
     return rc;
 }
 
-dyad_rc_t dyad_release_flock (const dyad_ctx_t* ctx, int fd, struct flock* lock)
+dyad_rc_t dyad_release_flock (const dyad_ctx_t* __restrict__ ctx, int fd,
+                              struct flock* __restrict__ lock)
 {
     DYAD_C_FUNCTION_START();
     DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
