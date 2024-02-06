@@ -87,6 +87,11 @@ typedef struct dyad_metadata dyad_metadata_t;
  * @param[in]  service_mux    number of brokers sharing node-local storage
  * @param[in]  kvs_namespace  Flux KVS namespace to be used for this
  *                            instance of DYAD
+ * @param[in]  relative_to_managed_path relative path is relative to the managed path
+ *                            Which one of the managed path it will be relative to
+ *                            depends on the context and it could be either of
+ *                            producer or consumer's path. This is only applicable
+ *                            when there is only one of each.
  * @param[out] ctx            the newly initialized context
  *
  * @return An error code from dyad_rc.h
@@ -103,6 +108,7 @@ DYAD_DLL_EXPORTED dyad_rc_t dyad_init (bool debug,
                                        const char* kvs_namespace,
                                        const char* prod_managed_path,
                                        const char* cons_managed_path,
+                                       bool relative_to_managed_path,
                                        dyad_dtl_mode_t dtl_mode,
                                        dyad_ctx_t** ctx);
 
