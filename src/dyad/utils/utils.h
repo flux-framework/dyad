@@ -27,13 +27,15 @@
 // #include <cstdbool> // c++11
 #include <cstddef>
 #include <cstdio>
+#include <cstdint>
 #else
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <stdint.h>
 #endif  // defined(__cplusplus)
-#include <sys/file.h>
-#include <sys/stat.h>
+
+#include <fcntl.h>
 #include <dyad/common/dyad_structures.h>
 #include <dyad/common/dyad_rc.h>
 
@@ -50,22 +52,31 @@ void enable_debug_dyad_utils (void);
 void disable_debug_dyad_utils (void);
 bool check_debug_dyad_utils (void);
 
+/** Return the hash value computed for the entire string with a given seed
+ *  The return value 0 means that the string was not valid or the length was 0. */
+uint32_t hash_str (const char* str, const uint32_t seed);
+/** Return the hash value computed for the path string up to len characters
+ *  with a given seed.
+ *  The return value 0 means that the string was not valid or the length was 0. */
+uint32_t hash_path_prefix (const char* str, const uint32_t seed, const size_t len);
+
 char* concat_str (char* __restrict__ str,
                   const char* __restrict__ to_append,
                   const char* __restrict__ connector,
                   size_t str_capacity);
 
-bool extract_user_path (const char* __restrict__ path,
+bool extract_user_path (const char* __restrict__ prefix,
+                        const char* __restrict__ full,
+                        const char* __restrict__ delim,
                         char* __restrict__ upath,
-                        const size_t upath_len);
-
-bool cmp_prefix (const char* __restrict__ prefix,
-                 const char* __restrict__ full,
-                 const char* __restrict__ delim,
-                 size_t* __restrict__ u_len);
+                        const size_t upath_capacity);
 
 bool cmp_canonical_path_prefix (const char* __restrict__ prefix,
                                 const char* __restrict__ can_prefix,
+                                const uint32_t prefix_len,
+                                const uint32_t can_prefix_len,
+                                const uint32_t prefix_hash,
+                                const uint32_t can_prefix_hash,
                                 const char* __restrict__ path,
                                 char* __restrict__ upath,
                                 const size_t upath_capacity);
@@ -88,9 +99,12 @@ bool get_stat (const char* path, unsigned int max_retry, long ns_sleep);
 
 ssize_t get_file_size (int fd);
 
-dyad_rc_t dyad_excl_flock (const dyad_ctx_t* ctx, int fd, struct flock* lock);
-dyad_rc_t dyad_shared_flock (const dyad_ctx_t* ctx, int fd, struct flock* lock);
-dyad_rc_t dyad_release_flock (const dyad_ctx_t* ctx, int fd, struct flock* lock);
+dyad_rc_t dyad_excl_flock (const dyad_ctx_t* __restrict__ ctx, int fd,
+                           struct flock* __restrict__ lock);
+dyad_rc_t dyad_shared_flock (const dyad_ctx_t* __restrict__ ctx, int fd,
+                             struct flock* __restrict__ lock);
+dyad_rc_t dyad_release_flock (const dyad_ctx_t* __restrict__ ctx, int fd,
+                              struct flock* __restrict__ lock);
 
 #if DYAD_SYNC_DIR
 /**

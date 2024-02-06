@@ -21,7 +21,7 @@ dyad_rc_t dyad_dtl_flux_init (const dyad_ctx_t* ctx,
         rc = DYAD_RC_SYSFAIL;
         goto dtl_flux_init_region_finish;
     }
-    ctx->dtl_handle->private_dtl.flux_dtl_handle->h = ctx->h;
+    ctx->dtl_handle->private_dtl.flux_dtl_handle->h = (flux_t*) ctx->h;
     ctx->dtl_handle->private_dtl.flux_dtl_handle->comm_mode = comm_mode;
     ctx->dtl_handle->private_dtl.flux_dtl_handle->debug = debug;
     ctx->dtl_handle->private_dtl.flux_dtl_handle->f = NULL;

@@ -7,11 +7,11 @@
 #error "no config"
 #endif
 
+#include <flux/core.h>
 #include <dyad/common/dyad_rc.h>
 #include <dyad/common/dyad_structures.h>
-#include <ucp/api/ucp.h>
-#include <flux/core.h>
 #include <dyad/dtl/ucx_dtl.h>
+#include <ucp/api/ucp.h>
 
 #ifdef __cplusplus
 extern "C" {
