@@ -647,7 +647,7 @@ dyad_rc_t dyad_dtl_ucx_rpc_pack (const dyad_ctx_t* ctx,
      * Reset the Buffer so that we can loop on it
      * as we expect a size_t lets put int -1 as a check.
      */
-    size_t temp = 0;
+    ssize_t temp = 0;
     memcpy (dtl_handle->net_buf, &temp, sizeof(temp));
     dyad_rc_t rc = DYAD_RC_OK;
     size_t cons_enc_len = 0;
