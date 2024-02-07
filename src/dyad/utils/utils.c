@@ -231,18 +231,41 @@ bool extract_user_path (const char* __restrict__ prefix,
  * relies on the same hash algorithm and the seed as used to compute the hash
  * arguments provided.
  */
-bool cmp_canonical_path_prefix (const char* __restrict__ prefix,
-                                const char* __restrict__ can_prefix,
-                                const uint32_t prefix_len,
-                                const uint32_t can_prefix_len,
-                                const uint32_t prefix_hash,
-                                const uint32_t can_prefix_hash,
+bool cmp_canonical_path_prefix (const dyad_ctx_t* __restrict__ ctx,
+                                const bool is_prod,
                                 const char* __restrict__ path,
                                 char* __restrict__ upath,
                                 const size_t upath_capacity)
 {
     // Only works when there are no multiple absolute paths via hardlinks
     char can_path[PATH_MAX] = {'\0'};    // canonical form of the given path
+    if (!ctx) {
+        DYAD_LOG_DEBUG (NULL, "DYAD UTIL: Invalid dyad context!\n");
+        return false;
+    }
+
+    const char* prefix = NULL;
+    const char* can_prefix = NULL;
+    uint32_t prefix_len = 0u;
+    uint32_t can_prefix_len = 0u;
+    uint32_t prefix_hash = 0u;
+    uint32_t can_prefix_hash = 0u;
+    if (is_prod) {
+        prefix = ctx->prod_managed_path;
+        can_prefix = ctx->prod_real_path;
+        prefix_len = ctx->prod_managed_len;
+        can_prefix_len = ctx->prod_real_len;
+        prefix_hash = ctx->prod_managed_hash;
+        can_prefix_hash = ctx->prod_real_hash;
+    } else {
+        prefix = ctx->cons_managed_path;
+        can_prefix = ctx->cons_real_path;
+        prefix_len = ctx->cons_managed_len;
+        can_prefix_len = ctx->cons_real_len;
+        prefix_hash = ctx->cons_managed_hash;
+        can_prefix_hash = ctx->cons_real_hash;
+    }
+
 
     const uint32_t path_hash1 = hash_path_prefix (path, DYAD_SEED, prefix_len);
 

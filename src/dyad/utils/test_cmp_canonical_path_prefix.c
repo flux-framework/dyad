@@ -4,6 +4,7 @@
 #error "no config"
 #endif
 
+#include <dyad/common/dyad_structures.h>
 #include <dyad/utils/utils.h>
 #include <stdlib.h>
 #include <limits.h>
@@ -35,10 +36,16 @@ int main (int argc, char** argv)
     uint32_t prefix_hash = hash_str (prefix, DYAD_SEED);
     uint32_t can_prefix_hash = hash_str (can_prefix, DYAD_SEED);
 
-    ret = cmp_canonical_path_prefix (prefix, can_prefix,
-                                     prefix_len, can_prefix_len,
-                                     prefix_hash, can_prefix_hash,
-                                     path, upath, PATH_MAX);
+    dyad_ctx_t ctx;
+    ctx.cons_managed_path = prefix;
+    ctx.cons_real_path = can_prefix;
+    ctx.cons_managed_len = prefix_len;
+    ctx.cons_real_len = can_prefix_len;
+    ctx.cons_managed_hash = prefix_hash;
+    ctx.cons_real_hash = can_prefix_hash;
+    bool is_prod = false;
+
+    ret = cmp_canonical_path_prefix (&ctx, is_prod, path, upath, PATH_MAX);
     if (!ret) {
         printf ("path '%s' does not include prefix '%s' ('%s')\n", path, prefix, can_prefix);
         return EXIT_FAILURE;
