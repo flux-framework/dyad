@@ -28,6 +28,7 @@
 #cmakedefine DYAD_ENABLE_UCX_DTL 1
 #cmakedefine DYAD_ENABLE_UCX_RMA 1
 #cmakedefine DYAD_HAS_STD_FILESYSTEM 1
+#cmakedefine DYAD_HAS_STD_FSTREAM_FD 1
 // Profiler
 #cmakedefine DYAD_PROFILER_PERFFLOW_ASPECT 1
 #cmakedefine DYAD_PROFILER_CALIPER 1

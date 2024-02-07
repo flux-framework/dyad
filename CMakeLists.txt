@@ -465,6 +465,8 @@ string(APPEND _str
   "  FluxCore_ROOT_DIR:           ${FluxCore_ROOT_DIR}\n")
 string(APPEND _str
   "  JANSSON_INCLUDE_DIR:         ${JANSSON_INCLUDE_DIR}\n")
+string(APPEND _str
+  "  GLIBC_VERSION:               ${GLIBC_VERSION}\n")
 
 #Print the true/false variables
 append_str_tf(_str

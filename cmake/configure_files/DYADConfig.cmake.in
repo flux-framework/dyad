@@ -32,6 +32,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 # Record the various flags and switches accumlated in DYAD
 set(DYAD_GNU_LINUX @DYAD_GNU_LINUX@)
 set(DYAD_HAS_STD_FILESYSTEM @DYAD_HAS_STD_FILESYSTEM@)
+set(DYAD_HAS_STD_FSTREAM_FD @DYAD_HAS_STD_FSTREAM_FD@)
 
 # Setup dependencies
 
