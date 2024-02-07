@@ -218,10 +218,7 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_commit (dyad_ctx_t* restrict ctx, const char*
     {
         memcpy (upath, fname, strlen (fname));
     } else
-    if (!cmp_canonical_path_prefix (ctx->prod_managed_path, ctx->prod_real_path,
-                                    ctx->prod_managed_len,  ctx->prod_real_len,
-                                    ctx->prod_managed_hash, ctx->prod_real_hash,
-                                    fname, upath, PATH_MAX))
+    if (!cmp_canonical_path_prefix (ctx, true, fname, upath, PATH_MAX))
     {
         // Extract the path to the file specified by fname relative to the
         // producer-managed path
@@ -361,10 +358,7 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_fetch_metadata (dyad_ctx_t* restrict ctx,
     {
         memcpy (upath, fname, strlen (fname));
     } else
-    if (!cmp_canonical_path_prefix (ctx->cons_managed_path, ctx->cons_real_path,
-                                    ctx->cons_managed_len,  ctx->cons_real_len,
-                                    ctx->cons_managed_hash, ctx->cons_real_hash,
-                                    fname, upath, PATH_MAX))
+    if (!cmp_canonical_path_prefix (ctx, false, fname, upath, PATH_MAX))
     {
         // Extract the path to the file specified by fname relative to the
         // consumer-managed path
@@ -1124,10 +1118,7 @@ dyad_rc_t dyad_get_metadata (dyad_ctx_t* ctx,
     {   // fname is a relative path that is relative to the cons_managed_path
         memcpy (upath, fname, fname_len);
     } else
-    if (!cmp_canonical_path_prefix (ctx->cons_managed_path, ctx->cons_real_path,
-                                    ctx->cons_managed_len,  ctx->cons_real_len,
-                                    ctx->cons_managed_hash, ctx->cons_real_hash,
-                                    fname, upath, PATH_MAX))
+    if (!cmp_canonical_path_prefix (ctx, false, fname, upath, PATH_MAX))
     {
         // Extract the path to the file specified by fname relative to the
         // producer-managed path
@@ -1327,7 +1318,7 @@ dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t* ctx, const char* fname,
     fd = open (fname, O_RDWR | O_CREAT, 0666);
     DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
     if (fd == -1) {
-        DYAD_LOG_ERROR (ctx, "Cannot create file (%s) for dyad_consume!\n", fname);
+        DYAD_LOG_ERROR (ctx, "Cannot create file (%s) for dyad_consume_w_metadata!\n", fname);
         rc = DYAD_RC_BADFIO;
         goto consume_close;
     }

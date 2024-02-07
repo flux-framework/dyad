@@ -3,6 +3,7 @@ add_subdirectory(base64)
 set(DYAD_UTILS_SRC ${CMAKE_CURRENT_SOURCE_DIR}/utils.c
                    ${CMAKE_CURRENT_SOURCE_DIR}/read_all.c)
 set(DYAD_UTILS_PRIVATE_HEADERS  ${CMAKE_CURRENT_SOURCE_DIR}/utils.h
+                                ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_structures.h
                                 ${CMAKE_CURRENT_SOURCE_DIR}/read_all.h)
 set(DYAD_UTILS_PUBLIC_HEADERS)
 
@@ -34,7 +35,8 @@ add_library(${PROJECT_NAME}_murmur3 SHARED ${DYAD_MURMUR3_SRC})
 set_target_properties(${PROJECT_NAME}_murmur3 PROPERTIES CMAKE_INSTALL_RPATH
                       "${CMAKE_INSTALL_PREFIX}/${DYAD_LIBDIR}")
 
-add_executable(test_cmp_canonical_path_prefix test_cmp_canonical_path_prefix.c)
+add_executable(test_cmp_canonical_path_prefix test_cmp_canonical_path_prefix.c
+               ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_structures.h)
 target_compile_definitions(test_cmp_canonical_path_prefix PUBLIC DYAD_HAS_CONFIG)
 target_link_libraries(test_cmp_canonical_path_prefix PUBLIC ${PROJECT_NAME}_utils)
 if(DYAD_LOGGER STREQUAL "CPP_LOGGER")
