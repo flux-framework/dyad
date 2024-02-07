@@ -148,6 +148,7 @@ DYAD_DLL_EXPORTED int open (const char *path, int oflag, ...)
     typedef int (*open_ptr_t) (const char *, int, mode_t, ...);
     open_ptr_t func_ptr = NULL;
     int mode = 0;
+    char upath[PATH_MAX+1] = {'\0'};
 
     if (oflag & O_CREAT) {
         va_list arg;
@@ -184,7 +185,14 @@ DYAD_DLL_EXPORTED int open (const char *path, int oflag, ...)
 
 real_call:;
     int ret = (func_ptr (path, oflag, mode));
-    if ((mode == O_WRONLY || mode == O_APPEND) && !is_path_dir (path)) {
+
+    // This lock is to protect the file being produced by a producer
+    // from a consumer that has direct access to the file. For example,
+    // either the file is on a shared storage or the consumer is on
+    // the same node as where the producer is.
+    if ((mode == O_WRONLY || mode == O_APPEND) && !is_path_dir (path) &&
+        cmp_canonical_path_prefix (ctx, true, path, upath, PATH_MAX))
+    {
         struct flock exclusive_lock;
         dyad_rc_t rc = dyad_excl_flock (ctx, ret, &exclusive_lock);
         if (DYAD_IS_ERROR (rc)) {
@@ -202,6 +210,7 @@ DYAD_DLL_EXPORTED FILE *fopen (const char *path, const char *mode)
     char *error = NULL;
     typedef FILE *(*fopen_ptr_t) (const char *, const char *);
     fopen_ptr_t func_ptr = NULL;
+    char upath[PATH_MAX+1] = {'\0'};
 
     //func_ptr = (fopen_ptr_t)dlsym (RTLD_NEXT, "fopen");
     *(void**) &func_ptr = dlsym (RTLD_NEXT, "fopen");
@@ -231,7 +240,13 @@ DYAD_DLL_EXPORTED FILE *fopen (const char *path, const char *mode)
 real_call:;
     FILE *fh = (func_ptr (path, mode));
 
-    if (((strcmp (mode, "w") == 0)  || (strcmp (mode, "a") == 0)) && !is_path_dir (path)) {
+    // This lock is to protect the file being produced by a producer
+    // from a consumer that has direct access to the file. For example,
+    // either the file is on a shared storage or the consumer is on
+    // the same node as where the producer is.
+    if (((strcmp (mode, "w") == 0)  || (strcmp (mode, "a") == 0)) && !is_path_dir (path)
+        && cmp_canonical_path_prefix (ctx, true, path, upath, PATH_MAX))
+    {
         int fd = fileno (fh);
         struct flock exclusive_lock;
         dyad_rc_t rc = dyad_excl_flock (ctx, fd, &exclusive_lock);
