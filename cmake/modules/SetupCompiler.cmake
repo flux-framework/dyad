@@ -24,6 +24,23 @@ include(CheckCCompilerFlag)
 include(CheckCXXCompilerFlag)
 include(CheckIncludeFileCXX)
 
+MACRO (CHECK_GLIBC_VERSION)
+    EXECUTE_PROCESS (
+        COMMAND ${CMAKE_C_COMPILER} -print-file-name=libc.so.6
+        OUTPUT_VARIABLE GLIBC
+        OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+    GET_FILENAME_COMPONENT (GLIBC ${GLIBC} REALPATH)
+    GET_FILENAME_COMPONENT (GLIBC_VERSION ${GLIBC} NAME)
+    STRING (REPLACE "libc-" "" GLIBC_VERSION ${GLIBC_VERSION})
+    STRING (REPLACE ".so" "" GLIBC_VERSION ${GLIBC_VERSION})
+    IF (NOT GLIBC_VERSION MATCHES "^[0-9.]+$")
+        MESSAGE (FATAL_ERROR "Unknown glibc version: ${GLIBC_VERSION}")
+    ENDIF (NOT GLIBC_VERSION MATCHES "^[0-9.]+$")
+ENDMACRO (CHECK_GLIBC_VERSION)
+
+CHECK_GLIBC_VERSION()
+
 # MACRO dyad_add_c|cxx_flags
 #
 # Purpose: checks that all flags are valid and appends them to the
@@ -79,6 +96,10 @@ dyad_add_c_flags(CMAKE_C_FLAGS
   -fPIC -Wall -Wextra -pedantic -Wno-unused-parameter
   -Wno-deprecated-declarations)
 
+if (${GLIBC_VERSION} VERSION_GREATER_EQUAL "2.19")
+  # to suppress usleep() warning
+  add_definitions(-D_DEFAULT_SOURCE)
+endif ()
 
 ################################################################
 # Promote a compiler warning as an error for project targets
@@ -211,4 +232,14 @@ if (DYAD_HAS_STD_FILESYSTEM)
 else ()
   message(STATUS "Compiler does not have std::filesystem support. Use boost::filesystem")
 endif (DYAD_HAS_STD_FILESYSTEM)
+
+try_compile(DYAD_HAS_STD_FSTREAM_FD "${CMAKE_BINARY_DIR}/temp"
+            "${CMAKE_SOURCE_DIR}/cmake/tests/has_fd.cpp"
+            CMAKE_FLAGS ${CMAKE_CXX_FLAGS}
+            LINK_LIBRARIES stdc++fs)
+if (DYAD_HAS_STD_FSTREAM_FD)
+  message(STATUS "Compiler exposes the internal file descriptor of std::fstream")
+else ()
+  message(STATUS "Compiler does not expose the internal file descriptor of std::fstream")
+endif (DYAD_HAS_STD_FSTREAM_FD)
 

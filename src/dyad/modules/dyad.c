@@ -481,6 +481,7 @@ DYAD_DLL_EXPORTED int mod_main (flux_t *h, int argc, char **argv)
         goto mod_error;
     }
 
+
     if (DYAD_IS_ERROR (dyad_open (mod_ctx->ctx, dtl_mode))) {
         DYAD_LOG_ERROR (mod_ctx->ctx, "DYAD_MOD: dyad_open failed");
         goto mod_error;

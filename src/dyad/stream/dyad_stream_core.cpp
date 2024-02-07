@@ -114,7 +114,8 @@ void dyad_stream_core::init (const dyad_params &p)
                               false,
                               p.m_shared_storage,
                               p.m_reinit,
-                              p.m_asynch_publish,
+                              p.m_async_publish,
+                              p.m_fsync_write,
                               p.m_key_depth,
                               p.m_key_bins,
                               p.m_service_mux,
@@ -123,8 +124,12 @@ void dyad_stream_core::init (const dyad_params &p)
                               p.m_cons_managed_path.c_str (),
                               static_cast<dyad_dtl_mode_t> (p.m_dtl_mode),
                               &m_ctx);
-    // TODO:  implement a lock file based synchronization scheme.
-    m_ctx->use_fs_locks = false; // this is to disable checking for fs lock based logic.
+#if defined(DYAD_HAS_STD_FSTREAM_FD)
+    m_ctx->use_fs_locks = true;
+#else
+    // Rely on the KVS-based synchronization and disable checking for fs lock based logic. 
+    m_ctx->use_fs_locks = false;
+#endif
     (void) rc;
     // TODO figure out if we want to error if init fails
     m_initialized = true;
@@ -137,18 +142,19 @@ void dyad_stream_core::log_info (const std::string &msg_head) const
     DYAD_LOG_INFO (m_ctx, "=== %s ===", msg_head.c_str ());
     DYAD_LOG_INFO (m_ctx, "%s=%s", DYAD_PATH_CONSUMER_ENV, m_ctx->cons_managed_path);
     DYAD_LOG_INFO (m_ctx, "%s=%s", DYAD_PATH_PRODUCER_ENV, m_ctx->prod_managed_path);
-    DYAD_LOG_INFO (m_ctx,
-                   "%s=%s",
-                   DYAD_SYNC_DEBUG_ENV,
+    DYAD_LOG_INFO (m_ctx, "%s=%s", DYAD_SYNC_DEBUG_ENV,
                    (m_ctx->debug) ? "true" : "false");
-    DYAD_LOG_INFO (m_ctx,
-                   "%s=%s",
-                   DYAD_SHARED_STORAGE_ENV,
+    DYAD_LOG_INFO (m_ctx, "%s=%s", DYAD_SHARED_STORAGE_ENV,
                    (m_ctx->shared_storage) ? "true" : "false");
+    DYAD_LOG_INFO (m_ctx, "%s=%s", DYAD_ASYNC_PUBLISH_ENV,
+                   (m_ctx->async_publish) ? "true" : "false");
+    DYAD_LOG_INFO (m_ctx, "%s=%s", DYAD_FSYNC_WRITE_ENV,
+                   (m_ctx->fsync_write) ? "true" : "false");
     DYAD_LOG_INFO (m_ctx, "%s=%u", DYAD_KEY_DEPTH_ENV, m_ctx->key_depth);
     DYAD_LOG_INFO (m_ctx, "%s=%u", DYAD_KEY_BINS_ENV, m_ctx->key_bins);
     DYAD_LOG_INFO (m_ctx, "%s=%u", DYAD_SERVICE_MUX_ENV, m_ctx->service_mux);
     DYAD_LOG_INFO (m_ctx, "%s=%s", DYAD_KVS_NAMESPACE_ENV, m_ctx->kvs_namespace);
+    DYAD_LOG_INFO (m_ctx, "%s=%s", DYAD_DTL_MODE_ENV, getenv (DYAD_DTL_MODE_ENV));
 }
 
 bool dyad_stream_core::is_dyad_producer () const
@@ -219,6 +225,44 @@ void dyad_stream_core::set_initialized ()
 bool dyad_stream_core::chk_initialized () const
 {
     return m_initialized;
+}
+
+bool dyad_stream_core::chk_fsync_write () const
+{
+    return m_ctx->fsync_write;
+}
+
+int dyad_stream_core::file_lock_exclusive (int fd) const
+{
+    struct flock exclusive_flock;
+
+    dyad_rc_t rc = dyad_excl_flock (m_ctx, fd, &exclusive_flock);
+
+    if (DYAD_IS_ERROR (rc)) {
+        dyad_release_flock (m_ctx, fd, &exclusive_flock);
+    }
+
+    return rc;
+}
+
+int dyad_stream_core::file_lock_shared (int fd) const
+{
+    struct flock shared_flock;
+
+    dyad_rc_t rc = dyad_excl_flock (m_ctx, fd, &shared_flock);
+
+    if (DYAD_IS_ERROR (rc)) {
+        dyad_release_flock (m_ctx, fd, &shared_flock);
+    }
+
+    return rc;
+}
+
+int dyad_stream_core::file_unlock (int fd) const
+{
+    struct flock a_flock;
+
+    return dyad_release_flock (m_ctx, fd, &a_flock);
 }
 
 }  // end of namespace dyad

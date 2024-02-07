@@ -29,7 +29,9 @@ struct dyad_params {
     /// Indicate if reinitialization is required even if already initinialized
     bool m_reinit;
     /// Enable asynchronous publish by producer
-    bool m_asynch_publish;
+    bool m_async_publish;
+    /// Apply fsync after write by producer
+    bool m_fsync_write;
     /// The depth of the key hierarchy for path
     unsigned int m_key_depth;
     /// The number of bins used in key hashing
@@ -52,7 +54,8 @@ struct dyad_params {
         : m_debug (false),
           m_shared_storage (false),
           m_reinit (false),
-          m_asynch_publish (false),
+          m_async_publish (false),
+          m_fsync_write (false),
           m_key_depth (2u),
           m_key_bins (256u),
           m_service_mux (1u),
