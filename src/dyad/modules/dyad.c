@@ -192,11 +192,14 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
     }
     file_size = get_file_size (fd);
     DYAD_LOG_DEBUG (mod_ctx->ctx, "DYAD_MOD: file %s has size %zd", fullpath, file_size);
-    if (file_size > 0l) {
-        rc = mod_ctx->ctx->dtl_handle->get_buffer (mod_ctx->ctx, file_size, (void**)&inbuf);
+    rc = mod_ctx->ctx->dtl_handle->get_buffer (mod_ctx->ctx, file_size, (void**)&inbuf);
 #ifdef DYAD_ENABLE_UCX_RMA
-        //  To reduce the number of RMA calls, we are encoding file size at the start of the buffer
-        memcpy (inbuf, &file_size, sizeof(file_size));
+     //  To reduce the number of RMA calls, we are encoding file size at the start of the buffer
+     memcpy (inbuf, &file_size, sizeof(file_size));
+#endif	
+    if (file_size > 0l) {
+        
+#ifdef DYAD_ENABLE_UCX_RMA
         inlen = read (fd, inbuf + sizeof(file_size), file_size);
 #else
         inlen = read (fd, inbuf, file_size);
