@@ -213,6 +213,9 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_commit (dyad_ctx_t* restrict ctx, const char*
         goto get_metadata_done;
     }
 #endif
+    // As this is a function called for DYAD producer, ctx->prod_managed_path
+    // must be a valid string (!NULL). ctx->delim_len is verified to be greater
+    // than 0 during initialization.
     if (ctx->relative_to_managed_path &&
         (strncmp (ctx->prod_managed_path, DYAD_PATH_DELIM, ctx->delim_len) != 0))
     {
@@ -728,7 +731,10 @@ dyad_rc_t dyad_init (bool debug,
         (*ctx)->prod_real_len  = 0u;
         (*ctx)->prod_real_hash = 0u;
     } else {
-        prod_path_len = strlen (prod_managed_path);
+        if ((prod_path_len = strlen (prod_managed_path)) == 0ul) {
+            DYAD_LOG_ERROR ((*ctx), "Empty Producer managed path to allocate!\n");
+            goto init_region_failed;
+        }
         (*ctx)->prod_managed_path = (char*)calloc (prod_path_len + 1, sizeof(char));
         if ((*ctx)->prod_managed_path == NULL) {
             DYAD_LOG_ERROR ((*ctx), "Could not allocate buffer for Producer managed path!\n");
@@ -794,7 +800,10 @@ dyad_rc_t dyad_init (bool debug,
         (*ctx)->cons_real_len  = 0u;
         (*ctx)->cons_real_hash = 0u;
     } else {
-        cons_path_len = strlen (cons_managed_path);
+        if ((cons_path_len = strlen (cons_managed_path)) == 0ul) {
+            DYAD_LOG_ERROR ((*ctx), "Empty Consumer managed path to allocate!\n");
+            goto init_region_failed;
+        }
         (*ctx)->cons_managed_path = (char*)calloc (cons_path_len + 1, sizeof(char));
         if ((*ctx)->cons_managed_path == NULL) {
             DYAD_LOG_ERROR ((*ctx), "Could not allocate buffer for Consumer managed path!\n");
@@ -1039,7 +1048,7 @@ dyad_rc_t dyad_produce (dyad_ctx_t* ctx, const char* fname)
     }
     // If the producer-managed path is NULL or empty, then the context is not
     // valid for a producer operation. So, return DYAD_BADMANAGEDPATH
-    if (ctx->prod_managed_path == NULL || strlen (ctx->prod_managed_path) == 0) {
+    if (ctx->prod_managed_path == NULL) {
         DYAD_LOG_ERROR(ctx, "No or empty producer managed path was found %s", \
                        ctx->prod_managed_path);
         rc = DYAD_RC_BADMANAGEDPATH;
@@ -1180,7 +1189,7 @@ dyad_rc_t dyad_consume (dyad_ctx_t* ctx, const char* fname)
     }
     // If the consumer-managed path is NULL or empty, then the context is not
     // valid for a consumer operation. So, return DYAD_BADMANAGEDPATH
-    if (ctx->cons_managed_path == NULL || strlen (ctx->cons_managed_path) == 0) {
+    if (ctx->cons_managed_path == NULL) {
         rc = DYAD_RC_BADMANAGEDPATH;
         goto consume_close;
     }
@@ -1313,7 +1322,7 @@ dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t* ctx, const char* fname,
     }
     // If the consumer-managed path is NULL or empty, then the context is not
     // valid for a consumer operation. So, return DYAD_BADMANAGEDPATH
-    if (ctx->cons_managed_path == NULL || strlen (ctx->cons_managed_path) == 0) {
+    if (ctx->cons_managed_path == NULL) {
         rc = DYAD_RC_BADMANAGEDPATH;
         goto consume_close;
     }
