@@ -44,5 +44,19 @@
 #cmakedefine DYAD_LOGGER_LEVEL_INFO 1
 #cmakedefine DYAD_LOGGER_LEVEL_DEBUG 1
 
+//#define DYAD_NOOP_MACRO do {} while (0)
+#define DYAD_NOOP_MACRO
+
+
+// Detect VAR_OPT
+// https://stackoverflow.com/questions/48045470/portably-detect-va-opt-support
+#if __cplusplus <= 201703 && defined __GNUC__ \
+  && !defined __clang__ && !defined __EDG__
+  #define VA_OPT_SUPPORTED false
+#else
+  #define PP_THIRD_ARG(a,b,c,...) c
+  #define VA_OPT_SUPPORTED_I(...) PP_THIRD_ARG(__VA_OPT__(,),true,false,)
+  #define VA_OPT_SUPPORTED VA_OPT_SUPPORTED_I(?)
+#endif
 
 #endif /* DYAD_CONFIG_H */

@@ -156,7 +156,9 @@ DYAD_DLL_EXPORTED int open (const char *path, int oflag, ...)
         va_end (arg);
     }
 
-    func_ptr = (open_ptr_t)dlsym (RTLD_NEXT, "open");
+    // https://stackoverflow.com/questions/14134245/iso-c-void-and-function-pointers
+    //func_ptr = (open_ptr_t)dlsym (RTLD_NEXT, "open");
+    *(void**) &func_ptr = dlsym (RTLD_NEXT, "open");
     if ((error = dlerror ())) {
         DPRINTF (ctx, "DYAD_SYNC: error in dlsym: %s", error);
         DYAD_C_FUNCTION_END();
@@ -201,7 +203,8 @@ DYAD_DLL_EXPORTED FILE *fopen (const char *path, const char *mode)
     typedef FILE *(*fopen_ptr_t) (const char *, const char *);
     fopen_ptr_t func_ptr = NULL;
 
-    func_ptr = (fopen_ptr_t)dlsym (RTLD_NEXT, "fopen");
+    //func_ptr = (fopen_ptr_t)dlsym (RTLD_NEXT, "fopen");
+    *(void**) &func_ptr = dlsym (RTLD_NEXT, "fopen");
     if ((error = dlerror ())) {
         DPRINTF (ctx, "DYAD_SYNC: error in dlsym: %s\n", error);
         DYAD_C_FUNCTION_END();
@@ -251,7 +254,8 @@ DYAD_DLL_EXPORTED int close (int fd)
     char path[PATH_MAX + 1] = {'\0'};
     int rc = 0;
 
-    func_ptr = (close_ptr_t)dlsym (RTLD_NEXT, "close");
+    //func_ptr = (close_ptr_t)dlsym (RTLD_NEXT, "close");
+    *(void**) &func_ptr = dlsym (RTLD_NEXT, "close");
     if ((error = dlerror ())) {
         DPRINTF (ctx, "DYAD_SYNC: error in dlsym: %s\n", error);
         DYAD_C_FUNCTION_END();
@@ -337,7 +341,8 @@ DYAD_DLL_EXPORTED int fclose (FILE *fp)
     int rc = 0;
     int fd = 0;
 
-    func_ptr = (fclose_ptr_t)dlsym (RTLD_NEXT, "fclose");
+    //func_ptr = (fclose_ptr_t)dlsym (RTLD_NEXT, "fclose");
+    *(void**) &func_ptr = dlsym (RTLD_NEXT, "fclose");
     if ((error = dlerror ())) {
         DYAD_LOG_DEBUG (ctx, "DYAD_SYNC: error in dlsym: %s\n", error);
         DYAD_C_FUNCTION_END();
