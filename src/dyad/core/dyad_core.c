@@ -1000,7 +1000,7 @@ dyad_rc_t dyad_consume (dyad_ctx_t* ctx, const char* fname)
     rc = dyad_excl_flock (ctx, lock_fd, &exclusive_lock);
     if (DYAD_IS_ERROR (rc)) {
         dyad_release_flock (ctx, lock_fd, &exclusive_lock);
-        goto consume_close;
+        goto consume_done;
     }
     file_size = get_file_size (lock_fd);
     if (ctx->shared_storage) {
@@ -1012,7 +1012,7 @@ dyad_rc_t dyad_consume (dyad_ctx_t* ctx, const char* fname)
             rc = dyad_fetch_metadata (ctx, fname, &mdata);
             if (DYAD_IS_ERROR (rc)) {
                 DYAD_LOG_ERROR (ctx, "dyad_fetch_metadata failed fore shared storage!\n");
-                goto consume_close;
+                goto consume_done;
             }
         }
     } else {
@@ -1027,7 +1027,7 @@ dyad_rc_t dyad_consume (dyad_ctx_t* ctx, const char* fname)
             if (DYAD_IS_ERROR (rc)) {
                 DYAD_LOG_ERROR (ctx, "dyad_fetch_metadata failed!\n");
                 dyad_release_flock (ctx, lock_fd, &exclusive_lock);
-                goto consume_close;
+                goto consume_done;
             }
             // If dyad_fetch_metadata was successful, but mdata is still NULL,
             // then we need to skip data transfer.
@@ -1035,7 +1035,7 @@ dyad_rc_t dyad_consume (dyad_ctx_t* ctx, const char* fname)
                 DYAD_LOG_INFO (ctx, "File '%s' is local!\n", fname);
                 rc = DYAD_RC_OK;
                 dyad_release_flock (ctx, lock_fd, &exclusive_lock);
-                goto consume_close;
+                goto consume_done;
             }
 
             // Call dyad_get_data to dispatch a RPC to the producer's Flux broker
@@ -1086,10 +1086,7 @@ consume_done:;
         ctx->dtl_handle->return_buffer (ctx, (void**)&file_data);
     }
     // Set reenter to true to allow additional intercepting
-consume_close:;
-    if (close (fd) != 0) {
-        rc = DYAD_RC_BADFIO;
-    }
+consume_close:;    
     ctx->reenter = true;
     DYAD_C_FUNCTION_END();
     return rc;
