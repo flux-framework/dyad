@@ -23,4 +23,4 @@ cpp_cons: cons.cpp
 .PHONY: clean
 
 clean:
-	rm c_prod c_cons cpp_prod cpp_cons
+	rm -f c_prod c_cons cpp_prod cpp_cons

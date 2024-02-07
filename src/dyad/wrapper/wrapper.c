@@ -296,13 +296,6 @@ DYAD_DLL_EXPORTED int close (int fd)
 real_call:;  // semicolon here to avoid the error
     // "a label can only be part of a statement and a declaration is not a
     // statement"
-    fsync (fd);
-
-#if DYAD_SYNC_DIR
-    if (to_sync) {
-        dyad_sync_directory (ctx, path);
-    }
-#endif  // DYAD_SYNC_DIR
 
     int wronly = is_wronly (fd);
 
@@ -311,6 +304,16 @@ real_call:;  // semicolon here to avoid the error
     }
 
     if (to_sync && wronly == 1) {
+        if (ctx->fsync_write) {
+            fsync (fd);
+
+          #if DYAD_SYNC_DIR
+            dyad_sync_directory (ctx, path);
+          #endif  // DYAD_SYNC_DIR
+        }
+
+        struct flock exclusive_lock;
+        dyad_release_flock (ctx, fd, &exclusive_lock);
         rc = func_ptr (fd);
         if (rc != 0) {
             DPRINTF (ctx, "Failed close (\"%s\").: %s\n", path, strerror (errno));
@@ -320,8 +323,6 @@ real_call:;  // semicolon here to avoid the error
             DPRINTF (ctx, "DYAD_SYNC: failed close sync (\"%s\").\n", path);
         }
         IPRINTF (ctx, "DYAD_SYNC: exits close sync (\"%s\").\n", path);
-        struct flock exclusive_lock;
-        dyad_release_flock (ctx, fd, &exclusive_lock);
     } else {
         rc = func_ptr (fd);
     }
@@ -380,15 +381,7 @@ DYAD_DLL_EXPORTED int fclose (FILE *fp)
     to_sync = true;
 
 real_call:;
-    fflush (fp);
     fd = fileno (fp);
-    fsync (fd);
-
-#if DYAD_SYNC_DIR
-    if (to_sync) {
-        dyad_sync_directory (ctx, path);
-    }
-#endif  // DYAD_SYNC_DIR
 
     int wronly = is_wronly (fd);
 
@@ -397,6 +390,16 @@ real_call:;
     }
 
     if (to_sync && wronly == 1) {
+        if (ctx->fsync_write) {
+            fflush (fp);
+            fsync (fd);
+          #if DYAD_SYNC_DIR
+            dyad_sync_directory (ctx, path);
+          #endif  // DYAD_SYNC_DIR
+        }
+
+        struct flock exclusive_lock;
+        dyad_release_flock (ctx, fd, &exclusive_lock);
         rc = func_ptr (fp);
         if (rc != 0) {
             DPRINTF (ctx, "Failed fclose (\"%s\").\n", path);
@@ -406,8 +409,6 @@ real_call:;
             DPRINTF (ctx, "DYAD_SYNC: failed fclose sync (\"%s\").\n", path);
         }
         IPRINTF (ctx, "DYAD_SYNC: exits fclose sync (\"%s\").\n", path);
-        struct flock exclusive_lock;
-        dyad_release_flock (ctx, fd, &exclusive_lock);
     } else {
         rc = func_ptr (fp);
     }
