@@ -698,18 +698,24 @@ dyad_rc_t dyad_init (bool debug,
     // the dyad_ctx_t object
     DYAD_LOG_INFO ((*ctx), "DYAD_CORE: saving producer path");
     if (prod_managed_path == NULL) {
+        DYAD_LOG_INFO ((*ctx), "DYAD_CORE: producer path is not provided");
         (*ctx)->prod_managed_path = NULL;
+        (*ctx)->prod_managed_len  = 0u;
+        (*ctx)->prod_managed_hash = 0u;
         (*ctx)->prod_real_path = NULL;
         (*ctx)->prod_real_len  = 0u;
         (*ctx)->prod_real_hash = 0u;
     } else {
         prod_path_len = strlen (prod_managed_path);
-        (*ctx)->prod_managed_path = (char*)malloc (prod_path_len + 1);
+        (*ctx)->prod_managed_path = (char*)calloc (prod_path_len + 1, sizeof(char));
         if ((*ctx)->prod_managed_path == NULL) {
             DYAD_LOG_ERROR ((*ctx), "Could not allocate buffer for Producer managed path!\n");
             goto init_region_failed;
         }
-        strncpy ((*ctx)->prod_managed_path, prod_managed_path, prod_path_len + 1);
+        if (!memcpy ((*ctx)->prod_managed_path, prod_managed_path, prod_path_len + 1)) {
+            DYAD_LOG_ERROR ((*ctx), "Could not copy Producer managed path!\n");
+            goto init_region_failed;
+        }
         (*ctx)->prod_managed_len = prod_path_len;
         (*ctx)->prod_managed_hash = hash_str ((*ctx)->prod_managed_path, DYAD_SEED);
         if ((*ctx)->prod_managed_hash == 0u) {
@@ -717,11 +723,15 @@ dyad_rc_t dyad_init (bool debug,
             goto init_region_failed;
         }
 
-        realpath (prod_managed_path, prod_real_path);
+        if (!realpath (prod_managed_path, prod_real_path)) {
+            DYAD_LOG_ERROR ((*ctx), "Could not get Producer real path!\n");
+            goto init_region_failed;
+        }
         prod_realpath_len = strlen (prod_real_path);
 
         // If the realpath is the same, we turn off checking against it as it is redundant
         if (strncmp (prod_managed_path, prod_real_path, prod_path_len) == 0) {
+            DYAD_LOG_INFO ((*ctx), "DYAD_CORE: producer real path is redundant");
             (*ctx)->prod_real_path = NULL;
             (*ctx)->prod_real_len  = 0u;
             (*ctx)->prod_real_hash = 0u;
@@ -732,10 +742,13 @@ dyad_rc_t dyad_init (bool debug,
                 goto init_region_failed;
             }
 
-            memcpy ((*ctx)->prod_real_path, prod_real_path, prod_realpath_len);
+            if (!memcpy ((*ctx)->prod_real_path, prod_real_path, prod_realpath_len)) {
+                DYAD_LOG_ERROR ((*ctx), "Could not copy Producer real path!\n");
+                goto init_region_failed;
+            }
             (*ctx)->prod_real_path[prod_realpath_len] = '\0';
             (*ctx)->prod_real_len  = prod_realpath_len;
-            (*ctx)->prod_real_hash = hash_str ((*ctx)->prod_managed_path, DYAD_SEED);
+            (*ctx)->prod_real_hash = hash_str ((*ctx)->prod_real_path, DYAD_SEED);
         }
 
         if (my_rank == 0) {
@@ -751,44 +764,57 @@ dyad_rc_t dyad_init (bool debug,
     // the dyad_ctx_t object
     DYAD_LOG_INFO ((*ctx), "DYAD_CORE: saving consumer path");
     if (cons_managed_path == NULL) {
+        DYAD_LOG_INFO ((*ctx), "DYAD_CORE: consumer path is not provided");
         (*ctx)->cons_managed_path = NULL;
+        (*ctx)->cons_managed_len  = 0u;
+        (*ctx)->cons_managed_hash = 0u;
         (*ctx)->cons_real_path = NULL;
         (*ctx)->cons_real_len  = 0u;
         (*ctx)->cons_real_hash = 0u;
     } else {
         cons_path_len = strlen (cons_managed_path);
-        (*ctx)->cons_managed_path = (char*)malloc (cons_path_len + 1);
+        (*ctx)->cons_managed_path = (char*)calloc (cons_path_len + 1, sizeof(char));
         if ((*ctx)->cons_managed_path == NULL) {
             DYAD_LOG_ERROR ((*ctx), "Could not allocate buffer for Consumer managed path!\n");
             goto init_region_failed;
         }
-        strncpy ((*ctx)->cons_managed_path, cons_managed_path, cons_path_len + 1);
+        if (!memcpy ((*ctx)->cons_managed_path, cons_managed_path, cons_path_len + 1)) {
+            DYAD_LOG_ERROR ((*ctx), "Could not copy Consumer managed path!\n");
+            goto init_region_failed;
+        }
         (*ctx)->cons_managed_len = cons_path_len;
         (*ctx)->cons_managed_hash = hash_str ((*ctx)->cons_managed_path, DYAD_SEED);
         if ((*ctx)->cons_managed_hash == 0u) {
-            DYAD_LOG_ERROR ((*ctx), "Could not hash Producer managed path!\n");
+            DYAD_LOG_ERROR ((*ctx), "Could not hash Consumer managed path!\n");
             goto init_region_failed;
         }
 
-        realpath (cons_managed_path, cons_real_path);
+        if (!realpath (cons_managed_path, cons_real_path)) {
+            DYAD_LOG_ERROR ((*ctx), "Could not get Consumer real path!\n");
+            goto init_region_failed;
+        }
         cons_realpath_len = strlen (cons_real_path);
 
         // If the realpath is the same, we turn off checking against it as it is redundant
         if (strncmp (cons_managed_path, cons_real_path, cons_path_len) == 0) {
+            DYAD_LOG_INFO ((*ctx), "DYAD_CORE: consumer real path is redundant");
             (*ctx)->cons_real_path = NULL;
             (*ctx)->cons_real_len  = 0u;
             (*ctx)->cons_real_hash = 0u;
         } else {
             (*ctx)->cons_real_path = (char*)calloc (cons_realpath_len + 1, sizeof(char));
             if ((*ctx)->cons_real_path == NULL || cons_realpath_len == 0ul) {
-                DYAD_LOG_ERROR ((*ctx), "Could not allocate buffer for Producer managed path!\n");
+                DYAD_LOG_ERROR ((*ctx), "Could not allocate buffer for Consumer real path!\n");
                 goto init_region_failed;
             }
 
-            memcpy ((*ctx)->cons_real_path, cons_real_path, cons_realpath_len);
+            if (!memcpy ((*ctx)->cons_real_path, cons_real_path, cons_realpath_len)) {
+                DYAD_LOG_ERROR ((*ctx), "Could not copy Consumer real path!\n");
+                goto init_region_failed;
+            }
             (*ctx)->cons_real_path[cons_realpath_len] = '\0';
             (*ctx)->cons_real_len  = cons_realpath_len;
-            (*ctx)->cons_real_hash = hash_str ((*ctx)->cons_managed_path, DYAD_SEED);
+            (*ctx)->cons_real_hash = hash_str ((*ctx)->cons_real_path, DYAD_SEED);
         }
 
         if (my_rank == 0) {
@@ -981,7 +1007,8 @@ dyad_rc_t dyad_produce (dyad_ctx_t* ctx, const char* fname)
     // If the producer-managed path is NULL or empty, then the context is not
     // valid for a producer operation. So, return DYAD_BADMANAGEDPATH
     if (ctx->prod_managed_path == NULL || strlen (ctx->prod_managed_path) == 0) {
-        DYAD_LOG_ERROR(ctx, "No or empty producer managed path was found");
+        DYAD_LOG_ERROR(ctx, "No or empty producer managed path was found %s", \
+                       ctx->prod_managed_path);
         rc = DYAD_RC_BADMANAGEDPATH;
         goto produce_done;
     }
@@ -1308,6 +1335,7 @@ dyad_rc_t dyad_finalize (dyad_ctx_t** ctx)
 {
     DYAD_C_FUNCTION_START();
     dyad_rc_t rc = DYAD_RC_OK;
+    DYAD_LOG_DEBUG (ctx, "DYAD context is being destroyed!\n");
     if (ctx == NULL || *ctx == NULL) {
         rc = DYAD_RC_OK;
         goto finalize_region_finish;
