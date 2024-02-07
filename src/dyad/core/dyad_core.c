@@ -347,6 +347,7 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_fetch_metadata (dyad_ctx_t* restrict ctx,
     char upath[PATH_MAX+1] = {'\0'};
     const size_t topic_len = PATH_MAX;
     char topic[PATH_MAX+1] = {'\0'};
+    *mdata = NULL;
 #if 0
     if (fname == NULL || strlen (fname) > PATH_MAX) {
         rc = DYAD_RC_SYSFAIL;
@@ -357,8 +358,7 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_fetch_metadata (dyad_ctx_t* restrict ctx,
         (strncmp (ctx->cons_managed_path, DYAD_PATH_DELIM, ctx->delim_len) != 0))
     {
         memcpy (upath, fname, strlen (fname));
-    } else
-    if (!cmp_canonical_path_prefix (ctx, false, fname, upath, PATH_MAX))
+    } else if (!cmp_canonical_path_prefix (ctx, false, fname, upath, PATH_MAX))
     {
         // Extract the path to the file specified by fname relative to the
         // consumer-managed path
@@ -1117,13 +1117,15 @@ dyad_rc_t dyad_get_metadata (dyad_ctx_t* ctx,
         (strncmp (ctx->cons_managed_path, DYAD_PATH_DELIM, ctx->delim_len) != 0))
     {   // fname is a relative path that is relative to the cons_managed_path
         memcpy (upath, fname, fname_len);
-    } else
-    if (!cmp_canonical_path_prefix (ctx, false, fname, upath, PATH_MAX))
+    } else if (!cmp_canonical_path_prefix (ctx, false, fname, upath, PATH_MAX))
     {
         // Extract the path to the file specified by fname relative to the
         // producer-managed path
         // This relative path will be stored in upath
         DYAD_LOG_INFO (ctx, "%s is not in the Consumer's managed path\n", fname);
+        // NOTE: This is different from what dyad_fetch/commit returns,
+        // which is DYAD_RC_OK such that dyad does not interfere accesses on
+        // non-managed directories.
         rc = DYAD_RC_UNTRACKED;
         goto get_metadata_done;
     }
@@ -1222,6 +1224,8 @@ dyad_rc_t dyad_consume (dyad_ctx_t* ctx, const char* fname)
             }
             // If dyad_fetch_metadata was successful, but mdata is still NULL,
             // then we need to skip data transfer.
+            // This is either because producer and consumer share storage
+            // or because the file is not on the managed directory.
             if (mdata == NULL) {
                 DYAD_LOG_INFO (ctx, "File '%s' is local!\n", fname);
                 rc = DYAD_RC_OK;
