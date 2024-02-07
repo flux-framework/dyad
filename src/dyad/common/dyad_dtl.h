@@ -7,7 +7,6 @@
 #error "no config"
 #endif
 
-#include <dyad/common/dyad_structures.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
