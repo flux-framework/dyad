@@ -42,6 +42,7 @@ const struct dyad_ctx dyad_ctx_default = {
     true,   // initialized
     false,  // shared_storage
     false,  // async_publish
+    false,  // fsync_write
     3u,     // key_depth
     1024u,  // key_bins
     0u,     // rank
@@ -280,7 +281,7 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_read (const dyad_ctx_t* restrict ctx,
         goto kvs_read_end;
     }
     memset ((*mdata)->fpath, '\0', upath_len + 1);
-    strncpy ((*mdata)->fpath, upath, upath_len);
+    memcpy ((*mdata)->fpath, upath, upath_len);
     rc = flux_kvs_lookup_get_unpack (f, "i", &((*mdata)->owner_rank));
     // If the extraction did not work, log an error and return DYAD_BADFETCH
     if (rc < 0) {
@@ -308,9 +309,9 @@ kvs_read_end:;
 
 
 
-DYAD_CORE_FUNC_MODS dyad_rc_t dyad_fetch (const dyad_ctx_t* restrict ctx,
-                                          const char* restrict fname,
-                                          dyad_metadata_t** restrict mdata)
+DYAD_CORE_FUNC_MODS dyad_rc_t dyad_fetch_metadata (const dyad_ctx_t* restrict ctx,
+                                                   const char* restrict fname,
+                                                   dyad_metadata_t** restrict mdata)
 {
     DYAD_C_FUNCTION_START();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", fname);
@@ -487,7 +488,7 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_cons_store (const dyad_ctx_t* restrict ctx,
     // Build the full path to the file being consumed
     strncpy (file_path, ctx->cons_managed_path, PATH_MAX - 1);
     concat_str (file_path, mdata->fpath, "/", PATH_MAX);
-    strncpy (file_path_copy, file_path, PATH_MAX);  // dirname modifies the arg
+    memcpy (file_path_copy, file_path, PATH_MAX);  // dirname modifies the arg
     DYAD_C_FUNCTION_UPDATE_STR ("cons_managed_path", ctx->cons_managed_path);
     DYAD_C_FUNCTION_UPDATE_STR ("fpath", mdata->fpath);
     DYAD_C_FUNCTION_UPDATE_STR ("file_path_copy", file_path_copy);
@@ -526,6 +527,7 @@ dyad_rc_t dyad_init (bool debug,
                      bool shared_storage,
                      bool reinit,
                      bool async_publish,
+                     bool fsync_write,
                      unsigned int key_depth,
                      unsigned int key_bins,
                      unsigned int service_mux,
@@ -596,6 +598,7 @@ dyad_rc_t dyad_init (bool debug,
     (*ctx)->check = check;
     (*ctx)->shared_storage = shared_storage;
     (*ctx)->async_publish = async_publish;
+    (*ctx)->fsync_write = fsync_write;
     (*ctx)->key_depth = key_depth;
     (*ctx)->key_bins = key_bins;
     // Open a Flux handle and store it in the dyad_ctx_t
@@ -719,6 +722,7 @@ dyad_rc_t dyad_init_env (dyad_ctx_t** ctx)
     bool shared_storage = false;
     bool reinit = false;
     bool async_publish = false;
+    bool fsync_write = false;
     unsigned int key_depth = 0u;
     unsigned int key_bins = 0u;
     unsigned int service_mux = 1u;
@@ -730,10 +734,8 @@ dyad_rc_t dyad_init_env (dyad_ctx_t** ctx)
 
     if ((e = getenv (DYAD_SYNC_DEBUG_ENV))) {
         debug = true;
-        enable_debug_dyad_utils ();
     } else {
         debug = false;
-        disable_debug_dyad_utils ();
     }
 
     if (debug) {
@@ -764,6 +766,13 @@ dyad_rc_t dyad_init_env (dyad_ctx_t** ctx)
     } else {
         async_publish = false;
     }
+
+    if ((e = getenv (DYAD_FSYNC_WRITE_ENV))) {
+        fsync_write = true;
+    } else {
+        fsync_write = false;
+    }
+
     if ((e = getenv (DYAD_KEY_DEPTH_ENV))) {
         key_depth = atoi (e);
     } else {
@@ -825,6 +834,7 @@ dyad_rc_t dyad_init_env (dyad_ctx_t** ctx)
                       shared_storage,
                       reinit,
                       async_publish,
+                      fsync_write,
                       key_depth,
                       key_bins,
                       service_mux,
@@ -907,7 +917,7 @@ dyad_rc_t dyad_get_metadata (dyad_ctx_t* ctx,
             goto get_metadata_done;
         }
         memset ((*mdata)->fpath, '\0', fname_len + 1);
-        strncpy ((*mdata)->fpath, fname, fname_len);
+        memcpy ((*mdata)->fpath, fname, fname_len);
         (*mdata)->owner_rank = ctx->rank;
         rc = DYAD_RC_OK;
         goto get_metadata_done;
@@ -965,7 +975,7 @@ dyad_rc_t dyad_consume (dyad_ctx_t* ctx, const char* fname)
     DYAD_C_FUNCTION_START();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", fname);
     dyad_rc_t rc = DYAD_RC_OK;
-    int fd = -1;
+    int lock_fd = -1, io_fd = -1;
     ssize_t file_size = -1;
     char* file_data = NULL;
     size_t data_len = 0ul;
@@ -986,50 +996,51 @@ dyad_rc_t dyad_consume (dyad_ctx_t* ctx, const char* fname)
     // Set reenter to false to avoid recursively performing
     // DYAD operations
     ctx->reenter = false;
-    fd = open (fname, O_RDWR | O_CREAT, 0666);
-    DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
-    if (fd == -1) {
+    lock_fd = open (fname, O_RDWR | O_CREAT, 0666);
+    if (lock_fd == -1) {
         DYAD_LOG_ERROR (ctx, "Cannot create file (%s) for dyad_consume!\n", fname);
         rc = DYAD_RC_BADFIO;
         goto consume_close;
     }
-    rc = dyad_excl_flock (ctx, fd, &exclusive_lock);
+    rc = dyad_excl_flock (ctx, lock_fd, &exclusive_lock);
     if (DYAD_IS_ERROR (rc)) {
-        dyad_release_flock (ctx, fd, &exclusive_lock);
-        goto consume_close;
+        dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+        goto consume_done;
     }
-    file_size = get_file_size (fd);
+    file_size = get_file_size (lock_fd);
     if (ctx->shared_storage) {
-        dyad_release_flock (ctx, fd, &exclusive_lock);
+        dyad_release_flock (ctx, lock_fd, &exclusive_lock);
         if (!ctx->use_fs_locks || file_size <= 0) {
             // as file size was zero that means consumer won the lock first so has to wait for kvs.
             // or we cannot use file lock based synchronization as it does not work with the
             // files managed by c++ fstream.
-            dyad_fetch(ctx, fname, &mdata);
+            rc = dyad_fetch_metadata (ctx, fname, &mdata);
+            if (DYAD_IS_ERROR (rc)) {
+                DYAD_LOG_ERROR (ctx, "dyad_fetch_metadata failed fore shared storage!\n");
+                goto consume_done;
+            }
         }
     } else {
         if (file_size <= 0) {
-            DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] File (%s with fd %d) is not fetched yet", \
-                           ctx->node_idx, ctx->rank, ctx->pid, fname, fd);
+            DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] File (%s with lock_fd %d) is not fetched yet", \
+                           ctx->node_idx, ctx->rank, ctx->pid, fname, lock_fd);
             // Call dyad_fetch to get (and possibly wait on)
             // data from the Flux KVS
-            rc = dyad_fetch (ctx, fname, &mdata);
-            // If an error occured in dyad_fetch, log an error
+            rc = dyad_fetch_metadata (ctx, fname, &mdata);
+            // If an error occured in dyad_fetch_metadata, log an error
             // and return the corresponding DYAD return code
             if (DYAD_IS_ERROR (rc)) {
-                DYAD_LOG_ERROR (ctx, "dyad_fetch failed!\n");
-                dyad_release_flock (ctx, fd, &exclusive_lock);
-                goto consume_close;
+                DYAD_LOG_ERROR (ctx, "dyad_fetch_metadata failed!\n");
+                dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+                goto consume_done;
             }
-            // If dyad_fetch was successful, but resp is still NULL,
+            // If dyad_fetch_metadata was successful, but mdata is still NULL,
             // then we need to skip data transfer.
-            // This will most likely happend because shared_storage
-            // is enabled
             if (mdata == NULL) {
                 DYAD_LOG_INFO (ctx, "File '%s' is local!\n", fname);
                 rc = DYAD_RC_OK;
-                dyad_release_flock (ctx, fd, &exclusive_lock);
-                goto consume_close;
+                dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+                goto consume_done;
             }
 
             // Call dyad_get_data to dispatch a RPC to the producer's Flux broker
@@ -1037,46 +1048,50 @@ dyad_rc_t dyad_consume (dyad_ctx_t* ctx, const char* fname)
             rc = dyad_get_data (ctx, mdata, &file_data, &data_len);
             if (DYAD_IS_ERROR (rc)) {
                 DYAD_LOG_ERROR (ctx, "dyad_get_data failed!\n");
-                dyad_release_flock (ctx, fd, &exclusive_lock);
+                dyad_release_flock (ctx, lock_fd, &exclusive_lock);
                 goto consume_done;
             }
             DYAD_C_FUNCTION_UPDATE_INT ("data_len", data_len);
-
+            io_fd = open (fname, O_WRONLY);
+            DYAD_C_FUNCTION_UPDATE_INT ("io_fd", io_fd);
+            if (io_fd == -1) {
+                DYAD_LOG_ERROR (ctx, "Cannot open file (%s) in write mode for dyad_consume!\n", fname);
+                rc = DYAD_RC_BADFIO;
+                goto consume_close;
+            }
             // Call dyad_pull to fetch the data from the producer's
             // Flux broker
-            rc = dyad_cons_store (ctx, mdata, fd, data_len, file_data);
+            rc = dyad_cons_store (ctx, mdata, io_fd, data_len, file_data);
             // Regardless if there was an error in dyad_pull,
             // free the KVS response object
             if (mdata != NULL) {
                 dyad_free_metadata (&mdata);
             }
+            if (close (io_fd) != 0) {
+                rc = DYAD_RC_BADFIO;
+                dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+                goto consume_done;
+            }
             // If an error occured in dyad_pull, log it
             // and return the corresponding DYAD return code
             if (DYAD_IS_ERROR (rc)) {
                 DYAD_LOG_ERROR (ctx, "dyad_cons_store failed!\n");
-                dyad_release_flock (ctx, fd, &exclusive_lock);
+                dyad_release_flock (ctx, lock_fd, &exclusive_lock);
                 goto consume_done;
             };
-            fsync (fd);
         }
-        dyad_release_flock (ctx, fd, &exclusive_lock);
+        dyad_release_flock (ctx, lock_fd, &exclusive_lock);
     }
-
-
-
     DYAD_C_FUNCTION_UPDATE_INT ("file_size", file_size);
-
-    if (close (fd) != 0) {
-        rc = DYAD_RC_BADFIO;
-        goto consume_done;
-    }
-    rc = DYAD_RC_OK;
 consume_done:;
+    if (close (lock_fd) != 0) {
+        rc = DYAD_RC_BADFIO;
+    }
     if (file_data != NULL) {
         ctx->dtl_handle->return_buffer (ctx, (void**)&file_data);
     }
     // Set reenter to true to allow additional intercepting
-consume_close:;
+consume_close:;    
     ctx->reenter = true;
     DYAD_C_FUNCTION_END();
     return rc;
@@ -1099,10 +1114,8 @@ dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t* ctx, const char* fname,
         rc = DYAD_RC_NOCTX;
         goto consume_close;
     }
-    // If dyad_fetch was successful, but resp is still NULL,
+    // If dyad_get_metadata was successful, but mdata is still NULL,
     // then we need to skip data transfer.
-    // This will most likely happend because shared_storage
-    // is enabled
     if (mdata == NULL) {
         DYAD_LOG_INFO (ctx, "File '%s' is local!\n", fname);
         rc = DYAD_RC_OK;

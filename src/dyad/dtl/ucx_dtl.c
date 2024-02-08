@@ -406,13 +406,13 @@ static inline ucs_status_ptr_t ucx_recv_no_wait (const dyad_ctx_t* ctx,
 #endif // UCP_API_VERSION
 #else  // DYAD_ENABLE_UCX_RMA
     dyad_dtl_ucx_t* dtl_handle = ctx->dtl_handle->private_dtl.ucx_dtl_handle;
-    size_t temp = 0;
+    ssize_t temp = 0l;
     do {
         memcpy (&temp, dtl_handle->net_buf, sizeof(temp));
         ucp_worker_progress(ctx->dtl_handle->private_dtl.ucx_dtl_handle->ucx_worker);
         usleep(10);
         DYAD_LOG_DEBUG (ctx, "Consumer Waiting for worker to finsih all work");
-    } while (temp == 0);
+    } while (temp == 0l);
 #endif // DYAD_ENABLE_UCX_RMA
     DYAD_LOG_DEBUG (ctx, "Consumer finsihed all work");
 
@@ -524,7 +524,7 @@ dyad_rc_t dyad_dtl_ucx_init (const dyad_ctx_t* ctx,
     dtl_handle = ctx->dtl_handle->private_dtl.ucx_dtl_handle;
     // Allocation/Freeing of the Flux handle should be
     // handled by the DYAD context
-    dtl_handle->h = ctx->h;
+    dtl_handle->h = (flux_t*) ctx->h;
     dtl_handle->comm_mode = comm_mode;
     dtl_handle->debug = debug;
     dtl_handle->ucx_ctx = NULL;
@@ -647,7 +647,7 @@ dyad_rc_t dyad_dtl_ucx_rpc_pack (const dyad_ctx_t* ctx,
      * Reset the Buffer so that we can loop on it
      * as we expect a size_t lets put int -1 as a check.
      */
-    size_t temp = 0;
+    ssize_t temp = 0;
     memcpy (dtl_handle->net_buf, &temp, sizeof(temp));
     dyad_rc_t rc = DYAD_RC_OK;
     size_t cons_enc_len = 0;

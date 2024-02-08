@@ -46,11 +46,19 @@ typedef struct dyad_metadata dyad_metadata_t;
 
 // Debug message
 #ifndef DPRINTF
+#if VA_OPT_SUPPORTED
 #define DPRINTF(curr_dyad_ctx, fmt, ...)           \
     do {                                           \
         if ((curr_dyad_ctx) && (curr_dyad_ctx)->debug) \
             fprintf (stderr, (fmt) __VA_OPT__(,) __VA_ARGS__);  \
     } while (0)
+#else
+#define DPRINTF(curr_dyad_ctx, fmt, ...)           \
+    do {                                           \
+        if ((curr_dyad_ctx) && (curr_dyad_ctx)->debug) \
+            fprintf (stderr, (fmt), ##__VA_ARGS__);  \
+    } while (0)
+#endif
 #endif  // DPRINTF
 
 #define TIME_DIFF(Tstart, Tend)                                                                    \
@@ -73,6 +81,7 @@ typedef struct dyad_metadata dyad_metadata_t;
  *                            with the path is shared
  * @param[in]  reinit         force reinitialization
  * @param[in]  async_publish  enable asynchronous publish by producer
+ * @param[in]  fsync_write    apply fsync after write by producer
  * @param[in]  key_depth      depth of the key hierarchy for the path
  * @param[in]  key_bins       number of bins used in key hashing
  * @param[in]  service_mux    number of brokers sharing node-local storage
@@ -87,6 +96,7 @@ DYAD_DLL_EXPORTED dyad_rc_t dyad_init (bool debug,
                                        bool shared_storage,
                                        bool reinit,
                                        bool async_publish,
+                                       bool fsync_write,
                                        unsigned int key_depth,
                                        unsigned int key_bins,
                                        unsigned int service_mux,

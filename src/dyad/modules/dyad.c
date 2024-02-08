@@ -179,7 +179,7 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
     }
 #endif  // DYAD_SPIN_WAIT
 
-    DYAD_LOG_INFO (mod_ctx->ctx, "Reading file %s for transfer", fullpath);
+    DYAD_LOG_INFO (mod_ctx->ctx, "DYAD_MOD: Reading file %s for transfer", fullpath);
     fd = open (fullpath, O_RDONLY);
 
     if (fd < 0) {
@@ -191,7 +191,7 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
         goto fetch_error;
     }
     file_size = get_file_size (fd);
-    DYAD_LOG_DEBUG (mod_ctx->ctx, "file %s has size %zd", fullpath, file_size);
+    DYAD_LOG_DEBUG (mod_ctx->ctx, "DYAD_MOD: file %s has size %zd", fullpath, file_size);
     if (file_size > 0l) {
         rc = mod_ctx->ctx->dtl_handle->get_buffer (mod_ctx->ctx, file_size, (void**)&inbuf);
 #ifdef DYAD_ENABLE_UCX_RMA

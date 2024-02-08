@@ -17,7 +17,8 @@
 using key_type = uint64_t;
 using cache_type = std::unordered_map<key_type, ucp_ep_h>;
 
-static void dyad_ucx_ep_err_handler (void* arg, ucp_ep_h ep, ucs_status_t status)
+static void __attribute__((unused))
+dyad_ucx_ep_err_handler (void* arg, ucp_ep_h ep, ucs_status_t status)
 {
     DYAD_C_FUNCTION_START();
     dyad_ctx_t *ctx = (dyad_ctx_t*)arg;

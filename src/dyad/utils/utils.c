@@ -81,7 +81,8 @@ char* concat_str (char* __restrict__ str,
 {
     const size_t str_len_org = strlen (str);
     const size_t con_len = strlen (connector);
-    const size_t all_len = str_len_org + con_len + strlen (to_append);
+    const size_t app_len = strlen (to_append);
+    const size_t all_len = str_len_org + con_len + app_len;
 
     if (all_len + 1ul > str_capacity) {
         DYAD_LOG_DEBUG (NULL, "DYAD UTIL: buffer is too small.\n");
@@ -106,14 +107,16 @@ char* concat_str (char* __restrict__ str,
 
     char* buf = (char*)calloc (all_len + 1ul, sizeof (char));
 
-    strncpy (buf, str, str_len);
+    memcpy (buf, str, str_len);
+    char* buf_pos = buf + str_len;
 
     if (connector != NULL) {
-        strncat (buf, connector, all_len);
+        memcpy (buf_pos, connector, con_len);
+        buf_pos += con_len;
     }
-    strncat (buf, to_append, all_len);
+    memcpy (buf_pos, to_append, app_len);
 
-    strncpy (str, buf, all_len);
+    memcpy (str, buf, all_len);
     str[all_len] = '\0';
     free (buf);
 
@@ -457,7 +460,7 @@ dyad_rc_t dyad_excl_flock (const dyad_ctx_t* ctx, int fd, struct flock* lock)
     lock->l_len = 0;
     lock->l_pid = ctx->pid; //getpid();
     if (fcntl (fd, F_SETLKW, lock) == -1) { // will wait until able to lock
-        DYAD_LOG_ERROR (ctx, "Cannot apply exclusive lock on fd %d", fd);
+        DYAD_LOG_ERROR (ctx, "Cannot apply exclusive lock on fd %d\n", fd);
         rc = DYAD_RC_BADFIO;
         goto excl_flock_end;
     }
@@ -486,7 +489,7 @@ dyad_rc_t dyad_shared_flock (const dyad_ctx_t* ctx, int fd, struct flock* lock)
     lock->l_len = 0;
     lock->l_pid = ctx->pid; //getpid();
     if (fcntl (fd, F_SETLKW, lock) == -1) { // will wait until able to lock
-        DYAD_LOG_ERROR (ctx, "Cannot apply shared lock on fd %d", fd);
+        DYAD_LOG_ERROR (ctx, "Cannot apply shared lock on fd %d\n", fd);
         rc = DYAD_RC_BADFIO;
         goto shared_flock_end;
     }
@@ -511,7 +514,7 @@ dyad_rc_t dyad_release_flock (const dyad_ctx_t* ctx, int fd, struct flock* lock)
     }
     lock->l_type = F_UNLCK;
     if (fcntl (fd, F_SETLKW, lock) == -1) { // will just unlock
-        DYAD_LOG_ERROR (ctx, "Cannot release lock on fd %d", fd);
+        DYAD_LOG_ERROR (ctx, "Cannot release lock on fd %d\n", fd);
         rc = DYAD_RC_BADFIO;
         goto release_flock_end;
     }
