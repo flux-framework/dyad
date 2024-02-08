@@ -337,7 +337,7 @@ static int opt_parse (dyad_ctx_t* ctx, const unsigned broker_rank,
     *dtl_mode = DYAD_DTL_END;
 
     int argc = 0;
-    char* argv[PATH_MAX] = {'\0'};
+    char* argv[PATH_MAX] = {NULL};
 
     if ((argc = _argc + 1) > PATH_MAX) {
         DYAD_LOG_DEBUG (ctx, "DYAD_MOD: too many options.\n");

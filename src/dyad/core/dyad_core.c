@@ -309,7 +309,7 @@ kvs_read_end:;
 
 
 
-DYAD_CORE_FUNC_MODS dyad_rc_t dyad_fetch_metadata (const dyad_ctx_t* restrict ctx,
+DYAD_CORE_FUNC_MODS dyad_rc_t dyad_fetch_metadata (dyad_ctx_t* restrict ctx,
                                                    const char* restrict fname,
                                                    dyad_metadata_t** restrict mdata)
 {
@@ -329,6 +329,8 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_fetch_metadata (const dyad_ctx_t* restrict ct
         rc = DYAD_RC_OK;
         goto fetch_done;
     }
+    // Set reenter to false to avoid recursively performing DYAD operations
+    ctx->reenter = false;
     DYAD_LOG_INFO (ctx, "Obtained file path relative to consumer directory: %s\n", upath);
     DYAD_C_FUNCTION_UPDATE_STR ("upath", upath);
     // Generate the KVS key from the file path relative to
@@ -693,7 +695,6 @@ dyad_rc_t dyad_init (bool debug,
     DYAD_C_FUNCTION_UPDATE_STR ("cons_managed_path", (*ctx)->cons_managed_path);
     // Initialization is now complete!
     // Set reenter and initialized to indicate this.
-    (*ctx)->reenter = true;
     (*ctx)->initialized = true;
     (*ctx)->use_fs_locks = true; // This is default value except for streams which dont have a fp.
     // TODO Print logging info
@@ -709,6 +710,7 @@ dyad_rc_t dyad_init (bool debug,
     DYAD_LOG_STDERR_REDIRECT (log_file_name);
   #endif // DYAD_LOGGER_NO_LOG
 init_region_finish:;
+    (*ctx)->reenter = true;
     DYAD_C_FUNCTION_END();
     return rc;
 }
@@ -993,9 +995,6 @@ dyad_rc_t dyad_consume (dyad_ctx_t* ctx, const char* fname)
         rc = DYAD_RC_BADMANAGEDPATH;
         goto consume_close;
     }
-    // Set reenter to false to avoid recursively performing
-    // DYAD operations
-    ctx->reenter = false;
     lock_fd = open (fname, O_RDWR | O_CREAT, 0666);
     if (lock_fd == -1) {
         DYAD_LOG_ERROR (ctx, "Cannot create file (%s) for dyad_consume!\n", fname);
@@ -1127,8 +1126,7 @@ dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t* ctx, const char* fname,
         rc = DYAD_RC_BADMANAGEDPATH;
         goto consume_close;
     }
-    // Set reenter to false to avoid recursively performing
-    // DYAD operations
+    // Set reenter to false to avoid recursively performing DYAD operations
     ctx->reenter = false;
     fd = open (fname, O_RDWR | O_CREAT, 0666);
     DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
