@@ -68,6 +68,7 @@ const struct dyad_ctx dyad_ctx_default = {
     false   // relative_to_managed_path
 };
 
+dyad_rc_t dyad_clear (dyad_ctx_t** ctx);
 dyad_rc_t dyad_finalize (dyad_ctx_t** ctx);
 
 
@@ -600,15 +601,6 @@ dyad_rc_t dyad_init (bool debug,
 #endif
     DYAD_C_FUNCTION_START();
     dyad_rc_t rc = DYAD_RC_OK;
-    // If neither managed path is provided, DYAD will not do anything.
-    // So, simply print a warning and return DYAD_OK.
-    if (prod_managed_path == NULL && cons_managed_path == NULL) {
-        fprintf (stderr,
-                 "Warning: no managed path provided! DYAD will not do "
-                 "anything!\n");
-        rc = DYAD_RC_OK;
-        goto init_region_finish;
-    }
     // If ctx is NULL, we won't be able to return a dyad_ctx_t
     // to the user. In that case, print an error and return
     // immediately with DYAD_NOCTX.
@@ -642,9 +634,17 @@ dyad_rc_t dyad_init (bool debug,
             goto init_region_finish;
         }
     }
-    // Set the initial contents of the dyad_ctx_t object
-    // to dyad_ctx_default.
+    // Set the initial contents of the dyad_ctx_t object to dyad_ctx_default.
     **ctx = dyad_ctx_default;
+    // If neither managed path is provided, DYAD will not do anything.
+    // So, simply print a warning and return DYAD_OK.
+    if (prod_managed_path == NULL && cons_managed_path == NULL) {
+        fprintf (stderr,
+                 "Warning: no managed path provided! DYAD will not do "
+                 "anything!\n");
+        rc = DYAD_RC_OK;
+        goto init_region_finish;
+    }
 #ifdef DYAD_PATH_DELIM
     if (DYAD_PATH_DELIM == NULL || strlen (DYAD_PATH_DELIM) == 0ul) {
         fprintf (stderr, "Invalid DYAD_PATH_DELIM defined in 'dyad_config.h'!\n");
@@ -886,9 +886,12 @@ dyad_rc_t dyad_init (bool debug,
     DYAD_LOG_STDERR_REDIRECT (err_file_name);
     DYAD_LOG_STDERR_REDIRECT (log_file_name);
   #endif // DYAD_LOGGER_NO_LOG
+    goto init_region_finish;
 
 init_region_failed:;
-    dyad_finalize (ctx);
+    dyad_clear (ctx);
+    // Set the initial contents of the dyad_ctx_t object to dyad_ctx_default.
+    **ctx = dyad_ctx_default;
     rc = DYAD_RC_NOCTX;
 
 init_region_finish:;
@@ -1392,15 +1395,16 @@ consume_close:;
     return rc;
 }
 
-dyad_rc_t dyad_finalize (dyad_ctx_t** ctx)
+dyad_rc_t dyad_clear (dyad_ctx_t** ctx)
 {
     DYAD_C_FUNCTION_START();
     dyad_rc_t rc = DYAD_RC_OK;
-    DYAD_LOG_DEBUG (ctx, "DYAD context is being destroyed!\n");
     if (ctx == NULL || *ctx == NULL) {
         rc = DYAD_RC_OK;
-        goto finalize_region_finish;
+        DYAD_LOG_STDERR ("DYAD context is being cleared!\n");
+        goto clear_region_finish;
     }
+    DYAD_LOG_DEBUG (*ctx, "DYAD context is being cleared!\n");
     dyad_dtl_finalize (*ctx);
     if ((*ctx)->h != NULL) {
         flux_close ((*ctx)->h);
@@ -1426,6 +1430,26 @@ dyad_rc_t dyad_finalize (dyad_ctx_t** ctx)
         free ((*ctx)->cons_real_path);
         (*ctx)->cons_real_path = NULL;
     }
+    rc = DYAD_RC_OK;
+clear_region_finish:;
+    DYAD_C_FUNCTION_END();
+#ifdef DYAD_PROFILER_DLIO_PROFILER
+    DLIO_PROFILER_C_FINI();
+#endif
+    return rc;
+}
+
+dyad_rc_t dyad_finalize (dyad_ctx_t** ctx)
+{
+    DYAD_C_FUNCTION_START();
+    dyad_rc_t rc = DYAD_RC_OK;
+    if (ctx == NULL || *ctx == NULL) {
+        rc = DYAD_RC_OK;
+        DYAD_LOG_STDERR ("DYAD context is being destroyed!\n");
+        goto finalize_region_finish;
+    }
+    DYAD_LOG_DEBUG (*ctx, "DYAD context is being destroyed!\n");
+    dyad_clear (ctx);
     free (*ctx);
     *ctx = NULL;
     rc = DYAD_RC_OK;
