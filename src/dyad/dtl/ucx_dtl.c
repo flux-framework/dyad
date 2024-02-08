@@ -67,7 +67,11 @@ static void dyad_send_callback (void* req, ucs_status_t status)
 #endif
 {
     DYAD_C_FUNCTION_START();
-    DYAD_LOG_INFO (ctx, "Calling send callback");
+    if (!ctx) {
+        DYAD_LOG_STDERR (ctx, "Calling send callback");
+    } else {
+        DYAD_LOG_INFO (ctx, "Calling send callback");
+    }
     dyad_ucx_request_t* real_req = (dyad_ucx_request_t*)req;
     real_req->completed = 1;
     DYAD_C_FUNCTION_END();
