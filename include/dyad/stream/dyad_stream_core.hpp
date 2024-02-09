@@ -19,6 +19,7 @@
 
 #include <iostream>
 #include <string>
+#include <climits>
 
 #include <dyad/stream/dyad_params.hpp>
 
@@ -51,6 +52,7 @@ class dyad_stream_core
     bool chk_initialized () const;
 
     bool chk_fsync_write () const;
+    bool cmp_canonical_path_prefix (bool is_prod, const char* const __restrict__ path);
 
     int file_lock_exclusive(int fd) const;
     int file_lock_shared(int fd) const;
@@ -61,6 +63,7 @@ class dyad_stream_core
     bool m_initialized;
     bool m_is_prod;
     bool m_is_cons;
+    char upath[PATH_MAX];
 };
 
 }  // end of namespace dyad

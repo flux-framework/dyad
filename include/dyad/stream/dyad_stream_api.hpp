@@ -589,7 +589,13 @@ basic_ofstream_dyad<_CharT, _Traits>::basic_ofstream_dyad (const char* filename,
 {
     m_core.init ();
     m_stream = new basic_ofstream (filename, mode);
-    if ((m_stream != nullptr) && (*m_stream)) {
+
+    if ((m_stream != nullptr) && (*m_stream)
+      #if DYAD_HAS_STD_FSTREAM_FD
+        && m_core.cmp_canonical_path_prefix (true, filename)
+      #endif // DYAD_HAS_STD_FSTREAM_FD
+       )
+    {
         DYAD_EXCLUSIVE_LOCK_CPP_OFSTREAM (*m_stream, m_core);
         m_filename = std::string{filename};
     }
@@ -621,7 +627,12 @@ basic_ofstream_dyad<_CharT, _Traits>::basic_ofstream_dyad (const char* filename,
 {
     m_core.init ();
     m_stream = std::unique_ptr<basic_ofstream> (new basic_ofstream (filename, mode));
-    if ((m_stream != nullptr) && (*m_stream)) {
+    if ((m_stream != nullptr) && (*m_stream)
+      #if DYAD_HAS_STD_FSTREAM_FD
+        && m_core.cmp_canonical_path_prefix (true, filename)
+      #endif // DYAD_HAS_STD_FSTREAM_FD
+       )
+    {
         DYAD_EXCLUSIVE_LOCK_CPP_OFSTREAM (*m_stream, m_core);
         m_filename = std::string{filename};
     }
@@ -633,7 +644,12 @@ basic_ofstream_dyad<_CharT, _Traits>::basic_ofstream_dyad (const string& filenam
 {
     m_core.init ();
     m_stream = std::unique_ptr<basic_ofstream> (new basic_ofstream (filename, mode));
-    if ((m_stream != nullptr) && (*m_stream)) {
+    if ((m_stream != nullptr) && (*m_stream)
+      #if DYAD_HAS_STD_FSTREAM_FD
+        && m_core.cmp_canonical_path_prefix (true, (const char* const) filename.c_str ())
+      #endif // DYAD_HAS_STD_FSTREAM_FD
+       )
+    {
         DYAD_EXCLUSIVE_LOCK_CPP_OFSTREAM (*m_stream, m_core);
         m_filename = filename;
     }
@@ -653,9 +669,14 @@ basic_ofstream_dyad<_CharT, _Traits>::basic_ofstream_dyad (const _Path& filepath
 {
     m_core.init ();
     m_stream =
-        std::unique_ptr<basic_ofstream> (new basic_ofstream (filepath.c_str (), mode));
+        std::unique_ptr<basic_ofstream> (new basic_ofstream ((const char* const) filepath.c_str (), mode));
 
-    if ((m_stream != nullptr) && (*m_stream)) {
+    if ((m_stream != nullptr) && (*m_stream)
+      #if DYAD_HAS_STD_FSTREAM_FD
+        && m_core.cmp_canonical_path_prefix (true, filename.c_str ())
+      #endif // DYAD_HAS_STD_FSTREAM_FD
+       )
+    {
         DYAD_EXCLUSIVE_LOCK_CPP_OFSTREAM (*m_stream, m_core);
         m_filename = std::string{filepath.c_str ()};
     }
@@ -732,7 +753,12 @@ void basic_ofstream_dyad<_CharT, _Traits>::open (const char* filename,
         return;
     }
     m_stream->open (filename, mode);
-    if ((*m_stream)) {
+    if ((*m_stream)
+      #if DYAD_HAS_STD_FSTREAM_FD
+        && m_core.cmp_canonical_path_prefix (true, filename)
+      #endif // DYAD_HAS_STD_FSTREAM_FD
+       )
+    {
         DYAD_EXCLUSIVE_LOCK_CPP_OFSTREAM (*m_stream, m_core);
         m_filename = std::string{filename};
     }
@@ -873,7 +899,12 @@ basic_fstream_dyad<_CharT, _Traits>::basic_fstream_dyad (const char* filename,
     m_core.open_sync (filename);
     m_stream = new basic_fstream (filename, mode);
     if ((m_stream != nullptr) && (*m_stream)) {
-        if (m_core.is_dyad_producer ()) {
+        if (m_core.is_dyad_producer ()
+          #if DYAD_HAS_STD_FSTREAM_FD
+            && m_core.cmp_canonical_path_prefix (true, filename)
+          #endif // DYAD_HAS_STD_FSTREAM_FD
+           )
+        {
             DYAD_EXCLUSIVE_LOCK_CPP_OFSTREAM (*m_stream, m_core);
         }
         m_filename = std::string{filename};
@@ -1029,7 +1060,12 @@ void basic_fstream_dyad<_CharT, _Traits>::open (const char* filename,
     m_core.open_sync (filename);
     m_stream->open (filename, mode);
     if ((*m_stream)) {
-        if (m_core.is_dyad_producer ()) {
+        if (m_core.is_dyad_producer ()
+      #if DYAD_HAS_STD_FSTREAM_FD
+            && m_core.cmp_canonical_path_prefix (true, filename)
+      #endif // DYAD_HAS_STD_FSTREAM_FD
+           )
+        {
             DYAD_EXCLUSIVE_LOCK_CPP_OFSTREAM (*m_stream, m_core);
         }
         m_filename = std::string{filename};
