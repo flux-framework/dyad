@@ -268,6 +268,13 @@ int dyad_stream_core::file_unlock (int fd) const
     return dyad_release_flock (m_ctx, fd, &a_flock);
 }
 
+bool dyad_stream_core::cmp_canonical_path_prefix (
+    bool is_prod, const char* const __restrict__ path)
+{
+    memset (upath, '\0', PATH_MAX);
+    return ::cmp_canonical_path_prefix (m_ctx, is_prod, path, upath, PATH_MAX);
+}
+
 }  // end of namespace dyad
 
 /*
