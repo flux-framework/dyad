@@ -732,7 +732,7 @@ void basic_ofstream_dyad<_CharT, _Traits>::open (const char* filename,
         return;
     }
     m_stream->open (filename, mode);
-    if ((m_stream != nullptr) && (*m_stream)) {
+    if ((*m_stream)) {
         DYAD_EXCLUSIVE_LOCK_CPP_OFSTREAM (*m_stream, m_core);
         m_filename = std::string{filename};
     }
@@ -1028,7 +1028,7 @@ void basic_fstream_dyad<_CharT, _Traits>::open (const char* filename,
     }
     m_core.open_sync (filename);
     m_stream->open (filename, mode);
-    if ((m_stream != nullptr) && (*m_stream)) {
+    if ((*m_stream)) {
         if (m_core.is_dyad_producer ()) {
             DYAD_EXCLUSIVE_LOCK_CPP_OFSTREAM (*m_stream, m_core);
         }

@@ -190,15 +190,20 @@ real_call:;
     // from a consumer that has direct access to the file. For example,
     // either the file is on a shared storage or the consumer is on
     // the same node as where the producer is.
-    if ((mode == O_WRONLY || mode == O_APPEND) && !is_path_dir (path) &&
-        cmp_canonical_path_prefix (ctx, true, path, upath, PATH_MAX))
+    if ((ret > 0) && (mode == O_WRONLY || mode == O_APPEND) && !is_path_dir (path))
     {
-        struct flock exclusive_lock;
-        dyad_rc_t rc = dyad_excl_flock (ctx, ret, &exclusive_lock);
-        if (DYAD_IS_ERROR (rc)) {
-            dyad_release_flock (ctx, ret, &exclusive_lock);
+        if ((ctx->relative_to_managed_path &&
+            (strncmp (path, DYAD_PATH_DELIM, ctx->delim_len) != 0)) ||
+            cmp_canonical_path_prefix (ctx, true, path, upath, PATH_MAX))
+        {
+            struct flock exclusive_lock;
+            dyad_rc_t rc = dyad_excl_flock (ctx, ret, &exclusive_lock);
+            if (DYAD_IS_ERROR (rc)) {
+                dyad_release_flock (ctx, ret, &exclusive_lock);
+            }
         }
     }
+
     DYAD_C_FUNCTION_END();
     return ret;
 }
@@ -244,14 +249,18 @@ real_call:;
     // from a consumer that has direct access to the file. For example,
     // either the file is on a shared storage or the consumer is on
     // the same node as where the producer is.
-    if (((strcmp (mode, "w") == 0)  || (strcmp (mode, "a") == 0)) && !is_path_dir (path)
-        && cmp_canonical_path_prefix (ctx, true, path, upath, PATH_MAX))
+    if ((fh != NULL) && ((strcmp (mode, "w") == 0)  || (strcmp (mode, "a") == 0)) && !is_path_dir (path))
     {
-        int fd = fileno (fh);
-        struct flock exclusive_lock;
-        dyad_rc_t rc = dyad_excl_flock (ctx, fd, &exclusive_lock);
-        if (DYAD_IS_ERROR (rc)) {
-            dyad_release_flock (ctx, fd, &exclusive_lock);
+        if ((ctx->relative_to_managed_path &&
+            (strncmp (path, DYAD_PATH_DELIM, ctx->delim_len) != 0)) ||
+            cmp_canonical_path_prefix (ctx, true, path, upath, PATH_MAX))
+        {
+            int fd = fileno (fh);
+            struct flock exclusive_lock;
+            dyad_rc_t rc = dyad_excl_flock (ctx, fd, &exclusive_lock);
+            if (DYAD_IS_ERROR (rc)) {
+                dyad_release_flock (ctx, fd, &exclusive_lock);
+            }
         }
     }
     DYAD_C_FUNCTION_END();
