@@ -218,12 +218,11 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_commit (dyad_ctx_t* restrict ctx, const char*
     // must be a valid string (!NULL). ctx->delim_len is verified to be greater
     // than 0 during initialization.
     if (ctx->relative_to_managed_path &&
-        (strncmp (ctx->prod_managed_path, DYAD_PATH_DELIM, ctx->delim_len) != 0))
-    {
+       //(strlen (fname) > 0ul) && // checked where get_path() was
+        (strncmp (fname, DYAD_PATH_DELIM, ctx->delim_len) != 0))
+    {   // fname is a relative path that is relative to the prod_managed_path
         memcpy (upath, fname, strlen (fname));
-    } else
-    if (!cmp_canonical_path_prefix (ctx, true, fname, upath, PATH_MAX))
-    {
+    } else if (!cmp_canonical_path_prefix (ctx, true, fname, upath, PATH_MAX)) {
         // Extract the path to the file specified by fname relative to the
         // producer-managed path
         // This relative path will be stored in upath
@@ -358,12 +357,11 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_fetch_metadata (const dyad_ctx_t* restrict ct
         goto get_metadata_done;
     }
 #endif
-    if (ctx->relative_to_managed_path &&
-        (strncmp (ctx->cons_managed_path, DYAD_PATH_DELIM, ctx->delim_len) != 0))
-    {
+    if (ctx->relative_to_managed_path && (strlen (fname) > 0ul) &&
+        (strncmp (fname, DYAD_PATH_DELIM, ctx->delim_len) != 0))
+    {   // fname is a relative path that is relative to the cons_managed_path
         memcpy (upath, fname, strlen (fname));
-    } else if (!cmp_canonical_path_prefix (ctx, false, fname, upath, PATH_MAX))
-    {
+    } else if (!cmp_canonical_path_prefix (ctx, false, fname, upath, PATH_MAX)) {
         // Extract the path to the file specified by fname relative to the
         // consumer-managed path
         // This relative path will be stored in upath
@@ -1123,12 +1121,11 @@ dyad_rc_t dyad_get_metadata (dyad_ctx_t* ctx,
     char upath[PATH_MAX+1] = {'\0'};
     DYAD_LOG_INFO (ctx, "Obtaining file path relative to consumer directory: %s", upath);
 
-    if (ctx->relative_to_managed_path &&
-        (strncmp (ctx->cons_managed_path, DYAD_PATH_DELIM, ctx->delim_len) != 0))
+    if (ctx->relative_to_managed_path && (strlen (fname) > 0ul) &&
+        (strncmp (fname, DYAD_PATH_DELIM, ctx->delim_len) != 0))
     {   // fname is a relative path that is relative to the cons_managed_path
         memcpy (upath, fname, fname_len);
-    } else if (!cmp_canonical_path_prefix (ctx, false, fname, upath, PATH_MAX))
-    {
+    } else if (!cmp_canonical_path_prefix (ctx, false, fname, upath, PATH_MAX)) {
         // Extract the path to the file specified by fname relative to the
         // producer-managed path
         // This relative path will be stored in upath
