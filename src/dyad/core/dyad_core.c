@@ -34,8 +34,8 @@
 #endif
 
 
-static int gen_path_key (const char* str,
-                         char* path_key,
+static int gen_path_key (const char* restrict str,
+                         char* restrict path_key,
                          const size_t len,
                          const uint32_t depth,
                          const uint32_t width)
@@ -85,7 +85,8 @@ static void future_cleanup_cb (flux_future_t *f, void *arg)
     flux_future_destroy (f);
 }
 
-DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_commit (const dyad_ctx_t* ctx, flux_kvs_txn_t* txn)
+DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_commit (const dyad_ctx_t* restrict ctx,
+                                               flux_kvs_txn_t* restrict txn)
 {
     DYAD_C_FUNCTION_START();
     flux_future_t* f = NULL;
@@ -213,7 +214,7 @@ commit_done:;
 }
 
 static void print_mdata (const dyad_ctx_t* restrict ctx,
-                         const dyad_metadata_t* mdata)
+                         const dyad_metadata_t* restrict mdata)
 {
     if (mdata == NULL) {
         DYAD_LOG_INFO (ctx, "Cannot print a NULL metadata object!");
@@ -228,7 +229,7 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_read (const dyad_ctx_t* restrict ctx,
                                              const char* restrict topic,
                                              const char* restrict upath,
                                              bool should_wait,
-                                             dyad_metadata_t** mdata)
+                                             dyad_metadata_t** restrict mdata)
 {
     DYAD_C_FUNCTION_START();
     DYAD_C_FUNCTION_UPDATE_STR ("upath", upath);
@@ -375,10 +376,10 @@ fetch_done:;
     return rc;
 }
 
-DYAD_CORE_FUNC_MODS dyad_rc_t dyad_get_data (const dyad_ctx_t* ctx,
+DYAD_CORE_FUNC_MODS dyad_rc_t dyad_get_data (const dyad_ctx_t* restrict ctx,
                                              const dyad_metadata_t* restrict mdata,
-                                             char** file_data,
-                                             size_t* file_len)
+                                             char** restrict file_data,
+                                             size_t* restrict file_len)
 {
     DYAD_C_FUNCTION_START();
     dyad_rc_t rc = DYAD_RC_OK;
@@ -526,7 +527,7 @@ pull_done:;
     return rc;
 }
 
-dyad_rc_t dyad_produce (dyad_ctx_t* ctx, const char* fname)
+dyad_rc_t dyad_produce (dyad_ctx_t* restrict ctx, const char* restrict fname)
 {
     DYAD_C_FUNCTION_START();
     ctx->fname = fname;
@@ -560,10 +561,10 @@ produce_done:;
 //                                                const char* restrict kvs_topic,
 //                                                uint32_t* owner_rank,
 //                                                flux_future_t** f)
-dyad_rc_t dyad_get_metadata (dyad_ctx_t* ctx,
-                             const char* fname,
+dyad_rc_t dyad_get_metadata (dyad_ctx_t* restrict ctx,
+                             const char* restrict fname,
                              bool should_wait,
-                             dyad_metadata_t** mdata)
+                             dyad_metadata_t** restrict mdata)
 {
     DYAD_C_FUNCTION_START();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", fname);
@@ -663,7 +664,7 @@ dyad_rc_t dyad_free_metadata (dyad_metadata_t** mdata)
     return DYAD_RC_OK;
 }
 
-dyad_rc_t dyad_consume (dyad_ctx_t* ctx, const char* fname)
+dyad_rc_t dyad_consume (dyad_ctx_t* restrict ctx, const char* restrict fname)
 {
     DYAD_C_FUNCTION_START();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", fname);
@@ -789,7 +790,7 @@ consume_close:;
     return rc;
 }
 
-dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t* ctx, const char* fname,
+dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t* restrict ctx, const char* fname,
                                    const dyad_metadata_t* restrict mdata)
 {
     DYAD_C_FUNCTION_START();
