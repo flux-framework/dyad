@@ -48,17 +48,15 @@ using namespace std;  // std::clock ()
 #include <dyad/common/dyad_envs.h>
 #include <dyad/common/dyad_logging.h>
 #include <dyad/common/dyad_profiler.h>
+#include <dyad/core/dyad_ctx.h>
 #include <dyad/core/dyad_core.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-// Note:
-// To ensure we don't have multiple initialization, we need the following:
-// 1) The DYAD context (ctx below) must be static
-// 2) The DYAD context should be on the heap (done w/ malloc in dyad_init)
-static __thread dyad_ctx_t *ctx = NULL;
+static __thread const dyad_ctx_t *ctx = NULL;
+static __thread dyad_ctx_t *ctx_mutable = NULL;
 static void dyad_wrapper_init (void) __attribute__ ((constructor));
 static void dyad_wrapper_fini (void) __attribute__ ((destructor));
 
@@ -103,37 +101,17 @@ void dyad_wrapper_init (void)
     DLIO_PROFILER_C_FINI();
 #endif
     DYAD_C_FUNCTION_START();
-    dyad_rc_t rc = DYAD_RC_OK;
-
-    rc = dyad_init_env (&ctx);
-
-    if (DYAD_IS_ERROR (rc)) {
-        fprintf (stderr, "Failed to initialize DYAD (code = %d)", rc);
-        if (ctx != NULL) {
-            ctx->initialized = false;
-            ctx->reenter = false;
-        }
-        DYAD_C_FUNCTION_END();
-        return;
-    }
-
-    DYAD_LOG_INFO (ctx, "DYAD Initialized");
-    DYAD_LOG_INFO (ctx, "%s=%s", DYAD_SYNC_DEBUG_ENV, (ctx->debug) ? "true" : "false");
-    DYAD_LOG_INFO (ctx, "%s=%s", DYAD_SYNC_CHECK_ENV, (ctx->check) ? "true" : "false");
-    DYAD_LOG_INFO (ctx, "%s=%u", DYAD_KEY_DEPTH_ENV, ctx->key_depth);
-    DYAD_LOG_INFO (ctx, "%s=%u", DYAD_KEY_BINS_ENV, ctx->key_bins);
+    dyad_ctx_init ();
+    ctx  = ctx_mutable = dyad_ctx_get ();
+    DYAD_LOG_INFO (ctx, "DYAD Wrapper Initialized");
     DYAD_C_FUNCTION_END();
 }
 
 void dyad_wrapper_fini ()
 {
     DYAD_C_FUNCTION_START();
-    if (ctx == NULL) {
-        DYAD_C_FUNCTION_END();
-        goto dyad_wrapper_fini_done;
-    }
-    dyad_finalize (&ctx);
-dyad_wrapper_fini_done:;
+    DYAD_LOG_INFO (ctx, "DYAD Wrapper Finalized");
+    dyad_ctx_fini ();
     DYAD_C_FUNCTION_END();
 #if DYAD_PROFILER == 3
     DLIO_PROFILER_C_FINI();
@@ -177,7 +155,7 @@ DYAD_DLL_EXPORTED int open (const char *path, int oflag, ...)
     }
 
     IPRINTF (ctx, "DYAD_SYNC: enters open sync (\"%s\").", path);
-    if (DYAD_IS_ERROR (dyad_consume (ctx, path))) {
+    if (DYAD_IS_ERROR (dyad_consume (ctx_mutable, path))) {
         DPRINTF (ctx, "DYAD_SYNC: failed open sync (\"%s\").", path);
         goto real_call;
     }
@@ -236,7 +214,7 @@ DYAD_DLL_EXPORTED FILE *fopen (const char *path, const char *mode)
     }
 
     IPRINTF (ctx, "DYAD_SYNC: enters fopen sync (\"%s\").\n", path);
-    if (DYAD_IS_ERROR (dyad_consume (ctx, path))) {
+    if (DYAD_IS_ERROR (dyad_consume (ctx_mutable, path))) {
         DPRINTF (ctx, "DYAD_SYNC: failed fopen sync (\"%s\").\n", path);
         goto real_call;
     }
@@ -343,7 +321,7 @@ real_call:;  // semicolon here to avoid the error
             DPRINTF (ctx, "Failed close (\"%s\").: %s\n", path, strerror (errno));
         }
         IPRINTF (ctx, "DYAD_SYNC: enters close sync (\"%s\").\n", path);
-        if (DYAD_IS_ERROR (dyad_produce (ctx, path))) {
+        if (DYAD_IS_ERROR (dyad_produce (ctx_mutable, path))) {
             DPRINTF (ctx, "DYAD_SYNC: failed close sync (\"%s\").\n", path);
         }
         IPRINTF (ctx, "DYAD_SYNC: exits close sync (\"%s\").\n", path);
@@ -429,7 +407,7 @@ real_call:;
             DPRINTF (ctx, "Failed fclose (\"%s\").\n", path);
         }
         IPRINTF (ctx, "DYAD_SYNC: enters fclose sync (\"%s\").\n", path);
-        if (DYAD_IS_ERROR (dyad_produce (ctx, path))) {
+        if (DYAD_IS_ERROR (dyad_produce (ctx_mutable, path))) {
             DPRINTF (ctx, "DYAD_SYNC: failed fclose sync (\"%s\").\n", path);
         }
         IPRINTF (ctx, "DYAD_SYNC: exits fclose sync (\"%s\").\n", path);

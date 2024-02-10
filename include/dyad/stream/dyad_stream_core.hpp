@@ -53,13 +53,15 @@ class dyad_stream_core
 
     bool chk_fsync_write () const;
     bool cmp_canonical_path_prefix (bool is_prod, const char* const __restrict__ path);
+    std::string get_upath () const;
 
     int file_lock_exclusive(int fd) const;
     int file_lock_shared(int fd) const;
     int file_unlock(int fd) const;
 
    private:
-    dyad_ctx *m_ctx;
+    const dyad_ctx *m_ctx;
+    dyad_ctx *m_ctx_mutable;
     bool m_initialized;
     bool m_is_prod;
     bool m_is_cons;

@@ -7,10 +7,8 @@
 #error "no config"
 #endif
 
-#include <flux/core.h>
 #include <dyad/common/dyad_rc.h>
 #include <dyad/common/dyad_structures.h>
-#include <dyad/common/dyad_dtl.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -23,14 +21,6 @@
 #include <stdlib.h>
 #endif
 
-/*****************************************************************************
- *                                                                           *
- *                          DYAD Macro Definitions                           *
- *                                                                           *
- *****************************************************************************/
-
-// Now defined in src/utils/utils.h
-// #define DYAD_PATH_DELIM    "/"
 
 #ifdef __cplusplus
 extern "C" {
@@ -73,52 +63,6 @@ typedef struct dyad_metadata dyad_metadata_t;
 #define IPRINTF(curr_dyad_ctx, fmt, ...)
 #endif  // DYAD_FULL_DEBUG
 
-/**
- * @brief Intialize the DYAD context
- * @param[in]  debug          true if debugging is enabled
- * @param[in]  check          ???
- * @param[in]  shared_storage indicate if the storage associated
- *                            with the path is shared
- * @param[in]  reinit         force reinitialization
- * @param[in]  async_publish  enable asynchronous publish by producer
- * @param[in]  fsync_write    apply fsync after write by producer
- * @param[in]  key_depth      depth of the key hierarchy for the path
- * @param[in]  key_bins       number of bins used in key hashing
- * @param[in]  service_mux    number of brokers sharing node-local storage
- * @param[in]  kvs_namespace  Flux KVS namespace to be used for this
- *                            instance of DYAD
- * @param[in]  relative_to_managed_path relative path is relative to the managed path
- *                            Which one of the managed path it will be relative to
- *                            depends on the context and it could be either of
- *                            producer or consumer's path. This is only applicable
- *                            when there is only one of each.
- * @param[out] ctx            the newly initialized context
- *
- * @return An error code from dyad_rc.h
- */
-DYAD_DLL_EXPORTED dyad_rc_t dyad_init (bool debug,
-                                       bool check,
-                                       bool shared_storage,
-                                       bool reinit,
-                                       bool async_publish,
-                                       bool fsync_write,
-                                       unsigned int key_depth,
-                                       unsigned int key_bins,
-                                       unsigned int service_mux,
-                                       const char* kvs_namespace,
-                                       const char* prod_managed_path,
-                                       const char* cons_managed_path,
-                                       bool relative_to_managed_path,
-                                       dyad_dtl_mode_t dtl_mode,
-                                       dyad_ctx_t** ctx);
-
-/**
- * @brief Intialize the DYAD context using environment variables
- * @param[out] ctx the newly initialized context
- *
- * @return An error code from dyad_rc.h
- */
-DYAD_DLL_EXPORTED dyad_rc_t dyad_init_env (dyad_ctx_t** ctx);
 
 /**
  * @brief Wrapper function that performs all the common tasks needed
@@ -168,14 +112,6 @@ DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_consume (dyad_ctx_t* ctx, con
  */
 DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t* ctx, const char* fname,
                                                                        const dyad_metadata_t* mdata);
-
-/**
- * @brief Finalizes the DYAD instance and deallocates the context
- * @param[in] ctx  the DYAD context being finalized
- *
- * @return An error code from dyad_rc.h
- */
-DYAD_DLL_EXPORTED dyad_rc_t dyad_finalize (dyad_ctx_t** ctx);
 
 #if DYAD_SYNC_DIR
 DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED int dyad_sync_directory (dyad_ctx_t* ctx, const char* path);

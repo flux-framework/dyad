@@ -1,5 +1,7 @@
 set(DYAD_FSTREAM_SRC ${CMAKE_CURRENT_SOURCE_DIR}/dyad_stream_core.cpp)
 set(DYAD_FSTREAM_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_rc.h
+                                 ${CMAKE_CURRENT_SOURCE_DIR}/../core/dyad_ctx.h
+                                 ${CMAKE_CURRENT_SOURCE_DIR}/../core/dyad_core.h
                                  ${CMAKE_CURRENT_SOURCE_DIR}/../utils/utils.h)
 set(DYAD_FSTREAM_PUBLIC_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dyad/stream/dyad_stream_api.hpp
                                 ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dyad/stream/dyad_params.hpp
@@ -11,7 +13,8 @@ add_library(${PROJECT_NAME}_fstream SHARED ${DYAD_FSTREAM_SRC}
 set_target_properties(${PROJECT_NAME}_fstream PROPERTIES CMAKE_INSTALL_RPATH
                       "${CMAKE_INSTALL_PREFIX}/${DYAD_LIBDIR}")
 target_compile_features(${PROJECT_NAME}_fstream PRIVATE)
-target_link_libraries(${PROJECT_NAME}_fstream PRIVATE ${PROJECT_NAME}_core ${PROJECT_NAME}_utils flux::core)
+target_link_libraries(${PROJECT_NAME}_fstream PRIVATE ${PROJECT_NAME}_ctx ${PROJECT_NAME}_core
+                                                      ${PROJECT_NAME}_utils flux::core)
 
 if (ENABLE_PERFFLOW)
     target_link_libraries(${PROJECT_NAME}_fstream PRIVATE perfflowaspect::perfflowaspect)
