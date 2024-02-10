@@ -1,6 +1,5 @@
 set(DYAD_MODULE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/dyad.c)
-set(DYAD_MODULE_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/../core/dyad_core.h
-                                ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_envs.h
+set(DYAD_MODULE_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_envs.h
                                 ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_dtl.h
                                 ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_rc.h
                                 ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_logging.h
@@ -16,7 +15,7 @@ add_library(${PROJECT_NAME} SHARED ${DYAD_MODULE_SRC}
 set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
 set_target_properties(${PROJECT_NAME} PROPERTIES CMAKE_INSTALL_RPATH
                       "${CMAKE_INSTALL_PREFIX}/${DYAD_LIBDIR}")
-target_link_libraries(${PROJECT_NAME} PRIVATE Jansson::Jansson flux::core)
+target_link_libraries(${PROJECT_NAME} PRIVATE Jansson::Jansson)
 target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_dtl)
 target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_utils)
 target_compile_definitions(${PROJECT_NAME} PUBLIC BUILDING_DYAD=1)

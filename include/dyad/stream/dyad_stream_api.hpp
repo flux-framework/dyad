@@ -28,7 +28,6 @@
 
 #include <dyad/stream/dyad_stream_core.hpp>
 
-#define DYAD_PATH_ENV "DYAD_PATH"
 
 namespace dyad
 {
