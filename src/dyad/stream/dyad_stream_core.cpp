@@ -100,13 +100,13 @@ void dyad_stream_core::init (const bool reinit)
         m_is_prod = false;
     }
 
-    if (reinit || reinit_env) {
-        dyad_rc_t rc = dyad_init_env (&m_ctx);
-        (void) rc;
-    } else
-    if (!m_initialized) {
+    if (reinit || reinit_env ||
+        !(m_ctx = m_ctx_mutable = dyad_ctx_get ()))
+    {
+        dyad_ctx_init ();
         m_ctx = m_ctx_mutable = dyad_ctx_get ();
-    } 
+    }
+
     // TODO figure out if we want to error if init fails
     m_initialized = true;
     log_info ("Stream core is initialized by env variables.");
@@ -129,13 +129,12 @@ void dyad_stream_core::init (const dyad_params &p)
                               p.m_prod_managed_path.c_str (),
                               p.m_cons_managed_path.c_str (),
                               p.m_relative_to_managed_path,
-                              static_cast<dyad_dtl_mode_t> (p.m_dtl_mode),
-                              &m_ctx);
+                              static_cast<dyad_dtl_mode_t> (p.m_dtl_mode));
 #if defined(DYAD_HAS_STD_FSTREAM_FD)
-    m_ctx->use_fs_locks = true;
+    m_ctx_mutable->use_fs_locks = true;
 #else
-    // Rely on the KVS-based synchronization and disable checking for fs lock based logic. 
-    m_ctx->use_fs_locks = false;
+    // Rely on the KVS-based synchronization and disable checking for fs lock based logic.
+    m_ctx_mutable->use_fs_locks = false;
 #endif
     (void) rc;
     // TODO figure out if we want to error if init fails
