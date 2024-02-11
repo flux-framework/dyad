@@ -302,14 +302,18 @@ dyad_rc_t dyad_init (bool debug,
         }
 
         if (!realpath (prod_managed_path, prod_real_path)) {
-            DYAD_LOG_ERROR (ctx, "Could not get Producer real path!\n");
+            DYAD_LOG_DEBUG (ctx, "Could not get Producer real path!\n");
             perror ("Could not get Producer real path!\n");
-            goto init_region_failed;
+            // This is not necessarily an error. This can happen when the environment
+            // variables for both managed paths are set but consumer does not create
+            // the managed path of producer or vice versa. `realpath()' fails if a
+            // path does not exist.
+        } else {
+            prod_realpath_len = strlen (prod_real_path);
         }
-        prod_realpath_len = strlen (prod_real_path);
 
         // If the realpath is the same, we turn off checking against it as it is redundant
-        if (strncmp (prod_managed_path, prod_real_path, prod_path_len) == 0) {
+        if (prod_realpath_len == 0u || strncmp (prod_managed_path, prod_real_path, prod_path_len) == 0) {
             DYAD_LOG_INFO (ctx, "DYAD_CORE: producer real path is redundant");
             ctx->prod_real_path = NULL;
             ctx->prod_real_len  = 0u;
@@ -372,14 +376,18 @@ dyad_rc_t dyad_init (bool debug,
         }
 
         if (!realpath (cons_managed_path, cons_real_path)) {
-            DYAD_LOG_ERROR (ctx, "Could not get Consumer real path!\n");
+            DYAD_LOG_DEBUG (ctx, "Could not get Consumer real path!\n");
             perror ("Could not get Consumer real path!\n");
-            goto init_region_failed;
+            // This is not necessarily an error. This can happen when the environment
+            // variables for both managed paths are set but producer does not create
+            // the managed path of consumer or vice versa. `realpath()' fails if a
+            // path does not exist.
+        } else {
+            cons_realpath_len = strlen (cons_real_path);
         }
-        cons_realpath_len = strlen (cons_real_path);
 
         // If the realpath is the same, we turn off checking against it as it is redundant
-        if (strncmp (cons_managed_path, cons_real_path, cons_path_len) == 0) {
+        if (cons_realpath_len == 0ul || strncmp (cons_managed_path, cons_real_path, cons_path_len) == 0) {
             DYAD_LOG_INFO (ctx, "DYAD_CORE: consumer real path is redundant");
             ctx->cons_real_path = NULL;
             ctx->cons_real_len  = 0u;
