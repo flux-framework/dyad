@@ -277,7 +277,7 @@ jobs:
       - name: Test DYAD with separate FS c
         timeout-minutes: 1
         run: |
-          mkdir -p $DYAD_PATH
+          mkdir -m 775 -p $DYAD_PATH
           . ${SPACK_DIR}/share/spack/setup-env.sh
           export PATH=${PATH}:${DYAD_INSTALL_PREFIX}/bin:${DYAD_INSTALL_PREFIX}/sbin
           export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${DYAD_INSTALL_PREFIX}/lib
@@ -286,7 +286,7 @@ jobs:
       - name: Test DYAD with separate FS cpp
         timeout-minutes: 1
         run: |
-          mkdir -p $DYAD_PATH
+          mkdir -m 775 -p $DYAD_PATH
           . ${SPACK_DIR}/share/spack/setup-env.sh
           export PATH=${PATH}:${DYAD_INSTALL_PREFIX}/bin:${DYAD_INSTALL_PREFIX}/sbin
           export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${DYAD_INSTALL_PREFIX}/lib
@@ -295,7 +295,7 @@ jobs:
       - name: Test DYAD with separate FS python
         timeout-minutes: 1
         run: |
-          mkdir -p $DYAD_PATH
+          mkdir -m 775 -p $DYAD_PATH
           source ${DYAD_INSTALL_PREFIX}/bin/activate
           . ${SPACK_DIR}/share/spack/setup-env.sh
           export PATH=${PATH}:${DYAD_INSTALL_PREFIX}/bin:${DYAD_INSTALL_PREFIX}/sbin
@@ -305,7 +305,7 @@ jobs:
       - name: Test DYAD with DLIO benchmark
         timeout-minutes: 10
         run: |
-          mkdir -p $DYAD_PATH
+          mkdir -m 775 -p $DYAD_PATH
           source ${DYAD_INSTALL_PREFIX}/bin/activate
           . ${SPACK_DIR}/share/spack/setup-env.sh
           export PATH=${PATH}:${DYAD_INSTALL_PREFIX}/bin:${DYAD_INSTALL_PREFIX}/sbin
