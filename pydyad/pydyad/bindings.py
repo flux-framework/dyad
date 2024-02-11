@@ -119,8 +119,6 @@ class Dyad:
         if self.dyad_ctx_lib is None:
             raise FileNotFoundError("Cannot find libdyad_ctx")
 
-        self.ctx = ctypes.POINTER(DyadCtxWrapper)()
-
         self.dyad_ctx_init = self.dyad_ctx_lib.dyad_ctx_init
         self.dyad_ctx_init.argtypes = [
         ]
