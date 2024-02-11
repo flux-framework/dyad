@@ -303,37 +303,24 @@ kvs_read_end:;
 
 
 
-DYAD_CORE_FUNC_MODS dyad_rc_t dyad_fetch_metadata (dyad_ctx_t* restrict ctx,
+DYAD_CORE_FUNC_MODS dyad_rc_t dyad_fetch_metadata (const dyad_ctx_t* restrict ctx,
                                                    const char* restrict fname,
+                                                   const char* restrict upath,
                                                    dyad_metadata_t** restrict mdata)
 {
     DYAD_C_FUNCTION_START();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", fname);
     dyad_rc_t rc = DYAD_RC_OK;
-    char upath[PATH_MAX+1] = {'\0'};
     const size_t topic_len = PATH_MAX;
     char topic[PATH_MAX+1] = {'\0'};
     *mdata = NULL;
 #if 0
-    if (fname == NULL || strlen (fname) > PATH_MAX) {
-        rc = DYAD_RC_SYSFAIL;
+    if (fname == NULL || upath == NULL || strlen (fname) == 0ul || strlen (upath) == 0ul) {
+        rc = DYAD_RC_BADFIO;
         goto get_metadata_done;
     }
 #endif
-    if (ctx->relative_to_managed_path && (strlen (fname) > 0ul) &&
-        (strncmp (fname, DYAD_PATH_DELIM, ctx->delim_len) != 0))
-    {   // fname is a relative path that is relative to the cons_managed_path
-        memcpy (upath, fname, strlen (fname));
-    } else if (!cmp_canonical_path_prefix (ctx, false, fname, upath, PATH_MAX)) {
-        // Extract the path to the file specified by fname relative to the
-        // consumer-managed path
-        // This relative path will be stored in upath
-        DYAD_LOG_INFO (ctx, "%s is not in the Consumer's managed path\n", fname);
-        rc = DYAD_RC_OK;
-        goto fetch_done;
-    }
     // Set reenter to false to avoid recursively performing DYAD operations
-    ctx->reenter = false;
     DYAD_LOG_INFO (ctx, "Obtained file path relative to consumer directory: %s\n", upath);
     DYAD_C_FUNCTION_UPDATE_STR ("upath", upath);
     // Generate the KVS key from the file path relative to
@@ -557,10 +544,9 @@ produce_done:;
     return rc;
 }
 
-// DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_lookup (const dyad_ctx_t* ctx,
-//                                                const char* restrict kvs_topic,
-//                                                uint32_t* owner_rank,
-//                                                flux_future_t** f)
+/** This function is coupled with Python API. This populates `mdata' which
+ * is used by `dyad_consume_w_metadata ()'
+ */
 dyad_rc_t dyad_get_metadata (dyad_ctx_t* restrict ctx,
                              const char* restrict fname,
                              bool should_wait,
@@ -578,6 +564,31 @@ dyad_rc_t dyad_get_metadata (dyad_ctx_t* restrict ctx,
     }
 #endif
     const size_t fname_len = strlen (fname);
+    char upath[PATH_MAX+1] = {'\0'};
+
+    DYAD_LOG_INFO (ctx, "Obtaining file path relative to consumer directory: %s", upath);
+
+    if (fname_len == 0ul) {
+        rc = DYAD_RC_BADFIO;
+        goto get_metadata_done;
+    }
+    if (ctx->relative_to_managed_path &&
+        (strncmp (fname, DYAD_PATH_DELIM, ctx->delim_len) != 0))
+    {   // fname is a relative path that is relative to the cons_managed_path
+        memcpy (upath, fname, fname_len);
+    } else if (!cmp_canonical_path_prefix (ctx, false, fname, upath, PATH_MAX)) {
+        // Extract the path to the file specified by fname relative to the
+        // producer-managed path
+        // This relative path will be stored in upath
+        DYAD_LOG_INFO (ctx, "%s is not in the Consumer's managed path\n", fname);
+        // NOTE: This is different from what dyad_fetch/commit returns,
+        // which is DYAD_RC_OK such that dyad does not interfere accesses on
+        // non-managed directories.
+        rc = DYAD_RC_UNTRACKED;
+        goto get_metadata_done;
+    }
+    ctx->reenter = false;
+    DYAD_C_FUNCTION_UPDATE_STR ("upath", upath);
 
     // check if file exist locally, if so skip kvs
     int fd = open (fname, O_RDONLY);
@@ -614,25 +625,6 @@ dyad_rc_t dyad_get_metadata (dyad_ctx_t* restrict ctx,
 
     const size_t topic_len = PATH_MAX;
     char topic[PATH_MAX+1] = {'\0'};
-    char upath[PATH_MAX+1] = {'\0'};
-    DYAD_LOG_INFO (ctx, "Obtaining file path relative to consumer directory: %s", upath);
-
-    if (ctx->relative_to_managed_path && (strlen (fname) > 0ul) &&
-        (strncmp (fname, DYAD_PATH_DELIM, ctx->delim_len) != 0))
-    {   // fname is a relative path that is relative to the cons_managed_path
-        memcpy (upath, fname, fname_len);
-    } else if (!cmp_canonical_path_prefix (ctx, false, fname, upath, PATH_MAX)) {
-        // Extract the path to the file specified by fname relative to the
-        // producer-managed path
-        // This relative path will be stored in upath
-        DYAD_LOG_INFO (ctx, "%s is not in the Consumer's managed path\n", fname);
-        // NOTE: This is different from what dyad_fetch/commit returns,
-        // which is DYAD_RC_OK such that dyad does not interfere accesses on
-        // non-managed directories.
-        rc = DYAD_RC_UNTRACKED;
-        goto get_metadata_done;
-    }
-    DYAD_C_FUNCTION_UPDATE_STR ("upath", upath);
     DYAD_LOG_INFO (ctx, "Generating KVS key: %s", topic);
     gen_path_key (upath, topic, topic_len, ctx->key_depth, ctx->key_bins);
     rc = dyad_kvs_read (ctx, topic, upath, should_wait, mdata);
@@ -646,6 +638,7 @@ get_metadata_done:;
     if (DYAD_IS_ERROR (rc) && mdata != NULL && *mdata != NULL) {
         dyad_free_metadata (mdata);
     }
+    ctx->reenter = true;
     DYAD_C_FUNCTION_END();
     return rc;
 }
@@ -675,6 +668,8 @@ dyad_rc_t dyad_consume (dyad_ctx_t* restrict ctx, const char* restrict fname)
     size_t data_len = 0ul;
     dyad_metadata_t* mdata = NULL;
     struct flock exclusive_lock;
+    char upath[PATH_MAX+1] = {'\0'};
+
     // If the context is not defined, then it is not valid.
     // So, return DYAD_NOCTX
     if (!ctx || !ctx->h) {
@@ -687,8 +682,24 @@ dyad_rc_t dyad_consume (dyad_ctx_t* restrict ctx, const char* restrict fname)
         rc = DYAD_RC_BADMANAGEDPATH;
         goto consume_close;
     }
+
+    if (ctx->relative_to_managed_path && (strlen (fname) > 0ul) &&
+        (strncmp (fname, DYAD_PATH_DELIM, ctx->delim_len) != 0))
+    {   // fname is a relative path that is relative to the cons_managed_path
+        memcpy (upath, fname, strlen (fname));
+    } else if (!cmp_canonical_path_prefix (ctx, false, fname, upath, PATH_MAX)) {
+        // Extract the path to the file specified by fname relative to the
+        // consumer-managed path
+        // This relative path will be stored in upath
+        DYAD_LOG_INFO (ctx, "%s is not in the Consumer's managed path\n", fname);
+        rc = DYAD_RC_OK;
+        goto consume_close;
+    }
+    ctx->reenter = false;
+
     lock_fd = open (fname, O_RDWR | O_CREAT, 0666);
     if (lock_fd == -1) {
+        // This could be a system file on which users have no write permission
         DYAD_LOG_ERROR (ctx, "Cannot create file (%s) for dyad_consume!\n", fname);
         rc = DYAD_RC_BADFIO;
         goto consume_close;
@@ -705,7 +716,7 @@ dyad_rc_t dyad_consume (dyad_ctx_t* restrict ctx, const char* restrict fname)
             // as file size was zero that means consumer won the lock first so has to wait for kvs.
             // or we cannot use file lock based synchronization as it does not work with the
             // files managed by c++ fstream.
-            rc = dyad_fetch_metadata (ctx, fname, &mdata);
+            rc = dyad_fetch_metadata (ctx, fname, upath, &mdata);
             if (DYAD_IS_ERROR (rc)) {
                 DYAD_LOG_ERROR (ctx, "dyad_fetch_metadata failed fore shared storage!\n");
                 goto consume_done;
@@ -717,7 +728,7 @@ dyad_rc_t dyad_consume (dyad_ctx_t* restrict ctx, const char* restrict fname)
                            ctx->node_idx, ctx->rank, ctx->pid, fname, lock_fd);
             // Call dyad_fetch to get (and possibly wait on)
             // data from the Flux KVS
-            rc = dyad_fetch_metadata (ctx, fname, &mdata);
+            rc = dyad_fetch_metadata (ctx, fname, upath, &mdata);
             // If an error occured in dyad_fetch_metadata, log an error
             // and return the corresponding DYAD return code
             if (DYAD_IS_ERROR (rc)) {
@@ -784,7 +795,7 @@ consume_done:;
         ctx->dtl_handle->return_buffer (ctx, (void**)&file_data);
     }
     // Set reenter to true to allow additional intercepting
-consume_close:;    
+consume_close:;
     ctx->reenter = true;
     DYAD_C_FUNCTION_END();
     return rc;
