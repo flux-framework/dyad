@@ -580,7 +580,7 @@ dyad_rc_t dyad_get_metadata (dyad_ctx_t* restrict ctx,
         // Extract the path to the file specified by fname relative to the
         // producer-managed path
         // This relative path will be stored in upath
-        DYAD_LOG_INFO (ctx, "%s is not in the Consumer's managed path\n", fname);
+        //DYAD_LOG_TRACE (ctx, "%s is not in the Consumer's managed path\n", fname);
         // NOTE: This is different from what dyad_fetch/commit returns,
         // which is DYAD_RC_OK such that dyad does not interfere accesses on
         // non-managed directories.
@@ -691,7 +691,7 @@ dyad_rc_t dyad_consume (dyad_ctx_t* restrict ctx, const char* restrict fname)
         // Extract the path to the file specified by fname relative to the
         // consumer-managed path
         // This relative path will be stored in upath
-        DYAD_LOG_INFO (ctx, "%s is not in the Consumer's managed path\n", fname);
+        //DYAD_LOG_TRACE (ctx, "%s is not in the Consumer's managed path\n", fname);
         rc = DYAD_RC_OK;
         goto consume_close;
     }

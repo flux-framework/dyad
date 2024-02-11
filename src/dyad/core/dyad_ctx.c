@@ -26,6 +26,8 @@
 #include <string.h>
 #endif
 
+#include <errno.h>
+
 
 // Note:
 // To ensure we don't have multiple initialization, we need the following:
@@ -301,6 +303,7 @@ dyad_rc_t dyad_init (bool debug,
 
         if (!realpath (prod_managed_path, prod_real_path)) {
             DYAD_LOG_ERROR (ctx, "Could not get Producer real path!\n");
+            perror ("Could not get Producer real path!\n");
             goto init_region_failed;
         }
         prod_realpath_len = strlen (prod_real_path);
@@ -370,6 +373,7 @@ dyad_rc_t dyad_init (bool debug,
 
         if (!realpath (cons_managed_path, cons_real_path)) {
             DYAD_LOG_ERROR (ctx, "Could not get Consumer real path!\n");
+            perror ("Could not get Consumer real path!\n");
             goto init_region_failed;
         }
         cons_realpath_len = strlen (cons_real_path);
