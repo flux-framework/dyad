@@ -15,6 +15,8 @@
 #include <string.h>
 #include <unistd.h>
 #include <inttypes.h>
+#include <time.h>
+
 extern const base64_maps_t base64_maps_rfc4648;
 
 #define UCX_MAX_TRANSFER_SIZE (1024 * 1024 * 1024)
@@ -409,7 +411,7 @@ static inline ucs_status_ptr_t ucx_recv_no_wait (const dyad_ctx_t* ctx,
     do {
         memcpy (&temp, dtl_handle->net_buf, sizeof(temp));
         ucp_worker_progress(ctx->dtl_handle->private_dtl.ucx_dtl_handle->ucx_worker);
-        usleep(10);
+        nanosleep((const struct timespec[]){{0, 10000L}}, NULL);
         DYAD_LOG_DEBUG (ctx, "Consumer Waiting for worker to finsih all work");
     } while (temp == 0);
 #endif
