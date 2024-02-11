@@ -105,11 +105,13 @@ void dyad_stream_core::init (const bool reinit)
     {
         dyad_ctx_init ();
         m_ctx = m_ctx_mutable = dyad_ctx_get ();
+        log_info ("Stream core is initialized by env variables.");
+    } else {
+        log_info ("Steam core skips initialization as it has already been initialized.");
     }
 
     // TODO figure out if we want to error if init fails
     m_initialized = true;
-    log_info ("Stream core is initialized by env variables.");
 }
 
 void dyad_stream_core::init (const dyad_params &p)
