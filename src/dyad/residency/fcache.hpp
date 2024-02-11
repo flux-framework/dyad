@@ -119,6 +119,38 @@ class Set_LRU
 
 std::ostream& operator<<(std::ostream& os, const Set_LRU & sl);
 
+class Set_MRU : public Set_LRU
+{
+  protected:
+    using Set_LRU::id;
+    using Set_LRU::priority;
+    using Set_LRU::LRU_Blocks;
+    using Set_LRU::id_idx_t;
+    using Set_LRU::id_iterator_t;
+    using Set_LRU::id_citerator_t;
+    using Set_LRU::priority_idx_t;
+    using Set_LRU::priority_iterator_t;
+    using Set_LRU::priority_citerator_t;
+    using Set_LRU::m_block_set;
+
+    using Set_LRU::lookup;
+    using Set_LRU::access;
+    using Set_LRU::load_and_access;
+    using Set_LRU::get_priority;
+
+    virtual void evict (void) override;
+
+  public:
+    Set_MRU (unsigned int sz, unsigned int n_sets, unsigned int id)
+    : Set_LRU (sz, n_sets, id) {}
+    virtual ~Set_MRU () override {}
+    virtual bool access (const std::string& fname) override;
+
+    using Set_LRU::print;
+};
+
+std::ostream& operator<<(std::ostream& os, const Set_MRU & sm);
+
 
 class Set_Prioritized : public Set_LRU
 {
@@ -152,17 +184,17 @@ class Set_Prioritized : public Set_LRU
     Prio_Blocks m_block_set;
 
     virtual bool lookup (const std::string& fname, id_iterator_t &it);
-    virtual void evict (void);
+    virtual void evict (void) override;
     virtual void access (id_iterator_t &it);
-    virtual void load_and_access (const std::string& fname);
-    virtual unsigned int get_priority ();
+    virtual void load_and_access (const std::string& fname) override;
+    virtual unsigned int get_priority () override;
 
   public:
     Set_Prioritized (unsigned int sz, unsigned int n_sets, unsigned int id)
     : Set_LRU (sz, n_sets, id) {}
-    virtual ~Set_Prioritized () {}
-    virtual bool access (const std::string& fname);
-    virtual std::ostream& print (std::ostream &os) const;
+    virtual ~Set_Prioritized () override {}
+    virtual bool access (const std::string& fname) override;
+    virtual std::ostream& print (std::ostream &os) const override;
 };
 
 std::ostream& operator<<(std::ostream& os, const Set_Prioritized & sp);

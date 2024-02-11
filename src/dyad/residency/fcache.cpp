@@ -11,6 +11,7 @@ namespace dyad_residency {
 //                          Associative Cache Set
 //=============================================================================
 
+// -------------------------- LRU ------------------------
 bool Set_LRU::lookup (const std::string& fname, id_iterator_t &it)
 {
     id_idx_t& index_id = boost::multi_index::get<id> (m_block_set);
@@ -22,10 +23,12 @@ void Set_LRU::evict (void)
 { // LRU
     if (m_block_set.size () == 0) return;
     priority_idx_t& index_priority = boost::multi_index::get<priority> (m_block_set);
-    priority_iterator_t it = index_priority.begin ();
-    DYAD_LOG_INFO (NULL, "    %s evicts %s from set %u\n", \
-                   m_level.c_str (), it->m_id.c_str (), m_id);
-    index_priority.erase (it);
+    if (!index_priority.empty ()) {
+        priority_iterator_t it = index_priority.begin ();
+        DYAD_LOG_INFO (NULL, "    %s evicts %s from set %u\n", \
+                       m_level.c_str (), it->m_id.c_str (), m_id);
+        index_priority.erase (it);
+    }
 }
 
 void Set_LRU::load_and_access (const std::string& fname)
@@ -91,8 +94,32 @@ std::ostream& operator<<(std::ostream& os, const Set_LRU & cc)
     return cc.print (os);
 }
 
+// -------------------------- MRU ------------------------
+void Set_MRU::evict (void)
+{ // MRU
+    if (m_block_set.size () == 0) return;
+    priority_idx_t& index_priority = boost::multi_index::get<priority> (m_block_set);
+    if (!index_priority.empty ()) {
+        auto it = index_priority.end (); --it;
+        DYAD_LOG_INFO (NULL, "    %s evicts %s from set %u\n", \
+                       m_level.c_str (), it->m_id.c_str (), m_id);
+        index_priority.erase (it);
+    }
+}
+
+bool Set_MRU::access (const std::string& fname)
+{
+    return Set_LRU::access (fname);
+}
+
+std::ostream& operator<<(std::ostream& os, const Set_MRU & cc)
+{
+    return cc.print (os);
+}
 
 
+
+// -------------------------- Prioritied ------------------------
 bool Set_Prioritized::lookup (const std::string& fname, id_iterator_t &it)
 {
     id_idx_t& index_id = boost::multi_index::get<id> (m_block_set);
@@ -168,6 +195,11 @@ std::ostream& Set_Prioritized::print (std::ostream &os) const
         os << it->m_priority << ", " << it->m_id << std::endl;
     }
     return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const Set_Prioritized& cc)
+{
+    return cc.print (os);
 }
 
 } // end of namespace dyad_residency

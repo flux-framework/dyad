@@ -76,8 +76,8 @@ template <typename Set>
 bool Cache<Set>::access (const std::string& fname)
 {
     //const unsigned int set_id  = 0u;
-    //const unsigned int set_id = std::stoi (fname) % m_num_sets;
-    const unsigned int set_id = get_cache_set_id (fname);
+    const unsigned int set_id = std::stoi (fname) % m_num_sets;
+    //const unsigned int set_id = get_cache_set_id (fname);
 
     return m_set[set_id].access (fname);
 }
