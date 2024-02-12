@@ -17,8 +17,8 @@ elif [[ "$mode" == "${valid_modes[1]}" ]]; then
     echo ${GITHUB_WORKSPACE}/docs/demos/ecp_feb_2023/cpp_prod 10 $DYAD_PATH_PRODUCER
     ${GITHUB_WORKSPACE}/docs/demos/ecp_feb_2023/cpp_prod 10 $DYAD_PATH_PRODUCER
 elif [[ "$mode" == "${valid_modes[2]}" ]]; then
-    echo python3 ${GITHUB_WORKSPACE}/tests/pydyad_spsc/consumer.py $DYAD_PATH_PRODUCER 10 50
-    python3 ${GITHUB_WORKSPACE}/tests/pydyad_spsc/consumer.py $DYAD_PATH_PRODUCER 10 50
+    echo python3 ${GITHUB_WORKSPACE}/tests/pydyad_spsc/producer.py $DYAD_PATH_PRODUCER 10 50
+    python3 ${GITHUB_WORKSPACE}/tests/pydyad_spsc/producer.py $DYAD_PATH_PRODUCER 10 50
 else
     echo "Invalid prod test mode: $mode"
     exit 1

@@ -54,7 +54,7 @@ flux kvs namespace create ${DYAD_KVS_NAMESPACE}
 #### between the producer and the consumer on a shared storage
 
 cmd_cons="(rm -rf ${DYAD_PATH_CONSUMER}; \
-           mkdir -p ${DYAD_PATH_CONSUMER}; \
+           mkdir -m 755 -p ${DYAD_PATH_CONSUMER}; \
            python3 consumer.py ${DYAD_PATH_CONSUMER} ${NUM_FILES} ${NUM_INTS})"
 
 flux submit -N 1 --tasks-per-node=1 --exclusive \
@@ -66,7 +66,7 @@ flux submit -N 1 --tasks-per-node=1 --exclusive \
     bash -c "${cmd_cons}"
 
 cmd_prod="(rm -rf ${DYAD_PATH_PRODUCER}; \
-           mkdir -p ${DYAD_PATH_PRODUCER}; \
+           mkdir -m 755 -p ${DYAD_PATH_PRODUCER}; \
            flux module load ${DYAD_INSTALL_LIBDIR}/dyad.so --mode=${DYAD_DTL_MODE} ${DYAD_PATH_PRODUCER}; \
            flux getattr rank > prod_rank.txt; \
            python3 producer.py ${DYAD_PATH_PRODUCER} ${NUM_FILES} ${NUM_INTS})"

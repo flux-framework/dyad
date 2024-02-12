@@ -4,9 +4,9 @@
 #error "no config"
 #endif
 
+#include <dyad/dtl/ucx_ep_cache.h>
 #include <dyad/common/dyad_profiler.h>
 #include <dyad/common/dyad_logging.h>
-#include <dyad/dtl/ucx_ep_cache.h>
 #include <dyad/common/dyad_structures.h>
 
 #include <functional>
@@ -17,10 +17,11 @@
 using key_type = uint64_t;
 using cache_type = std::unordered_map<key_type, ucp_ep_h>;
 
-static void dyad_ucx_ep_err_handler (void* arg, ucp_ep_h ep, ucs_status_t status)
+static void __attribute__((unused))
+dyad_ucx_ep_err_handler (void* arg, ucp_ep_h ep, ucs_status_t status)
 {
     DYAD_C_FUNCTION_START();
-    dyad_ctx_t *ctx = (dyad_ctx_t*)arg;
+    dyad_ctx_t __attribute__((unused)) *ctx = (dyad_ctx_t*)arg;
     DYAD_LOG_ERROR (ctx, "An error occured on the UCP endpoint (status = %d)", status);
     DYAD_C_FUNCTION_END();
 }

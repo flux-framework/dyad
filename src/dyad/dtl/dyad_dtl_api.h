@@ -29,7 +29,7 @@ struct dyad_dtl_flux;
 union dyad_dtl_private {
     struct dyad_dtl_ucx* ucx_dtl_handle;
     struct dyad_dtl_flux* flux_dtl_handle;
-};
+} __attribute__((aligned(16)));
 typedef union dyad_dtl_private dyad_dtl_private_t;
 
 enum dyad_dtl_comm_mode {
@@ -57,7 +57,7 @@ struct dyad_dtl {
     dyad_rc_t (*send) (const dyad_ctx_t* ctx, void* buf, size_t buflen);
     dyad_rc_t (*recv) (const dyad_ctx_t* ctx, void** buf, size_t* buflen);
     dyad_rc_t (*close_connection) (const dyad_ctx_t* ctx);
-};
+} __attribute__((aligned(256)));
 typedef struct dyad_dtl dyad_dtl_t;
 
 dyad_rc_t dyad_dtl_init (dyad_ctx_t* ctx,

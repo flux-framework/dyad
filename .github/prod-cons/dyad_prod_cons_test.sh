@@ -30,5 +30,5 @@ flux job attach $PROD_PID
 flux job attach $CONS_PID
 
 flux kvs namespace remove ${DYAD_KVS_NAMESPACE}
-flux exec -r all flux module remove dyad
+flux exec -r all flux module remove dyad 2> /dev/null
 flux exec -r all rm -rf ${DYAD_PATH_CONSUMER} ${DYAD_PATH_PRODUCER}

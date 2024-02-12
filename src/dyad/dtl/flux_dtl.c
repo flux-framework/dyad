@@ -7,6 +7,7 @@
 #include <dyad/dtl/flux_dtl.h>
 #include <dyad/common/dyad_logging.h>
 #include <dyad/common/dyad_profiler.h>
+#include <unistd.h> // getpagesize
 
 dyad_rc_t dyad_dtl_flux_init (const dyad_ctx_t* ctx,
                               dyad_dtl_mode_t mode,
@@ -21,7 +22,7 @@ dyad_rc_t dyad_dtl_flux_init (const dyad_ctx_t* ctx,
         rc = DYAD_RC_SYSFAIL;
         goto dtl_flux_init_region_finish;
     }
-    ctx->dtl_handle->private_dtl.flux_dtl_handle->h = ctx->h;
+    ctx->dtl_handle->private_dtl.flux_dtl_handle->h = (flux_t*) ctx->h;
     ctx->dtl_handle->private_dtl.flux_dtl_handle->comm_mode = comm_mode;
     ctx->dtl_handle->private_dtl.flux_dtl_handle->debug = debug;
     ctx->dtl_handle->private_dtl.flux_dtl_handle->f = NULL;
@@ -103,15 +104,24 @@ dyad_rc_t dyad_dtl_flux_get_buffer (const dyad_ctx_t* ctx, size_t data_size, voi
 {
     DYAD_C_FUNCTION_START();
     dyad_rc_t rc = DYAD_RC_OK;
+
     if (data_buf == NULL || *data_buf != NULL) {
         rc = DYAD_RC_BADBUF;
         goto flux_get_buf_done;
     }
+#if 0
     *data_buf = malloc (data_size);
     if (*data_buf == NULL) {
         rc = DYAD_RC_SYSFAIL;
         goto flux_get_buf_done;
     }
+#else
+    rc = posix_memalign (data_buf, sysconf(_SC_PAGESIZE), data_size);
+    if (rc != 0 || *data_buf == NULL) {
+        rc = DYAD_RC_SYSFAIL;
+        goto flux_get_buf_done;
+    }
+#endif
     rc = DYAD_RC_OK;
 
 flux_get_buf_done:
@@ -186,7 +196,7 @@ dyad_rc_t dyad_dtl_flux_recv (const dyad_ctx_t* ctx, void** buf, size_t* buflen)
         goto finish_recv;
     }
     void* tmp_buf;
-    size_t tmp_buflen;
+    int tmp_buflen = 0;
     rc = flux_rpc_get_raw (dtl_handle->f, (const void**)&tmp_buf, (int*)&tmp_buflen);
     if (FLUX_IS_ERROR (rc)) {
         DYAD_LOG_ERROR (ctx, "Could not get file data from Flux RPC");
@@ -196,18 +206,18 @@ dyad_rc_t dyad_dtl_flux_recv (const dyad_ctx_t* ctx, void** buf, size_t* buflen)
             dyad_rc = DYAD_RC_BADRPC;
         goto finish_recv;
     }
-    *buflen = tmp_buflen;
+    *buflen = (size_t) tmp_buflen;
     dyad_rc = ctx->dtl_handle->get_buffer (ctx, *buflen, buf);
     if (DYAD_IS_ERROR (dyad_rc)) {
         *buf = NULL;
         *buflen = 0;
         goto finish_recv;
     }
-    memcpy (*buf, tmp_buf, tmp_buflen);
+    memcpy (*buf, tmp_buf, *buflen);
     dyad_rc = DYAD_RC_OK;
 finish_recv:
    if (dtl_handle->f != NULL)
-        flux_future_reset (dtl_handle->f);
+        flux_future_destroy (dtl_handle->f);
     DYAD_C_FUNCTION_UPDATE_INT ("tmp_buflen", tmp_buflen);
     DYAD_C_FUNCTION_END();
     return dyad_rc;

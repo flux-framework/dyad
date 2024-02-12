@@ -23,6 +23,17 @@ class DyadCtxWrapper(ctypes.Structure):
         ("dtl_handle", ctypes.POINTER(DyadDTLHandle)),
         ("fname", ctypes.c_char_p),
         ("use_fs_locks", ctypes.c_bool),
+        ("prod_real_path", ctypes.c_char_p),
+        ("cons_real_path", ctypes.c_char_p),
+        ("prod_managed_len", ctypes.c_uint32),
+        ("cons_managed_len", ctypes.c_uint32),
+        ("prod_real_len", ctypes.c_uint32),
+        ("cons_real_len", ctypes.c_uint32),
+        ("prod_managed_hash", ctypes.c_uint32),
+        ("cons_managed_hash", ctypes.c_uint32),
+        ("prod_real_hash", ctypes.c_uint32),
+        ("cons_real_hash", ctypes.c_uint32),
+        ("delim_len", ctypes.c_uint32),
         ("debug", ctypes.c_bool),
         ("check", ctypes.c_bool),
         ("reenter", ctypes.c_bool),
@@ -39,6 +50,7 @@ class DyadCtxWrapper(ctypes.Structure):
         ("kvs_namespace", ctypes.c_char_p),
         ("prod_managed_path", ctypes.c_char_p),
         ("cons_managed_path", ctypes.c_char_p),
+        ("relative_to_managed_path", ctypes.c_bool),
     ]
 
 
@@ -80,6 +92,7 @@ class Dyad:
     def __init__(self):
         self.initialized = False
         self.dyad_core_lib = None
+        self.dyad_ctx_lib = None
         self.ctx = None
         self.dyad_init = None
         self.dyad_init_env = None
@@ -88,17 +101,35 @@ class Dyad:
         self.dyad_consume_w_metadata = None
         self.dyad_finalize = None
         dyad_core_lib_file = None
+        dyad_ctx_lib_file = None
         self.cons_path = None
         self.prod_path = None
+
         dyad_core_lib_file = find_library("dyad_core")
         if dyad_core_lib_file is None:
             raise FileNotFoundError("Cannot find libdyad_core.so using 'ctypes'")
         self.dyad_core_lib = ctypes.CDLL(dyad_core_lib_file)
         if self.dyad_core_lib is None:
             raise FileNotFoundError("Cannot find libdyad_core")
-        self.ctx = ctypes.POINTER(DyadCtxWrapper)()
 
-        self.dyad_init = self.dyad_core_lib.dyad_init
+        dyad_ctx_lib_file = find_library("dyad_ctx")
+        if dyad_ctx_lib_file is None:
+            raise FileNotFoundError("Cannot find libdyad_ctx.so using 'ctypes'")
+        self.dyad_ctx_lib = ctypes.CDLL(dyad_ctx_lib_file)
+        if self.dyad_ctx_lib is None:
+            raise FileNotFoundError("Cannot find libdyad_ctx")
+
+        self.dyad_ctx_init = self.dyad_ctx_lib.dyad_ctx_init
+        self.dyad_ctx_init.argtypes = [
+        ]
+        self.dyad_ctx_init.restype = None
+
+        self.dyad_ctx_get = self.dyad_ctx_lib.dyad_ctx_get
+        self.dyad_ctx_get.argtypes = [
+        ]
+        self.dyad_ctx_get.restype = ctypes.POINTER(DyadCtxWrapper)
+
+        self.dyad_init = self.dyad_ctx_lib.dyad_init
         self.dyad_init.argtypes = [
             ctypes.c_bool,                                   # debug
             ctypes.c_bool,                                   # check
@@ -112,14 +143,13 @@ class Dyad:
             ctypes.c_char_p,                                 # kvs_namespace
             ctypes.c_char_p,                                 # prod_managed_path
             ctypes.c_char_p,                                 # cons_managed_path
+            ctypes.c_bool,                                   # relative_to_managed_path
             ctypes.c_int,                                    # dtl_mode
-            ctypes.POINTER(ctypes.POINTER(DyadCtxWrapper)),  # ctx
         ]
         self.dyad_init.restype = ctypes.c_int
 
-        self.dyad_init_env = self.dyad_core_lib.dyad_init_env
+        self.dyad_init_env = self.dyad_ctx_lib.dyad_init_env
         self.dyad_init_env.argtypes = [
-            ctypes.POINTER(ctypes.POINTER(DyadCtxWrapper))
         ]
         self.dyad_init_env.restype = ctypes.c_int
 
@@ -160,9 +190,8 @@ class Dyad:
         ]
         self.dyad_consume_w_metadata.restype = ctypes.c_int
 
-        self.dyad_finalize = self.dyad_core_lib.dyad_finalize
+        self.dyad_finalize = self.dyad_ctx_lib.dyad_finalize
         self.dyad_finalize.argtypes = [
-            ctypes.POINTER(ctypes.POINTER(DyadCtxWrapper)),
         ]
         self.dyad_finalize.restype = ctypes.c_int
 
@@ -185,12 +214,13 @@ class Dyad:
         kvs_namespace=None,
         prod_managed_path=None,
         cons_managed_path=None,
+        relative_to_managed_path=False,
         dtl_mode=DTLMode.DYAD_DTL_FLUX_RPC,
     ):
         self.log_inst = dlio_logger.initialize_log(logfile=None, data_dir=None, process_id=-1)
         if self.dyad_init is None:
             warnings.warn(
-                "Trying to initialize DYAD when libdyad_core.so was not found",
+                "Trying to initialize DYAD when libdyad_ctx.so was not found",
                 RuntimeWarning
             )
             return
@@ -207,9 +237,11 @@ class Dyad:
             kvs_namespace.encode() if kvs_namespace is not None else None,
             prod_managed_path.encode() if prod_managed_path is not None else None,
             cons_managed_path.encode() if cons_managed_path is not None else None,
+            ctypes.c_bool(relative_to_managed_path),
             ctypes.c_int(dtl_mode),
-            ctypes.byref(self.ctx),
         )
+        self.ctx = self.dyad_ctx_get()
+
         if int(res) != 0:
             raise RuntimeError("Could not initialize DYAD!")
         if self.ctx.contents.prod_managed_path is None:
@@ -226,13 +258,13 @@ class Dyad:
     def init_env(self):
         if self.dyad_init_env is None:
             warnings.warn(
-                "Trying to initialize DYAD when libdyad_core.so was not found",
+                "Trying to initialize DYAD when libdyad_ctx.so was not found",
                 RuntimeWarning
             )
             return
         res = self.dyad_init_env(
-            ctypes.byref(self.ctx)
         )
+        self.ctx = self.dyad_ctx_get()
         if int(res) != 0:
             raise RuntimeError("Could not initialize DYAD with environment variables")
         if self.ctx.contents.prod_managed_path is None:
@@ -333,12 +365,11 @@ class Dyad:
             self.log_inst.finalize()
         if self.dyad_finalize is None:
             warnings.warn(
-                "Trying to finalize DYAD when libdyad_core.so was not found",
+                "Trying to finalize DYAD when libdyad_ctx.so was not found",
                 RuntimeWarning
             )
             return
         res = self.dyad_finalize(
-            ctypes.byref(self.ctx)
         )
         if int(res) != 0:
             raise RuntimeError("Cannot finalize DYAD!")

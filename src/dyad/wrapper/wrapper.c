@@ -40,27 +40,23 @@ using namespace std;  // std::clock ()
 #endif  // defined(__cplusplus)
 
 #include <dlfcn.h>
-#include <dyad/utils/utils.h>
 #include <fcntl.h>
 #include <libgen.h>  // dirname
 #include <unistd.h>
 
 #include <dyad/utils/utils.h>
-// #include "wrapper.h"
 #include <dyad/common/dyad_envs.h>
 #include <dyad/common/dyad_logging.h>
 #include <dyad/common/dyad_profiler.h>
+#include <dyad/core/dyad_ctx.h>
 #include <dyad/core/dyad_core.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-// Note:
-// To ensure we don't have multiple initialization, we need the following:
-// 1) The DYAD context (ctx below) must be static
-// 2) The DYAD context should be on the heap (done w/ malloc in dyad_init)
-static __thread dyad_ctx_t *ctx = NULL;
+static __thread const dyad_ctx_t *ctx = NULL;
+static __thread dyad_ctx_t *ctx_mutable = NULL;
 static void dyad_wrapper_init (void) __attribute__ ((constructor));
 static void dyad_wrapper_fini (void) __attribute__ ((destructor));
 
@@ -105,35 +101,17 @@ void dyad_wrapper_init (void)
     DLIO_PROFILER_C_FINI();
 #endif
     DYAD_C_FUNCTION_START();
-    dyad_rc_t rc = DYAD_RC_OK;
-
-    rc = dyad_init_env (&ctx);
-
-    if (DYAD_IS_ERROR (rc)) {
-        fprintf (stderr, "Failed to initialize DYAD (code = %d)", rc);
-        ctx->initialized = false;
-        ctx->reenter = false;
-        DYAD_C_FUNCTION_END();
-        return;
-    }
-
-    DYAD_LOG_INFO (ctx, "DYAD Initialized");
-    DYAD_LOG_INFO (ctx, "%s=%s", DYAD_SYNC_DEBUG_ENV, (ctx->debug) ? "true" : "false");
-    DYAD_LOG_INFO (ctx, "%s=%s", DYAD_SYNC_CHECK_ENV, (ctx->check) ? "true" : "false");
-    DYAD_LOG_INFO (ctx, "%s=%u", DYAD_KEY_DEPTH_ENV, ctx->key_depth);
-    DYAD_LOG_INFO (ctx, "%s=%u", DYAD_KEY_BINS_ENV, ctx->key_bins);
+    dyad_ctx_init ();
+    ctx  = ctx_mutable = dyad_ctx_get ();
+    DYAD_LOG_INFO (ctx, "DYAD Wrapper Initialized");
     DYAD_C_FUNCTION_END();
 }
 
 void dyad_wrapper_fini ()
 {
     DYAD_C_FUNCTION_START();
-    if (ctx == NULL) {
-        DYAD_C_FUNCTION_END();
-        goto dyad_wrapper_fini_done;
-    }
-    dyad_finalize (&ctx);
-dyad_wrapper_fini_done:;
+    DYAD_LOG_INFO (ctx, "DYAD Wrapper Finalized");
+    dyad_ctx_fini ();
     DYAD_C_FUNCTION_END();
 #if DYAD_PROFILER == 3
     DLIO_PROFILER_C_FINI();
@@ -148,6 +126,7 @@ DYAD_DLL_EXPORTED int open (const char *path, int oflag, ...)
     typedef int (*open_ptr_t) (const char *, int, mode_t, ...);
     open_ptr_t func_ptr = NULL;
     int mode = 0;
+    char upath[PATH_MAX+1] = {'\0'};
 
     if (oflag & O_CREAT) {
         va_list arg;
@@ -176,7 +155,7 @@ DYAD_DLL_EXPORTED int open (const char *path, int oflag, ...)
     }
 
     IPRINTF (ctx, "DYAD_SYNC: enters open sync (\"%s\").", path);
-    if (DYAD_IS_ERROR (dyad_consume (ctx, path))) {
+    if (DYAD_IS_ERROR (dyad_consume (ctx_mutable, path))) {
         DPRINTF (ctx, "DYAD_SYNC: failed open sync (\"%s\").", path);
         goto real_call;
     }
@@ -184,13 +163,25 @@ DYAD_DLL_EXPORTED int open (const char *path, int oflag, ...)
 
 real_call:;
     int ret = (func_ptr (path, oflag, mode));
-    if ((mode == O_WRONLY || mode == O_APPEND) && !is_path_dir (path)) {
-        struct flock exclusive_lock;
-        dyad_rc_t rc = dyad_excl_flock (ctx, ret, &exclusive_lock);
-        if (DYAD_IS_ERROR (rc)) {
-            dyad_release_flock (ctx, ret, &exclusive_lock);
+
+    // This lock is to protect the file being produced by a producer
+    // from a consumer that has direct access to the file. For example,
+    // either the file is on a shared storage or the consumer is on
+    // the same node as where the producer is.
+    if ((ret > 0) && (mode == O_WRONLY || mode == O_APPEND) && !is_path_dir (path))
+    {
+        if ((ctx->relative_to_managed_path &&
+            (strncmp (path, DYAD_PATH_DELIM, ctx->delim_len) != 0)) ||
+            cmp_canonical_path_prefix (ctx, true, path, upath, PATH_MAX))
+        {
+            struct flock exclusive_lock;
+            dyad_rc_t rc = dyad_excl_flock (ctx, ret, &exclusive_lock);
+            if (DYAD_IS_ERROR (rc)) {
+                dyad_release_flock (ctx, ret, &exclusive_lock);
+            }
         }
     }
+
     DYAD_C_FUNCTION_END();
     return ret;
 }
@@ -202,6 +193,7 @@ DYAD_DLL_EXPORTED FILE *fopen (const char *path, const char *mode)
     char *error = NULL;
     typedef FILE *(*fopen_ptr_t) (const char *, const char *);
     fopen_ptr_t func_ptr = NULL;
+    char upath[PATH_MAX+1] = {'\0'};
 
     //func_ptr = (fopen_ptr_t)dlsym (RTLD_NEXT, "fopen");
     *(void**) &func_ptr = dlsym (RTLD_NEXT, "fopen");
@@ -222,7 +214,7 @@ DYAD_DLL_EXPORTED FILE *fopen (const char *path, const char *mode)
     }
 
     IPRINTF (ctx, "DYAD_SYNC: enters fopen sync (\"%s\").\n", path);
-    if (DYAD_IS_ERROR (dyad_consume (ctx, path))) {
+    if (DYAD_IS_ERROR (dyad_consume (ctx_mutable, path))) {
         DPRINTF (ctx, "DYAD_SYNC: failed fopen sync (\"%s\").\n", path);
         goto real_call;
     }
@@ -231,12 +223,22 @@ DYAD_DLL_EXPORTED FILE *fopen (const char *path, const char *mode)
 real_call:;
     FILE *fh = (func_ptr (path, mode));
 
-    if (((strcmp (mode, "w") == 0)  || (strcmp (mode, "a") == 0)) && !is_path_dir (path)) {
-        int fd = fileno (fh);
-        struct flock exclusive_lock;
-        dyad_rc_t rc = dyad_excl_flock (ctx, fd, &exclusive_lock);
-        if (DYAD_IS_ERROR (rc)) {
-            dyad_release_flock (ctx, fd, &exclusive_lock);
+    // This lock is to protect the file being produced by a producer
+    // from a consumer that has direct access to the file. For example,
+    // either the file is on a shared storage or the consumer is on
+    // the same node as where the producer is.
+    if ((fh != NULL) && ((strcmp (mode, "w") == 0)  || (strcmp (mode, "a") == 0)) && !is_path_dir (path))
+    {
+        if ((ctx->relative_to_managed_path &&
+            (strncmp (path, DYAD_PATH_DELIM, ctx->delim_len) != 0)) ||
+            cmp_canonical_path_prefix (ctx, true, path, upath, PATH_MAX))
+        {
+            int fd = fileno (fh);
+            struct flock exclusive_lock;
+            dyad_rc_t rc = dyad_excl_flock (ctx, fd, &exclusive_lock);
+            if (DYAD_IS_ERROR (rc)) {
+                dyad_release_flock (ctx, fd, &exclusive_lock);
+            }
         }
     }
     DYAD_C_FUNCTION_END();
@@ -319,7 +321,7 @@ real_call:;  // semicolon here to avoid the error
             DPRINTF (ctx, "Failed close (\"%s\").: %s\n", path, strerror (errno));
         }
         IPRINTF (ctx, "DYAD_SYNC: enters close sync (\"%s\").\n", path);
-        if (DYAD_IS_ERROR (dyad_produce (ctx, path))) {
+        if (DYAD_IS_ERROR (dyad_produce (ctx_mutable, path))) {
             DPRINTF (ctx, "DYAD_SYNC: failed close sync (\"%s\").\n", path);
         }
         IPRINTF (ctx, "DYAD_SYNC: exits close sync (\"%s\").\n", path);
@@ -405,7 +407,7 @@ real_call:;
             DPRINTF (ctx, "Failed fclose (\"%s\").\n", path);
         }
         IPRINTF (ctx, "DYAD_SYNC: enters fclose sync (\"%s\").\n", path);
-        if (DYAD_IS_ERROR (dyad_produce (ctx, path))) {
+        if (DYAD_IS_ERROR (dyad_produce (ctx_mutable, path))) {
             DPRINTF (ctx, "DYAD_SYNC: failed fclose sync (\"%s\").\n", path);
         }
         IPRINTF (ctx, "DYAD_SYNC: exits fclose sync (\"%s\").\n", path);

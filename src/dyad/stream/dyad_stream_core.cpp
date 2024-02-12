@@ -16,6 +16,7 @@
 
 #include <dyad/stream/dyad_stream_core.hpp>
 
+#include <dyad/core/dyad_ctx.h>
 #include <dyad/core/dyad_core.h>
 #include <dyad/utils/murmur3.h>
 #include <dyad/utils/utils.h>
@@ -47,12 +48,12 @@ namespace dyad
 {
 /*****************************************************************************
  *                                                                           *
- *                           dyad_stream_core API                             *
+ *                           dyad_stream_core API                            *
  *                                                                           *
  *****************************************************************************/
 
 dyad_stream_core::dyad_stream_core ()
-    : m_ctx (NULL), m_initialized (false), m_is_prod (false), m_is_cons (false)
+    : m_ctx (NULL), m_ctx_mutable (NULL), m_initialized (false), m_is_prod (false), m_is_cons (false)
 {
     DYAD_CPP_FUNCTION();
 }
@@ -66,8 +67,8 @@ void dyad_stream_core::finalize ()
 {
     DYAD_CPP_FUNCTION();
     if (m_ctx != NULL) {
-        dyad_finalize (&m_ctx);
-        m_ctx = NULL;
+        //dyad_finalize (&m_ctx);
+        m_ctx = m_ctx_mutable = NULL;
         m_initialized = false;
     }
 }
@@ -99,11 +100,18 @@ void dyad_stream_core::init (const bool reinit)
         m_is_prod = false;
     }
 
-    dyad_rc_t rc = dyad_init_env (&m_ctx);
-    (void) rc;
+    if (reinit || reinit_env ||
+        !(m_ctx = m_ctx_mutable = dyad_ctx_get ()))
+    {
+        dyad_ctx_init ();
+        m_ctx = m_ctx_mutable = dyad_ctx_get ();
+        log_info ("Stream core is initialized by env variables.");
+    } else {
+        log_info ("Steam core skips initialization as it has already been initialized.");
+    }
+
     // TODO figure out if we want to error if init fails
     m_initialized = true;
-    log_info ("Stream core is initialized by env variables.");
 }
 
 void dyad_stream_core::init (const dyad_params &p)
@@ -122,13 +130,13 @@ void dyad_stream_core::init (const dyad_params &p)
                               p.m_kvs_namespace.c_str (),
                               p.m_prod_managed_path.c_str (),
                               p.m_cons_managed_path.c_str (),
-                              static_cast<dyad_dtl_mode_t> (p.m_dtl_mode),
-                              &m_ctx);
+                              p.m_relative_to_managed_path,
+                              static_cast<dyad_dtl_mode_t> (p.m_dtl_mode));
 #if defined(DYAD_HAS_STD_FSTREAM_FD)
-    m_ctx->use_fs_locks = true;
+    m_ctx_mutable->use_fs_locks = true;
 #else
-    // Rely on the KVS-based synchronization and disable checking for fs lock based logic. 
-    m_ctx->use_fs_locks = false;
+    // Rely on the KVS-based synchronization and disable checking for fs lock based logic.
+    m_ctx_mutable->use_fs_locks = false;
 #endif
     (void) rc;
     // TODO figure out if we want to error if init fails
@@ -142,6 +150,8 @@ void dyad_stream_core::log_info (const std::string &msg_head) const
     DYAD_LOG_INFO (m_ctx, "=== %s ===", msg_head.c_str ());
     DYAD_LOG_INFO (m_ctx, "%s=%s", DYAD_PATH_CONSUMER_ENV, m_ctx->cons_managed_path);
     DYAD_LOG_INFO (m_ctx, "%s=%s", DYAD_PATH_PRODUCER_ENV, m_ctx->prod_managed_path);
+    DYAD_LOG_INFO (m_ctx, "%s=%s", DYAD_PATH_RELATIVE_ENV,
+                   (m_ctx->relative_to_managed_path) ? "true" : "false");
     DYAD_LOG_INFO (m_ctx, "%s=%s", DYAD_SYNC_DEBUG_ENV,
                    (m_ctx->debug) ? "true" : "false");
     DYAD_LOG_INFO (m_ctx, "%s=%s", DYAD_SHARED_STORAGE_ENV,
@@ -181,7 +191,7 @@ bool dyad_stream_core::open_sync (const char *path)
         return true;
     }
 
-    dyad_rc_t rc = dyad_consume (m_ctx, path);
+    dyad_rc_t rc = dyad_consume (m_ctx_mutable, path);
 
     if (DYAD_IS_ERROR (rc)) {
         DPRINTF (m_ctx, "DYAD_SYNC OPEN: failed sync (\"%s\").", path);
@@ -206,7 +216,7 @@ bool dyad_stream_core::close_sync (const char *path)
         return true;
     }
 
-    dyad_rc_t rc = dyad_produce (m_ctx, path);
+    dyad_rc_t rc = dyad_produce (m_ctx_mutable, path);
 
     if (DYAD_IS_ERROR (rc)) {
         DPRINTF (m_ctx, "DYAD_SYNC CLOSE: failed sync (\"%s\").\n", path);
@@ -263,6 +273,18 @@ int dyad_stream_core::file_unlock (int fd) const
     struct flock a_flock;
 
     return dyad_release_flock (m_ctx, fd, &a_flock);
+}
+
+bool dyad_stream_core::cmp_canonical_path_prefix (
+    bool is_prod, const char* const __restrict__ path)
+{
+    memset (upath, '\0', PATH_MAX);
+    return ::cmp_canonical_path_prefix (m_ctx, is_prod, path, upath, PATH_MAX);
+}
+
+std::string dyad_stream_core::get_upath () const
+{
+    return std::string {upath};
 }
 
 }  // end of namespace dyad
