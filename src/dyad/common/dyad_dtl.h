@@ -12,10 +12,15 @@ extern "C" {
 #endif
 
 
-enum dyad_dtl_mode { DYAD_DTL_UCX = 0, DYAD_DTL_FLUX_RPC = 1, DYAD_DTL_DEFAULT = 1, DYAD_DTL_END = 2 };
+enum dyad_dtl_mode { DYAD_DTL_UCX = 0,
+                     DYAD_DTL_FLUX_RPC = 1,
+                     DYAD_DTL_DEFAULT = 1,
+                     DYAD_DTL_END = 2 };
+
 typedef enum dyad_dtl_mode dyad_dtl_mode_t;
 
-static const char* dyad_dtl_mode_name[DYAD_DTL_END] __attribute__((unused)) = {"UCX", "FLUX_RPC"};
+static const char* dyad_dtl_mode_name[DYAD_DTL_END+1] __attribute__((unused))
+    = {"UCX", "FLUX_RPC", "DTL_UNKNOWN"};
 
 #define DYAD_DTL_RPC_NAME "dyad.fetch"
 

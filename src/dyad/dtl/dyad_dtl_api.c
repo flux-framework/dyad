@@ -9,9 +9,9 @@
 #include <dyad/common/dyad_logging.h>
 #include <dyad/common/dyad_profiler.h>
 
-#if DYAD_ENABLE_UCX_DTL
+#if DYAD_ENABLE_UCX_DTL || DYAD_ENABLE_UCX_UCX
 #include "ucx_dtl.h"
-#endif
+#endif // DYAD_ENABLE_UCX_DTL || DYAD_ENABLE_UCX_RMA
 
 dyad_rc_t dyad_dtl_init (dyad_ctx_t* ctx,
                          dyad_dtl_mode_t mode,
@@ -27,7 +27,7 @@ dyad_rc_t dyad_dtl_init (dyad_ctx_t* ctx,
         goto dtl_init_done;
     }
     ctx->dtl_handle->mode = mode;
-#if DYAD_ENABLE_UCX_DTL
+#if DYAD_ENABLE_UCX_DTL || DYAD_ENABLE_UCX_UCX
     if (mode == DYAD_DTL_UCX) {
         rc = dyad_dtl_ucx_init (ctx, mode, comm_mode, debug);
         if (DYAD_IS_ERROR (rc)) {
@@ -37,7 +37,7 @@ dyad_rc_t dyad_dtl_init (dyad_ctx_t* ctx,
     } else if (mode == DYAD_DTL_FLUX_RPC) {
 #else
     if (mode == DYAD_DTL_FLUX_RPC) {
-#endif
+#endif // DYAD_ENABLE_UCX_DTL || DYAD_ENABLE_UCX_RMA
         rc = dyad_dtl_flux_init (ctx, mode, comm_mode, debug);
         if (DYAD_IS_ERROR (rc)) {
             DYAD_LOG_ERROR (ctx, "dyad_dtl_flux_init initialization failed rc %d", rc);
@@ -67,7 +67,7 @@ dyad_rc_t dyad_dtl_finalize (dyad_ctx_t* ctx)
         rc = DYAD_RC_OK;
         goto dtl_finalize_done;
     }
-#if DYAD_ENABLE_UCX_DTL
+#if DYAD_ENABLE_UCX_DTL || DYAD_ENABLE_UCX_UCX
     if ((ctx->dtl_handle)->mode == DYAD_DTL_UCX) {
         if ((ctx->dtl_handle)->private_dtl.ucx_dtl_handle != NULL) {
             rc = dyad_dtl_ucx_finalize (ctx);
@@ -78,7 +78,7 @@ dyad_rc_t dyad_dtl_finalize (dyad_ctx_t* ctx)
     } else if ((ctx->dtl_handle)->mode == DYAD_DTL_FLUX_RPC) {
 #else
     if ((ctx->dtl_handle)->mode == DYAD_DTL_FLUX_RPC) {
-#endif
+#endif // DYAD_ENABLE_UCX_DTL || DYAD_ENABLE_UCX_RMA
         if ((ctx->dtl_handle)->private_dtl.flux_dtl_handle != NULL) {
             rc = dyad_dtl_flux_finalize (ctx);
             if (DYAD_IS_ERROR (rc)) {

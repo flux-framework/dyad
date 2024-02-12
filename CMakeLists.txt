@@ -96,8 +96,9 @@ endif (DYAD_USE_CLANG_LIBCXX)
 option (DYAD_ENABLE_UCX_DATA "Allow to dynamically select UCX for DYAD's Data Plane" OFF)
 if (DYAD_ENABLE_UCX_DATA)
     set (DYAD_ENABLE_UCX_DTL 1)
+else ()
+    option (DYAD_ENABLE_UCX_DATA_RMA "Use UCX's RMA for DYAD's Data Plane" ON)
 endif ()
-option (DYAD_ENABLE_UCX_DATA_RMA "Use UCX's RMA for DYAD's Data Plane" ON)
 if (DYAD_ENABLE_UCX_DATA_RMA)
     set (DYAD_ENABLE_UCX_RMA 1)
 endif ()
@@ -254,7 +255,7 @@ elseif(DYAD_PROFILER STREQUAL "DLIO_PROFILER")
         message(FATAL_ERROR "-- [${PROJECT_NAME}] dlio_profiler is not found but selected in cmake options ${PROJECT_NAME} build")
     endif ()
 endif()
-if(DYAD_ENABLE_UCX_DATA)
+if(DYAD_ENABLE_UCX_DTL OR DYAD_ENABLE_UCX_RMA)
     find_package(ucx 1.6 REQUIRED)
     if (${ucx_FOUND})
         message(STATUS "[${PROJECT_NAME}] found ucx at ${ucx_INCLUDE_DIRS}")
@@ -458,6 +459,8 @@ string(APPEND _str
 string(APPEND _str
   "  DYAD_DATA_PLANE:             ${DYAD_DATA_PLANE}\n")
 string(APPEND _str
+  "  DYAD_ENABLE_UCX_DTL:         ${DYAD_ENABLE_UCX_DTL}\n")
+string(APPEND _str
   "  DYAD_ENABLE_UCX_RMA:         ${DYAD_ENABLE_UCX_RMA}\n")
 string(APPEND _str
   "  DYAD_PROFILER:               ${DYAD_PROFILER}\n")
@@ -475,7 +478,6 @@ string(APPEND _str
 #Print the true/false variables
 append_str_tf(_str
   DYAD_GNU_LINUX
-  DYAD_ENABLE_UCX_DATA
   DYAD_LIBDIR_AS_LIB
   DYAD_USE_CLANG_LIBCXX
   DYAD_WARNINGS_AS_ERRORS
