@@ -445,14 +445,14 @@ get_done:;
 #ifdef DYAD_ENABLE_UCX_RMA
     ctx->dtl_handle->get_buffer(ctx, 0, (void**)file_data);
     ssize_t read_len = 0l;
-    memcpy (&read_len, *file_data, sizeof(ssize_t));
+    memcpy (&read_len, *file_data, sizeof (read_len));
     if (read_len < 0l) {
         *file_len = 0ul;
         rc = DYAD_RC_BADFIO;
     } else {
         *file_len = (size_t) read_len;
     }
-    *file_data = ((char*)*file_data) + sizeof(ssize_t);
+    *file_data = ((char*)*file_data) + sizeof (read_len);
     DYAD_LOG_INFO (ctx, "Read %zd bytes from %s file", *file_len, mdata->fpath);
 #endif
     DYAD_LOG_INFO (ctx, "Destroy the Flux future for the RPC\n");
