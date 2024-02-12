@@ -67,7 +67,7 @@ static void dyad_send_callback (void* req, ucs_status_t status)
 #endif // UCP_API_VERSION
 {
     DYAD_C_FUNCTION_START();
-    DYAD_LOG_INFO (ctx, "Calling send callback");
+    //DYAD_LOG_STDERR ("Calling send callback");
     dyad_ucx_request_t* real_req = (dyad_ucx_request_t*)req;
     real_req->completed = 1;
     DYAD_C_FUNCTION_END();
@@ -227,9 +227,7 @@ static inline ucs_status_ptr_t ucx_send_no_wait (const dyad_ctx_t* ctx, bool is_
     ucs_status_ptr_t stat_ptr = NULL;
     dyad_dtl_ucx_t* dtl_handle = ctx->dtl_handle->private_dtl.ucx_dtl_handle;
     if (dtl_handle->ep == NULL) {
-        DYAD_LOG_ERROR (ctx,
-                       "UCP endpoint was not created prior to invoking "
-                       "send!");
+        DYAD_LOG_ERROR (ctx, "UCP endpoint was not created prior to invoking send!");
         stat_ptr = (void*)UCS_ERR_NOT_CONNECTED;
         goto ucx_send_no_wait_done;
     }
@@ -246,10 +244,7 @@ static inline ucs_status_ptr_t ucx_send_no_wait (const dyad_ctx_t* ctx, bool is_
     DYAD_LOG_INFO (ctx, "Sending data to consumer with ucp_tag_send_nbx");
     stat_ptr = ucp_tag_send_nbx (dtl_handle->ep, buf, buflen, dtl_handle->comm_tag, &params);
 #else  // UCP_API_VERSION
-    DYAD_LOG_INFO (ctx,
-                   "Sending %lu bytes of data to consumer with "
-                   "ucp_tag_send_nb",
-                   buflen);
+    DYAD_LOG_INFO (ctx, "Sending %lu bytes of data to consumer with ucp_tag_send_nb", buflen);
     stat_ptr = ucp_tag_send_nb (dtl_handle->ep,
                                 buf,
                                 buflen,
@@ -269,9 +264,9 @@ static inline ucs_status_ptr_t ucx_send_no_wait (const dyad_ctx_t* ctx, bool is_
     params.cb.send = dyad_send_callback;
     stat_ptr = ucp_put_nbx(dtl_handle->ep, buf, buflen, dtl_handle->cons_buf_ptr, dtl_handle->rkey, &params);
     if (UCS_PTR_IS_ERR(stat_ptr)) {
-        fprintf(stderr, "ucp_put_nbx() failed %s (%d)\n",
-                ucs_status_string(UCS_PTR_STATUS(stat_ptr)),
-                UCS_PTR_STATUS(stat_ptr));
+        DYAD_LOG_ERROR (ctx, "ucp_put_nbx() failed %s (%d)\n", \
+                        ucs_status_string(UCS_PTR_STATUS(stat_ptr)), \
+                        UCS_PTR_STATUS(stat_ptr));
         stat_ptr = (void*)UCS_ERR_NOT_CONNECTED;
         goto ucx_send_no_wait_done;
     }
@@ -357,8 +352,7 @@ static inline ucs_status_ptr_t ucx_recv_no_wait (const dyad_ctx_t* ctx,
     // The metadata retrived from the probed tag recv event contains
     // the size of the data to be sent.
     // So, use that size to allocate a buffer
-    DYAD_LOG_INFO (ctx,
-                   "Got message with tag %lu and size %lu\n",
+    DYAD_LOG_INFO (ctx, "Got message with tag %lu and size %lu\n",
                    msg_info.sender_tag,
                    msg_info.length);
     *buflen = msg_info.length;
@@ -405,13 +399,13 @@ static inline ucs_status_ptr_t ucx_recv_no_wait (const dyad_ctx_t* ctx,
 #endif // UCP_API_VERSION
 #else  // DYAD_ENABLE_UCX_RMA
     dyad_dtl_ucx_t* dtl_handle = ctx->dtl_handle->private_dtl.ucx_dtl_handle;
-    size_t temp = 0;
+    ssize_t temp = 0l;
     do {
         memcpy (&temp, dtl_handle->net_buf, sizeof(temp));
         ucp_worker_progress(ctx->dtl_handle->private_dtl.ucx_dtl_handle->ucx_worker);
         usleep(10);
         DYAD_LOG_DEBUG (ctx, "Consumer Waiting for worker to finsih all work");
-    } while (temp == 0);
+    } while (temp == 0l);
 #endif // DYAD_ENABLE_UCX_RMA
     DYAD_LOG_DEBUG (ctx, "Consumer finsihed all work");
 
@@ -646,12 +640,12 @@ dyad_rc_t dyad_dtl_ucx_rpc_pack (const dyad_ctx_t* ctx,
      * Reset the Buffer so that we can loop on it
      * as we expect a size_t lets put int -1 as a check.
      */
-    size_t temp = 0;
+    ssize_t temp = 0l;
     memcpy (dtl_handle->net_buf, &temp, sizeof(temp));
     dyad_rc_t rc = DYAD_RC_OK;
-    size_t cons_enc_len = 0;
+    size_t cons_enc_len = 0ul;
     char* cons_enc_buf = NULL;
-    ssize_t cons_enc_size = 0;
+    ssize_t cons_enc_size = 0l;
 
     if (dtl_handle->local_address == NULL) {
         DYAD_LOG_ERROR (dtl_handle, "Tried to pack an RPC payload without a local UCX address");
@@ -676,7 +670,7 @@ dyad_rc_t dyad_dtl_ucx_rpc_pack (const dyad_ctx_t* ctx,
                                               cons_enc_len + 1,
                                          (const char*)dtl_handle->local_address,
                                          dtl_handle->local_addr_len);
-    if (cons_enc_size < 0) {
+    if (cons_enc_size < 0l) {
         DYAD_LOG_ERROR (ctx, "Unable to encode address\n");
         // TODO log error
         free (cons_enc_buf);
@@ -685,9 +679,9 @@ dyad_rc_t dyad_dtl_ucx_rpc_pack (const dyad_ctx_t* ctx,
     }
 
     DYAD_LOG_INFO (ctx, "Encode UCP rkey using base64\n");
-    size_t rkey_enc_len = 0;
+    size_t rkey_enc_len = 0ul;
     char* rkey_enc_buf = NULL;
-    ssize_t rkey_enc_size = 0;
+    ssize_t rkey_enc_size = 0l;
     rkey_enc_len = base64_encoded_length (dtl_handle->rkey_size);
     // Add 1 to encoded length because the encoded buffer will be
     // packed as if it is a string
@@ -705,7 +699,7 @@ dyad_rc_t dyad_dtl_ucx_rpc_pack (const dyad_ctx_t* ctx,
                                               rkey_enc_len + 1,
                                          (const char*)dtl_handle->rkey_buf,
                                          dtl_handle->rkey_size);
-    if (rkey_enc_size < 0) {
+    if (rkey_enc_size < 0l) {
         DYAD_LOG_ERROR (ctx, "Unable to encode rkey\n");
         // TODO log error
         free (rkey_enc_buf);
@@ -720,7 +714,7 @@ dyad_rc_t dyad_dtl_ucx_rpc_pack (const dyad_ctx_t* ctx,
     // there's no need to do any real connection establishment here.
     // Instead, we use this function to create the tag that will be
     // used for the upcoming communication.
-    tag_val = 0;
+    tag_val = 0ul;
     if (flux_get_rank (dtl_handle->h, (uint32_t *)&tag_val) < 0) {
         DYAD_LOG_ERROR (ctx, "Cannot get consumer rank\n");
         rc = DYAD_RC_FLUXFAIL;
@@ -776,14 +770,14 @@ dyad_rc_t dyad_dtl_ucx_rpc_unpack (const dyad_ctx_t* ctx, const flux_msg_t* msg,
     DYAD_C_FUNCTION_START();
     dyad_rc_t rc = DYAD_RC_OK;
     char* enc_addr = NULL;
-    size_t enc_addr_len = 0;
+    size_t enc_addr_len = 0ul;
     char* enc_rkey = NULL;
-    size_t enc_rkey_len = 0;
+    size_t enc_rkey_len = 0ul;
     int errcode = 0;
-    uint64_t tag_prod = 0;
-    uint64_t tag_cons = 0;
-    uint64_t pid = 0;
-    ssize_t decoded_len = 0;
+    uint64_t tag_prod = 0ul;
+    uint64_t tag_cons = 0ul;
+    uint64_t pid = 0ul;
+    ssize_t decoded_len = 0l;
     dyad_dtl_ucx_t* dtl_handle = ctx->dtl_handle->private_dtl.ucx_dtl_handle;
     DYAD_LOG_INFO (ctx, "Unpacking RPC payload\n");
     uint64_t tag_val;
@@ -911,7 +905,7 @@ dyad_rc_t dyad_dtl_ucx_get_buffer (const dyad_ctx_t* ctx, size_t data_size, void
     // }
     DYAD_LOG_INFO (dtl_handle, "Validating data_size in get_buffer");
     if (data_size > ctx->dtl_handle->private_dtl.ucx_dtl_handle->max_transfer_size) {
-        DYAD_LOG_ERROR (dtl_handle,
+        DYAD_LOG_ERROR (dtl_handle, \
                       "Requested a data size that's larger than the pre-allocated UCX buffer");
         rc = DYAD_RC_BADBUF;
         goto ucx_get_buffer_done;
@@ -968,8 +962,8 @@ dyad_rc_t dyad_dtl_ucx_establish_connection (const dyad_ctx_t* ctx)
         }
         rc = DYAD_RC_OK;
     } else if (comm_mode == DYAD_COMM_RECV) {
-        DYAD_LOG_INFO (ctx,
-                       "No explicit connection establishment needed for UCX "
+        DYAD_LOG_INFO (ctx, \
+                       "No explicit connection establishment needed for UCX " \
                        "receiver\n");
         rc = DYAD_RC_OK;
     } else {
@@ -992,7 +986,7 @@ dyad_rc_t dyad_dtl_ucx_send (const dyad_ctx_t* ctx, void* buf, size_t buflen)
     DYAD_LOG_INFO (ctx, "Processing UCP send request\n");
     status = dyad_ucx_request_wait (ctx, stat_ptr);
     if (status != UCS_OK) {
-        DYAD_LOG_ERROR (ctx, "UCP Put failed (status = %d)!\n",
+        DYAD_LOG_ERROR (ctx, "UCP Put failed (status = %d)!\n", \
                       (int)status);
         rc = DYAD_RC_UCXCOMM_FAIL;
         goto dtl_ucx_send_region_finish;

@@ -453,8 +453,15 @@ get_done:;
 #ifdef DYAD_ENABLE_UCX_RMA
     if (rc != DYAD_RC_BADRPC) {
         ctx->dtl_handle->get_buffer(ctx, 0, (void**)file_data);
-        memcpy (file_len, *file_data, sizeof(size_t));
-        *file_data = ((char*)*file_data) + sizeof(size_t);
+        ssize_t read_len = 0l;
+        memcpy (&read_len, *file_data, sizeof(ssize_t));
+        if (read_len < 0l) {
+            *file_len = 0ul;
+            rc = DYAD_RC_BADFIO;
+        } else {
+            *file_len = (size_t) read_len;
+        }
+        *file_data = ((char*)*file_data) + sizeof(ssize_t);
         DYAD_LOG_INFO (ctx, "Read %zd bytes from %s file", *file_len, mdata->fpath);
     }
 #endif
