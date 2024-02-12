@@ -48,17 +48,38 @@ static int gen_path_key (const char* restrict str,
     uint32_t hash[4] = {0u};  // Output for the hash
     size_t cx = 0ul;
     int n = 0;
+    size_t str_len = strlen (str);
 
-    if (str == NULL || path_key == NULL || len == 0ul) {
+    if (str == NULL || path_key == NULL || len == 0ul || str_len == 0ul) {
         DYAD_C_FUNCTION_END();
         return -1;
     }
     path_key[0] = '\0';
 
+    const char* str_long = str;
+
+#if 1
+    // Strings shorter than 128 bytes collide. Especially, the hash value seems
+    // to depend on the length of such a string.
+    // For such a short string, we concatenate it as many times as needed to make
+    // it longer than 128 bytes.
+    if (str_len < 128ul) {
+        char buf[PATH_MAX+1] = {'\0'};
+        memcpy (buf, str, str_len);
+        char* str_pos = buf + str_len;
+        const char* const str_min = buf + 128ul;
+        while (str_pos < str_min) {
+            memcpy (str_pos, str, str_len);
+            str_pos += str_len;
+        };
+        str_len = str_pos - buf;
+        str_long = buf;
+    }
+#endif
+
     for (uint32_t d = 0u; d < depth; d++) {
         seed += seeds[d % 10];
-        // TODO add assert that str is not NULL
-        MurmurHash3_x64_128 (str, strlen (str), seed, hash);
+        MurmurHash3_x64_128 (str_long, str_len, seed, hash);
         uint32_t bin = (hash[0] ^ hash[1] ^ hash[2] ^ hash[3]) % width;
         n = snprintf (path_key + cx, len - cx, "%x.", bin);
         cx += n;

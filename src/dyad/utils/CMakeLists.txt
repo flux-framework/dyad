@@ -39,6 +39,11 @@ add_executable(test_cmp_canonical_path_prefix test_cmp_canonical_path_prefix.c
                ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_structures.h)
 target_compile_definitions(test_cmp_canonical_path_prefix PUBLIC DYAD_HAS_CONFIG)
 target_link_libraries(test_cmp_canonical_path_prefix PUBLIC ${PROJECT_NAME}_utils)
+
+add_executable(test_murmur3 test_murmur3.c)
+target_compile_definitions(test_murmur3 PUBLIC DYAD_HAS_CONFIG)
+target_link_libraries(test_murmur3 PUBLIC ${PROJECT_NAME}_murmur3)
+
 if(DYAD_LOGGER STREQUAL "CPP_LOGGER")
     target_link_libraries(test_cmp_canonical_path_prefix PRIVATE ${CPP_LOGGER_LIBRARIES})
 endif()
@@ -49,6 +54,9 @@ endif()
 
 if (TARGET DYAD_C_FLAGS_werror)
   target_link_libraries(${PROJECT_NAME}_utils PRIVATE DYAD_C_FLAGS_werror)
+  target_link_libraries(${PROJECT_NAME}_murmur3 PRIVATE DYAD_C_FLAGS_werror)
+  target_link_libraries(test_murmur3 PRIVATE DYAD_C_FLAGS_werror)
+  target_link_libraries(test_cmp_canonical_path_prefix PRIVATE DYAD_C_FLAGS_werror)
 endif ()
 
 install(
