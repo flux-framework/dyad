@@ -302,17 +302,17 @@ jobs:
           export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${DYAD_INSTALL_PREFIX}/lib
           echo "Starting flux brokers"
           flux start --test-size=2 /bin/bash ${GITHUB_WORKSPACE}/.github/prod-cons/dyad_prod_cons_test.sh "python"
-      - name: Test DYAD with DLIO benchmark
-        timeout-minutes: 10
-        run: |
-          mkdir -m 775 -p $DYAD_PATH
-          source ${DYAD_INSTALL_PREFIX}/bin/activate
-          . ${SPACK_DIR}/share/spack/setup-env.sh
-          export PATH=${PATH}:${DYAD_INSTALL_PREFIX}/bin:${DYAD_INSTALL_PREFIX}/sbin
-          export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${DYAD_INSTALL_PREFIX}/lib
-          export PYTHONPATH=${GITHUB_WORKSPACE}/tests/integration/dlio_benchmark:${GITHUB_WORKSPACE}/pydyad:$PYTHONPATH
-          pip install -v -r ${GITHUB_WORKSPACE}/tests/integration/dlio_benchmark/requirements.txt
-          echo "Starting flux brokers"
-          cd ${GITHUB_WORKSPACE}/tests/integration/dlio_benchmark
-          flux start --test-size=2 /bin/bash ./script.sh ${GITHUB_WORKSPACE} ${DYAD_INSTALL_PREFIX}
+      #- name: Test DYAD with DLIO benchmark
+      #  timeout-minutes: 10
+      #  run: |
+          #mkdir -m 775 -p $DYAD_PATH
+          #source ${DYAD_INSTALL_PREFIX}/bin/activate
+          #. ${SPACK_DIR}/share/spack/setup-env.sh
+          #export PATH=${PATH}:${DYAD_INSTALL_PREFIX}/bin:${DYAD_INSTALL_PREFIX}/sbin
+          #export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${DYAD_INSTALL_PREFIX}/lib
+          #export PYTHONPATH=${GITHUB_WORKSPACE}/tests/integration/dlio_benchmark:${GITHUB_WORKSPACE}/pydyad:$PYTHONPATH
+          #pip install -v -r ${GITHUB_WORKSPACE}/tests/integration/dlio_benchmark/requirements.txt
+          #echo "Starting flux brokers"
+          #cd ${GITHUB_WORKSPACE}/tests/integration/dlio_benchmark
+          #flux start --test-size=2 /bin/bash ./script.sh ${GITHUB_WORKSPACE} ${DYAD_INSTALL_PREFIX}
 

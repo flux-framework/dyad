@@ -16,3 +16,5 @@ else
     echo "Invalid cons test mode: $mode"
     exit 1
 fi
+
+ls -l ${DYAD_PATH_CONSUMER}
