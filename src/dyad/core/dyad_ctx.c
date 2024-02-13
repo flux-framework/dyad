@@ -34,7 +34,6 @@
 // 1) The DYAD context (ctx below) must be static
 // 2) The DYAD context should be on the heap (done w/ malloc in dyad_init)
 static __thread dyad_ctx_t *ctx = NULL;
-static __thread dyad_dtl_comm_mode_t init_dtl_comm_mode = DYAD_COMM_RECV;
 
 const struct dyad_ctx dyad_ctx_default = {
     // Internal
@@ -78,7 +77,7 @@ DYAD_DLL_EXPORTED dyad_ctx_t* dyad_ctx_get ()
     return ctx;
 }
 
-DYAD_DLL_EXPORTED void dyad_ctx_init (dyad_dtl_comm_mode_t m)
+DYAD_DLL_EXPORTED void dyad_ctx_init (const dyad_dtl_comm_mode_t comm_mode)
 {
 
 #if DYAD_PROFILER == 3
@@ -86,9 +85,8 @@ DYAD_DLL_EXPORTED void dyad_ctx_init (dyad_dtl_comm_mode_t m)
 #endif
     DYAD_C_FUNCTION_START();
     dyad_rc_t rc = DYAD_RC_OK;
-    init_dtl_comm_mode = m;
 
-    rc = dyad_init_env ();
+    rc = dyad_init_env (comm_mode);
 
     if (DYAD_IS_ERROR (rc)) {
         fprintf (stderr, "Failed to initialize DYAD (code = %d)", rc);
@@ -135,7 +133,8 @@ dyad_rc_t dyad_init (bool debug,
                      const char* prod_managed_path,
                      const char* cons_managed_path,
                      bool relative_to_managed_path,
-                     const char* dtl_mode_str)
+                     const char* dtl_mode_str,
+                     const dyad_dtl_comm_mode_t dtl_comm_mode)
 {
     DYAD_LOGGER_INIT();
     unsigned my_rank = 0u;
@@ -228,6 +227,7 @@ dyad_rc_t dyad_init (bool debug,
         DYAD_LOG_INFO (ctx, "DYAD_CORE INIT: debug %s", ctx->debug ? "true" : "false");
         DYAD_LOG_INFO (ctx, "DYAD_CORE INIT: shared_storage %s", ctx->shared_storage ? "true" : "false");
         DYAD_LOG_INFO (ctx, "DYAD_CORE INIT: async_publish %s", ctx->async_publish ? "true" : "false");
+        DYAD_LOG_INFO (ctx, "DYAD_CORE INIT: fsync_write %s", ctx->fsync_write ? "true" : "false");
         DYAD_LOG_INFO (ctx, "DYAD_CORE INIT: kvs key depth %u", ctx->key_depth);
         DYAD_LOG_INFO (ctx, "DYAD_CORE INIT: kvs key bins %u", ctx->key_bins);
         DYAD_LOG_INFO (ctx, "DYAD_CORE INIT: broker rank %u", my_rank);
@@ -242,7 +242,7 @@ dyad_rc_t dyad_init (bool debug,
         goto init_region_failed;
     }
     namespace_len = strlen (kvs_namespace);
-    ctx->kvs_namespace = (char*)malloc (namespace_len + 1);
+    ctx->kvs_namespace = (char*)calloc (namespace_len + 1, sizeof(char));
     if (ctx->kvs_namespace == NULL) {
         DYAD_LOG_ERROR (ctx, "Could not allocate buffer for KVS namespace!\n");
         goto init_region_failed;
@@ -255,7 +255,7 @@ dyad_rc_t dyad_init (bool debug,
     // Initialize the DTL based on the value of dtl_mode
     // If an error occurs, log it and return an error
     DYAD_LOG_INFO (ctx, "DYAD_CORE: inintializing DYAD DTL %s", dtl_mode_str);
-    rc = dyad_set_and_init_dtl_mode (dtl_mode_str, init_dtl_comm_mode);
+    rc = dyad_set_and_init_dtl_mode (dtl_mode_str, dtl_comm_mode);
     if (DYAD_IS_ERROR (rc)) {
         DYAD_LOG_ERROR (ctx, "Cannot initialize the DTL %s\n", dtl_mode_str);
         goto init_region_failed;
@@ -302,7 +302,11 @@ init_region_failed:;
     dyad_clear ();
     // Set the initial contents of the dyad_ctx_t object to dyad_ctx_default.
     *ctx = dyad_ctx_default;
-    rc = DYAD_RC_NOCTX;
+    if (rc == DYAD_RC_NOCTX) {
+        ctx->initialized = false;
+        ctx->reenter = false;
+    }
+    return DYAD_RC_NOCTX;
 
 init_region_finish:;
     ctx->reenter = true;
@@ -310,7 +314,7 @@ init_region_finish:;
     return rc;
 }
 
-DYAD_DLL_EXPORTED  dyad_rc_t dyad_init_env ()
+DYAD_DLL_EXPORTED  dyad_rc_t dyad_init_env (const dyad_dtl_comm_mode_t comm_mode)
 {
     DYAD_C_FUNCTION_START();
     const char* e = NULL;
@@ -436,7 +440,8 @@ DYAD_DLL_EXPORTED  dyad_rc_t dyad_init_env ()
                       prod_managed_path,
                       cons_managed_path,
                       relative_to_managed_path,
-                      dtl_mode);
+                      dtl_mode,
+                      comm_mode);
     DYAD_C_FUNCTION_END();
     return rc;
 }

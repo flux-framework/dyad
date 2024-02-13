@@ -39,6 +39,7 @@ DYAD_DLL_EXPORTED void dyad_ctx_fini ();
  *                            producer or consumer's path. This is only applicable
  *                            when there is only one of each.
  * @param[in]  dtl_mode_str   DTL mode
+ * @param[in]  dtl_comm_mode  DTL comm mode
  *
  * @return An error code from dyad_rc.h
  */
@@ -55,14 +56,15 @@ DYAD_DLL_EXPORTED dyad_rc_t dyad_init (bool debug,
                                        const char* prod_managed_path,
                                        const char* cons_managed_path,
                                        bool relative_to_managed_path,
-                                       const char*  dtl_mode_str);
+                                       const char*  dtl_mode_str,
+                                       const dyad_dtl_comm_mode_t dtl_comm_mode);
 
 /**
  * @brief Intialize the DYAD context using environment variables
  *
  * @return An error code from dyad_rc.h
  */
-DYAD_DLL_EXPORTED dyad_rc_t dyad_init_env ();
+DYAD_DLL_EXPORTED dyad_rc_t dyad_init_env (const dyad_dtl_comm_mode_t comm_mode);
 
 /**
  * @brief Reset producer path. Can be used by the module

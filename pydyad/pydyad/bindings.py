@@ -152,11 +152,13 @@ class Dyad:
             ctypes.c_char_p,                                 # cons_managed_path
             ctypes.c_bool,                                   # relative_to_managed_path
             ctypes.c_char_p,                                 # dtl_mode
+            ctypes.c_int,                                    # dtl_comm_mode
         ]
         self.dyad_init.restype = ctypes.c_int
 
         self.dyad_init_env = self.dyad_ctx_lib.dyad_init_env
         self.dyad_init_env.argtypes = [
+            ctypes.c_int                                     # dtl_comm_mode
         ]
         self.dyad_init_env.restype = ctypes.c_int
 
@@ -223,6 +225,7 @@ class Dyad:
         cons_managed_path=None,
         relative_to_managed_path=False,
         dtl_mode=None,
+        dtl_comm_mode=DTL_COMM_RECV,
     ):
         self.log_inst = dlio_logger.initialize_log(logfile=None, data_dir=None, process_id=-1)
         if self.dyad_init is None:
@@ -246,6 +249,7 @@ class Dyad:
             cons_managed_path.encode() if cons_managed_path is not None else None,
             ctypes.c_bool(relative_to_managed_path),
             dtl_mode.encode() if dtl_mode is not None else None,
+            ctypes.c_int(dtl_comm_mode)
         )
         self.ctx = self.dyad_ctx_get()
 
@@ -270,6 +274,7 @@ class Dyad:
             )
             return
         res = self.dyad_init_env(
+            ctypes.c_int(dtl_comm_mode)
         )
         self.ctx = self.dyad_ctx_get()
         if int(res) != 0:

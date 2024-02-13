@@ -132,7 +132,8 @@ void dyad_stream_core::init (const dyad_params &p)
                               p.m_prod_managed_path.c_str (),
                               p.m_cons_managed_path.c_str (),
                               p.m_relative_to_managed_path,
-                              dyad_dtl_mode_name[static_cast<dyad_dtl_mode_t> (p.m_dtl_mode)]);
+                              dyad_dtl_mode_name[static_cast<dyad_dtl_mode_t> (p.m_dtl_mode)],
+                              DYAD_COMM_RECV);
 #if defined(DYAD_HAS_STD_FSTREAM_FD)
     m_ctx_mutable->use_fs_locks = true;
 #else
