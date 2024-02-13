@@ -7,7 +7,8 @@ set(DYAD_MODULE_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_envs.
                                 ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_profiler.h
                                 ${CMAKE_CURRENT_SOURCE_DIR}/../dtl/dyad_dtl_api.h
                                 ${CMAKE_CURRENT_SOURCE_DIR}/../utils/read_all.h
-                                ${CMAKE_CURRENT_SOURCE_DIR}/../utils/utils.h)
+                                ${CMAKE_CURRENT_SOURCE_DIR}/../utils/utils.h
+                                ${CMAKE_CURRENT_SOURCE_DIR}/../core/dyad_ctx.h)
 set(DYAD_MODULE_PUBLIC_HEADERS)
 
 add_library(${PROJECT_NAME} SHARED ${DYAD_MODULE_SRC}
@@ -17,6 +18,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES CMAKE_INSTALL_RPATH
                       "${CMAKE_INSTALL_PREFIX}/${DYAD_LIBDIR}")
 target_link_libraries(${PROJECT_NAME} PRIVATE Jansson::Jansson)
 target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_dtl)
+target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_ctx)
 target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_utils)
 target_compile_definitions(${PROJECT_NAME} PUBLIC BUILDING_DYAD=1)
 target_compile_definitions(${PROJECT_NAME} PUBLIC DYAD_HAS_CONFIG)

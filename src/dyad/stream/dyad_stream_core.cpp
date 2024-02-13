@@ -37,6 +37,7 @@ using namespace std;  // std::clock ()
 // #include <cstdbool> // c++11
 
 #include <dlfcn.h>
+#include <dyad/common/dyad_dtl.h>
 #include <dyad/common/dyad_envs.h>
 #include <dyad/common/dyad_logging.h>
 #include <dyad/common/dyad_profiler.h>
@@ -103,7 +104,7 @@ void dyad_stream_core::init (const bool reinit)
     if (reinit || reinit_env ||
         !(m_ctx = m_ctx_mutable = dyad_ctx_get ()))
     {
-        dyad_ctx_init ();
+        dyad_ctx_init (DYAD_COMM_RECV);
         m_ctx = m_ctx_mutable = dyad_ctx_get ();
         log_info ("Stream core is initialized by env variables.");
     } else {
@@ -131,7 +132,7 @@ void dyad_stream_core::init (const dyad_params &p)
                               p.m_prod_managed_path.c_str (),
                               p.m_cons_managed_path.c_str (),
                               p.m_relative_to_managed_path,
-                              static_cast<dyad_dtl_mode_t> (p.m_dtl_mode));
+                              dyad_dtl_mode_name[static_cast<dyad_dtl_mode_t> (p.m_dtl_mode)]);
 #if defined(DYAD_HAS_STD_FSTREAM_FD)
     m_ctx_mutable->use_fs_locks = true;
 #else

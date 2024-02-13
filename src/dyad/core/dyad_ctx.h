@@ -16,7 +16,7 @@ extern "C" {
 #endif
 
 DYAD_DLL_EXPORTED dyad_ctx_t* dyad_ctx_get ();
-DYAD_DLL_EXPORTED void dyad_ctx_init ();
+DYAD_DLL_EXPORTED void dyad_ctx_init (dyad_dtl_comm_mode_t m);
 DYAD_DLL_EXPORTED void dyad_ctx_fini ();
 
 /**
@@ -38,7 +38,7 @@ DYAD_DLL_EXPORTED void dyad_ctx_fini ();
  *                            depends on the context and it could be either of
  *                            producer or consumer's path. This is only applicable
  *                            when there is only one of each.
- * @param[out] ctx            the newly initialized context
+ * @param[in]  dtl_mode_str   DTL mode
  *
  * @return An error code from dyad_rc.h
  */
@@ -55,15 +55,40 @@ DYAD_DLL_EXPORTED dyad_rc_t dyad_init (bool debug,
                                        const char* prod_managed_path,
                                        const char* cons_managed_path,
                                        bool relative_to_managed_path,
-                                       dyad_dtl_mode_t dtl_mode);
+                                       const char*  dtl_mode_str);
 
 /**
  * @brief Intialize the DYAD context using environment variables
- * @param[out] ctx the newly initialized context
  *
  * @return An error code from dyad_rc.h
  */
 DYAD_DLL_EXPORTED dyad_rc_t dyad_init_env ();
+
+/**
+ * @brief Reset producer path. Can be used by the module
+ * @param[in] producer path string
+ *
+ * @return An error code from dyad_rc.h
+ */
+DYAD_DLL_EXPORTED dyad_rc_t dyad_set_prod_path (const char* path);
+
+/**
+ * @brief Reset consumer path. Can be used by the module
+ * @param[in] consumer path string
+ *
+ * @return An error code from dyad_rc.h
+ */
+DYAD_DLL_EXPORTED dyad_rc_t dyad_set_cons_path (const char* path);
+
+/**
+ * @brief Reset dtl mode. Can be used by the module
+ * @param[in] dtl mode string
+ * @param[in] dtl comm mode:
+ *
+ * @return An error code from dyad_rc.h
+ */
+DYAD_DLL_EXPORTED dyad_rc_t dyad_set_and_init_dtl_mode (const char* dtl_mode_name,
+                                                        dyad_dtl_comm_mode_t comm_mode);
 
 /**
  * Reset the contents of the ctx to the default values and deallocate
@@ -75,7 +100,6 @@ DYAD_DLL_EXPORTED dyad_rc_t dyad_clear ();
 
 /**
  * @brief Finalizes the DYAD instance and deallocates the context
- * @param[in] ctx  the DYAD context being finalized
  *
  * @return An error code from dyad_rc.h
  */

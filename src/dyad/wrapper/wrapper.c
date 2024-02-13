@@ -45,6 +45,7 @@ using namespace std;  // std::clock ()
 #include <unistd.h>
 
 #include <dyad/utils/utils.h>
+#include <dyad/common/dyad_dtl.h>
 #include <dyad/common/dyad_envs.h>
 #include <dyad/common/dyad_logging.h>
 #include <dyad/common/dyad_profiler.h>
@@ -101,7 +102,7 @@ void dyad_wrapper_init (void)
     DLIO_PROFILER_C_FINI();
 #endif
     DYAD_C_FUNCTION_START();
-    dyad_ctx_init ();
+    dyad_ctx_init (DYAD_COMM_RECV);
     ctx  = ctx_mutable = dyad_ctx_get ();
     DYAD_LOG_INFO (ctx, "DYAD Wrapper Initialized");
     DYAD_C_FUNCTION_END();

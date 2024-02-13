@@ -86,6 +86,12 @@ class DTLMode(enum.IntEnum):
     DYAD_DTL_UCX = 0
     DYAD_DTL_FLUX_RPC = 1
 
+class DTLCommMode(enum.IntEnum):
+    DYAD_COMM_NONE = 0
+    DYAD_COMM_RECV = 1
+    DYAD_COMM_SEND = 2
+    DYAD_COMM_END = 3
+
 
 class Dyad:
     @dlio_log.log_init
@@ -121,6 +127,7 @@ class Dyad:
 
         self.dyad_ctx_init = self.dyad_ctx_lib.dyad_ctx_init
         self.dyad_ctx_init.argtypes = [
+            ctypes.c_int                                     # dtl_comm_mode
         ]
         self.dyad_ctx_init.restype = None
 
@@ -144,7 +151,7 @@ class Dyad:
             ctypes.c_char_p,                                 # prod_managed_path
             ctypes.c_char_p,                                 # cons_managed_path
             ctypes.c_bool,                                   # relative_to_managed_path
-            ctypes.c_int,                                    # dtl_mode
+            ctypes.c_char_p,                                 # dtl_mode
         ]
         self.dyad_init.restype = ctypes.c_int
 
@@ -215,7 +222,7 @@ class Dyad:
         prod_managed_path=None,
         cons_managed_path=None,
         relative_to_managed_path=False,
-        dtl_mode=DTLMode.DYAD_DTL_FLUX_RPC,
+        dtl_mode=None,
     ):
         self.log_inst = dlio_logger.initialize_log(logfile=None, data_dir=None, process_id=-1)
         if self.dyad_init is None:
@@ -238,7 +245,7 @@ class Dyad:
             prod_managed_path.encode() if prod_managed_path is not None else None,
             cons_managed_path.encode() if cons_managed_path is not None else None,
             ctypes.c_bool(relative_to_managed_path),
-            ctypes.c_int(dtl_mode),
+            dtl_mode.encode() if dtl_mode is not None else None,
         )
         self.ctx = self.dyad_ctx_get()
 
