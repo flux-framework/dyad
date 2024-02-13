@@ -34,6 +34,11 @@
 // 1) The DYAD context (ctx below) must be static
 // 2) The DYAD context should be on the heap (done w/ malloc in dyad_init)
 static __thread dyad_ctx_t *ctx = NULL;
+/**
+ * In case of module, we use the flux handle passed to mod_main() instead
+ * of getting it by flux_open()
+ */
+static __thread flux_t *_f = NULL;
 
 const struct dyad_ctx dyad_ctx_default = {
     // Internal
@@ -75,6 +80,11 @@ const struct dyad_ctx dyad_ctx_default = {
 DYAD_DLL_EXPORTED dyad_ctx_t* dyad_ctx_get ()
 {
     return ctx;
+}
+
+DYAD_DLL_EXPORTED void dyad_ctx_flux_set (void* f)
+{
+    _f = (flux_t*) f;
 }
 
 DYAD_DLL_EXPORTED void dyad_ctx_init (const dyad_dtl_comm_mode_t comm_mode)
@@ -205,7 +215,11 @@ dyad_rc_t dyad_init (bool debug,
     ctx->key_bins = key_bins;
     // Open a Flux handle and store it in the dyad_ctx_t
     // object. If the open operation failed, return DYAD_FLUXFAIL
-    ctx->h = flux_open (NULL, 0);
+    if (_f != NULL) {
+        ctx->h = _f;
+    } else {
+        ctx->h = flux_open (NULL, 0);
+    }
     if (ctx->h == NULL) {
         fprintf (stderr, "Could not open Flux handle!\n");
         rc = DYAD_RC_FLUXFAIL;
@@ -472,9 +486,10 @@ DYAD_DLL_EXPORTED dyad_rc_t dyad_set_and_init_dtl_mode (const char* dtl_name,
         return DYAD_RC_BADDTLMODE;
     }
 
-    DYAD_LOG_INFO (ctx, "DYAD_CORE: inintializing DYAD DTL %s", \
+    DYAD_LOG_INFO (ctx, "DYAD_CORE: DYAD DTL mode to initialize: %s", \
                    dyad_dtl_mode_name[dtl_mode]);
 
+    // If the ctx->dtl_handle is already null, it will just return success
     rc = dyad_dtl_finalize (ctx);
     if (DYAD_IS_ERROR (rc)) {
         goto set_and_init_dtl_mode_region_finish;

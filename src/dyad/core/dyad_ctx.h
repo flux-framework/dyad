@@ -16,6 +16,7 @@ extern "C" {
 #endif
 
 DYAD_DLL_EXPORTED dyad_ctx_t* dyad_ctx_get ();
+DYAD_DLL_EXPORTED void dyad_ctx_flux_set (void* f);
 DYAD_DLL_EXPORTED void dyad_ctx_init (dyad_dtl_comm_mode_t m);
 DYAD_DLL_EXPORTED void dyad_ctx_fini ();
 

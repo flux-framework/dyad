@@ -97,8 +97,17 @@ static dyad_mod_ctx_t *getctx (flux_t *h)
             goto getctx_error;
         }
         mod_ctx->handlers = NULL;
+        dyad_ctx_flux_set (h);
         dyad_ctx_init (DYAD_COMM_SEND);
-        mod_ctx->ctx = dyad_ctx_get (); //(dyad_ctx_t *)malloc (sizeof (dyad_ctx_t));
+        mod_ctx->ctx = dyad_ctx_get ();
+        if (mod_ctx->ctx == NULL) {
+            DYAD_LOG_STDERR ("DYAD_MOD: dyad_ctx_init() failed!");
+            goto getctx_error;
+        }
+        if (mod_ctx->ctx->dtl_handle == NULL) {
+            DYAD_LOG_STDERR ("DYAD_MOD: dyad_ctx_init() failed to initialize DTL!");
+            goto getctx_error;
+        }
         mod_ctx->ctx->h = h;
         mod_ctx->ctx->debug = false;
         if (flux_aux_set (h, "dyad", mod_ctx, freectx) < 0) {
@@ -343,8 +352,11 @@ static int opt_parse (dyad_ctx_t* ctx, const unsigned broker_rank,
                 ctx->debug = true;
                 break;
             case 'm':
+                // If the DTL is already initialized and it is set to the same
+                // mode as the option, then skip reinitializing
                 DYAD_LOG_DEBUG (ctx, "DYAD_MOD: DTL 'mode' option -m with value `%s'\n", optarg);
-                if (DYAD_IS_ERROR(rc = dyad_set_and_init_dtl_mode (optarg, DYAD_COMM_SEND))) {
+                if ((strcmp (dyad_dtl_mode_name[ctx->dtl_handle->mode], optarg) != 0) &&
+                    (DYAD_IS_ERROR(rc = dyad_set_and_init_dtl_mode (optarg, DYAD_COMM_SEND)))) {
                     *dtl_mode = DYAD_DTL_END;
                     show_help ();
                     return rc;
