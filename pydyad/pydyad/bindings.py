@@ -128,7 +128,7 @@ class Dyad:
         self.dyad_ctx_init = self.dyad_ctx_lib.dyad_ctx_init
         self.dyad_ctx_init.argtypes = [
             ctypes.c_int,                                    # dtl_comm_mode
-            ctypes.c_void_p,                                 # flux_handle
+            ctypes.c_void_p                                  # flux_handle
         ]
         self.dyad_ctx_init.restype = None
 
@@ -154,14 +154,14 @@ class Dyad:
             ctypes.c_bool,                                   # relative_to_managed_path
             ctypes.c_char_p,                                 # dtl_mode
             ctypes.c_int,                                    # dtl_comm_mode
-            ctypes.c_void_p,                                 # flux_handle
+            ctypes.c_void_p                                  # flux_handle
         ]
         self.dyad_init.restype = ctypes.c_int
 
         self.dyad_init_env = self.dyad_ctx_lib.dyad_init_env
         self.dyad_init_env.argtypes = [
             ctypes.c_inti,                                   # dtl_comm_mode
-            ctypes.c_void_p,                                 # flux_handle
+            ctypes.c_void_p                                  # flux_handle
         ]
         self.dyad_init_env.restype = ctypes.c_int
 
@@ -229,7 +229,7 @@ class Dyad:
         relative_to_managed_path=False,
         dtl_mode=None,
         dtl_comm_mode=DTL_COMM_RECV,
-        flux_handle=None,
+        flux_handle=None
     ):
         self.log_inst = dlio_logger.initialize_log(logfile=None, data_dir=None, process_id=-1)
         if self.dyad_init is None:
