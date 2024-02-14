@@ -77,7 +77,7 @@ DYAD_DLL_EXPORTED dyad_ctx_t* dyad_ctx_get ()
     return ctx;
 }
 
-DYAD_DLL_EXPORTED void dyad_ctx_init (const dyad_dtl_comm_mode_t comm_mode,
+DYAD_DLL_EXPORTED void dyad_ctx_init (const dyad_dtl_comm_mode_t dtl_comm_mode,
                                       void* flux_handle)
 {
 
@@ -87,7 +87,7 @@ DYAD_DLL_EXPORTED void dyad_ctx_init (const dyad_dtl_comm_mode_t comm_mode,
     DYAD_C_FUNCTION_START();
     dyad_rc_t rc = DYAD_RC_OK;
 
-    rc = dyad_init_env (comm_mode, flux_handle);
+    rc = dyad_init_env (dtl_comm_mode, flux_handle);
 
     if (DYAD_IS_ERROR (rc)) {
         fprintf (stderr, "Failed to initialize DYAD (code = %d)", rc);
@@ -324,7 +324,7 @@ init_region_finish:;
     return rc;
 }
 
-DYAD_DLL_EXPORTED  dyad_rc_t dyad_init_env (const dyad_dtl_comm_mode_t comm_mode,
+DYAD_DLL_EXPORTED  dyad_rc_t dyad_init_env (const dyad_dtl_comm_mode_t dtl_comm_mode,
                                             void* flux_handle)
 {
     DYAD_C_FUNCTION_START();
@@ -452,14 +452,14 @@ DYAD_DLL_EXPORTED  dyad_rc_t dyad_init_env (const dyad_dtl_comm_mode_t comm_mode
                       cons_managed_path,
                       relative_to_managed_path,
                       dtl_mode,
-                      comm_mode,
+                      dtl_comm_mode,
                       flux_handle);
     DYAD_C_FUNCTION_END();
     return rc;
 }
 
 DYAD_DLL_EXPORTED dyad_rc_t dyad_set_and_init_dtl_mode (const char* dtl_name,
-                                                        dyad_dtl_comm_mode_t comm_mode)
+                                                        dyad_dtl_comm_mode_t dtl_comm_mode)
 {
     int rc = DYAD_RC_OK;
     size_t dtl_name_len = 0ul;
@@ -493,7 +493,7 @@ DYAD_DLL_EXPORTED dyad_rc_t dyad_set_and_init_dtl_mode (const char* dtl_name,
         goto set_and_init_dtl_mode_region_finish;
     }
 
-    rc = dyad_dtl_init (ctx, dtl_mode, comm_mode, ctx->debug);
+    rc = dyad_dtl_init (ctx, dtl_mode, dtl_comm_mode, ctx->debug);
     if (DYAD_IS_ERROR (rc)) {
         DYAD_LOG_ERROR (ctx, "Cannot initialize the DTL %s\n", \
                         dyad_dtl_mode_name[dtl_mode]);

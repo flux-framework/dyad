@@ -16,7 +16,7 @@ extern "C" {
 #endif
 
 DYAD_DLL_EXPORTED dyad_ctx_t* dyad_ctx_get ();
-DYAD_DLL_EXPORTED void dyad_ctx_init (dyad_dtl_comm_mode_t m,
+DYAD_DLL_EXPORTED void dyad_ctx_init (dyad_dtl_comm_mode_t dtl_comm_mode,
                                       void* flux_handle);
 DYAD_DLL_EXPORTED void dyad_ctx_fini ();
 
@@ -68,7 +68,7 @@ DYAD_DLL_EXPORTED dyad_rc_t dyad_init (bool debug,
  *
  * @return An error code from dyad_rc.h
  */
-DYAD_DLL_EXPORTED dyad_rc_t dyad_init_env (const dyad_dtl_comm_mode_t comm_mode,
+DYAD_DLL_EXPORTED dyad_rc_t dyad_init_env (const dyad_dtl_comm_mode_t dtl_comm_mode,
                                            void* flux_handle);
 
 /**
@@ -95,7 +95,7 @@ DYAD_DLL_EXPORTED dyad_rc_t dyad_set_cons_path (const char* path);
  * @return An error code from dyad_rc.h
  */
 DYAD_DLL_EXPORTED dyad_rc_t dyad_set_and_init_dtl_mode (const char* dtl_mode_name,
-                                                        dyad_dtl_comm_mode_t comm_mode);
+                                                        dyad_dtl_comm_mode_t dtl_comm_mode);
 
 /**
  * Reset the contents of the ctx to the default values and deallocate
