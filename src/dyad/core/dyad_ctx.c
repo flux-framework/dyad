@@ -34,11 +34,6 @@
 // 1) The DYAD context (ctx below) must be static
 // 2) The DYAD context should be on the heap (done w/ malloc in dyad_init)
 static __thread dyad_ctx_t *ctx = NULL;
-/**
- * In case of module, we use the flux handle passed to mod_main() instead
- * of getting it by flux_open()
- */
-static __thread flux_t *_f = NULL;
 
 const struct dyad_ctx dyad_ctx_default = {
     // Internal
@@ -82,12 +77,8 @@ DYAD_DLL_EXPORTED dyad_ctx_t* dyad_ctx_get ()
     return ctx;
 }
 
-DYAD_DLL_EXPORTED void dyad_ctx_flux_set (void* f)
-{
-    _f = (flux_t*) f;
-}
-
-DYAD_DLL_EXPORTED void dyad_ctx_init (const dyad_dtl_comm_mode_t comm_mode)
+DYAD_DLL_EXPORTED void dyad_ctx_init (const dyad_dtl_comm_mode_t comm_mode,
+                                      void* flux_handle)
 {
 
 #if DYAD_PROFILER == 3
@@ -96,7 +87,7 @@ DYAD_DLL_EXPORTED void dyad_ctx_init (const dyad_dtl_comm_mode_t comm_mode)
     DYAD_C_FUNCTION_START();
     dyad_rc_t rc = DYAD_RC_OK;
 
-    rc = dyad_init_env (comm_mode);
+    rc = dyad_init_env (comm_mode, flux_handle);
 
     if (DYAD_IS_ERROR (rc)) {
         fprintf (stderr, "Failed to initialize DYAD (code = %d)", rc);
@@ -144,7 +135,8 @@ dyad_rc_t dyad_init (bool debug,
                      const char* cons_managed_path,
                      bool relative_to_managed_path,
                      const char* dtl_mode_str,
-                     const dyad_dtl_comm_mode_t dtl_comm_mode)
+                     const dyad_dtl_comm_mode_t dtl_comm_mode,
+                     void* flux_handle)
 {
     DYAD_LOGGER_INIT();
     unsigned my_rank = 0u;
@@ -213,10 +205,14 @@ dyad_rc_t dyad_init (bool debug,
     ctx->fsync_write = fsync_write;
     ctx->key_depth = key_depth;
     ctx->key_bins = key_bins;
+
     // Open a Flux handle and store it in the dyad_ctx_t
     // object. If the open operation failed, return DYAD_FLUXFAIL
-    if (_f != NULL) {
-        ctx->h = _f;
+    // In case of module, we use the flux handle passed to mod_main()
+    // instead of getting it by flux_open()
+
+    if (flux_handle != NULL) {
+        ctx->h = (flux_t*) flux_handle;
     } else {
         ctx->h = flux_open (NULL, 0);
     }
@@ -225,6 +221,7 @@ dyad_rc_t dyad_init (bool debug,
         rc = DYAD_RC_FLUXFAIL;
         goto init_region_finish;
     }
+
     // Get the rank of the Flux broker corresponding
     // to the handle. If this fails, return DYAD_FLUXFAIL
     DYAD_LOG_INFO (ctx, "DYAD_CORE: getting Flux rank");
@@ -294,9 +291,6 @@ dyad_rc_t dyad_init (bool debug,
 
     DYAD_C_FUNCTION_UPDATE_STR ("prod_managed_path", ctx->prod_managed_path);
     DYAD_C_FUNCTION_UPDATE_STR ("cons_managed_path", ctx->cons_managed_path);
-    // Initialization is now complete!
-    // Set reenter and initialized to indicate this.
-    ctx->initialized = true;
     ctx->use_fs_locks = true; // This is default value except for streams which dont have a fp.
     // TODO Print logging info
     rc = DYAD_RC_OK;
@@ -310,6 +304,8 @@ dyad_rc_t dyad_init (bool debug,
     DYAD_LOG_STDERR_REDIRECT (err_file_name);
     DYAD_LOG_STDERR_REDIRECT (log_file_name);
   #endif // DYAD_LOGGER_NO_LOG
+    // Initialization is now complete!
+    ctx->initialized = true;
     goto init_region_finish;
 
 init_region_failed:;
@@ -328,7 +324,8 @@ init_region_finish:;
     return rc;
 }
 
-DYAD_DLL_EXPORTED  dyad_rc_t dyad_init_env (const dyad_dtl_comm_mode_t comm_mode)
+DYAD_DLL_EXPORTED  dyad_rc_t dyad_init_env (const dyad_dtl_comm_mode_t comm_mode,
+                                            void* flux_handle)
 {
     DYAD_C_FUNCTION_START();
     const char* e = NULL;
@@ -455,7 +452,8 @@ DYAD_DLL_EXPORTED  dyad_rc_t dyad_init_env (const dyad_dtl_comm_mode_t comm_mode
                       cons_managed_path,
                       relative_to_managed_path,
                       dtl_mode,
-                      comm_mode);
+                      comm_mode,
+                      flux_handle);
     DYAD_C_FUNCTION_END();
     return rc;
 }

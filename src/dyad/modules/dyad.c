@@ -97,8 +97,7 @@ static dyad_mod_ctx_t *getctx (flux_t *h)
             goto getctx_error;
         }
         mod_ctx->handlers = NULL;
-        dyad_ctx_flux_set (h);
-        dyad_ctx_init (DYAD_COMM_SEND);
+        dyad_ctx_init (DYAD_COMM_SEND, h);
         mod_ctx->ctx = dyad_ctx_get ();
         if (mod_ctx->ctx == NULL) {
             DYAD_LOG_STDERR ("DYAD_MOD: dyad_ctx_init() failed!");

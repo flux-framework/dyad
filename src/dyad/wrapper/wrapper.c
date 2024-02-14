@@ -102,7 +102,7 @@ void dyad_wrapper_init (void)
     DLIO_PROFILER_C_FINI();
 #endif
     DYAD_C_FUNCTION_START();
-    dyad_ctx_init (DYAD_COMM_RECV);
+    dyad_ctx_init (DYAD_COMM_RECV, NULL);
     ctx  = ctx_mutable = dyad_ctx_get ();
     DYAD_LOG_INFO (ctx, "DYAD Wrapper Initialized");
     DYAD_C_FUNCTION_END();

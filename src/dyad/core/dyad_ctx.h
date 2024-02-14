@@ -16,8 +16,8 @@ extern "C" {
 #endif
 
 DYAD_DLL_EXPORTED dyad_ctx_t* dyad_ctx_get ();
-DYAD_DLL_EXPORTED void dyad_ctx_flux_set (void* f);
-DYAD_DLL_EXPORTED void dyad_ctx_init (dyad_dtl_comm_mode_t m);
+DYAD_DLL_EXPORTED void dyad_ctx_init (dyad_dtl_comm_mode_t m,
+                                      void* flux_handle);
 DYAD_DLL_EXPORTED void dyad_ctx_fini ();
 
 /**
@@ -41,6 +41,8 @@ DYAD_DLL_EXPORTED void dyad_ctx_fini ();
  *                            when there is only one of each.
  * @param[in]  dtl_mode_str   DTL mode
  * @param[in]  dtl_comm_mode  DTL comm mode
+ * @param[in]  flux_handle    Flux handle (flux_t*). If NULL, it will be obtained via
+ *                            `flux_open()`
  *
  * @return An error code from dyad_rc.h
  */
@@ -58,14 +60,16 @@ DYAD_DLL_EXPORTED dyad_rc_t dyad_init (bool debug,
                                        const char* cons_managed_path,
                                        bool relative_to_managed_path,
                                        const char*  dtl_mode_str,
-                                       const dyad_dtl_comm_mode_t dtl_comm_mode);
+                                       const dyad_dtl_comm_mode_t dtl_comm_mode,
+                                       void* flux_handle);
 
 /**
  * @brief Intialize the DYAD context using environment variables
  *
  * @return An error code from dyad_rc.h
  */
-DYAD_DLL_EXPORTED dyad_rc_t dyad_init_env (const dyad_dtl_comm_mode_t comm_mode);
+DYAD_DLL_EXPORTED dyad_rc_t dyad_init_env (const dyad_dtl_comm_mode_t comm_mode,
+                                           void* flux_handle);
 
 /**
  * @brief Reset producer path. Can be used by the module

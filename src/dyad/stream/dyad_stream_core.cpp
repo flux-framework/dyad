@@ -104,7 +104,7 @@ void dyad_stream_core::init (const bool reinit)
     if (reinit || reinit_env ||
         !(m_ctx = m_ctx_mutable = dyad_ctx_get ()))
     {
-        dyad_ctx_init (DYAD_COMM_RECV);
+        dyad_ctx_init (DYAD_COMM_RECV, NULL);
         m_ctx = m_ctx_mutable = dyad_ctx_get ();
         log_info ("Stream core is initialized by env variables.");
     } else {
@@ -133,7 +133,7 @@ void dyad_stream_core::init (const dyad_params &p)
                               p.m_cons_managed_path.c_str (),
                               p.m_relative_to_managed_path,
                               dyad_dtl_mode_name[static_cast<dyad_dtl_mode_t> (p.m_dtl_mode)],
-                              DYAD_COMM_RECV);
+                              DYAD_COMM_RECV, NULL);
 #if defined(DYAD_HAS_STD_FSTREAM_FD)
     m_ctx_mutable->use_fs_locks = true;
 #else
