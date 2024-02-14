@@ -127,7 +127,7 @@ class Dyad:
 
         self.dyad_ctx_init = self.dyad_ctx_lib.dyad_ctx_init
         self.dyad_ctx_init.argtypes = [
-            ctypes.c_int                                     # dtl_comm_mode
+            ctypes.c_int,                                    # dtl_comm_mode
             ctypes.c_void_p,                                 # flux_handle
         ]
         self.dyad_ctx_init.restype = None
@@ -160,7 +160,7 @@ class Dyad:
 
         self.dyad_init_env = self.dyad_ctx_lib.dyad_init_env
         self.dyad_init_env.argtypes = [
-            ctypes.c_int                                     # dtl_comm_mode
+            ctypes.c_inti,                                   # dtl_comm_mode
             ctypes.c_void_p,                                 # flux_handle
         ]
         self.dyad_init_env.restype = ctypes.c_int
