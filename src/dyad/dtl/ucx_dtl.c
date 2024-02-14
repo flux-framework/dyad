@@ -64,23 +64,16 @@ static void dyad_recv_callback (void* request, ucs_status_t status, ucp_tag_recv
 
 #if UCP_API_VERSION >= UCP_VERSION(1, 10)
 static void dyad_send_callback (void* req, ucs_status_t status, void* ctx)
-{
-    DYAD_C_FUNCTION_START();
-    DYAD_LOG_INFO ((dyad_ctx_t*) ctx, "Calling send callback");
-    dyad_ucx_request_t* real_req = (dyad_ucx_request_t*)req;
-    real_req->completed = 1;
-    DYAD_C_FUNCTION_END();
-}
 #else  // UCP_API_VERSION
 static void dyad_send_callback (void* req, ucs_status_t status)
+#endif // UCP_API_VERSION
 {
     DYAD_C_FUNCTION_START();
-    DYAD_LOG_STDOUT ("Calling send callback");
+    DYAD_LOG_STDERR ("Calling send callback");
     dyad_ucx_request_t* real_req = (dyad_ucx_request_t*)req;
     real_req->completed = 1;
     DYAD_C_FUNCTION_END();
 }
-#endif // UCP_API_VERSION
 
 // Simple function used to wait on the async receive
 static ucs_status_t dyad_ucx_request_wait (const dyad_ctx_t* ctx,

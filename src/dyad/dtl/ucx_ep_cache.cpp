@@ -112,7 +112,7 @@ dyad_rc_t dyad_ucx_ep_cache_init (const dyad_ctx_t *ctx, ucx_ep_cache_h* cache)
         rc = DYAD_RC_BADBUF;
         goto ucx_ep_cache_init_done;
     }
-    *cache = reinterpret_cast<ucx_ep_cache_h> (new (std::nothrow) cache_type ());
+    *cache = static_cast<ucx_ep_cache_h> (new (std::nothrow) cache_type ());
     if (*cache == nullptr) {
         rc = DYAD_RC_SYSFAIL;
         goto ucx_ep_cache_init_done;
