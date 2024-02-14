@@ -64,32 +64,51 @@
 uint32_t hash_str (const char* str, const uint32_t seed)
 {
     if (!str) return 0u;
-    const size_t len = strlen (str);
-    if (len == 0ul) return 0u;
+    const char* str_long = str;
+    size_t str_len = strlen (str);
+    if (str_len == 0ul) return 0u;
+
+    // Just append the string so that it can be as large as 128 bytes.
+    if (str_len < 128ul) {
+        char buf[256] = {'\0'};
+        memcpy (buf, str, str_len);
+        memset (buf + str_len, '@', 128ul - str_len);
+        buf[128u] = '\0';
+        str_len = 128ul;
+        str_long = buf;
+    }
 
     uint32_t hash[4] = {0u};  // Output for the hash
-    MurmurHash3_x64_128 (str, strlen (str), seed, hash);
+    MurmurHash3_x64_128 (str_long, str_len, seed, hash);
     return (hash[0] ^ hash[1] ^ hash[2] ^ hash[3]) + 1;
 }
 
 /** If hashing is not possible, returns 0. Otherwise, returns a non-zero hash value.
- *  This does not check if the length of string is correct, but simply use it */
+ *  This only hashes the prefix of a given length */
 uint32_t hash_path_prefix (const char* str, const uint32_t seed,
                            const size_t len)
 {
-    char strbuf [PATH_MAX+1] = {'\0'};
-    uint32_t hash[4] = {0u};  // Output for the first hash with len1
-
     if (!str || len == 0ul) {
         return 0u;
     }
+    const char* str_long = str;
+    size_t str_len = strlen (str);
 
-    memcpy (strbuf, str, (len > PATH_MAX)? PATH_MAX : len);
-    const size_t buf_len = strlen (strbuf);
-    if (buf_len != len) {
-        return 0u;
+    if (str_len < len) return 0u;
+    str_len = len;
+
+    // Just append the string so that it can be as large as 128 bytes.
+    if (len < 128ul) {
+        char buf[256] = {'\0'};
+        memcpy (buf, str, len);
+        memset (buf + len, '@', 128ul - len);
+        buf[128u] = '\0';
+        str_len = 128ul;
+        str_long = buf;
     }
-    MurmurHash3_x64_128 (str, buf_len, seed, hash);
+
+    uint32_t hash[4] = {0u};  // Output for the hash
+    MurmurHash3_x64_128 (str_long, str_len, seed, hash);
     return (hash[0] ^ hash[1] ^ hash[2] ^ hash[3]) + 1;
 }
 

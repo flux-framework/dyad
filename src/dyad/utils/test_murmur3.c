@@ -18,29 +18,21 @@ static int gen_path_key (const char* restrict str,
     size_t cx = 0ul;
     int n = 0;
     size_t str_len = strlen (str);
+    const char* str_long = str;
 
     if (str == NULL || path_key == NULL || len == 0ul || str_len == 0ul) {
         return -1;
     }
     path_key[0] = '\0';
 
-    const char* str_long = str;
-
 #if 1
-    // Strings shorter than 128 bytes collide. Especially, the hash value seems
-    // to depend on the length of such a string.
-    // For such a short string, we concatenate it as many times as needed to make
-    // it longer than 128 bytes.
+    // Just append the string so that it can be as large as 128 bytes.
     if (str_len < 128ul) {
-        char buf[PATH_MAX+1] = {'\0'};
+        char buf[256] = {'\0'};
         memcpy (buf, str, str_len);
-        char* str_pos = buf + str_len;
-        const char* const str_min = buf + 128ul;
-        while (str_pos < str_min) {
-            memcpy (str_pos, str, str_len);
-            str_pos += str_len;
-        };
-        str_len = str_pos - buf;
+        memset (buf + str_len, '@', 128ul - str_len);
+        buf[128u] = '\0';
+        str_len = 128ul;
         str_long = buf;
     }
 #endif
