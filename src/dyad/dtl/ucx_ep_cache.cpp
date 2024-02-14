@@ -135,7 +135,7 @@ dyad_rc_t dyad_ucx_ep_cache_find (const dyad_ctx_t *ctx,
         goto ucx_ep_cache_find_done;
     }
     try {
-        const auto* cpp_cache = reinterpret_cast<const cache_type*> (cache);
+        const auto* cpp_cache = static_cast<const cache_type*> (cache);
         auto key = ctx->dtl_handle->private_dtl.ucx_dtl_handle->consumer_conn_key;
         auto cache_it = cpp_cache->find (key);
         if (cache_it == cpp_cache->cend ()) {
@@ -163,7 +163,7 @@ dyad_rc_t dyad_ucx_ep_cache_insert (const dyad_ctx_t *ctx,
     DYAD_C_FUNCTION_START();
     dyad_rc_t rc = DYAD_RC_OK;
     try {
-        cache_type* cpp_cache = reinterpret_cast<cache_type*> (cache);
+        cache_type* cpp_cache = static_cast<cache_type*> (cache);
         uint64_t key = ctx->dtl_handle->private_dtl.ucx_dtl_handle->consumer_conn_key;
         DYAD_C_FUNCTION_UPDATE_INT("cons_key", ctx->dtl_handle->private_dtl.ucx_dtl_handle->consumer_conn_key)
         auto cache_it = cpp_cache->find (key);
@@ -212,7 +212,7 @@ dyad_rc_t dyad_ucx_ep_cache_remove (const dyad_ctx_t *ctx,
     DYAD_C_FUNCTION_START();
     dyad_rc_t rc = DYAD_RC_OK;
     try {
-        cache_type* cpp_cache = reinterpret_cast<cache_type*> (cache);
+        cache_type* cpp_cache = static_cast<cache_type*> (cache);
         auto key = ctx->dtl_handle->private_dtl.ucx_dtl_handle->consumer_conn_key;
         cache_type::iterator cache_it = cpp_cache->find (key);
         cache_remove_impl (ctx, cpp_cache, cache_it, worker);
@@ -230,10 +230,12 @@ dyad_rc_t dyad_ucx_ep_cache_finalize (const dyad_ctx_t *ctx, ucx_ep_cache_h* cac
     if (cache == nullptr || *cache == nullptr) {
         return DYAD_RC_OK;
     }
-    cache_type* cpp_cache = reinterpret_cast<cache_type*> (*cache);
+    cache_type* cpp_cache = static_cast<cache_type*> (*cache);
     for (cache_type::iterator it = cpp_cache->begin (); it != cpp_cache->end ();) {
-        it = cache_remove_impl (ctx, cpp_cache, it, worker);
+        ucx_disconnect (ctx, worker, it->second);
+        //it = cache_remove_impl (ctx, cpp_cache, it, worker);
     }
+    cpp_cache->clear ();
     delete cpp_cache;
     *cache = nullptr;
     DYAD_C_FUNCTION_END();
