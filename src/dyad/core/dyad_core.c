@@ -48,17 +48,28 @@ static int gen_path_key (const char* restrict str,
     uint32_t hash[4] = {0u};  // Output for the hash
     size_t cx = 0ul;
     int n = 0;
+    size_t str_len = strlen (str);
+    const char* str_long = str;
 
-    if (str == NULL || path_key == NULL || len == 0ul) {
+    if (str == NULL || path_key == NULL || len == 0ul || str_len == 0ul) {
         DYAD_C_FUNCTION_END();
         return -1;
     }
     path_key[0] = '\0';
 
+    // Just append the string so that it can be as large as 128 bytes.
+    if (str_len < 128ul) {
+        char buf[256] = {'\0'};
+        memcpy (buf, str, str_len);
+        memset (buf + str_len, '@', 128ul - str_len);
+        buf[128u] = '\0';
+        str_len = 128ul;
+        str_long = buf;
+    }
+
     for (uint32_t d = 0u; d < depth; d++) {
         seed += seeds[d % 10];
-        // TODO add assert that str is not NULL
-        MurmurHash3_x64_128 (str, strlen (str), seed, hash);
+        MurmurHash3_x64_128 (str_long, str_len, seed, hash);
         uint32_t bin = (hash[0] ^ hash[1] ^ hash[2] ^ hash[3]) % width;
         n = snprintf (path_key + cx, len - cx, "%x.", bin);
         cx += n;
