@@ -7,7 +7,7 @@
 #include <dyad/dtl/flux_dtl.h>
 #include <dyad/common/dyad_logging.h>
 #include <dyad/common/dyad_profiler.h>
-#include <unistd.h> // getpagesize
+#include <unistd.h> // sysconf
 
 dyad_rc_t dyad_dtl_flux_init (const dyad_ctx_t* ctx,
                               dyad_dtl_mode_t mode,
@@ -217,7 +217,7 @@ dyad_rc_t dyad_dtl_flux_recv (const dyad_ctx_t* ctx, void** buf, size_t* buflen)
     dyad_rc = DYAD_RC_OK;
 finish_recv:
    if (dtl_handle->f != NULL)
-        flux_future_destroy (dtl_handle->f);
+        flux_future_reset (dtl_handle->f);
     DYAD_C_FUNCTION_UPDATE_INT ("tmp_buflen", tmp_buflen);
     DYAD_C_FUNCTION_END();
     return dyad_rc;
@@ -238,7 +238,7 @@ dyad_rc_t dyad_dtl_flux_finalize (const dyad_ctx_t* ctx)
 {
     DYAD_C_FUNCTION_START();
     dyad_rc_t rc = DYAD_RC_OK;
-    if (ctx->dtl_handle == NULL) {
+    if (ctx->dtl_handle == NULL || !(ctx->dtl_handle->private_dtl.flux_dtl_handle)) {
         goto dtl_flux_finalize_done;
     }
     ctx->dtl_handle->private_dtl.flux_dtl_handle->h = NULL;

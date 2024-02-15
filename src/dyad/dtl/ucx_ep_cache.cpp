@@ -112,7 +112,7 @@ dyad_rc_t dyad_ucx_ep_cache_init (const dyad_ctx_t *ctx, ucx_ep_cache_h* cache)
         rc = DYAD_RC_BADBUF;
         goto ucx_ep_cache_init_done;
     }
-    *cache = reinterpret_cast<ucx_ep_cache_h> (new (std::nothrow) cache_type ());
+    *cache = static_cast<ucx_ep_cache_h> (new (std::nothrow) cache_type ());
     if (*cache == nullptr) {
         rc = DYAD_RC_SYSFAIL;
         goto ucx_ep_cache_init_done;
@@ -135,7 +135,7 @@ dyad_rc_t dyad_ucx_ep_cache_find (const dyad_ctx_t *ctx,
         goto ucx_ep_cache_find_done;
     }
     try {
-        const auto* cpp_cache = reinterpret_cast<const cache_type*> (cache);
+        const auto* cpp_cache = static_cast<const cache_type*> (cache);
         auto key = ctx->dtl_handle->private_dtl.ucx_dtl_handle->consumer_conn_key;
         auto cache_it = cpp_cache->find (key);
         if (cache_it == cpp_cache->cend ()) {
@@ -163,7 +163,7 @@ dyad_rc_t dyad_ucx_ep_cache_insert (const dyad_ctx_t *ctx,
     DYAD_C_FUNCTION_START();
     dyad_rc_t rc = DYAD_RC_OK;
     try {
-        cache_type* cpp_cache = reinterpret_cast<cache_type*> (cache);
+        cache_type* cpp_cache = static_cast<cache_type*> (cache);
         uint64_t key = ctx->dtl_handle->private_dtl.ucx_dtl_handle->consumer_conn_key;
         DYAD_C_FUNCTION_UPDATE_INT("cons_key", ctx->dtl_handle->private_dtl.ucx_dtl_handle->consumer_conn_key)
         auto cache_it = cpp_cache->find (key);
@@ -212,7 +212,7 @@ dyad_rc_t dyad_ucx_ep_cache_remove (const dyad_ctx_t *ctx,
     DYAD_C_FUNCTION_START();
     dyad_rc_t rc = DYAD_RC_OK;
     try {
-        cache_type* cpp_cache = reinterpret_cast<cache_type*> (cache);
+        cache_type* cpp_cache = static_cast<cache_type*> (cache);
         auto key = ctx->dtl_handle->private_dtl.ucx_dtl_handle->consumer_conn_key;
         cache_type::iterator cache_it = cpp_cache->find (key);
         cache_remove_impl (ctx, cpp_cache, cache_it, worker);
@@ -230,12 +230,65 @@ dyad_rc_t dyad_ucx_ep_cache_finalize (const dyad_ctx_t *ctx, ucx_ep_cache_h* cac
     if (cache == nullptr || *cache == nullptr) {
         return DYAD_RC_OK;
     }
-    cache_type* cpp_cache = reinterpret_cast<cache_type*> (*cache);
-    for (cache_type::iterator it = cpp_cache->begin (); it != cpp_cache->end ();) {
-        it = cache_remove_impl (ctx, cpp_cache, it, worker);
+
+    dyad_rc_t rc = DYAD_RC_OK;
+    cache_type& cpp_cache = *(static_cast<cache_type*> (*cache));
+    std::vector<ucs_status_ptr_t> stat_ptrs (cpp_cache.size ());
+    auto it_stat = stat_ptrs.begin ();
+
+  #if UCP_API_VERSION >= UCP_VERSION(1, 10)
+    ucp_request_param_t close_params;
+    close_params.op_attr_mask = UCP_OP_ATTR_FIELD_FLAGS;
+    close_params.flags = UCP_EP_CLOSE_FLAG_FORCE;
+  #endif
+
+    for (cache_type::iterator it = cpp_cache.begin (); it != cpp_cache.end ();) {
+        ucp_ep_h& ep = it->second;
+        if (ep != NULL) {
+            // ucp_tag_send_sync_nbx is the prefered version of this send
+            // since UCX 1.9 However, some systems (e.g., Lassen) may have
+            // an older verison This conditional compilation will use
+            // ucp_tag_send_sync_nbx if using UCX 1.9+, and it will use the
+            // deprecated ucp_tag_send_sync_nb if using UCX < 1.9.
+          #if UCP_API_VERSION >= UCP_VERSION(1, 10)
+            *(it_stat++) = ucp_ep_close_nbx (ep, &close_params);
+          #else
+            // TODO change to FORCE if we decide to enable err handleing
+            // mode
+            *(it_stat++) = ucp_ep_close_nb (ep, UCP_EP_CLOSE_MODE_FORCE);
+          #endif
+        }
     }
-    delete cpp_cache;
+
+    for (auto& stat_ptr : stat_ptrs)
+    {
+        ucs_status_t status = UCS_OK;
+        // Don't use dyad_ucx_request_wait here because ep_close behaves
+        // differently than other UCX calls
+        if (stat_ptr != NULL) {
+            if (UCS_PTR_IS_PTR (stat_ptr)) {
+                // Endpoint close is in-progress.
+                // Wait until finished
+                do {
+                    ucp_worker_progress (worker);
+                    status = ucp_request_check_status (stat_ptr);
+                } while (status == UCS_INPROGRESS);
+                ucp_request_free (stat_ptr);
+            } else {
+                // An error occurred during endpoint closure
+                // However, the endpoint can no longer be used
+                // Get the status code for reporting
+                status = UCS_PTR_STATUS (stat_ptr);
+            }
+            if (UCX_STATUS_FAIL (status)) {
+                rc = DYAD_RC_UCXEP_FAIL;
+            }
+        }
+    }
+
+    cpp_cache.clear ();
+    delete &cpp_cache;
     *cache = nullptr;
     DYAD_C_FUNCTION_END();
-    return DYAD_RC_OK;
+    return rc;
 }
