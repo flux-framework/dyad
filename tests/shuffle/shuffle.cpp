@@ -15,8 +15,8 @@
 #include <sstream>
 #include <vector>
 
-#include "read_all.h"
-#include "utils.h"
+#include <dyad/utils/read_all.h>
+#include <dyad/utils/utils.h>
 #include "worker.hpp"
 
 using std::cout;

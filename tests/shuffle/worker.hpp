@@ -1,5 +1,5 @@
-#ifndef WORKER_HPP
-#define WORKER_HPP
+#ifndef DYAD_TEST_SHUFFLE_WORKER_HPP
+#define DYAD_TEST_SHUFFLE_WORKER_HPP
 
 #include <random>
 #include <string>
@@ -51,4 +51,4 @@ class Worker
     void set_file_list ();
 };
 
-#endif  // WORKER_HPP
+#endif  // DYAD_TEST_SHUFFLE_WORKER_HPP
