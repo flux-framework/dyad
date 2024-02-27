@@ -86,6 +86,12 @@ class DTLMode(enum.IntEnum):
     DYAD_DTL_UCX = 0
     DYAD_DTL_FLUX_RPC = 1
 
+class DTLCommMode(enum.IntEnum):
+    DYAD_COMM_NONE = 0
+    DYAD_COMM_RECV = 1
+    DYAD_COMM_SEND = 2
+    DYAD_COMM_END = 3
+
 
 class Dyad:
     @dlio_log.log_init
@@ -121,6 +127,8 @@ class Dyad:
 
         self.dyad_ctx_init = self.dyad_ctx_lib.dyad_ctx_init
         self.dyad_ctx_init.argtypes = [
+            ctypes.c_int,                                    # dtl_comm_mode
+            ctypes.c_void_p                                  # flux_handle
         ]
         self.dyad_ctx_init.restype = None
 
@@ -144,12 +152,16 @@ class Dyad:
             ctypes.c_char_p,                                 # prod_managed_path
             ctypes.c_char_p,                                 # cons_managed_path
             ctypes.c_bool,                                   # relative_to_managed_path
-            ctypes.c_int,                                    # dtl_mode
+            ctypes.c_char_p,                                 # dtl_mode
+            ctypes.c_int,                                    # dtl_comm_mode
+            ctypes.c_void_p                                  # flux_handle
         ]
         self.dyad_init.restype = ctypes.c_int
 
         self.dyad_init_env = self.dyad_ctx_lib.dyad_init_env
         self.dyad_init_env.argtypes = [
+            ctypes.c_int,                                    # dtl_comm_mode
+            ctypes.c_void_p                                  # flux_handle
         ]
         self.dyad_init_env.restype = ctypes.c_int
 
@@ -215,7 +227,9 @@ class Dyad:
         prod_managed_path=None,
         cons_managed_path=None,
         relative_to_managed_path=False,
-        dtl_mode=DTLMode.DYAD_DTL_FLUX_RPC,
+        dtl_mode=None,
+        dtl_comm_mode=DTLCommMode.DYAD_COMM_RECV,
+        flux_handle=None
     ):
         self.log_inst = dlio_logger.initialize_log(logfile=None, data_dir=None, process_id=-1)
         if self.dyad_init is None:
@@ -238,7 +252,9 @@ class Dyad:
             prod_managed_path.encode() if prod_managed_path is not None else None,
             cons_managed_path.encode() if cons_managed_path is not None else None,
             ctypes.c_bool(relative_to_managed_path),
-            ctypes.c_int(dtl_mode),
+            dtl_mode.encode() if dtl_mode is not None else None,
+            ctypes.c_int(dtl_comm_mode),
+            ctypes.c_void_p(flux_handle)
         )
         self.ctx = self.dyad_ctx_get()
 
@@ -255,7 +271,11 @@ class Dyad:
         self.initialized = True
 
     @dlio_log.log
-    def init_env(self):
+    def init_env(
+        self,
+        dtl_comm_mode=DTLCommMode.DYAD_COMM_RECV,
+        flux_handle=None
+    ):
         if self.dyad_init_env is None:
             warnings.warn(
                 "Trying to initialize DYAD when libdyad_ctx.so was not found",
@@ -263,6 +283,8 @@ class Dyad:
             )
             return
         res = self.dyad_init_env(
+            ctypes.c_int(dtl_comm_mode),
+            ctypes.c_void_p(flux_handle)
         )
         self.ctx = self.dyad_ctx_get()
         if int(res) != 0:

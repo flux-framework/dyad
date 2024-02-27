@@ -91,7 +91,7 @@ class DYADTorchDataset(Dataset):
                           service_mux=self.broker_per_node,
                           key_bins=1024, kvs_namespace=os.getenv("DYAD_KVS_NAMESPACE"),
                           prod_managed_path=self.dyad_managed_directory, cons_managed_path=self.dyad_managed_directory,
-                          dtl_mode=mode)
+                          dtl_mode=mode, dtl_comm_mode=DYAD_COMM_RECV)
 
     def __del__(self):
         if self.dlp_logger:

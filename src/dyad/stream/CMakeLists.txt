@@ -1,5 +1,6 @@
 set(DYAD_FSTREAM_SRC ${CMAKE_CURRENT_SOURCE_DIR}/dyad_stream_core.cpp)
 set(DYAD_FSTREAM_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_rc.h
+                                 ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_dtl.h
                                  ${CMAKE_CURRENT_SOURCE_DIR}/../core/dyad_ctx.h
                                  ${CMAKE_CURRENT_SOURCE_DIR}/../core/dyad_core.h
                                  ${CMAKE_CURRENT_SOURCE_DIR}/../utils/utils.h)

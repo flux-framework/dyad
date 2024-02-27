@@ -7,7 +7,7 @@
 #include <dyad/dtl/flux_dtl.h>
 #include <dyad/common/dyad_logging.h>
 #include <dyad/common/dyad_profiler.h>
-#include <unistd.h> // getpagesize
+#include <unistd.h> // sysconf
 
 dyad_rc_t dyad_dtl_flux_init (const dyad_ctx_t* ctx,
                               dyad_dtl_mode_t mode,

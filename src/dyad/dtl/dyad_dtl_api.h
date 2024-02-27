@@ -32,15 +32,6 @@ union dyad_dtl_private {
 } __attribute__((aligned(16)));
 typedef union dyad_dtl_private dyad_dtl_private_t;
 
-enum dyad_dtl_comm_mode {
-    DYAD_COMM_NONE = 0,  // Sanity check value for when
-                         // connection isn't established
-    DYAD_COMM_RECV = 1,  // DTL connection will only receive data
-    DYAD_COMM_SEND = 2,  // DTL connection will only send data
-    DYAD_COMM_END = 3
-};
-typedef enum dyad_dtl_comm_mode dyad_dtl_comm_mode_t;
-
 struct dyad_dtl {
     dyad_dtl_private_t private_dtl;
     dyad_dtl_mode_t mode;

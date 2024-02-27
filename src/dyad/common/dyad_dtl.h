@@ -21,6 +21,16 @@ typedef enum dyad_dtl_mode dyad_dtl_mode_t;
 static const char* dyad_dtl_mode_name[DYAD_DTL_END+1] __attribute__((unused))
     = {"UCX", "FLUX_RPC", "DTL_UNKNOWN"};
 
+enum dyad_dtl_comm_mode {
+    DYAD_COMM_NONE = 0,  // Sanity check value for when
+                         // connection isn't established
+    DYAD_COMM_RECV = 1,  // DTL connection will only receive data
+    DYAD_COMM_SEND = 2,  // DTL connection will only send data
+    DYAD_COMM_END = 3
+};
+typedef enum dyad_dtl_comm_mode dyad_dtl_comm_mode_t;
+
+
 #define DYAD_DTL_RPC_NAME "dyad.fetch"
 
 struct dyad_dtl;

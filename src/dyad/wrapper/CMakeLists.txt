@@ -1,5 +1,6 @@
 set(DYAD_WRAPPER_SRC ${CMAKE_CURRENT_SOURCE_DIR}/wrapper.c)
 set(DYAD_WRAPPER_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/../utils/utils.h
+                                 ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_dtl.h
                                  ${CMAKE_CURRENT_SOURCE_DIR}/../core/dyad_ctx.h
                                  ${CMAKE_CURRENT_SOURCE_DIR}/../core/dyad_core.h)
 set(DYAD_WRAPPER_PUBLIC_HEADERS)
