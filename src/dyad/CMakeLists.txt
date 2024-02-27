@@ -6,4 +6,5 @@ add_subdirectory(core)
 add_subdirectory(modules)
 add_subdirectory(wrapper)
 add_subdirectory(stream)
+add_subdirectory(residency)
 
