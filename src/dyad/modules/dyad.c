@@ -355,6 +355,8 @@ static int opt_parse (opt_parse_out_t* restrict opt, const unsigned broker_rank,
                 // mode as the option, then skip reinitializing
                 DYAD_LOG_STDERR ("DYAD_MOD: DTL 'mode' option -m with value `%s'\n", optarg);
                 opt->dtl_mode = optarg;
+                if (strcmp("UCX", optarg) == 0) *dtl_mode = DYAD_DTL_UCX;
+                else if (strcmp("FLUX_RPC", optarg) == 0) *dtl_mode = DYAD_DTL_FLUX_RPC;
                 break;
             case 'i':
               #ifndef DYAD_LOGGER_NO_LOG
@@ -420,7 +422,12 @@ dyad_rc_t dyad_module_ctx_init (const opt_parse_out_t* opt, flux_t* h)
         DYAD_LOG_STDERR ("DYAD_MOD: Did not find DTL 'mode' option. " \
                          "Using env %s=%s", DYAD_DTL_MODE_ENV, getenv (DYAD_DTL_MODE_ENV));
     }
-
+    char* kvs = getenv("DYAD_KVS_NAMESPACE");
+    if (kvs != NULL) {
+       DYAD_LOG_STDERR ("DYAD_MOD: DYAD_KVS_NAMESPACE is set to `%s'\n", kvs);
+    } else {
+        DYAD_LOG_STDERR ("DYAD_MOD: DYAD_KVS_NAMESPACE is not set\n");
+    }    
     dyad_ctx_init (DYAD_COMM_SEND, h);
     mod_ctx->ctx = dyad_ctx_get ();
     dyad_ctx_t* ctx = mod_ctx->ctx;

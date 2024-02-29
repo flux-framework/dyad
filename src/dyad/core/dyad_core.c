@@ -27,14 +27,10 @@
 #include <string.h>
 #endif
 
-#if DYAD_PERFFLOW
-#define DYAD_CORE_FUNC_MODS __attribute__ ((annotate ("@critical_path()"))) static
-#else
-#define DYAD_CORE_FUNC_MODS static inline
-#endif
 
 
-static int gen_path_key (const char* restrict str,
+
+DYAD_DLL_EXPORTED int gen_path_key (const char* restrict str,
                          char* restrict path_key,
                          const size_t len,
                          const uint32_t depth,
@@ -176,7 +172,7 @@ publish_done:;
     return rc;
 }
 
-DYAD_CORE_FUNC_MODS dyad_rc_t dyad_commit (dyad_ctx_t* restrict ctx, const char* restrict fname)
+DYAD_DLL_EXPORTED dyad_rc_t dyad_commit (dyad_ctx_t* restrict ctx, const char* restrict fname)
 {
     DYAD_C_FUNCTION_START();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", ctx->fname);
@@ -236,7 +232,7 @@ static void print_mdata (const dyad_ctx_t* restrict ctx,
     }
 }
 
-DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_read (const dyad_ctx_t* restrict ctx,
+DYAD_DLL_EXPORTED dyad_rc_t dyad_kvs_read (const dyad_ctx_t* restrict ctx,
                                              const char* restrict topic,
                                              const char* restrict upath,
                                              bool should_wait,
@@ -374,7 +370,7 @@ fetch_done:;
     return rc;
 }
 
-DYAD_CORE_FUNC_MODS dyad_rc_t dyad_get_data (const dyad_ctx_t* restrict ctx,
+DYAD_DLL_EXPORTED dyad_rc_t dyad_get_data (const dyad_ctx_t* restrict ctx,
                                              const dyad_metadata_t* restrict mdata,
                                              char** restrict file_data,
                                              size_t* restrict file_len)
