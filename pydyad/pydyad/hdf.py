@@ -5,7 +5,7 @@ from pathlib import Path
 import h5py
 
 
-class File(h5py.File):
+class DyadFile(h5py.File):
 
     def __init__(self, *args, **kwargs, dyad_ctx=None, metadata_wrapper=None):
         # According to H5PY, the first positional argument to File.__init__ is fname
