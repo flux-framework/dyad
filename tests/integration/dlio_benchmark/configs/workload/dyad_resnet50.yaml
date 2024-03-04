@@ -1,0 +1,27 @@
+model: unet3d
+
+framework: pytorch
+
+workflow:
+  generate_data: False
+  train: True
+
+dataset:
+  num_files_train: 10240000
+  num_samples_per_file: 1
+  record_length: 150528
+  data_folder: data/resnet50
+  format: png
+
+train:
+  computation_time: 0.317 # this is for A100
+  epochs: 100
+
+reader:
+  data_loader: pytorch
+  read_threads: 6
+  computation_threads: 8
+  batch_size: 1
+  multiprocessing_context: spawn
+  data_loader_classname: dyad_torch_data_loader.DyadTorchDataLoader
+  data_loader_sampler: index

@@ -4,22 +4,24 @@ module load python/3.9.12
 module load openmpi/4.1.2
 
 # Configurations
-export DLIO_WORKLOAD=dyad_unet3d # unet3d_base dyad_unet3d dyad_unet3d_small
-export NUM_NODES=2
+export DLIO_WORKLOAD=resnet50_base #dyad_unet3d_large # unet3d_base dyad_unet3d dyad_unet3d_small
+export NUM_NODES=32
 export PPN=8
+export QUEUE=pbatch
+export TIME=$((60))
 export BROKERS_PER_NODE=1
 export GENERATE_DATA="0"
 
 export DYAD_INSTALL_PREFIX=/usr/workspace/haridev/dyad/env/spack/.spack-env/view
 export DYAD_KVS_NAMESPACE=dyad
 export DYAD_DTL_MODE=UCX
-export DYAD_PATH=/l/ssd/haridev/dyad
-export DYAD_PATH=/dev/shm/haridev/dyad
+export DYAD_PATH="/l/ssd/haridev/dyad"
+#export DYAD_PATH=/dev/shm/haridev/dyad
 export GITHUB_WORKSPACE=/usr/workspace/haridev/dyad
-export SPACK_DIR=/usr/workspace/haridev/spack-new
+export SPACK_DIR=/usr/workspace/haridev/spack
 export SPACK_ENV=/usr/workspace/haridev/dyad/env/spack
 export PYTHON_ENV=/usr/workspace/haridev/dyad/env/python
-export DLIO_DATA_DIR=/p/lustre2/haridev/dyad/dlio_benchmark/dyad_unet3d_basic
+export DLIO_DATA_DIR=/p/lustre2/haridev/dyad/dlio_benchmark/dyad_resnet50 # dyad_unet3d_basic
 
 # DLIO Profiler Configurations
 export DLIO_PROFILER_ENABLE=1
@@ -33,7 +35,7 @@ export DLIO_PROFILER_LOG_LEVEL=ERROR
 export DLIO_PROFILER_BIND_SIGNALS=0
 export MV2_BCAST_HWLOC_TOPOLOGY=0
 
-mkdir -m 775 -p ${DYAD_PATH}
+#mkdir -p ${DYAD_PATH}
 mkdir -p ${DLIO_PROFILER_LOG_FILE}
 # Activate Environments
 . ${SPACK_DIR}/share/spack/setup-env.sh
