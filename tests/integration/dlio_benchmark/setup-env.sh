@@ -4,7 +4,7 @@ module load python/3.9.12
 module load openmpi/4.1.2
 
 # Configurations
-export DLIO_WORKLOAD=resnet50_base #dyad_unet3d_large # unet3d_base dyad_unet3d dyad_unet3d_small
+export DLIO_WORKLOAD=dyad_resnet50 #dyad_unet3d_large # unet3d_base dyad_unet3d dyad_unet3d_small resnet50_base dyad_resnet50 unet3d_base_large
 export NUM_NODES=32
 export PPN=8
 export QUEUE=pbatch
@@ -21,7 +21,8 @@ export GITHUB_WORKSPACE=/usr/workspace/haridev/dyad
 export SPACK_DIR=/usr/workspace/haridev/spack
 export SPACK_ENV=/usr/workspace/haridev/dyad/env/spack
 export PYTHON_ENV=/usr/workspace/haridev/dyad/env/python
-export DLIO_DATA_DIR=/p/lustre2/haridev/dyad/dlio_benchmark/dyad_resnet50 # dyad_unet3d_basic
+export DLIO_DATA_DIR=/p/lustre1/iopp/dyad/dlio_benchmark/dyad_resnet50 #  dyad_resnet50 dyad_unet3d_basic
+#export DLIO_DATA_DIR=/p/lustre2/haridev/dyad/dlio_benchmark/dyad_unet3d_basic #  dyad_resnet50
 
 # DLIO Profiler Configurations
 export DLIO_PROFILER_ENABLE=1
