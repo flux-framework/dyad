@@ -27,4 +27,4 @@ reader:
 
 train:
   epochs: 10
-  computation_time: 0
+  computation_time: .133

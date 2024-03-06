@@ -5,9 +5,9 @@ module load openmpi/4.1.2
 
 # Configurations
 export DLIO_WORKLOAD=dyad_mummi #dyad_unet3d_large # unet3d_base dyad_unet3d dyad_unet3d_small resnet50_base dyad_resnet50 unet3d_base_large mummi_base dyad_mummi
-export NUM_NODES=4
+export NUM_NODES=64
 export PPN=8
-export QUEUE=pdebug
+export QUEUE=pbatch
 export TIME=$((60))
 export BROKERS_PER_NODE=1
 export GENERATE_DATA="0"
