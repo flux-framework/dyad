@@ -74,7 +74,7 @@ cl::Parser define_options() {
                    "iteration")["-i"]["--iteration"]("Number of Iterations")  |
            cl::Opt(args.number_of_files,
                    "number_of_files")["-n"]["--number_of_files"]("Number of Files")  |
-           cl::Opt(args.number_of_files,
+           cl::Opt(args.brokers_per_node,
                    "brokers_per_node")["-b"]["--brokers_per_node"]("Number of Brokers per node") |
            cl::Opt(args.debug,
                    "debug")["-d"]["--debug"]("debug");
