@@ -3,11 +3,6 @@
 #include <mpi.h>
 #include <test_utils.h>
 
-// TODO add a check so that we don't use experimental/filesystem on fully C++17 compliant compilers
-//      because they may have removed the experimental header
-#include <experimental/filesystem>
-namespace fs = std::experimental::filesystem;
-
 /**
  * Test data structures
  */
@@ -17,7 +12,6 @@ struct Info {
     int comm_size;
     int num_nodes;
     size_t num_server_procs;
-    uint32_t
 };
 struct Arguments {
     // MPI Configurations
