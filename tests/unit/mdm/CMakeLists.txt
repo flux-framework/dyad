@@ -3,6 +3,7 @@ set(ts 65536)
 set(ops 16)
 
 function(add_mdm_test node ppn files ts ops)
+    set(test_name unit_localfs_${node}_${ppn})
     add_test(${test_name} flux run -N ${node} --tasks-per-node ${ppn} ${CMAKE_BINARY_DIR}/bin/unit_test --filename mdm_${node}_${ppn} --pfs $ENV{DYAD_PFS_DIR} --dmd $ENV{DYAD_DMD_DIR} --ppn ${ppn} --iteration ${ops} --number_of_files ${files} --request_size ${ts} --reporter compact LocalFSLookup)
     set_property(TEST ${test_name} APPEND PROPERTY ENVIRONMENT DYAD_KVS_NAMESPACE=${DYAD_KEYSPACE})
     set_property(TEST ${test_name} APPEND PROPERTY ENVIRONMENT DYAD_MODULE_SO=${CMAKE_BINARY_DIR}/${DYAD_LIBDIR}/dyad.so)
