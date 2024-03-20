@@ -22,7 +22,8 @@ TEST_CASE("LocalFSLookup",  "[number_of_lookups= " + std::to_string(args.number_
                      args.filename.c_str (),
                      info.broker_idx,
                      file_idx);
-            kvs_time.resumeTime();
+            INFO("The file " << filename << " rank " << info.rank);
+	    kvs_time.resumeTime();
             int lock_fd = open (filename, O_RDWR | O_CREAT, 0666);
             kvs_time.pauseTime();
             REQUIRE (lock_fd != -1);
