@@ -91,11 +91,11 @@ int posttest() {
     return 0;
 }
 int clean_directories() {
-    auto file_pt = args.pfs.string() + args.filename;
+    auto file_pt = args.pfs.string() + "/" + args.filename;
     std::string cmd = "rm -rf " + file_pt + "*";
     int status = system (cmd.c_str ());
     (void) status;
-    file_pt = args.dyad_managed_dir.string() + args.filename;
+    file_pt = args.dyad_managed_dir.string() + "/" + args.filename;
     cmd = "rm -rf " + file_pt + "*";
     status = system (cmd.c_str ());
     (void) status;
