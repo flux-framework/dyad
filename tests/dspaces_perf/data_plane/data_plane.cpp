@@ -1,7 +1,32 @@
 #include <fcntl.h>
 #include <dspaces.h>
+#include <stdio.h>
+#include <string.h>
 
 #include <array>
+
+FILE* redirect_stdout(const char* filename)
+{
+    size_t dir_len = strlen(args.dspaces_timing_dir);
+    bool ends_with_separator = (args.dspaces_timing_dir[dir_len-1] == '/');
+    size_t filename_len = dir_len + strlen(filename) + 1;
+    if (!ends_with_separator) {
+        filename_len += 1;
+    }
+    char* full_filename = malloc(filename_len * sizeof(char));
+    memset(full_filename, 0, filename_len*sizeof(char));
+    strcpy(full_filename, args.dspaces_timing_dir);
+    if (!ends_with_separator) {
+        strcat(full_filename, "/");
+    }
+    strcat(full_filename, filename);
+    return freopen(full_filename, "a", stdout);
+}
+
+int restore_stdout(FILE* freopen_fp)
+{
+    return fclose(freopen_fp);
+}
 
 void gen_var_name(char* filename, bool is_local, bool add_rank_if_remote, bool next_local_rank, bool next_node) {
     size_t node_idx = info.rank / args.process_per_node;
@@ -78,6 +103,9 @@ TEST_CASE("RemoteDataBandwidth", "[files= " + std::to_string(args.number_of_file
         int ndim = 1;
         uint64_t lb = 0;
         uint64_t ub = data_len - 1;
+        FILE* fp = redirect_stdout("remote_data_bandwidth.csv");
+        REQUIRE(fp != NULL);
+        printf("rank,var_name,version,mdata_time_ns,data_time_ns\n");
         for (size_t file_idx=0; file_idx < args.number_of_files; ++file_idx) {
             data_time.resumeTime();
             // Using aget instead of get because dyad_get_data also allocates the buffer
@@ -87,6 +115,7 @@ TEST_CASE("RemoteDataBandwidth", "[files= " + std::to_string(args.number_of_file
             REQUIRE (rc == dspaces_SUCCESS);
             free(file_data);
         }
+        restore_stdout(fp);
         AGGREGATE_TIME(data);
         if (info.rank == 0) {
             printf("[DSPACES_TEST],%10d,%10lu,%10.6f,%10.6f\n",
@@ -117,6 +146,9 @@ TEST_CASE("RemoteDataAggBandwidth", "[files= " + std::to_string(args.number_of_f
         int ndim = 1;
         uint64_t lb = 0;
         uint64_t ub = data_len - 1;
+        FILE* fp = redirect_stdout("remote_data_agg_bandwidth.csv");
+        REQUIRE(fp != NULL);
+        printf("rank,var_name,version,mdata_time_ns,data_time_ns\n");
         if (info.rank % args.process_per_node != 0)
             usleep (10000);
         for (size_t file_idx=0; file_idx < args.number_of_files; ++file_idx) {
@@ -129,6 +161,7 @@ TEST_CASE("RemoteDataAggBandwidth", "[files= " + std::to_string(args.number_of_f
             REQUIRE (rc == dspaces_SUCCESS);
             free(file_data);
         }
+        restore_stdout(fp);
         AGGREGATE_TIME(data);
         if (info.rank == 0) {
             printf("[DSPACES_TEST],%10d,%10lu,%10.6f,%10.6f\n",
@@ -160,6 +193,9 @@ TEST_CASE("LocalProcessDataBandwidth", "[files= " + std::to_string(args.number_o
         uint64_t lb = 0;
         uint64_t ub = data_len - 1;
         char* file_data = NULL;
+        FILE* fp = redirect_stdout("local_process_data_bandwidth.csv");
+        REQUIRE(fp != NULL);
+        printf("rank,var_name,version,mdata_time_ns,data_time_ns\n");
         for (size_t file_idx=0; file_idx < args.number_of_files; ++file_idx) {
             data_time.resumeTime();
             // Using aget instead of get because dyad_get_data also allocates the buffer
@@ -169,6 +205,7 @@ TEST_CASE("LocalProcessDataBandwidth", "[files= " + std::to_string(args.number_o
             REQUIRE (rc == dspaces_SUCCESS);
             free(file_data);
         }
+        restore_stdout(fp);
         AGGREGATE_TIME(data);
         if (info.rank == 0) {
             printf("[DSPACES_TEST],%10d,%10lu,%10.6f,%10.6f\n",
@@ -200,6 +237,9 @@ TEST_CASE("LocalNodeDataBandwidth", "[files= " + std::to_string(args.number_of_f
         uint64_t lb = 0;
         uint64_t ub = data_len - 1;
         char* file_data = NULL;
+        FILE* fp = redirect_stdout("local_node_data_bandwidth.csv");
+        REQUIRE(fp != NULL);
+        printf("rank,var_name,version,mdata_time_ns,data_time_ns\n");
         for (size_t file_idx=0; file_idx < args.number_of_files; ++file_idx) {
             data_time.resumeTime();
             // Using aget instead of get because dyad_get_data also allocates the buffer
@@ -209,6 +249,7 @@ TEST_CASE("LocalNodeDataBandwidth", "[files= " + std::to_string(args.number_of_f
             REQUIRE (rc == dspaces_SUCCESS);
             free(file_data);
         }
+        restore_stdout(fp);
         AGGREGATE_TIME(data);
         if (info.rank == 0) {
             printf("[DSPACES_TEST],%10d,%10lu,%10.6f,%10.6f\n",

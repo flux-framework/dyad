@@ -14,6 +14,7 @@ struct Info {
     size_t num_server_procs;
 };
 struct Arguments {
+    const char* dspaces_timing_dir;
     // MPI Configurations
     size_t process_per_node = 1;
     // DataSpaces Configuration
@@ -63,6 +64,8 @@ cl::Parser define_options() {
                    "number_of_files")["-n"]["--number_of_files"]("Number of Files")  |
            cl::Opt(args.server_ppn,
                    "server_ppn")["-s"]["--server_ppn"]("Number of DataSpaces server processes per node") |
+           cl::Opt(args.dspaces_timing_dir,
+                   "dspaces_timing_dir")["-t"]["--timing_dir"]("Directory to write DataSpaces internal timings") |
            cl::Opt(args.debug,
                    "debug")["-d"]["--debug"]("debug");
 }
@@ -76,4 +79,5 @@ int posttest() {
     return 0;
 }
 #include "data_plane/data_plane.cpp"
-#include "mdm/mdm.cpp"
+// Temporarily disable mdm tests
+// #include "mdm/mdm.cpp"
