@@ -1,7 +1,7 @@
 
 set(files 16)
-set(ts 16384)
-set(ops 4)
+set(ts 65536)
+set(ops 1)
 set(ppns 1 2 4 8 16 32 64)
 
 function(add_dp_remote_test node ppn files ts ops)
