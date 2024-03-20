@@ -85,20 +85,25 @@ int pretest() {
     info.num_brokers = info.num_nodes * args.brokers_per_node;
     flux_get_rank (info.flux_handle, &info.broker_idx);
     flux_get_size (info.flux_handle, &info.broker_size);
+    MPI_Barrier(MPI_COMM_WORLD);
     return 0;
 }
 int posttest() {
+    MPI_Barrier(MPI_COMM_WORLD);
     return 0;
 }
 int clean_directories() {
-    auto file_pt = args.pfs.string() + "/" + args.filename;
-    std::string cmd = "rm -rf " + file_pt + "*";
-    int status = system (cmd.c_str ());
-    (void) status;
-    file_pt = args.dyad_managed_dir.string() + "/" + args.filename;
-    cmd = "rm -rf " + file_pt + "*";
-    status = system (cmd.c_str ());
-    (void) status;
+    if (info.rank % args.process_per_node == 0) {
+        auto file_pt = args.pfs.string() + "/" + args.filename;
+        std::string cmd = "rm -rf " + file_pt + "*";
+        int status = system (cmd.c_str ());
+        (void) status;
+        file_pt = args.dyad_managed_dir.string() + "/" + args.filename;
+        cmd = "rm -rf " + file_pt + "*";
+        status = system (cmd.c_str ());
+        (void) status;
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
     return 0;
 }
 #include "data_plane/data_plane.cpp"
