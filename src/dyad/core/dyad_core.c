@@ -841,7 +841,7 @@ dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t* restrict ctx, const char* fname,
     // Set reenter to false to avoid recursively performing DYAD operations
     ctx->reenter = false;
     lock_fd = open (fname, O_RDWR | O_CREAT, 0666);
-    DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
+    DYAD_C_FUNCTION_UPDATE_INT ("lock_fd", lock_fd);
     if (lock_fd == -1) {
         DYAD_LOG_ERROR (ctx, "Cannot create file (%s) for dyad_consume_w_metadata!\n", fname);
         rc = DYAD_RC_BADFIO;
@@ -854,7 +854,7 @@ dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t* restrict ctx, const char* fname,
     }
     if ((file_size = get_file_size (lock_fd)) <= 0) {
         DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] File (%s with fd %d) is not fetched yet", \
-                       ctx->node_idx, ctx->rank, ctx->pid, fname, fd);
+                       ctx->node_idx, ctx->rank, ctx->pid, fname, lock_fd);
 
         // Call dyad_get_data to dispatch a RPC to the producer's Flux broker
         // and retrieve the data associated with the file
