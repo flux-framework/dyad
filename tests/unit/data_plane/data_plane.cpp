@@ -2,6 +2,7 @@
 #include <dyad/common/dyad_logging.h>
 #include <dyad/core/dyad_core.h>
 #include <dyad/core/dyad_ctx.h>
+#include <cstddef>
 
 int create_files_per_broker() {
     char filename[4096], first_file[4096];
@@ -142,7 +143,7 @@ TEST_CASE("LocalProcessDataBandwidth", "[files= " + std::to_string(args.number_o
             data_time.resumeTime();
             int bytes = read (fd,file_data, data_len);
             data_time.pauseTime();
-            REQUIRE (bytes == data_len);
+            REQUIRE ((size_t)bytes == data_len);
             data_time.resumeTime();
             int status = close(fd);
             data_time.pauseTime();
@@ -184,7 +185,7 @@ TEST_CASE("LocalNodeDataBandwidth", "[files= " + std::to_string(args.number_of_f
             data_time.resumeTime();
             int bytes = read (fd,file_data, data_len);
             data_time.pauseTime();
-            REQUIRE (bytes == data_len);
+            REQUIRE ((size_t)bytes == data_len);
             data_time.resumeTime();
             int status = close(fd);
             data_time.pauseTime();

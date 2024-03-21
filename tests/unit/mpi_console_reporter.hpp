@@ -1,46 +1,27 @@
-//
-// Created by haridev on 2/28/24.
-//
+//              Copyright Catch2 Authors
+// Distributed under the Boost Software License, Version 1.0.
+//   (See accompanying file LICENSE.txt or copy at
+//        https://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef DYAD_CATCH_CONFIG_H
-#define DYAD_CATCH_CONFIG_H
-#include <catch2/catch_all.hpp>
-#include "mpi.h"
-#include <iostream>
-namespace cl = Catch::Clara;
-
-cl::Parser define_options();
-
-int init(int* argc, char*** argv);
-int finalize();
-
-int main(int argc, char* argv[]) {
-    Catch::Session session;
-    auto cli = session.cli() | define_options();
-    session.cli(cli);
-    int returnCode = session.applyCommandLine(argc, argv);
-    if (returnCode != 0) return returnCode;
-    returnCode = init(&argc, &argv);
-    if (returnCode != 0) return returnCode;
-    int test_return_code = session.run();
-    returnCode = finalize();
-    if (returnCode != 0) return returnCode;
-    exit(test_return_code);
-}
+// SPDX-License-Identifier: BSL-1.0
+#ifndef DYAD_CATCH_REPORTER_MPI_CONSOLE_HPP_INCLUDED
+#define DYAD_CATCH_REPORTER_MPI_CONSOLE_HPP_INCLUDED
 
 #include <catch2/reporters/catch_reporter_streaming_base.hpp>
 #include <catch2/internal/catch_unique_ptr.hpp>
+#include <catch2/reporters/catch_reporter_registrars.hpp>
 
 namespace Catch {
     // Fwd decls
+    struct SummaryColumn;
     class TablePrinter;
 
-    class MPIConsoleReporter final : public StreamingReporterBase {
+    class ConsoleMPIReporter final : public StreamingReporterBase {
         Detail::unique_ptr<TablePrinter> m_tablePrinter;
 
     public:
-        MPIConsoleReporter(ReporterConfig&& config);
-        ~MPIConsoleReporter() override;
+        ConsoleMPIReporter(ReporterConfig&& config);
+        ~ConsoleMPIReporter() override;
         static std::string getDescription();
 
         void noMatchingTestCases( StringRef unmatchedSpec ) override;
@@ -76,12 +57,17 @@ namespace Catch {
         // subsequent lines
         void printHeaderString(std::string const& _string, std::size_t indent = 0);
 
+
+        void printTotals(Totals const& totals);
+        void printSummaryRow(StringRef label, std::vector<SummaryColumn> const& cols, std::size_t row);
+
         void printTotalsDivider(Totals const& totals);
+        void printSummaryDivider();
 
         bool m_headerPrinted = false;
         bool m_testRunInfoPrinted = false;
     };
 
 } // end namespace Catch
-
-#endif  // DYAD_CATCH_CONFIG_H
+CATCH_REGISTER_REPORTER("mpi_console", Catch::ConsoleMPIReporter)
+#endif // DYAD_CATCH_REPORTER_MPI_CONSOLE_HPP_INCLUDED
