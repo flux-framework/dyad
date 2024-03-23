@@ -61,20 +61,41 @@ def main():
         if "mpi_gdb" not in conf["name"]:
             final_confs.append(conf)
     
+    compound_names = []
     for rank, val in enumerate(vals):
         exec = val["exec"]
         port = val["port"]
         hostname = val["hostname"]
+        test_name = f"mpi_gdb for rank {rank}"
         final_confs.append({
             "type": "gdb",
             "request": "attach",
-            "name": f"mpi_gdb for rank {rank}",
+            "name": test_name,
             "executable": f"{exec}",
             "target": f"{hostname}:{port}",
             "remote": True,
             "cwd": "${workspaceRoot}", 
             "gdbpath": "gdb"
         })
+        compound_names.append(test_name)
+    final_compounds = []
+    compounds = []
+    if "compounds" in launch_data:
+        compounds = launch_data["compounds"]
+    final_compounds = []
+    for compound in compounds:
+        if "mpi_gdb" not in compound["name"]:
+            final_compounds.append(compound)
+    
+    final_compounds.append({
+      "name": "mpi_gdb compound",
+      "configurations": compound_names,
+      "preLaunchTask": "${defaultBuildTask}",
+      "stopAll": True
+    })
+    launch_data["compounds"] = final_compounds
+
+
     launch_data["configurations"]=final_confs
     with open(launch_file, "w") as jsonFile:
         json.dump(launch_data, jsonFile, indent=2)
