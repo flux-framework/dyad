@@ -7,20 +7,22 @@
 
 FILE* redirect_stdout(const char* filename)
 {
-    size_t dir_len = strlen(args.dspaces_timing_dir);
-    bool ends_with_separator = (args.dspaces_timing_dir[dir_len-1] == '/');
+    size_t dir_len = strlen(args.dspaces_timing_dir.c_str());
+    bool ends_with_separator = (args.dspaces_timing_dir.c_str()[dir_len-1] == '/');
     size_t filename_len = dir_len + strlen(filename) + 1;
     if (!ends_with_separator) {
         filename_len += 1;
     }
-    char* full_filename = malloc(filename_len * sizeof(char));
+    char* full_filename = (char*) malloc(filename_len * sizeof(char));
     memset(full_filename, 0, filename_len*sizeof(char));
-    strcpy(full_filename, args.dspaces_timing_dir);
+    strcpy(full_filename, args.dspaces_timing_dir.c_str());
     if (!ends_with_separator) {
         strcat(full_filename, "/");
     }
     strcat(full_filename, filename);
-    return freopen(full_filename, "a", stdout);
+    FILE* fp = freopen(full_filename, "a", stdout);
+    free(full_filename);
+    return fp;
 }
 
 int restore_stdout(FILE* freopen_fp)
@@ -110,7 +112,7 @@ TEST_CASE("RemoteDataBandwidth", "[files= " + std::to_string(args.number_of_file
             data_time.resumeTime();
             // Using aget instead of get because dyad_get_data also allocates the buffer
             // Also, setting timeout to 0 to prevent blocking for data availability since the data should always be available.
-            rc = dspaces_aget(client, filename, file_idx, ndim, &lb, &ub, &file_data, -1);
+            rc = dspaces_aget(client, filename, file_idx, ndim, &lb, &ub, (void**) &file_data, -1);
             data_time.pauseTime();
             REQUIRE (rc == dspaces_SUCCESS);
             free(file_data);
@@ -123,7 +125,7 @@ TEST_CASE("RemoteDataBandwidth", "[files= " + std::to_string(args.number_of_file
                 total_data/info.comm_size, data_len*args.number_of_files*info.comm_size*info.comm_size/total_data/1024/1024.0);
         }
     }
-    rc = dspaces_fini();
+    rc = dspaces_fini(client);
     REQUIRE (rc == dspaces_SUCCESS);
     REQUIRE (posttest() == 0);
 }
@@ -136,7 +138,7 @@ TEST_CASE("RemoteDataAggBandwidth", "[files= " + std::to_string(args.number_of_f
     dspaces_client_t client = dspaces_CLIENT_NULL;
     int rc = dspaces_init_mpi(MPI_COMM_WORLD, &client);
     REQUIRE (rc == dspaces_SUCCESS);
-    REQUIRE (create_files_per_broker(&client, false, false) == 0);
+    REQUIRE (create_files_per_server_process(&client, false, false) == 0);
     SECTION("Test Max Bandwidth") {
         Timer data_time;
         char filename[4096];
@@ -156,7 +158,7 @@ TEST_CASE("RemoteDataAggBandwidth", "[files= " + std::to_string(args.number_of_f
             // Using aget instead of get because dyad_get_data also allocates the buffer
             // Unlike the previous test, we set the timeout to -1 so it will do any blocking that it might want to do
             // TODO: confirm that the timeout is actually needed to guarantee this type of behavior
-            rc = dspaces_aget(client, filename, file_idx, ndim, &lb, &ub, &file_data, -1);
+            rc = dspaces_aget(client, filename, file_idx, ndim, &lb, &ub, (void**) &file_data, -1);
             data_time.pauseTime();
             REQUIRE (rc == dspaces_SUCCESS);
             free(file_data);
@@ -169,7 +171,7 @@ TEST_CASE("RemoteDataAggBandwidth", "[files= " + std::to_string(args.number_of_f
                    total_data/info.comm_size, data_len*args.number_of_files*info.comm_size*info.comm_size/total_data/1024/1024.0);
         }
     }
-    rc = dspaces_fini();
+    rc = dspaces_fini(client);
     REQUIRE (rc == dspaces_SUCCESS);
     REQUIRE (posttest() == 0);
 }
@@ -183,7 +185,7 @@ TEST_CASE("LocalProcessDataBandwidth", "[files= " + std::to_string(args.number_o
     dspaces_client_t client = dspaces_CLIENT_NULL;
     int rc = dspaces_init_mpi(MPI_COMM_WORLD, &client);
     REQUIRE (rc == dspaces_SUCCESS);
-    REQUIRE (create_files_per_broker(&client, true, true) == 0);
+    REQUIRE (create_files_per_server_process(&client, true, true) == 0);
     SECTION("Test Max Bandwidth") {
         Timer data_time;
         char filename[4096];
@@ -200,7 +202,7 @@ TEST_CASE("LocalProcessDataBandwidth", "[files= " + std::to_string(args.number_o
             data_time.resumeTime();
             // Using aget instead of get because dyad_get_data also allocates the buffer
             // Also, setting timeout to 0 to prevent blocking for data availability since the data should always be available.
-            rc = dspaces_aget(client, filename, file_idx, ndim, &lb, &ub, &file_data, -1);
+            rc = dspaces_aget(client, filename, file_idx, ndim, &lb, &ub, (void**) &file_data, -1);
             data_time.pauseTime();
             REQUIRE (rc == dspaces_SUCCESS);
             free(file_data);
@@ -213,7 +215,7 @@ TEST_CASE("LocalProcessDataBandwidth", "[files= " + std::to_string(args.number_o
                    total_data/info.comm_size, data_len*args.number_of_files*info.comm_size*info.comm_size/total_data/1024/1024.0);
         }
     }
-    rc = dspaces_fini();
+    rc = dspaces_fini(client);
     REQUIRE (rc == dspaces_SUCCESS);
     REQUIRE (posttest() == 0);
 }
@@ -227,7 +229,7 @@ TEST_CASE("LocalNodeDataBandwidth", "[files= " + std::to_string(args.number_of_f
     dspaces_client_t client = dspaces_CLIENT_NULL;
     int rc = dspaces_init_mpi(MPI_COMM_WORLD, &client);
     REQUIRE (rc == dspaces_SUCCESS);
-    REQUIRE (create_files_per_broker(&client, true, true) == 0);
+    REQUIRE (create_files_per_server_process(&client, true, true) == 0);
     SECTION("Test Max Bandwidth") {
         Timer data_time;
         char filename[4096];
@@ -244,7 +246,7 @@ TEST_CASE("LocalNodeDataBandwidth", "[files= " + std::to_string(args.number_of_f
             data_time.resumeTime();
             // Using aget instead of get because dyad_get_data also allocates the buffer
             // Also, setting timeout to 0 to prevent blocking for data availability since the data should always be available.
-            rc = dspaces_aget(client, filename, file_idx, ndim, &lb, &ub, &file_data, -1);
+            rc = dspaces_aget(client, filename, file_idx, ndim, &lb, &ub, (void**) &file_data, -1);
             data_time.pauseTime();
             REQUIRE (rc == dspaces_SUCCESS);
             free(file_data);
@@ -257,7 +259,7 @@ TEST_CASE("LocalNodeDataBandwidth", "[files= " + std::to_string(args.number_of_f
                     total_data/info.comm_size, data_len*args.number_of_files*info.comm_size*info.comm_size/total_data/1024/1024.0);
         }
     }
-    rc = dspaces_fini();
+    rc = dspaces_fini(client);
     REQUIRE (rc == dspaces_SUCCESS);
     REQUIRE (posttest() == 0);
 }

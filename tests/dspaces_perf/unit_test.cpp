@@ -14,7 +14,7 @@ struct Info {
     size_t num_server_procs;
 };
 struct Arguments {
-    const char* dspaces_timing_dir;
+    std::string dspaces_timing_dir;
     // MPI Configurations
     size_t process_per_node = 1;
     // DataSpaces Configuration
