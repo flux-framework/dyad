@@ -2,6 +2,9 @@
 
 module load python/3.9.12
 module load openmpi/4.1.2
+module load gcc/10.3.1
+export VSC_DEBUG_PROJECT_DIR=/usr/workspace/haridev/dyad
+export VSC_DEBUG_CONF_DIR=${VSC_DEBUG_PROJECT_DIR}/build
 test_case=$1
 NUM_NODES=$2
 PPN=$3

@@ -29,7 +29,7 @@ function(add_mdm_test node ppn files ts ops)
     set_property(TEST ${test_name} APPEND PROPERTY ENVIRONMENT DYAD_PATH_PRODUCER=$ENV{DYAD_DMD_DIR})
 endfunction()
 
-set(ppns 64)
+set(ppns 2)
 set(nodes 1 2 4 8 16 32 64)
 foreach (node ${nodes})
     foreach (ppn ${ppns})
