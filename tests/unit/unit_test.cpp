@@ -106,6 +106,7 @@ int pretest() {
         if (info.rank == 0) {
             fh = fopen(conf_file, "w+");
             REQUIRE(fh != nullptr);
+            fprintf(fh, "%d\n", info.comm_size);
             fprintf(fh, "%s:%d:%s:%d:%d\n", exe, info.rank, hostname, start_port+info.rank, pid);
             fclose(fh);
         }
