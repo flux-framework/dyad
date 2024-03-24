@@ -117,8 +117,10 @@ int pretest() {
             fprintf(fh, "%s:%d:%s:%d:%d\n", exe, info.rank, hostname, start_port+info.rank, pid);
             fclose(fh);
         }
+        MPI_Barrier(MPI_COMM_WORLD);
         if (info.rank == 0) {
             printf("%d ready for attach\n", info.comm_size);
+            fflush(stdout);
             sleep(120);
         }
         info.debug_init = true;
