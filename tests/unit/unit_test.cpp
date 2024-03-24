@@ -102,21 +102,27 @@ int pretest() {
         int ret = readlink("/proc/self/exe",exe,sizeof(exe)-1);
         REQUIRE(ret !=-1);
         exe[ret] = 0;
-        FILE* fh;
         if (info.rank == 0) {
-            fh = fopen(conf_file, "w+");
-            REQUIRE(fh != nullptr);
-            fprintf(fh, "%d\n", info.comm_size);
-            fprintf(fh, "%s:%d:%s:%d:%d\n", exe, info.rank, hostname, start_port+info.rank, pid);
-            fclose(fh);
+            remove(conf_file);
         }
         MPI_Barrier(MPI_COMM_WORLD);
-        if (info.rank != 0) {
-            fh = fopen(conf_file, "a+");
-            REQUIRE(fh != nullptr);
-            fprintf(fh, "%s:%d:%s:%d:%d\n", exe, info.rank, hostname, start_port+info.rank, pid);
-            fclose(fh);
-        }
+        MPI_File mpi_fh;
+        int status_orig = MPI_File_open(MPI_COMM_WORLD, conf_file, MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &mpi_fh);
+        REQUIRE(status_orig == MPI_SUCCESS);
+        const int buf_len = 16*1024;
+        char buffer[buf_len];
+        int size;
+        if (info.rank == 0) {
+            size = sprintf(buffer, "%d\n%s:%d:%s:%d:%d\n", info.comm_size, exe, info.rank, hostname, start_port+info.rank, pid);
+        } else {
+            size = sprintf(buffer, "%s:%d:%s:%d:%d\n", exe, info.rank, hostname, start_port+info.rank, pid);
+        }        
+        MPI_Status status;
+        MPI_File_write_ordered(mpi_fh, buffer, size, MPI_CHAR, &status);
+        int written_bytes;
+        MPI_Get_count(&status, MPI_CHAR, &written_bytes);
+        REQUIRE(written_bytes == size);
+        MPI_File_close(&mpi_fh);
         MPI_Barrier(MPI_COMM_WORLD);
         if (info.rank == 0) {
             printf("%d ready for attach\n", info.comm_size);
