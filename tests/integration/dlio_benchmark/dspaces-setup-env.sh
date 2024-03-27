@@ -5,9 +5,9 @@ module load python/3.9.12
 module load openmpi/4.1.2
 
 # Configurations
-export DLIO_WORKLOAD=dspaces_mummi #dyad_mummi #dyad_unet3d_large # unet3d_base dyad_unet3d dyad_unet3d_small resnet50_base dyad_resnet50 unet3d_base_large mummi_base dyad_mummi
-export NUM_NODES=64 # 1 for small config, 64 for full config
-export PPN=8 # 1 for small config, 8 for full config
+export DLIO_WORKLOAD=dspaces_mummi_small #dyad_mummi #dyad_unet3d_large # unet3d_base dyad_unet3d dyad_unet3d_small resnet50_base dyad_resnet50 unet3d_base_large mummi_base dyad_mummi
+export NUM_NODES=1 # 1 for small config, 64 for full config
+export PPN=1 # 1 for small config, 8 for full config
 export QUEUE=pbatch
 export TIME=$((60))
 export BROKERS_PER_NODE=1
