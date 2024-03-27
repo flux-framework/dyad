@@ -14,6 +14,8 @@ export BROKERS_PER_NODE=1
 export GENERATE_DATA="0"
 export DSPACES_HG_STRING="ofi+verbs"
 
+export MAX_DIM_LENGTH_FOR_FILES=8000
+
 export GITHUB_WORKSPACE=/g/g90/lumsden1/ws/dyad_sc24_paper_dspaces/dyad
 export SPACK_DIR=/g/g90/lumsden1/ws/spack
 export SPACK_ENV=/g/g90/lumsden1/ws/dyad_sc24_paper_dspaces/baseline_env

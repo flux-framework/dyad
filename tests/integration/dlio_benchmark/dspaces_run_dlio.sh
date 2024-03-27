@@ -4,7 +4,7 @@ source ./dspaces-setup-env.sh
 # Startup dspaces_server
 echo "## Config file for DataSpaces server
 ndim = 3
-dims = x
+dims = $MAX_DIM_LENGTH_FOR_FILES
 max_versions = 1
 num_apps = 1" > dataspaces.conf 
 
@@ -45,4 +45,4 @@ echo "Finished Executing check ${DSPACES_DLIO_RUN_LOG} for output"
 
 flux run --ntasks=1 terminator
 
-# TODO run terminate
+rm dataspaces.conf conf.ds
