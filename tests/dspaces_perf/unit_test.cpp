@@ -12,6 +12,7 @@ struct Info {
     int comm_size;
     int num_nodes;
     size_t num_server_procs;
+    bool debug_init;
 };
 struct Arguments {
     std::string dspaces_timing_dir;
@@ -39,11 +40,7 @@ int init(int* argc, char*** argv) {
     MPI_Init(argc, argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &info.rank);
     MPI_Comm_size(MPI_COMM_WORLD, &info.comm_size);
-    if (args.debug && info.rank == 0) {
-        printf("%d ready for attach\n", info.comm_size);
-        fflush(stdout);
-        getchar();
-    }
+    info.debug_init = false;
     MPI_Barrier(MPI_COMM_WORLD);
     return 0;
 }
@@ -66,15 +63,66 @@ cl::Parser define_options() {
                    "server_ppn")["-s"]["--server_ppn"]("Number of DataSpaces server processes per node") |
            cl::Opt(args.dspaces_timing_dir,
                    "dspaces_timing_dir")["-t"]["--timing_dir"]("Directory to write DataSpaces internal timings") |
-           cl::Opt(args.debug,
-                   "debug")["-d"]["--debug"]("debug");
+           cl::Opt(args.debug)["-d"]["--debug"]("debug");
 }
 
 int pretest() {
+    if (!info.debug_init && args.debug) {
+        const int HOSTNAME_SIZE = 256;
+        char hostname[HOSTNAME_SIZE];
+        gethostname(hostname, HOSTNAME_SIZE);
+        int pid = getpid();
+        char* start_port_str = getenv("VSC_DEBUG_START_PORT");
+        int start_port = 10000;
+        if (start_port_str != nullptr) {
+            start_port = atoi(start_port_str);
+        }
+        const char* conf_dir = getenv("VSC_DEBUG_CONF_DIR");
+        if (conf_dir == nullptr) {
+            conf_dir = ".";
+        }
+        char conf_file[4096];
+        sprintf(conf_file, "%s/debug.conf", conf_dir);
+
+        char exe[1024];
+        int ret = readlink("/proc/self/exe",exe,sizeof(exe)-1);
+        REQUIRE(ret !=-1);
+        exe[ret] = 0;
+        if (info.rank == 0) {
+            remove(conf_file);
+        }
+        MPI_Barrier(MPI_COMM_WORLD);
+        MPI_File mpi_fh;
+        int status_orig = MPI_File_open(MPI_COMM_WORLD, conf_file, MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &mpi_fh);
+        REQUIRE(status_orig == MPI_SUCCESS);
+        const int buf_len = 16*1024;
+        char buffer[buf_len];
+        int size;
+        if (info.rank == 0) {
+            size = sprintf(buffer, "%d\n%s:%d:%s:%d:%d\n", info.comm_size, exe, info.rank, hostname, start_port+info.rank, pid);
+        } else {
+            size = sprintf(buffer, "%s:%d:%s:%d:%d\n", exe, info.rank, hostname, start_port+info.rank, pid);
+        }        
+        MPI_Status status;
+        MPI_File_write_ordered(mpi_fh, buffer, size, MPI_CHAR, &status);
+        int written_bytes;
+        MPI_Get_count(&status, MPI_CHAR, &written_bytes);
+        REQUIRE(written_bytes == size);
+        MPI_File_close(&mpi_fh);
+        MPI_Barrier(MPI_COMM_WORLD);
+        if (info.rank == 0) {
+            printf("%d ready for attach\n", info.comm_size);
+            fflush(stdout);
+            sleep(60);
+        }
+        info.debug_init = true;
+    }
     info.num_nodes = info.comm_size / args.process_per_node;
     info.num_server_procs = info.num_nodes * args.server_ppn;
+    MPI_Barrier(MPI_COMM_WORLD);
     return 0;
 }
+
 int posttest() {
     return 0;
 }
