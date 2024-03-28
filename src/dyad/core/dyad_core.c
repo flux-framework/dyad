@@ -44,13 +44,17 @@ DYAD_DLL_EXPORTED int gen_path_key (const char* restrict str,
     uint32_t hash[4] = {0u};  // Output for the hash
     size_t cx = 0ul;
     int n = 0;
-    size_t str_len = strlen (str);
-    const char* str_long = str;
-
-    if (str == NULL || path_key == NULL || len == 0ul || str_len == 0ul) {
+    if (str == NULL || path_key == NULL || len == 0ul) {
         DYAD_C_FUNCTION_END();
         return -1;
     }
+    size_t str_len = strlen (str);
+    if (str_len == 0ul) {
+        DYAD_C_FUNCTION_END();
+        return -1;
+    }
+    const char* str_long = str;
+    
     path_key[0] = '\0';
 
     // Just append the string so that it can be as large as 128 bytes.
@@ -75,7 +79,8 @@ DYAD_DLL_EXPORTED int gen_path_key (const char* restrict str,
         }
     }
     n = snprintf (path_key + cx, len - cx, "%s", str);
-    if (cx + n >= len || n < 0) {
+    // FIXME: cx + n >= len  fails for str_len > 256
+    if (n < 0) {
         DYAD_C_FUNCTION_END();
         return -1;
     }
