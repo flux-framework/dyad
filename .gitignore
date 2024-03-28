@@ -97,9 +97,10 @@ compile_flags.txt
 
 # local editor config dirs
 .vscode
-.idea
+.idea*
 .clangd
-
+.cache
+cmake-build-debug
 # ignore installable version of dyadrun
 dyadrun
 flux_barrier
@@ -112,7 +113,17 @@ flux_barrier
 
 # Python stuff
 **/__pycache__/
-**/build
+**/build*
 **/*.egg-info
 /install/
 /dyad-env/
+env
+hydra_log
+docs/demos/ecp_feb_2023/c_cons
+docs/demos/ecp_feb_2023/cpp_cons
+docs/demos/ecp_feb_2023/c_prod
+docs/demos/ecp_feb_2023/cpp_prod
+tests/integration/dlio_benchmark/logs
+scripts/checkpoints
+scripts/logs
+tests/integration/dlio_benchmark/perf_analysis/.ipynb_checkpoints

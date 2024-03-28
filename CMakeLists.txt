@@ -13,12 +13,12 @@ set(DYAD_PACKAGE_VERSION_MAJOR "${DYAD_VERSION_MAJOR}.${DYAD_VERSION_MINOR}")
 set(DYAD_PACKAGE_VERSION_MINOR "${DYAD_VERSION_PATCH}")
 set(DYAD_PACKAGE_STRING "${DYAD_PACKAGE_NAME} ${DYAD_PACKAGE_VERSION}")
 set(DYAD_PACKAGE_TARNAME "${DYAD_PACKAGE}")
-
 project(dyad LANGUAGES C CXX)
 
 # Convenience defines
 string(TOUPPER "${PROJECT_NAME}" UPPER_PROJECT_NAME)
 string(TOLOWER "${PROJECT_NAME}" LOWER_PROJECT_NAME)
+set(DYAD_PROJECT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
 #------------------------------------------------------------------------------
 # Internal Includes for header and libraries
@@ -110,7 +110,7 @@ set(DYAD_LOGGER "NONE" CACHE STRING "Logger to use for DYAD")
 set_property(CACHE DYAD_LOGGER PROPERTY STRINGS FLUX CPP_LOGGER NONE)
 set(DYAD_LOGGER_LEVEL "NONE" CACHE STRING "Logging level to use for DYAD")
 set_property(CACHE DYAD_LOGGER_LEVEL PROPERTY STRINGS DEBUG INFO WARN ERROR NONE)
-
+option(DYAD_ENABLE_TESTS "Enable dyad tests" OFF)
 
 #------------------------------------------------------------------------------
 # Compiler setup
@@ -460,6 +460,8 @@ string(APPEND _str
 string(APPEND _str
   "  DYAD_ENABLE_UCX_DATA_RMA:    ${DYAD_ENABLE_UCX_DATA_RMA}\n")
 string(APPEND _str
+        "  DYAD_ENABLE_TESTS:    ${DYAD_ENABLE_TESTS}\n")
+string(APPEND _str
   "  DYAD_PROFILER:               ${DYAD_PROFILER}\n")
 string(APPEND _str
   "  DYAD_LOGGER:                 ${DYAD_LOGGER}\n")
@@ -513,3 +515,9 @@ install(FILES "${CMAKE_BINARY_DIR}/dyad_module.lua.install"
   RENAME "${DYAD_MODULEFILE_NAME}"
   DESTINATION
   "${DYAD_INSTALL_SYSCONFDIR}")
+
+
+if (DYAD_ENABLE_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif ()

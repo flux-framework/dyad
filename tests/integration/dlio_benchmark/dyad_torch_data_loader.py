@@ -30,7 +30,7 @@ from dlio_benchmark.utils.config import ConfigArguments
 from dlio_profiler.logger import fn_interceptor as Profile
 
 from pydyad import Dyad, dyad_open
-from pydyad.bindings import DTLMode
+from pydyad.bindings import DTLMode, DTLCommMode
 import numpy as np
 import flux
 import os
@@ -83,15 +83,15 @@ class DYADTorchDataset(Dataset):
         dtl_str = os.getenv("DYAD_DTL_MODE", "FLUX_RPC")
         mode = DTLMode.DYAD_DTL_FLUX_RPC
         namespace = os.getenv("DYAD_KVS_NAMESPACE")
-        logging.info(f"{utcnow()} Rank {DLIOMPI.get_instance().rank()} init dyad {self.dyad_managed_directory} {dtl_str} {namespace}")
+        logging.debug(f"{utcnow()} Rank {DLIOMPI.get_instance().rank()} init dyad {self.dyad_managed_directory} {dtl_str} {namespace}")
         if dtl_str == "UCX":
             mode = DTLMode.DYAD_DTL_UCX
-        self.dyad_io.init(debug=self._args.debug, check=False, shared_storage=False, reinit=True,
-                          async_publish=False, fsync_write=False, key_depth=3,
+        self.dyad_io.init(debug=self._args.debug, check=False, shared_storage=False, reinit=False,
+                          async_publish=True, fsync_write=False, key_depth=3,
                           service_mux=self.broker_per_node,
                           key_bins=1024, kvs_namespace=os.getenv("DYAD_KVS_NAMESPACE"),
                           prod_managed_path=self.dyad_managed_directory, cons_managed_path=self.dyad_managed_directory,
-                          dtl_mode=mode, dtl_comm_mode=DYAD_COMM_RECV)
+                          dtl_mode=mode, dtl_comm_mode=DTLCommMode.DYAD_COMM_RECV)
 
     def __del__(self):
         if self.dlp_logger:
@@ -102,6 +102,7 @@ class DYADTorchDataset(Dataset):
 
     @dlp.log
     def __getitem__(self, image_idx):
+        logging.debug(f"{utcnow()} Rank {DLIOMPI.get_instance().rank()} reading {image_idx} image")
         self.num_images_read += 1
         step = int(math.ceil(self.num_images_read / self.batch_size))
         filename, sample_index = self._args.global_index_map[image_idx]
@@ -111,7 +112,7 @@ class DYADTorchDataset(Dataset):
         dlp.update(args={"fname":filename})
         dlp.update(args={"image_idx":image_idx})
         if self.dyad_managed_directory != "":
-            logging.info(f"{utcnow()} Rank {DLIOMPI.get_instance().rank()} reading metadata")
+            logging.debug(f"{utcnow()} Rank {DLIOMPI.get_instance().rank()} reading metadata")
             base_fname = os.path.join(self.dyad_managed_directory, os.path.basename(filename))
             file_obj = self.dyad_io.get_metadata(fname=base_fname, should_wait=False, raw=True)
             logging.debug(f"Using managed directory {self.dyad_managed_directory} {base_fname} {file_obj}")
@@ -128,7 +129,12 @@ class DYADTorchDataset(Dataset):
             logging.info(f"{utcnow()} Rank {DLIOMPI.get_instance().rank()} reading {image_idx} sample from {access_mode} dyad {file_obj.contents.owner_rank}")
             logging.debug(f"Reading from managed directory {base_fname}")
             with dyad_open(base_fname, "rb", dyad_ctx=self.dyad_io, metadata_wrapper=file_obj) as f:
-                data = np.load(f, allow_pickle=True)["x"]
+                try:
+                    data = np.load(f, allow_pickle=True)["x"]
+                except:
+                    logging.info(f"{utcnow()} Rank {DLIOMPI.get_instance().rank()} got wierd {image_idx} sample from {access_mode} dyad {file_obj.contents.owner_rank}")
+                    data = self._args.resized_image
+            logging.info(f"{utcnow()} Rank {DLIOMPI.get_instance().rank()} read {image_idx} sample from {access_mode} dyad {file_obj.contents.owner_rank}")
             self.dyad_io.free_metadata(file_obj)
         else:
             dlp.update(args={"mode":"pfs"})
@@ -140,6 +146,7 @@ class DYADTorchDataset(Dataset):
                 logging.debug(f"Writing to managed_directory {base_fname}")
                 with dyad_open(base_fname, "wb", dyad_ctx=self.dyad_io) as f:
                     np.savez(f, x=data)
+            logging.debug(f"Read from pfs {base_fname}")
 
         dlp.update(step=step)
         dlp.update(image_size=data.nbytes)
