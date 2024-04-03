@@ -163,4 +163,5 @@ int clean_directories() {
   return 0;
 }
 #include "data_plane/data_plane.cpp"
+#include "dyad_core/core_functions.cpp"
 #include "mdm/mdm.cpp"
