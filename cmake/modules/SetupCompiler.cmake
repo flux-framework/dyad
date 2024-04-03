@@ -98,10 +98,12 @@ dyad_add_c_flags(CMAKE_C_FLAGS
   -fPIC -Wall -Wextra -pedantic -Wno-unused-parameter
   -Wno-deprecated-declarations)
 
-if (${GLIBC_VERSION} VERSION_GREATER_EQUAL "2.19")
-  # to suppress usleep() warning
-  add_definitions(-D_DEFAULT_SOURCE)
-endif ()
+# TODO re-enable once we find a portable way to handle GLibc version
+# 
+# if (${GLIBC_VERSION} VERSION_GREATER_EQUAL "2.19")
+#   # to suppress usleep() warning
+#   add_definitions(-D_DEFAULT_SOURCE)
+# endif ()
 
 ################################################################
 # Promote a compiler warning as an error for project targets
