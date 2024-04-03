@@ -1,23 +1,44 @@
 #!/bin/bash
 source ./dspaces-setup-env.sh 
 
+curr_dir=$(pwd)
+if [ $# -ge 1 ]; then
+    cd $1
+fi
+
+if [ $# -gt 1 ]; then
+    export NUM_NODES=$2
+fi
+echo "Number of nodes is $NUM_NODES"
+
+ulimit -c unlimited
+
 # Startup dspaces_server
+echo "Generating DataSpaces config file"
 echo "## Config file for DataSpaces server
 ndim = 3
-dims = $MAX_DIM_LENGTH_FOR_FILES
+dims = $NUM_SAMPLES_PER_FILE,$NUM_ROWS_PER_SAMPLE,$NUM_COLS_PER_SAMPLE
 max_versions = 1
 num_apps = 1" > dataspaces.conf 
 
+redirect_flag=""
+if [ ! -z ${DSPACES_DEBUG+x} ]; then
+    redirect_flag="--output=server.out --error=server.err"
+fi
+
+echo "Launching DataSpaces server"
 flux submit -N $NUM_NODES --cores=$(( NUM_NODES*16 )) \
-    --tasks-per-node=$BROKERS_PER_NODE dspaces_server $DSPACES_HG_STRING
+    --tasks-per-node=$BROKERS_PER_NODE $redirect_flag dspaces_server $DSPACES_HG_STRING
 
 # Wait for DataSpaces's server to create conf.ds
+echo "Waiting on conf.ds to be created"
 sleep 1s
 while [ ! -f conf.ds ]; do
     sleep 1s
 done
 # Give the server enough time to write the contents
 sleep 3s
+echo "Server running!"
 
 if [[ "${GENERATE_DATA}" == "1" ]]; then
 # Generate Data for Workload
@@ -30,7 +51,8 @@ exit
 fi
 
 # Preload data into DataSpaces
-flux run -N $NUM_NODES --tasks-per-node=1 python3 ./dspaces_preloader.py $DLIO_DATA_DIR/train
+echo "Preloading samples into DataSpaces"
+flux run -N $NUM_NODES --cores=$(( NUM_NODES*32 )) --tasks-per-node=32 python3 $GITHUB_WORKSPACE/tests/integration/dlio_benchmark/dspaces_preloader.py $DLIO_DATA_DIR/train
 
 # Run Training
 echo Running DLIO Training for ${DLIO_WORKLOAD}
@@ -46,3 +68,6 @@ echo "Finished Executing check ${DSPACES_DLIO_RUN_LOG} for output"
 flux run --ntasks=1 terminator
 
 rm dataspaces.conf conf.ds
+if [ $# -ge 1 ]; then
+    cd $curr_dir
+fi

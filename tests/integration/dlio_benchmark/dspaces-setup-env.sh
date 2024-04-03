@@ -1,20 +1,23 @@
 #!/bin/bash
 
 # TODO make sure python mod matches Spack environment if there is python in there
+module load gcc/10.3.1
 module load python/3.9.12
 module load openmpi/4.1.2
 
 # Configurations
-export DLIO_WORKLOAD=dspaces_mummi_small #dyad_mummi #dyad_unet3d_large # unet3d_base dyad_unet3d dyad_unet3d_small resnet50_base dyad_resnet50 unet3d_base_large mummi_base dyad_mummi
-export NUM_NODES=1 # 1 for small config, 64 for full config
-export PPN=1 # 1 for small config, 8 for full config
+export DLIO_WORKLOAD=dspaces_mummi #dyad_mummi #dyad_unet3d_large # unet3d_base dyad_unet3d dyad_unet3d_small resnet50_base dyad_resnet50 unet3d_base_large mummi_base dyad_mummi
+export NUM_NODES=32 # 2 for small config, for full config, scale 8, 16, 32, 64
+export PPN=8 # 1 for small config, 8 for full config
 export QUEUE=pbatch
-export TIME=$((60))
+export TIME=$((180))
 export BROKERS_PER_NODE=1
 export GENERATE_DATA="0"
 export DSPACES_HG_STRING="ofi+verbs"
 
-export MAX_DIM_LENGTH_FOR_FILES=8000
+export NUM_SAMPLES_PER_FILE=8000
+export NUM_ROWS_PER_SAMPLE=263
+export NUM_COLS_PER_SAMPLE=263
 
 export GITHUB_WORKSPACE=/g/g90/lumsden1/ws/dyad_sc24_paper_dspaces/dyad
 export SPACK_DIR=/g/g90/lumsden1/ws/spack

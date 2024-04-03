@@ -31,7 +31,6 @@ from dlio_profiler.logger import fn_interceptor as Profile
 
 import dspaces
 import numpy as np
-import flux
 import os
 import h5py
 import fcntl
@@ -71,15 +70,16 @@ class DspacesH5TorchDataset(Dataset):
                                                thread_index=worker_id,
                                                epoch_number=self.epoch_number)
         proc_rank = os.getpid()
+        logging.debug("Intializing dspaces")
         self.ds_client = dspaces.dspaces(rank=proc_rank)
 
     def __del__(self):
         if self.dlp_logger:
             self.dlp_logger.finalize()
         # Manually invoke finalizer for DataSpaces to ensure it is shutdown properly
-        if self.ds_client:
-            del self.ds_client
-            self.ds_client = None
+        # if self.ds_client:
+        #     del self.ds_client
+        #     self.ds_client = None
             
     @dlp.log
     def __len__(self):
@@ -94,10 +94,14 @@ class DspacesH5TorchDataset(Dataset):
         lb = tuple([sample_index, 0, 0])
         ub = tuple([sample_index, self.img_dim-1, self.img_dim-1])
         dlp.update(args={"fname":filename})
+        logging.debug(f"Filename is {filename}")
         dlp.update(args={"image_idx":image_idx})
         dlp.update(args={"version":0})
         dlp.update(args={"lb":lb})
+        logging.debug(f"lb is {lb}")
         dlp.update(args={"ub":ub})
+        logging.debug(f"ub is {ub}")
+        logging.debug("Starting dspaces aget")
         data = self.ds_client.get(
             filename,  # variable name
             0,         # variable version
@@ -106,7 +110,9 @@ class DspacesH5TorchDataset(Dataset):
             np.uint8,  # NumPy datatype of elements
             -1         # timeout
         )
+        logging.debug("Finished dspaces aget")
         dlp.update(step=step)
+        logging.debug(f"data shape is {data.shape}")
         dlp.update(image_size=data.nbytes)
         return data
 
