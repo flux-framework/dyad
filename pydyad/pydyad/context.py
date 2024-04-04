@@ -4,16 +4,18 @@ from contextlib import contextmanager
 import io
 from pathlib import Path
 
-from dlio_profiler.logger import fn_interceptor
-dlio_log = fn_interceptor("DYAD_PY")
+# from dlio_profiler.logger import fn_interceptor
+# dlio_log = fn_interceptor("DYAD_PY")
 DYAD_IO = None
 
 
 # The design of dyad_open is based on the PEP for Python's 'with' syntax:
 # https://peps.python.org/pep-0343/
 @contextmanager
-@dlio_log.log
-def dyad_open(*args, dyad_ctx=None, metadata_wrapper=None, register_dyad_ctx=False, **kwargs):
+# @dlio_log.log
+def dyad_open(
+    *args, dyad_ctx=None, metadata_wrapper=None, register_dyad_ctx=False, **kwargs
+):
     global DYAD_IO
     local_dyad_io = dyad_ctx
     if dyad_ctx is None:
@@ -36,8 +38,10 @@ def dyad_open(*args, dyad_ctx=None, metadata_wrapper=None, register_dyad_ctx=Fal
     else:
         raise NameError("'mode' argument not provided to dyad_open")
     if mode in ("r", "rb", "rt"):
-        if (local_dyad_io.cons_path is not None and
-                local_dyad_io.cons_path in fname.parents):
+        if (
+            local_dyad_io.cons_path is not None
+            and local_dyad_io.cons_path in fname.parents
+        ):
             if metadata_wrapper:
                 local_dyad_io.consume_w_metadata(str(fname), metadata_wrapper)
             else:
@@ -48,6 +52,8 @@ def dyad_open(*args, dyad_ctx=None, metadata_wrapper=None, register_dyad_ctx=Fal
     finally:
         file_obj.close()
         if mode in ("w", "wb", "wt"):
-            if (local_dyad_io.prod_path is not None and
-                    local_dyad_io.prod_path in fname.parents):
+            if (
+                local_dyad_io.prod_path is not None
+                and local_dyad_io.prod_path in fname.parents
+            ):
                 local_dyad_io.produce(str(fname))

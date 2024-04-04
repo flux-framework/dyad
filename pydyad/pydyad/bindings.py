@@ -3,8 +3,8 @@ from ctypes.util import find_library
 import enum
 from pathlib import Path
 import warnings
-from dlio_profiler.logger import dlio_logger, fn_interceptor
-dlio_log = fn_interceptor("DYAD_PY")
+# from dlio_profiler.logger import dlio_logger, fn_interceptor
+# dlio_log = fn_interceptor("DYAD_PY")
 
 DYAD_LIB_DIR = None
 
@@ -62,17 +62,18 @@ class DyadMetadataWrapper(ctypes.Structure):
 
 
 class DyadMetadata:
-
     def __init__(self, metadata_wrapper, dyad_obj):
         self.mdata = metadata_wrapper
         self.dyad_bindings_obj = dyad_obj
 
     def __getattr__(self, attr_name):
-        if self.mdata is not None: 
+        if self.mdata is not None:
             try:
                 return getattr(self.mdata.contents, attr_name)
             except AttributeError:
-                raise AttributeError("{} is not an attribute of DYAD's metadata".format(attr_name))
+                raise AttributeError(
+                    "{} is not an attribute of DYAD's metadata".format(attr_name)
+                )
         raise AttributeError("Underlying metadata object has already been freed")
 
     def __del__(self):
@@ -89,6 +90,7 @@ class DTLMode(enum.Enum):
     def __str__(self):
         return self.value
 
+
 class DTLCommMode(enum.IntEnum):
     DYAD_COMM_NONE = 0
     DYAD_COMM_RECV = 1
@@ -97,7 +99,7 @@ class DTLCommMode(enum.IntEnum):
 
 
 class Dyad:
-    @dlio_log.log_init
+    # @dlio_log.log_init
     def __init__(self):
         self.initialized = False
         self.dyad_core_lib = None
@@ -130,41 +132,40 @@ class Dyad:
 
         self.dyad_ctx_init = self.dyad_ctx_lib.dyad_ctx_init
         self.dyad_ctx_init.argtypes = [
-            ctypes.c_int,                                    # dtl_comm_mode
-            ctypes.c_void_p                                  # flux_handle
+            ctypes.c_int,  # dtl_comm_mode
+            ctypes.c_void_p,  # flux_handle
         ]
         self.dyad_ctx_init.restype = None
 
         self.dyad_ctx_get = self.dyad_ctx_lib.dyad_ctx_get
-        self.dyad_ctx_get.argtypes = [
-        ]
+        self.dyad_ctx_get.argtypes = []
         self.dyad_ctx_get.restype = ctypes.POINTER(DyadCtxWrapper)
 
         self.dyad_init = self.dyad_ctx_lib.dyad_init
         self.dyad_init.argtypes = [
-            ctypes.c_bool,                                   # debug
-            ctypes.c_bool,                                   # check
-            ctypes.c_bool,                                   # shared_storage
-            ctypes.c_bool,                                   # reinit
-            ctypes.c_bool,                                   # async_publish
-            ctypes.c_bool,                                   # fsync_write
-            ctypes.c_uint,                                   # key_depth
-            ctypes.c_uint,                                   # key_bins
-            ctypes.c_uint,                                   # service_mux
-            ctypes.c_char_p,                                 # kvs_namespace
-            ctypes.c_char_p,                                 # prod_managed_path
-            ctypes.c_char_p,                                 # cons_managed_path
-            ctypes.c_bool,                                   # relative_to_managed_path
-            ctypes.c_char_p,                                 # dtl_mode
-            ctypes.c_int,                                    # dtl_comm_mode
-            ctypes.c_void_p                                  # flux_handle
+            ctypes.c_bool,  # debug
+            ctypes.c_bool,  # check
+            ctypes.c_bool,  # shared_storage
+            ctypes.c_bool,  # reinit
+            ctypes.c_bool,  # async_publish
+            ctypes.c_bool,  # fsync_write
+            ctypes.c_uint,  # key_depth
+            ctypes.c_uint,  # key_bins
+            ctypes.c_uint,  # service_mux
+            ctypes.c_char_p,  # kvs_namespace
+            ctypes.c_char_p,  # prod_managed_path
+            ctypes.c_char_p,  # cons_managed_path
+            ctypes.c_bool,  # relative_to_managed_path
+            ctypes.c_char_p,  # dtl_mode
+            ctypes.c_int,  # dtl_comm_mode
+            ctypes.c_void_p,  # flux_handle
         ]
         self.dyad_init.restype = ctypes.c_int
 
         self.dyad_init_env = self.dyad_ctx_lib.dyad_init_env
         self.dyad_init_env.argtypes = [
-            ctypes.c_int,                                    # dtl_comm_mode
-            ctypes.c_void_p                                  # flux_handle
+            ctypes.c_int,  # dtl_comm_mode
+            ctypes.c_void_p,  # flux_handle
         ]
         self.dyad_init_env.restype = ctypes.c_int
 
@@ -206,15 +207,14 @@ class Dyad:
         self.dyad_consume_w_metadata.restype = ctypes.c_int
 
         self.dyad_finalize = self.dyad_ctx_lib.dyad_finalize
-        self.dyad_finalize.argtypes = [
-        ]
+        self.dyad_finalize.argtypes = []
         self.dyad_finalize.restype = ctypes.c_int
 
         self.cons_path = None
         self.prod_path = None
-        self.log_inst = None
+        # self.log_inst = None
 
-    @dlio_log.log
+    # @dlio_log.log
     def init(
         self,
         debug=False,
@@ -232,13 +232,13 @@ class Dyad:
         relative_to_managed_path=False,
         dtl_mode=None,
         dtl_comm_mode=DTLCommMode.DYAD_COMM_RECV,
-        flux_handle=None
+        flux_handle=None,
     ):
-        self.log_inst = dlio_logger.initialize_log(logfile=None, data_dir=None, process_id=-1)
+        # self.log_inst = dlio_logger.initialize_log(logfile=None, data_dir=None, process_id=-1)
         if self.dyad_init is None:
             warnings.warn(
                 "Trying to initialize DYAD when libdyad_ctx.so was not found",
-                RuntimeWarning
+                RuntimeWarning,
             )
             return
         res = self.dyad_init(
@@ -257,7 +257,7 @@ class Dyad:
             ctypes.c_bool(relative_to_managed_path),
             str(dtl_mode).encode() if dtl_mode is not None else None,
             ctypes.c_int(dtl_comm_mode),
-            ctypes.c_void_p(flux_handle)
+            ctypes.c_void_p(flux_handle),
         )
         self.ctx = self.dyad_ctx_get()
 
@@ -266,28 +266,31 @@ class Dyad:
         if self.ctx.contents.prod_managed_path is None:
             self.prod_path = None
         else:
-            self.prod_path = Path(self.ctx.contents.prod_managed_path.decode("utf-8")).expanduser().resolve()
+            self.prod_path = (
+                Path(self.ctx.contents.prod_managed_path.decode("utf-8"))
+                .expanduser()
+                .resolve()
+            )
         if self.ctx.contents.cons_managed_path is None:
             self.cons_path = None
         else:
-            self.cons_path = Path(self.ctx.contents.cons_managed_path.decode("utf-8")).expanduser().resolve()
+            self.cons_path = (
+                Path(self.ctx.contents.cons_managed_path.decode("utf-8"))
+                .expanduser()
+                .resolve()
+            )
         self.initialized = True
 
-    @dlio_log.log
-    def init_env(
-        self,
-        dtl_comm_mode=DTLCommMode.DYAD_COMM_RECV,
-        flux_handle=None
-    ):
+    # @dlio_log.log
+    def init_env(self, dtl_comm_mode=DTLCommMode.DYAD_COMM_RECV, flux_handle=None):
         if self.dyad_init_env is None:
             warnings.warn(
                 "Trying to initialize DYAD when libdyad_ctx.so was not found",
-                RuntimeWarning
+                RuntimeWarning,
             )
             return
         res = self.dyad_init_env(
-            ctypes.c_int(dtl_comm_mode),
-            ctypes.c_void_p(flux_handle)
+            ctypes.c_int(dtl_comm_mode), ctypes.c_void_p(flux_handle)
         )
         self.ctx = self.dyad_ctx_get()
         if int(res) != 0:
@@ -295,21 +298,29 @@ class Dyad:
         if self.ctx.contents.prod_managed_path is None:
             self.prod_path = None
         else:
-            self.prod_path = Path(self.ctx.contents.prod_managed_path.decode("utf-8")).expanduser().resolve()
+            self.prod_path = (
+                Path(self.ctx.contents.prod_managed_path.decode("utf-8"))
+                .expanduser()
+                .resolve()
+            )
         if self.ctx.contents.cons_managed_path is None:
             self.cons_path = None
         else:
-            self.cons_path = Path(self.ctx.contents.cons_managed_path.decode("utf-8")).expanduser().resolve()
-        
+            self.cons_path = (
+                Path(self.ctx.contents.cons_managed_path.decode("utf-8"))
+                .expanduser()
+                .resolve()
+            )
+
     def __del__(self):
         self.finalize()
 
-    @dlio_log.log
+    # @dlio_log.log
     def produce(self, fname):
         if self.dyad_produce is None:
             warnings.warn(
                 "Trying to produce with DYAD when libdyad_core.so was not found",
-                RuntimeWarning
+                RuntimeWarning,
             )
             return
         res = self.dyad_produce(
@@ -319,20 +330,17 @@ class Dyad:
         if int(res) != 0:
             raise RuntimeError("Cannot produce data with DYAD!")
 
-    @dlio_log.log
+    # @dlio_log.log
     def get_metadata(self, fname, should_wait=False, raw=False):
         if self.dyad_get_metadata is None:
             warnings.warn(
                 "Trying to get metadata for file with DYAD when libdyad_core.so was not found",
-                RuntimeWarning
+                RuntimeWarning,
             )
             return None
         mdata = ctypes.POINTER(DyadMetadataWrapper)()
         res = self.dyad_get_metadata(
-            self.ctx,
-            fname.encode(),
-            should_wait,
-            ctypes.byref(mdata)
+            self.ctx, fname.encode(), should_wait, ctypes.byref(mdata)
         )
         if int(res) != 0:
             return None
@@ -340,23 +348,24 @@ class Dyad:
             return DyadMetadata(mdata, self)
         return mdata
 
-    @dlio_log.log
+    # @dlio_log.log
     def free_metadata(self, metadata_wrapper):
         if self.dyad_free_metadata is None:
-            warnings.warn("Trying to free DYAD metadata when libdyad_core.so was not found", RuntimeWarning)
+            warnings.warn(
+                "Trying to free DYAD metadata when libdyad_core.so was not found",
+                RuntimeWarning,
+            )
             return
-        res = self.dyad_free_metadata(
-            ctypes.byref(metadata_wrapper)
-        )
+        res = self.dyad_free_metadata(ctypes.byref(metadata_wrapper))
         if int(res) != 0:
             raise RuntimeError("Could not free DYAD metadata")
 
-    @dlio_log.log
+    # @dlio_log.log
     def consume(self, fname):
         if self.dyad_consume is None:
             warnings.warn(
                 "Trying to consunme with DYAD when libdyad_core.so was not found",
-                RuntimeWarning
+                RuntimeWarning,
             )
             return
         res = self.dyad_consume(
@@ -366,35 +375,30 @@ class Dyad:
         if int(res) != 0:
             raise RuntimeError("Cannot consume data with DYAD!")
 
-    @dlio_log.log
+    # @dlio_log.log
     def consume_w_metadata(self, fname, metadata_wrapper):
         if self.dyad_consume is None:
             warnings.warn(
                 "Trying to consunme with metadata  with DYAD when libdyad_core.so was not found",
-                RuntimeWarning
+                RuntimeWarning,
             )
             return
-        res = self.dyad_consume_w_metadata(
-            self.ctx,
-            fname.encode(),
-            metadata_wrapper
-        )
+        res = self.dyad_consume_w_metadata(self.ctx, fname.encode(), metadata_wrapper)
         if int(res) != 0:
             raise RuntimeError("Cannot consume data with metadata with DYAD!")
 
-    @dlio_log.log
+    # @dlio_log.log
     def finalize(self):
         if not self.initialized:
             return
-        if self.log_inst:
-            self.log_inst.finalize()
+        # if self.log_inst:
+        #     self.log_inst.finalize()
         if self.dyad_finalize is None:
             warnings.warn(
                 "Trying to finalize DYAD when libdyad_ctx.so was not found",
-                RuntimeWarning
+                RuntimeWarning,
             )
             return
-        res = self.dyad_finalize(
-        )
+        res = self.dyad_finalize()
         if int(res) != 0:
             raise RuntimeError("Cannot finalize DYAD!")
