@@ -19,7 +19,7 @@
 
 extern const base64_maps_t base64_maps_rfc4648;
 
-#define UCX_MAX_TRANSFER_SIZE (1024 * 1024 * 1024)
+#define UCX_MAX_TRANSFER_SIZE (1024 * 1024)
 
 // Tag mask for UCX Tag send/recv
 #define DYAD_UCX_TAG_MASK UINT64_MAX
