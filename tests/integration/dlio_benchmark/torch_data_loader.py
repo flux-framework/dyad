@@ -19,9 +19,9 @@ import logging
 import math
 import pickle
 import torch
-torch.use_deterministic_algorithms(True)
-import random
 from torch.utils.data import Dataset, DataLoader, RandomSampler, SequentialSampler
+from torch.utils.data.sampler import Sampler
+import numpy as np
 
 from dlio_benchmark.common.constants import MODULE_DATA_LOADER
 from dlio_benchmark.common.enumerations import Shuffle, DatasetType, DataLoaderType
@@ -39,6 +39,7 @@ class BaseTorchDataset(Dataset):
     Currently, we only support loading one sample per file
     TODO: support multiple samples per file
     """
+
     @dlp.log_init
     def __init__(self, format_type, dataset_type, epoch, num_samples, num_workers, batch_size):
         self.format_type = format_type
@@ -61,8 +62,6 @@ class BaseTorchDataset(Dataset):
         self._args.configure_dlio_logging(is_child=True)
         self.dlp_logger = self._args.configure_dlio_profiler(is_child=True, use_pid=True)
         logging.debug(f"{utcnow()} worker initialized {worker_id} with format {self.format_type}")
-        worker_seed = torch.initial_seed() % 2**32
-        random.seed(worker_seed)
         self.reader = ReaderFactory.get_reader(type=self.format_type,
                                                dataset_type=self.dataset_type,
                                                thread_index=worker_id,
@@ -71,6 +70,7 @@ class BaseTorchDataset(Dataset):
     def __del__(self):
         if self.dlp_logger:
             self.dlp_logger.finalize()
+
     @dlp.log
     def __len__(self):
         return self.num_samples
@@ -90,6 +90,31 @@ class BaseTorchDataset(Dataset):
         dlp.update(args={"image_idx":image_idx})
         return data
 
+class dlio_sampler(Sampler):
+    def __init__(self, rank, size, num_samples, shuffle, epochs, seed):
+        self.size = size
+        self.rank = rank
+        self.num_samples = num_samples
+        self.shuffle = shuffle
+        self.epochs = epochs
+        self.seed = seed
+
+    def __len__(self):
+        return self.num_samples
+
+    def __iter__(self):
+        indices = list(range(self.num_samples))
+        if self.shuffle != Shuffle.OFF:
+            if self.shuffle == Shuffle.SEED:
+                np.random.seed(self.seed)
+            np.random.shuffle(indices)
+        samples_per_gpu = self.num_samples // self.size
+        start = self.rank * samples_per_gpu
+        end = ((self.rank + 1) * samples_per_gpu) * self.epochs
+        for i in range(start, end):
+            yield indices[i % self.num_samples]
+
+
 class BaseTorchDataLoader(BaseDataLoader):
     @dlp.log_init
     def __init__(self, format_type, dataset_type, epoch_number):
@@ -97,16 +122,10 @@ class BaseTorchDataLoader(BaseDataLoader):
 
     @dlp.log
     def read(self):
-        do_shuffle = True if self._args.sample_shuffle != Shuffle.OFF else False
-        g = torch.Generator()
-        dataset = BaseTorchDataset(self.format_type, self.dataset_type, self.epoch_number, self.num_samples, self._args.read_threads, self.batch_size)
-        if do_shuffle:
-            if self._args.sample_shuffle == Shuffle.SEED:
-                torch.manual_seed(self._args.seed)
-                g.manual_seed(self._args.seed)
-            sampler = RandomSampler(dataset, replacement=True, num_samples=self.num_samples, generator=g)
-        else:
-            sampler = SequentialSampler(dataset)
+        dataset = BaseTorchDataset(self.format_type, self.dataset_type, self.epoch_number, self.num_samples,
+                               self._args.read_threads, self.batch_size)
+        sampler = dlio_sampler(self._args.my_rank, self._args.comm_size, self.num_samples, self._args.sample_shuffle,
+                               self._args.epochs, self._args.seed)
         if self._args.read_threads >= 1:
             prefetch_factor = math.ceil(self._args.prefetch_size / self._args.read_threads)
         else:
@@ -147,7 +166,6 @@ class BaseTorchDataLoader(BaseDataLoader):
                                        pin_memory=True,
                                        drop_last=True,
                                        worker_init_fn=dataset.worker_init,
-                                       generator=g,
                                        **kwargs)  # 2 is the default value
         logging.debug(f"{utcnow()} Rank {self._args.my_rank} will read {len(self._dataset) * self.batch_size} files")
 

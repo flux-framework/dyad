@@ -25,7 +25,11 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
+#if DYAD_PERFFLOW
+#define DYAD_CORE_FUNC_MODS __attribute__ ((annotate ("@critical_path()"))) static
+#else
+#define DYAD_CORE_FUNC_MODS static inline
+#endif
 DYAD_DLL_EXPORTED extern const struct dyad_ctx dyad_ctx_default;
 
 struct dyad_metadata {
@@ -112,6 +116,26 @@ DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_consume (dyad_ctx_t* ctx, con
  */
 DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t* ctx, const char* fname,
                                                                        const dyad_metadata_t* mdata);
+
+
+/**
+ * Private Function definitions
+ */
+DYAD_DLL_EXPORTED dyad_rc_t dyad_get_data (const dyad_ctx_t* ctx, const dyad_metadata_t* mdata,
+                                                         char** file_data,
+                                                         size_t* file_len);
+DYAD_DLL_EXPORTED dyad_rc_t dyad_commit (dyad_ctx_t* ctx, const char* fname);
+
+DYAD_DLL_EXPORTED int gen_path_key (const char* str, char* path_key,
+                                                          const size_t len,
+                                                          const uint32_t depth,
+                                                          const uint32_t width);
+
+DYAD_DLL_EXPORTED dyad_rc_t dyad_kvs_read (const dyad_ctx_t* ctx,
+                                             const char* topic,
+                                             const char* upath,
+                                             bool should_wait,
+                                             dyad_metadata_t** mdata);
 
 #if DYAD_SYNC_DIR
 DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED int dyad_sync_directory (dyad_ctx_t* ctx, const char* path);

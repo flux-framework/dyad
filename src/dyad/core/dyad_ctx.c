@@ -801,7 +801,7 @@ DYAD_DLL_EXPORTED dyad_rc_t dyad_finalize ()
 {
     DYAD_C_FUNCTION_START();
     dyad_rc_t rc = DYAD_RC_OK;
-    DYAD_LOG_STDERR ("DYAD context is being destroyed!\n");
+    //DYAD_LOG_STDERR ("DYAD context is being destroyed!\n");
     if (ctx == NULL) {
         rc = DYAD_RC_OK;
         goto finalize_region_finish;
