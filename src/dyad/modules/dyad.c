@@ -427,6 +427,7 @@ dyad_rc_t dyad_module_ctx_init (const opt_parse_out_t* opt, flux_t* h)
        DYAD_LOG_STDERR ("DYAD_MOD: DYAD_KVS_NAMESPACE is set to `%s'\n", kvs);
     } else {
         DYAD_LOG_STDERR ("DYAD_MOD: DYAD_KVS_NAMESPACE is not set\n");
+	setenv("DYAD_KVS_NAMESPACE", "dyad_service_dummy", 1);
     }    
     dyad_ctx_init (DYAD_COMM_SEND, h);
     mod_ctx->ctx = dyad_ctx_get ();
