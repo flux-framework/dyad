@@ -16,7 +16,7 @@ else()
     endif()
 endif()
 
-pkg_check_modules(FLUX_CORE REQUIRED IMPORTED_TARGET flux-core)
+pkg_check_modules(FLUX_CORE REQUIRED IMPORTED_TARGET GLOBAL flux-core)
 set(FLUX_PREFIX ${FLUX_CORE_PREFIX})
 set(LIBFLUX_VERSION ${FLUX_CORE_VERSION})
 
@@ -25,11 +25,11 @@ find_program(FLUX flux
 execute_process(COMMAND $FLUX python -c "import sys; print(\".\".join(map(str, sys.version_info[[:2]])))"
         OUTPUT_VARIABLE FLUX_PYTHON_VERSION)
 
-pkg_check_modules(FLUX_HOSTLIST REQUIRED IMPORTED_TARGET flux-hostlist )
-pkg_check_modules(FLUX_IDSET REQUIRED IMPORTED_TARGET flux-idset )
-pkg_check_modules(FLUX_OPTPARSE REQUIRED IMPORTED_TARGET flux-optparse )
-pkg_check_modules(FLUX_SCHEDUTIL REQUIRED IMPORTED_TARGET flux-schedutil )
-pkg_check_modules(FLUX_TASKMAP REQUIRED IMPORTED_TARGET flux-taskmap )
+pkg_check_modules(FLUX_HOSTLIST REQUIRED IMPORTED_TARGET GLOBAL flux-hostlist )
+pkg_check_modules(FLUX_IDSET REQUIRED IMPORTED_TARGET GLOBAL flux-idset )
+pkg_check_modules(FLUX_OPTPARSE REQUIRED IMPORTED_TARGET GLOBAL flux-optparse )
+pkg_check_modules(FLUX_SCHEDUTIL REQUIRED IMPORTED_TARGET GLOBAL flux-schedutil )
+pkg_check_modules(FLUX_TASKMAP REQUIRED IMPORTED_TARGET GLOBAL flux-taskmap )
 
 add_library(flux::core ALIAS PkgConfig::FLUX_CORE)
 add_library(flux::hostlist ALIAS PkgConfig::FLUX_HOSTLIST)
