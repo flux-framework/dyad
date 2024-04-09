@@ -63,7 +63,7 @@ RUN spack view --verbose symlink ${DYAD_INSTALL_PREFIX} flux-core@0.52.0 cpp-log
 # Install DYAD
 ENV PKG_CONFIG_PATH=$PKG_CONFIG_PATH:${DYAD_INSTALL_PREFIX}/lib/pkgconfig
 ENV CONFIGURE_FLAGS="-DDYAD_ENABLE_UCX_DATA=ON"
-ENV TEST_CONF="-DDYAD_LIBDIR_AS_LIB:BOOL=ON -DCMAKE_BUILD_TYPE=Debug -DDYAD_LOGGER=CPP_LOGGER -DDYAD_LOGGER_LEVEL=DEBUG"
+ENV TEST_CONF="-DDYAD_LIBDIR_AS_LIB:BOOL=ON -DCMAKE_BUILD_TYPE=Debug -DDYAD_LOGGER=CPP_LOGGER -DDYAD_LOGGER_LEVEL=ERROR"
 RUN git clone https://github.com/flux-framework/dyad.git ${PROJECT_DIR}
 RUN cd ${PROJECT_DIR} && git checkout tutorial-riken-2024
 
@@ -81,9 +81,19 @@ RUN mkdir -p ${PROJECT_DIR}/build \
     && cmake -DCMAKE_INSTALL_PREFIX=${DYAD_INSTALL_PREFIX} ${CONFIGURE_FLAGS} ${TEST_CONF} .. \
     && make VERBOSE=1 install -j
 
-ENV PATH=${DYAD_INSTALL_PREFIX}/bin:${DYAD_INSTALL_PREFIX}/sbin:$PATH
-ENV LD_LIBRARY_PATH=${DYAD_INSTALL_PREFIX}/lib:${DYAD_INSTALL_PREFIX}/lib64:$LD_LIBRARY_PATH
+ENV DLIO_WORKLOAD=dyad_unet3d_demo
+ENV DLIO_DATA_DIR=/mount/pfs
+ENV DYAD_KVS_NAMESPACE=dyad
+ENV DYAD_DTL_MODE=UCX
+ENV DYAD_PATH="/mount/ssd"
+ENV PATH=${PATH}:${DYAD_INSTALL_PREFIX}/bin:${DYAD_INSTALL_PREFIX}/sbin
+ENV LD_LIBRARY_PATH=/usr/lib64:${DYAD_INSTALL_PREFIX}/lib:${LD_LIBRARY_PATH}
+ENV PYTHONPATH=${PROJECT_DIR}/tests/integration/dlio_benchmark:${PROJECT_DIR}/pydyad:$PYTHONPATH
 
+RUN mkdir -p ${DYAD_PATH} ${DLIO_DATA_DIR}
 
+RUN dlio_benchmark workload=${DLIO_WORKLOAD} --config-dir=${PROJECT_DIR}/tests/integration/dlio_benchmark/configs workload=${DLIO_WORKLOAD} ++workload.dataset.data_folder=${DLIO_DATA_DIR} ++workload.workflow.generate_data=True ++workload.workflow.train=False
+
+RUN dlio_benchmark workload=${DLIO_WORKLOAD} --config-dir=${PROJECT_DIR}/tests/integration/dlio_benchmark/configs workload=${DLIO_WORKLOAD} ++workload.dataset.data_folder=${DLIO_DATA_DIR} ++workload.workflow.generate_data=False ++workload.workflow.train=True
 
 ENTRYPOINT service ssh restart && bash
