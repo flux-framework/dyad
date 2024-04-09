@@ -554,7 +554,11 @@ dyad_rc_t dyad_dtl_ucx_init (const dyad_ctx_t* ctx,
     //   * Worker sleep, wakeup, poll, etc. features
     ucx_params.field_mask =
         UCP_PARAM_FIELD_FEATURES | UCP_PARAM_FIELD_REQUEST_SIZE;
+#ifdef DYAD_ENABLE_UCX_RMA
     ucx_params.features = UCP_FEATURE_RMA | UCP_FEATURE_AMO32 | UCP_FEATURE_TAG;
+#else
+    ucx_params.features = UCP_FEATURE_TAG;
+#endif
     ucx_params.request_size = sizeof (struct ucx_request);
     ucx_params.request_init = dyad_ucx_request_init;
 
