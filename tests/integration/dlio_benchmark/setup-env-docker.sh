@@ -1,8 +1,5 @@
 #!/bin/bash
 
-module load python/3.9.12
-module load openmpi/4.1.2
-
 # Configurations
 export DLIO_WORKLOAD=dyad_unet3d_demo
 export NUM_NODES=1

@@ -25,7 +25,7 @@ reader:
   data_loader_sampler: index
 
 train:
-  epochs: 10
+  epochs: 1
   computation_time: 1
 
 checkpoint:
