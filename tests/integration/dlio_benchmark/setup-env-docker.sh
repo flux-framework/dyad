@@ -7,7 +7,7 @@ module load openmpi/4.1.2
 export DLIO_WORKLOAD=dyad_unet3d_demo
 export NUM_NODES=1
 export PPN=1
-export GENERATE_DATA="0"
+export GENERATE_DATA="$1"
 
 export DYAD_INSTALL_PREFIX=/mount/shared/install
 export DYAD_KVS_NAMESPACE=dyad

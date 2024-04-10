@@ -92,8 +92,8 @@ ENV PYTHONPATH=${PROJECT_DIR}/tests/integration/dlio_benchmark:${PROJECT_DIR}/py
 
 RUN mkdir -p ${DYAD_PATH} ${DLIO_DATA_DIR}
 
-RUN dlio_benchmark workload=${DLIO_WORKLOAD} --config-dir=${PROJECT_DIR}/tests/integration/dlio_benchmark/configs workload=${DLIO_WORKLOAD} ++workload.dataset.data_folder=${DLIO_DATA_DIR} ++workload.workflow.generate_data=True ++workload.workflow.train=False
+RUN cd ${PROJECT_DIR}/tests/integration/dlio_benchmark && ./docker.sh 1
 
-RUN dlio_benchmark workload=${DLIO_WORKLOAD} --config-dir=${PROJECT_DIR}/tests/integration/dlio_benchmark/configs workload=${DLIO_WORKLOAD} ++workload.dataset.data_folder=${DLIO_DATA_DIR} ++workload.workflow.generate_data=False ++workload.workflow.train=True
+RUN cd ${PROJECT_DIR}/tests/integration/dlio_benchmark && ./docker.sh 0
 
 ENTRYPOINT service ssh restart && bash

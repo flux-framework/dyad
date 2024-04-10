@@ -1,5 +1,6 @@
 #!/bin/bash
-source ./setup-env-docker.sh 
+GENERATE_DATA=$1
+source ./setup-env-docker.sh $GENERATE_DATA
 
 # Setup DYAD
 echo Setting up Dyad

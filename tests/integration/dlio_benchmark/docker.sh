@@ -1,3 +1,4 @@
 #!/bin/bash
-source ./setup-env-demo.sh
-flux start --test-size=$NUM_NODES ./run_dlio_docker.sh
+GENERATE_DATA=$1
+source ./setup-env-demo.sh $GENERATE_DATA
+flux start --test-size=$NUM_NODES ./run_dlio_docker.sh $GENERATE_DATA
