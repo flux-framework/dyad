@@ -76,6 +76,8 @@ RUN dlio_benchmark workload=unet3d_a100 ++workload.dataset.data_folder=/root/dat
 
 RUN dlio_benchmark workload=unet3d_a100 ++workload.dataset.data_folder=/root/data ++workload.workflow.generate_data=False ++workload.workflow.train=True ++workload.dataset.record_length=4096 ++workload.dataset.record_length_stdev=0 ++workload.dataset.record_length_resize=0 ++workload.reader.batch_size=1 ++workload.dataset.num_files_train=16 ++workload.reader.read_threads=1
 
+RUN cd ${PROJECT_DIR} && git pull
+
 RUN mkdir -p ${PROJECT_DIR}/build \
     && cd ${PROJECT_DIR}/build \
     && cmake -DCMAKE_INSTALL_PREFIX=${DYAD_INSTALL_PREFIX} ${CONFIGURE_FLAGS} ${TEST_CONF} .. \
