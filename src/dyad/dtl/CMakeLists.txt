@@ -34,9 +34,6 @@ set_target_properties(${PROJECT_NAME}_dtl PROPERTIES CMAKE_INSTALL_RPATH
 if(DYAD_ENABLE_UCX_DTL OR DYAD_ENABLE_UCX_DATA_RMA)
     target_link_libraries(${PROJECT_NAME}_dtl PRIVATE ucx::ucp ucx::ucs)
     target_include_directories(${PROJECT_NAME}_dtl SYSTEM PUBLIC ${ucx_INCLUDE_DIRS})
-    if (TARGET DYAD_CXX_FLAGS_werror)
-        target_link_libraries(${PROJECT_NAME}_dtl PRIVATE DYAD_CXX_FLAGS_werror)
-    endif ()
 endif()
 
 target_compile_definitions(${PROJECT_NAME}_dtl PUBLIC DYAD_HAS_CONFIG)
@@ -46,9 +43,7 @@ target_include_directories(${PROJECT_NAME}_dtl PUBLIC
 target_include_directories(${PROJECT_NAME}_dtl SYSTEM PUBLIC ${JANSSON_INCLUDE_DIRS})
 target_include_directories(${PROJECT_NAME}_dtl SYSTEM PUBLIC ${FluxCore_INCLUDE_DIRS})
 
-if (TARGET DYAD_C_FLAGS_werror)
-  target_link_libraries(${PROJECT_NAME}_dtl PRIVATE DYAD_C_FLAGS_werror)
-endif ()
+dyad_add_werror_if_needed(${PROJECT_NAME}_dtl)
 if(DYAD_LOGGER STREQUAL "CPP_LOGGER")
     target_link_libraries(${PROJECT_NAME}_dtl PRIVATE ${CPP_LOGGER_LIBRARIES})
 endif()

@@ -30,9 +30,7 @@ target_include_directories(${PROJECT_NAME}_fstream PUBLIC
     $<INSTALL_INTERFACE:${DYAD_INSTALL_INCLUDEDIR}>)
 target_include_directories(${PROJECT_NAME}_fstream SYSTEM PRIVATE ${FluxCore_INCLUDE_DIRS})
 
-if (TARGET DYAD_CXX_FLAGS_werror)
-    target_link_libraries(${PROJECT_NAME}_fstream PRIVATE DYAD_CXX_FLAGS_werror)
-endif ()
+dyad_add_werror_if_needed(${PROJECT_NAME}_fstream)
 if(DYAD_PROFILER STREQUAL "DFTRACER")
     target_link_libraries(${PROJECT_NAME}_fstream PRIVATE ${DFTRACER_LIBRARIES})
 endif()

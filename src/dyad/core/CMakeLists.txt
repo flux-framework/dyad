@@ -43,10 +43,8 @@ target_include_directories(${PROJECT_NAME}_ctx SYSTEM PRIVATE ${JANSSON_INCLUDE_
 target_include_directories(${PROJECT_NAME}_ctx SYSTEM PRIVATE ${FluxCore_INCLUDE_DIRS})
   target_link_libraries(${PROJECT_NAME}_ctx PRIVATE ${PROJECT_NAME}_dtl ${PROJECT_NAME}_utils)
 
-if (TARGET DYAD_C_FLAGS_werror)
-  target_link_libraries(${PROJECT_NAME}_core PRIVATE DYAD_C_FLAGS_werror)
-  target_link_libraries(${PROJECT_NAME}_ctx PRIVATE DYAD_C_FLAGS_werror)
-endif ()
+dyad_add_werror_if_needed(${PROJECT_NAME}_core)
+dyad_add_werror_if_needed(${PROJECT_NAME}_ctx)
 
 if(DYAD_PROFILER STREQUAL "PERFFLOW_ASPECT")
     target_link_libraries(${PROJECT_NAME}_core PRIVATE perfflowaspect::perfflowaspect)

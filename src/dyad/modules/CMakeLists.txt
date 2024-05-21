@@ -39,10 +39,8 @@ target_include_directories(test_opt_parse PUBLIC
     $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/src>
     $<INSTALL_INTERFACE:${DYAD_INSTALL_INCLUDEDIR}>)
 
-if (TARGET DYAD_C_FLAGS_werror)
-  target_link_libraries(${PROJECT_NAME} PRIVATE DYAD_C_FLAGS_werror)
-  target_link_libraries(test_opt_parse PRIVATE DYAD_C_FLAGS_werror)
-endif ()
+dyad_add_werror_if_needed(${PROJECT_NAME})
+dyad_add_werror_if_needed(test_opt_parse)
 
 if(DYAD_PROFILER STREQUAL "PERFFLOW_ASPECT")
     target_link_libraries(${PROJECT_NAME} PRIVATE perfflowaspect::perfflowaspect)
