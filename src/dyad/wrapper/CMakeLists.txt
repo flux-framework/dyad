@@ -18,9 +18,7 @@ target_include_directories(${PROJECT_NAME}_wrapper PUBLIC
     $<INSTALL_INTERFACE:${DYAD_INSTALL_INCLUDEDIR}>)
 target_include_directories(${PROJECT_NAME}_wrapper SYSTEM PRIVATE ${FluxCore_INCLUDE_DIRS})
 
-if (TARGET DYAD_C_FLAGS_werror)
-  target_link_libraries(${PROJECT_NAME}_wrapper PRIVATE DYAD_C_FLAGS_werror)
-endif ()
+dyad_add_werror_if_needed(${PROJECT_NAME}_wrapper)
 
 set(FLUX_BARRIER_SRC ${CMAKE_CURRENT_SOURCE_DIR}/flux_barrier.c)
 set(FLUX_BARRIER_PRIVATE_HEADERS)
