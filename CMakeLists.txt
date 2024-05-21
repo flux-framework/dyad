@@ -364,7 +364,7 @@ file(COPY ${DYAD_BUILD_CMAKE_DIR}/DYADConfigVersion.cmake
 #  "${CMAKE_SOURCE_DIR}/src/dyad/utils/base64")
 #  "${CMAKE_SOURCE_DIR}/include/dyad/stream")
 set(EXTRA_CMAKE_MODULE_DIR "${CMAKE_SOURCE_DIR}/cmake/modules")
-set(INCLUDE_INSTALL_DIRS $CMAKE_INCLUDE_OUTPUT_DIRECTORY})
+set(INCLUDE_INSTALL_DIRS ${CMAKE_INCLUDE_OUTPUT_DIRECTORY})
 set(LIB_INSTALL_DIR ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/configure_files/DYADConfig.cmake.in
   "${DYAD_BUILD_CMAKE_DIR}/DYADConfig.cmake"
