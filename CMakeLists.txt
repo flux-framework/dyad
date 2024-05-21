@@ -32,19 +32,21 @@ endif ()
 #
 if (CMAKE_INSTALL_LIBDIR)
    message(STATUS "CMAKE_INSTALL_LIBDIR ${CMAKE_INSTALL_LIBDIR}")
-   set(DYAD_LIBDIR ${CMAKE_INSTALL_LIBDIR})
-   set(DYAD_INSTALL_INCLUDE_DIR
-       ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR})
+   set(DYAD_INSTALL_BINDIR ${CMAKE_INSTALL_BINDIR})
+   set(DYAD_INSTALL_LIBDIR ${CMAKE_INSTALL_LIBDIR})
+   set(DYAD_INSTALL_INCLUDEDIR
+       ${CMAKE_INSTALL_INCLUDEDIR})
    set(DYAD_INSTALL_DOCDIR
-       ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DOCDIR})
+       ${CMAKE_INSTALL_DOCDIR})
    set(DYAD_INSTALL_SYSCONFDIR
-       ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_SYSCONFDIR}/modulefiles)
+       ${CMAKE_INSTALL_SYSCONFDIR}/modulefiles)
 else ()
-   set(DYAD_LIBDIR "lib")
-   set(DYAD_INSTALL_INCLUDE_DIR "${CMAKE_INSTALL_PREFIX}/include")
-   set(DYAD_INSTALL_DOCDIR "${CMAKE_INSTALL_PREFIX}/doc")
-   set(DYAD_INSTALL_SYSCONFDIR "${CMAKE_INSTALL_PREFIX}/etc/modulefiles")
-   message(STATUS "DYAD_LIBDIR set to ${DYAD_LIBDIR}")
+   set(DYAD_INSTALL_BINDIR "bin")
+   set(DYAD_INSTALL_LIBDIR "lib")
+   set(DYAD_INSTALL_INCLUDEDIR "include")
+   set(DYAD_INSTALL_DOCDIR "doc")
+   set(DYAD_INSTALL_SYSCONFDIR "etc/modulefiles")
+   message(STATUS "DYAD_INSTALL_LIBDIR set to ${DYAD_INSTALL_LIBDIR}")
 endif ()
 
 #------------------------------------------------------------------------------
@@ -54,17 +56,18 @@ endif ()
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${CMAKE_BINARY_DIR} ${CMAKE_INSTALL_PREFIX})
 # This sets where to look for dependent library's cmake files
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules)
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_BINARY_DIR}/${DYAD_LIBDIR}/cmake)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_BINARY_DIR}/${DYAD_INSTALL_LIBDIR}/cmake)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_BINARY_DIR}/share/cmake)
 
 #------------------------------------------------------------------------------
-if (NOT DYAD_EXTERNALLY_CONFIGURED)
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin CACHE PATH "Single Directory for all Executables.")
-    set(CMAKE_INCLUDE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/include CACHE PATH "Store the headers.")
-    set(EXECUTABLE_OUTPUT_PATH ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
-    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${DYAD_LIBDIR} CACHE PATH "Single Directory for all Libraries")
-    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${DYAD_LIBDIR} CACHE PATH "Single Directory for all static libraries.")
-endif ()
+# This doesn't really need to be in an 'if' statement since they're cache variables
+# if (NOT DYAD_EXTERNALLY_CONFIGURED)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${DYAD_INSTALL_BINDIR} CACHE PATH "Single Directory for all Executables.")
+set(CMAKE_INCLUDE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${DYAD_INSTALL_INCLUDEDIR} CACHE PATH "Store the headers.")
+set(EXECUTABLE_OUTPUT_PATH ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${DYAD_INSTALL_LIBDIR} CACHE PATH "Single Directory for all Libraries")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${DYAD_INSTALL_LIBDIR} CACHE PATH "Single Directory for all static libraries.")
+# endif ()
 
 #-----------------------------------------------------------------------------
 # Targets built within this project are exported at Install time for use
@@ -289,38 +292,38 @@ add_subdirectory(src/dyad)
 #-----------------------------------------------------------------------------
 # Configure the config.cmake file for the build directory
 #-----------------------------------------------------------------------------
-configure_file(
-        ${CMAKE_CURRENT_SOURCE_DIR}/CMake/${PROJECT_NAME}-config.cmake.build.in
-        ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake/${PROJECT_NAME}/${PROJECT_NAME}-config.cmake @ONLY
-)
-
-configure_file(
-        ${CMAKE_CURRENT_SOURCE_DIR}/CMake/${PROJECT_NAME}-config.cmake.install.in
-        ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake/${PROJECT_NAME}/install/${PROJECT_NAME}-config.cmake @ONLY
-)
-install(
-        FILES
-        ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake/${PROJECT_NAME}/install/${PROJECT_NAME}-config.cmake
-        DESTINATION
-        ${DYAD_LIBDIR}/cmake/${PROJECT_NAME}
-)
+# configure_file(
+#         ${CMAKE_CURRENT_SOURCE_DIR}/CMake/${PROJECT_NAME}-config.cmake.build.in
+#         ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake/${PROJECT_NAME}/${PROJECT_NAME}-config.cmake @ONLY
+# )
+# 
+# configure_file(
+#         ${CMAKE_CURRENT_SOURCE_DIR}/CMake/${PROJECT_NAME}-config.cmake.install.in
+#         ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake/${PROJECT_NAME}/install/${PROJECT_NAME}-config.cmake @ONLY
+# )
+# install(
+#         FILES
+#         ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake/${PROJECT_NAME}/install/${PROJECT_NAME}-config.cmake
+#         DESTINATION
+#         ${DYAD_LIBDIR}/cmake/${PROJECT_NAME}
+# )
 #-----------------------------------------------------------------------------
 # Configure the ${PROJECT_NAME}-config-version .cmake file for the install directory
 #-----------------------------------------------------------------------------
-configure_file(
-        ${CMAKE_CURRENT_SOURCE_DIR}/CMake/${PROJECT_NAME}-config-version.cmake.in
-        ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake/${PROJECT_NAME}/${PROJECT_NAME}-config-version.cmake @ONLY
-)
-
-install(
-        FILES
-        ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake/${PROJECT_NAME}/${PROJECT_NAME}-config-version.cmake
-        DESTINATION
-        ${DYAD_LIBDIR}/cmake/${PROJECT_NAME}
-)
-
-export(EXPORT ${DYAD_EXPORTED_TARGETS}
-        FILE "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake/${PROJECT_NAME}/${PROJECT_NAME}Targets.cmake")
+# configure_file(
+#         ${CMAKE_CURRENT_SOURCE_DIR}/CMake/${PROJECT_NAME}-config-version.cmake.in
+#         ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake/${PROJECT_NAME}/${PROJECT_NAME}-config-version.cmake @ONLY
+# )
+# 
+# install(
+#         FILES
+#         ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake/${PROJECT_NAME}/${PROJECT_NAME}-config-version.cmake
+#         DESTINATION
+#         ${DYAD_LIBDIR}/cmake/${PROJECT_NAME}
+# )
+# 
+# export(EXPORT ${DYAD_EXPORTED_TARGETS}
+#         FILE "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake/${PROJECT_NAME}/${PROJECT_NAME}Targets.cmake")
 
 # Write the configure file
 configure_file("${CMAKE_SOURCE_DIR}/cmake/configure_files/dyad_config.hpp.in"
@@ -333,17 +336,23 @@ configure_file("${CMAKE_SOURCE_DIR}/cmake/configure_files/dyad_config.hpp.in"
 
 include(CMakePackageConfigHelpers)
 
+set(DYAD_BUILD_CMAKE_DIR "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake/${PROJECT_NAME}")
+set(DYAD_INSTALL_CMAKE_DIR "${DYAD_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
+set(DYAD_INSTALL_TMP_CMAKE_DIR "${CMAKE_BINARY_DIR}/install_cmake_scripts")
+
 # Write the version file. This is independent of build/install tree.
 write_basic_package_version_file(
-  DYADConfigVersion.cmake
+  ${DYAD_BUILD_CMAKE_DIR}/DYADConfigVersion.cmake
   VERSION "${DYAD_PACKAGE_VERSION}"
   COMPATIBILITY SameMajorVersion)
+file(COPY ${DYAD_BUILD_CMAKE_DIR}/DYADConfigVersion.cmake
+  DESTINATION ${DYAD_INSTALL_TMP_CMAKE_DIR})
 
 #...........................................
 # TODO: There are two different places where cmake config is handled currently.
 # Need to clean up and merge
 
-if (WIP_package_config)
+# if (WIP_package_config)
 # This is for the build tree
 #set(INCLUDE_INSTALL_DIRS
 #  "${CMAKE_SOURCE_DIR}/src/dyad/common"
@@ -355,53 +364,51 @@ if (WIP_package_config)
 #  "${CMAKE_SOURCE_DIR}/src/dyad/utils/base64")
 #  "${CMAKE_SOURCE_DIR}/include/dyad/stream")
 set(EXTRA_CMAKE_MODULE_DIR "${CMAKE_SOURCE_DIR}/cmake/modules")
-
-configure_package_config_file(cmake/configure_files/DYADConfig.cmake.in
-  "${CMAKE_BINARY_DIR}/DYADConfig.cmake"
-  INSTALL_DESTINATION "${CMAKE_BINARY_DIR}/src/dyad/${DYAD_LIBDIR}/cmake/dyad"
-  PATH_VARS CMAKE_BINARY_DIR)
-  #PATH_VARS INCLUDE_INSTALL_DIRS CMAKE_BINARY_DIR)
+set(INCLUDE_INSTALL_DIRS $CMAKE_INCLUDE_OUTPUT_DIRECTORY})
+set(LIB_INSTALL_DIR ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/configure_files/DYADConfig.cmake.in
+  "${DYAD_BUILD_CMAKE_DIR}/DYADConfig.cmake"
+  INSTALL_DESTINATION "${DYAD_BUILD_CMAKE_DIR}"
+  PATH_VARS INCLUDE_INSTALL_DIRS LIB_INSTALL_DIR)
 
 # Write the configure file for the install tree
-set(INCLUDE_INSTALL_DIRS include)
-set(EXTRA_CMAKE_MODULE_DIR)
+set(EXTRA_CMAKE_MODULE_DIR "")
+set(INCLUDE_INSTALL_DIRS "${DYAD_INSTALL_INCLUDEDIR}")
+set(LIB_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/${DYAD_INSTALL_LIBDIR}")
 configure_package_config_file(cmake/configure_files/DYADConfig.cmake.in
-  "${CMAKE_BINARY_DIR}/DYADConfig.cmake.install"
-  INSTALL_DESTINATION "${DYAD_LIBDIR}/cmake/dyad"
-  PATH_VARS INCLUDE_INSTALL_DIRS DYAD_LIBDIR)
+  "${DYAD_INSTALL_TMP_CMAKE_DIR}/DYADConfig.cmake"
+  INSTALL_DESTINATION "${DYAD_INSTALL_CMAKE_DIR}"
+  PATH_VARS INCLUDE_INSTALL_DIRS LIB_INSTALL_DIR)
 
 # Install export
-install(EXPORT DYADTargets
+install(EXPORT ${DYAD_EXPORTED_TARGETS} # DYADTargets
         NAMESPACE DYAD::
         FILE DYADTargets.cmake
-        DESTINATION "${DYAD_LIBDIR}/cmake/dyad")
+        DESTINATION "${DYAD_INSTALL_CMAKE_DIR}")
 
 # Install the cmake stuff
-install(FILES "${PROJECT_BINARY_DIR}/DYADConfig.cmake.install"
-        DESTINATION "${DYAD_LIBDIR}/cmake/dyad"
-        RENAME "DYADConfig.cmake")
-
-install(FILES "${PROJECT_BINARY_DIR}/DYADConfigVersion.cmake"
-        DESTINATION "${DYAD_LIBDIR}/cmake/dyad")
+install(DIRECTORY "${DYAD_INSTALL_TMP_CMAKE_DIR}/" # Trailing slash ensures directory structure is not copied
+  DESTINATION "${DYAD_INSTALL_CMAKE_DIR}"
+  FILES_MATCHING PATTERN "*.cmake")
 
 install(DIRECTORY cmake/modules
-        DESTINATION "${DYAD_LIBDIR}/cmake/dyad"
+        DESTINATION "${DYAD_INSTALL_CMAKE_DIR}"
         FILES_MATCHING PATTERN "*.cmake")
-endif (WIP_package_config)
+# endif (WIP_package_config)
 #...........................................
 
 install(FILES
         "${CMAKE_INCLUDE_OUTPUT_DIRECTORY}/dyad/dyad_config.hpp"
         DESTINATION
-        ${DYAD_INSTALL_INCLUDE_DIR}/dyad)
+        ${DYAD_INSTALL_INCLUDEDIR}/dyad)
 
-install(EXPORT
-        ${DYAD_EXPORTED_TARGETS}
-        DESTINATION
-        ${DYAD_LIBDIR}/cmake/${PROJECT_NAME}
-        FILE
-        ${DYAD_EXPORTED_TARGETS}.cmake
-        )
+# install(EXPORT
+#         ${DYAD_EXPORTED_TARGETS}
+#         DESTINATION
+#         ${DYAD_LIBDIR}/cmake/${PROJECT_NAME}
+#         FILE
+#         ${DYAD_EXPORTED_TARGETS}.cmake
+#         )
 
 # Install license and readme
 install(FILES
@@ -455,10 +462,11 @@ string(APPEND _str
   "  DYAD_PACKAGE_VERSION:        ${DYAD_PACKAGE_VERSION}\n")
 string(APPEND _str
   "  DYAD_GIT_VERSION:            ${DYAD_GIT_VERSION}\n")
-string(APPEND _str
-  "  DYAD_ENABLE_UCX_DATA:        ${DYAD_ENABLE_UCX_DATA}\n")
-string(APPEND _str
-  "  DYAD_ENABLE_UCX_DATA_RMA:    ${DYAD_ENABLE_UCX_DATA_RMA}\n")
+# Comment out since they'll be printed again below
+# string(APPEND _str
+#   "  DYAD_ENABLE_UCX_DATA:        ${DYAD_ENABLE_UCX_DATA}\n")
+# string(APPEND _str
+#   "  DYAD_ENABLE_UCX_DATA_RMA:    ${DYAD_ENABLE_UCX_DATA_RMA}\n")
 string(APPEND _str
         "  DYAD_ENABLE_TESTS:    ${DYAD_ENABLE_TESTS}\n")
 string(APPEND _str
