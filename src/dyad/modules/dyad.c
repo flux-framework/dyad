@@ -230,8 +230,7 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
             goto fetch_error_wo_flock;
         }
     } else {
-        dyad_release_flock (mod_ctx->ctx, fd, &shared_lock);
-        close (fd);
+        goto fetch_error;
     }
     DYAD_LOG_DEBUG(mod_ctx->ctx, "Close RPC message stream with an ENODATA (%d) message", ENODATA);
     if (flux_respond_error (h, msg, ENODATA, NULL) < 0) {
