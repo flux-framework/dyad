@@ -7,6 +7,7 @@ set(DYAD_WRAPPER_PUBLIC_HEADERS)
 
 add_library(${PROJECT_NAME}_wrapper SHARED ${DYAD_WRAPPER_SRC}
             ${DYAD_WRAPPER_PRIVATE_HEADERS} ${DYAD_WRAPPER_PUBLIC_HEADERS})
+target_link_libraries(${PROJECT_NAME}_wrapper PRIVATE ${PROJECT_NAME}_common)
 set_target_properties(${PROJECT_NAME}_wrapper PROPERTIES CMAKE_INSTALL_RPATH
                       "${CMAKE_INSTALL_PREFIX}/${DYAD_LIBDIR}")
 target_link_libraries(${PROJECT_NAME}_wrapper PRIVATE ${PROJECT_NAME}_ctx ${PROJECT_NAME}_core)
