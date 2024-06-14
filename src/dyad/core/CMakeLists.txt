@@ -23,6 +23,7 @@ add_library(${PROJECT_NAME}_core SHARED ${DYAD_CORE_SRC}
             ${DYAD_CORE_PUBLIC_HEADERS} ${DYAD_CORE_PRIVATE_HEADERS})
 set_target_properties(${PROJECT_NAME}_core PROPERTIES CMAKE_INSTALL_RPATH
                       "${CMAKE_INSTALL_PREFIX}/${DYAD_LIBDIR}")
+target_link_libraries(${PROJECT_NAME}_core PRIVATE ${PROJECT_NAME}_common)
 target_link_libraries(${PROJECT_NAME}_core PRIVATE Jansson::Jansson flux::core)
 target_link_libraries(${PROJECT_NAME}_core PRIVATE ${PROJECT_NAME}_ctx ${PROJECT_NAME}_utils
                       ${PROJECT_NAME}_murmur3 ${PROJECT_NAME}_dtl)
@@ -37,6 +38,7 @@ target_include_directories(${PROJECT_NAME}_core SYSTEM PRIVATE ${FluxCore_INCLUD
 
 add_library(${PROJECT_NAME}_ctx SHARED ${DYAD_CTX_SRC}
             ${DYAD_CTX_PRIVATE_HEADERS})
+target_link_libraries(${PROJECT_NAME}_core PRIVATE ${PROJECT_NAME}_common)
 target_compile_definitions(${PROJECT_NAME}_ctx PUBLIC BUILDING_DYAD=1)
 target_compile_definitions(${PROJECT_NAME}_ctx PUBLIC DYAD_HAS_CONFIG)
 target_include_directories(${PROJECT_NAME}_ctx SYSTEM PRIVATE ${JANSSON_INCLUDE_DIRS})
@@ -48,14 +50,14 @@ if (TARGET DYAD_C_FLAGS_werror)
   target_link_libraries(${PROJECT_NAME}_ctx PRIVATE DYAD_C_FLAGS_werror)
 endif ()
 
-if(DYAD_PROFILER STREQUAL "PERFFLOW_ASPECT")
-    target_link_libraries(${PROJECT_NAME}_core PRIVATE perfflowaspect::perfflowaspect)
-    target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${perfflowaspect_INCLUDE_DIRS})
-    target_compile_definitions(${PROJECT_NAME}_core PRIVATE DYAD_PERFFLOW=1)
-endif()
-if(DYAD_PROFILER STREQUAL "DLIO_PROFILER")
-    target_link_libraries(${PROJECT_NAME}_core PRIVATE ${DLIO_PROFILER_LIBRARIES})
-endif()
+# if(DYAD_PROFILER STREQUAL "PERFFLOW_ASPECT")
+#     target_link_libraries(${PROJECT_NAME}_core PRIVATE perfflowaspect::perfflowaspect)
+#     target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${perfflowaspect_INCLUDE_DIRS})
+#     target_compile_definitions(${PROJECT_NAME}_core PRIVATE DYAD_PERFFLOW=1)
+# endif()
+# if(DYAD_PROFILER STREQUAL "DLIO_PROFILER")
+#     target_link_libraries(${PROJECT_NAME}_core PRIVATE ${DLIO_PROFILER_LIBRARIES})
+# endif()
 install(
         TARGETS ${PROJECT_NAME}_core ${PROJECT_NAME}_ctx
         EXPORT ${DYAD_EXPORTED_TARGETS}

@@ -13,18 +13,19 @@ set(DYAD_MURMUR3_PUBLIC_HEADERS)
 
 add_library(${PROJECT_NAME}_utils SHARED ${DYAD_UTILS_SRC}
             ${DYAD_UTILS_PRIVATE_HEADERS} ${DYAD_UTILS_PUBLIC_HEADERS})
+target_link_libraries(${PROJECT_NAME}_utils PRIVATE ${PROJECT_NAME}_common)
 set_target_properties(${PROJECT_NAME}_utils PROPERTIES CMAKE_INSTALL_RPATH
                       "${CMAKE_INSTALL_PREFIX}/${DYAD_LIBDIR}")
 target_link_libraries(${PROJECT_NAME}_utils PUBLIC
                       ${PROJECT_NAME}_base64
                       ${PROJECT_NAME}_murmur3)
 
-if(DYAD_LOGGER STREQUAL "CPP_LOGGER")
-    target_link_libraries(${PROJECT_NAME}_utils PRIVATE ${CPP_LOGGER_LIBRARIES})
-endif()
-if(DYAD_PROFILER STREQUAL "DLIO_PROFILER")
-    target_link_libraries(${PROJECT_NAME}_utils PRIVATE ${DLIO_PROFILER_LIBRARIES})
-endif()
+# if(DYAD_LOGGER STREQUAL "CPP_LOGGER")
+#     target_link_libraries(${PROJECT_NAME}_utils PRIVATE ${CPP_LOGGER_LIBRARIES})
+# endif()
+# if(DYAD_PROFILER STREQUAL "DLIO_PROFILER")
+#     target_link_libraries(${PROJECT_NAME}_utils PRIVATE ${DLIO_PROFILER_LIBRARIES})
+# endif()
 
 target_compile_definitions(${PROJECT_NAME}_utils PUBLIC DYAD_HAS_CONFIG)
 target_include_directories(${PROJECT_NAME}_utils PUBLIC
@@ -32,24 +33,27 @@ target_include_directories(${PROJECT_NAME}_utils PUBLIC
     $<INSTALL_INTERFACE:${DYAD_INSTALL_INCLUDE_DIR}>)
 
 add_library(${PROJECT_NAME}_murmur3 SHARED ${DYAD_MURMUR3_SRC})
+target_link_libraries(${PROJECT_NAME}_murmur3 PRIVATE ${PROJECT_NAME}_common)
 set_target_properties(${PROJECT_NAME}_murmur3 PROPERTIES CMAKE_INSTALL_RPATH
                       "${CMAKE_INSTALL_PREFIX}/${DYAD_LIBDIR}")
 
 add_executable(test_cmp_canonical_path_prefix test_cmp_canonical_path_prefix.c
                ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_structures.h)
+target_link_libraries(test_cmp_canonical_path_prefix PRIVATE ${PROJECT_NAME}_common)
 target_compile_definitions(test_cmp_canonical_path_prefix PUBLIC DYAD_HAS_CONFIG)
 target_link_libraries(test_cmp_canonical_path_prefix PUBLIC ${PROJECT_NAME}_utils)
 
 add_executable(test_murmur3 test_murmur3.c)
+target_link_libraries(test_murmur3 PRIVATE ${PROJECT_NAME}_common)
 target_compile_definitions(test_murmur3 PUBLIC DYAD_HAS_CONFIG)
 target_link_libraries(test_murmur3 PUBLIC ${PROJECT_NAME}_murmur3)
 
-if(DYAD_LOGGER STREQUAL "CPP_LOGGER")
-    target_link_libraries(test_cmp_canonical_path_prefix PRIVATE ${CPP_LOGGER_LIBRARIES})
-endif()
-if(DYAD_PROFILER STREQUAL "DLIO_PROFILER")
-    target_link_libraries(test_cmp_canonical_path_prefix PRIVATE ${DLIO_PROFILER_LIBRARIES})
-endif()
+# if(DYAD_LOGGER STREQUAL "CPP_LOGGER")
+#     target_link_libraries(test_cmp_canonical_path_prefix PRIVATE ${CPP_LOGGER_LIBRARIES})
+# endif()
+# if(DYAD_PROFILER STREQUAL "DLIO_PROFILER")
+#     target_link_libraries(test_cmp_canonical_path_prefix PRIVATE ${DLIO_PROFILER_LIBRARIES})
+# endif()
 
 
 if (TARGET DYAD_C_FLAGS_werror)

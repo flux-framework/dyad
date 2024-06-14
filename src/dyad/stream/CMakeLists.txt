@@ -11,17 +11,18 @@ set(DYAD_FSTREAM_PUBLIC_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dya
 
 add_library(${PROJECT_NAME}_fstream SHARED ${DYAD_FSTREAM_SRC}
             ${DYAD_FSTREAM_PRIVATE_HEADERS} ${DYAD_FSTREAM_PUBLIC_HEADERS})
+target_link_libraries(${PROJECT_NAME}_fstream PRIVATE ${PROJECT_NAME}_common)
 set_target_properties(${PROJECT_NAME}_fstream PROPERTIES CMAKE_INSTALL_RPATH
                       "${CMAKE_INSTALL_PREFIX}/${DYAD_LIBDIR}")
 target_compile_features(${PROJECT_NAME}_fstream PRIVATE)
 target_link_libraries(${PROJECT_NAME}_fstream PRIVATE ${PROJECT_NAME}_ctx ${PROJECT_NAME}_core
                                                       ${PROJECT_NAME}_utils flux::core)
 
-if (ENABLE_PERFFLOW)
-    target_link_libraries(${PROJECT_NAME}_fstream PRIVATE perfflowaspect::perfflowaspect)
-    target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${perfflowaspect_INCLUDE_DIRS})
-    target_compile_definitions(${PROJECT_NAME}_fstream PRIVATE DYAD_PERFFLOW=1)
-endif (ENABLE_PERFFLOW)
+# if (ENABLE_PERFFLOW)
+#     target_link_libraries(${PROJECT_NAME}_fstream PRIVATE perfflowaspect::perfflowaspect)
+#     target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${perfflowaspect_INCLUDE_DIRS})
+#     target_compile_definitions(${PROJECT_NAME}_fstream PRIVATE DYAD_PERFFLOW=1)
+# endif (ENABLE_PERFFLOW)
 
 target_compile_definitions(${PROJECT_NAME}_fstream PUBLIC DYAD_HAS_CONFIG)
 target_include_directories(${PROJECT_NAME}_fstream PUBLIC
@@ -33,9 +34,9 @@ target_include_directories(${PROJECT_NAME}_fstream SYSTEM PRIVATE ${FluxCore_INC
 if (TARGET DYAD_CXX_FLAGS_werror)
     target_link_libraries(${PROJECT_NAME}_fstream PRIVATE DYAD_CXX_FLAGS_werror)
 endif ()
-if(DYAD_PROFILER STREQUAL "DLIO_PROFILER")
-    target_link_libraries(${PROJECT_NAME}_fstream PRIVATE ${DLIO_PROFILER_LIBRARIES})
-endif()
+# if(DYAD_PROFILER STREQUAL "DLIO_PROFILER")
+#     target_link_libraries(${PROJECT_NAME}_fstream PRIVATE ${DLIO_PROFILER_LIBRARIES})
+# endif()
 
 install(
         TARGETS ${PROJECT_NAME}_fstream

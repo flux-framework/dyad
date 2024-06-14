@@ -13,6 +13,7 @@ set(DYAD_MODULE_PUBLIC_HEADERS)
 
 add_library(${PROJECT_NAME} SHARED ${DYAD_MODULE_SRC}
             ${DYAD_MODULE_PRIVATE_HEADERS} ${DYAD_MODULE_PUBLIC_HEADERS})
+target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_common)
 set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
 set_target_properties(${PROJECT_NAME} PROPERTIES CMAKE_INSTALL_RPATH
                       "${CMAKE_INSTALL_PREFIX}/${DYAD_LIBDIR}")
@@ -34,6 +35,7 @@ add_executable(test_opt_parse test_opt_parse.c
                ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_rc.h
                ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_logging.h
                ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_structures.h)
+target_link_libraries(test_opt_parse PRIVATE ${PROJECT_NAME}_common)
 target_compile_definitions(test_opt_parse PUBLIC DYAD_HAS_CONFIG)
 target_include_directories(test_opt_parse PUBLIC
     $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/src>
@@ -44,15 +46,15 @@ if (TARGET DYAD_C_FLAGS_werror)
   target_link_libraries(test_opt_parse PRIVATE DYAD_C_FLAGS_werror)
 endif ()
 
-if(DYAD_PROFILER STREQUAL "PERFFLOW_ASPECT")
-    target_link_libraries(${PROJECT_NAME} PRIVATE perfflowaspect::perfflowaspect)
-    target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${perfflowaspect_INCLUDE_DIRS})
-    target_compile_definitions(${PROJECT_NAME} PRIVATE DYAD_PERFFLOW=1)
-endif()
-
-if(DYAD_PROFILER STREQUAL "DLIO_PROFILER")
-    target_link_libraries(${PROJECT_NAME} PRIVATE ${DLIO_PROFILER_LIBRARIES})
-endif()
+# if(DYAD_PROFILER STREQUAL "PERFFLOW_ASPECT")
+#     target_link_libraries(${PROJECT_NAME} PRIVATE perfflowaspect::perfflowaspect)
+#     target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${perfflowaspect_INCLUDE_DIRS})
+#     target_compile_definitions(${PROJECT_NAME} PRIVATE DYAD_PERFFLOW=1)
+# endif()
+# 
+# if(DYAD_PROFILER STREQUAL "DLIO_PROFILER")
+#     target_link_libraries(${PROJECT_NAME} PRIVATE ${DLIO_PROFILER_LIBRARIES})
+# endif()
 install(
         TARGETS ${PROJECT_NAME}
         EXPORT ${DYAD_EXPORTED_TARGETS}
