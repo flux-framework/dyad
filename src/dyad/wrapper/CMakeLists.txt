@@ -22,6 +22,10 @@ if (TARGET DYAD_C_FLAGS_werror)
   target_link_libraries(${PROJECT_NAME}_wrapper PRIVATE DYAD_C_FLAGS_werror)
 endif ()
 
+if (DYAD_PROFILER STREQUAL "CALIPER")
+    target_link_libraries(${PROJECT_NAME}_wrapper PRIVATE caliper)
+endif()
+
 set(FLUX_BARRIER_SRC ${CMAKE_CURRENT_SOURCE_DIR}/flux_barrier.c)
 set(FLUX_BARRIER_PRIVATE_HEADERS)
 set(FLUX_BARRIER_PUBLIC_HEADERS)

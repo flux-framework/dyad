@@ -55,6 +55,9 @@ endif()
 if(DYAD_PROFILER STREQUAL "DLIO_PROFILER")
     target_link_libraries(${PROJECT_NAME}_dtl PRIVATE ${DLIO_PROFILER_LIBRARIES})
 endif()
+if (DYAD_PROFILER STREQUAL "CALIPER")
+    target_link_libraries(${PROJECT_NAME}_dtl PRIVATE caliper)
+endif()
 
 install(
         TARGETS ${PROJECT_NAME}_dtl

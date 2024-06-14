@@ -139,9 +139,8 @@ char* concat_str (char* __restrict__ str,
     const size_t str_len = (con_end ? (str_len_org - con_len) : str_len_org);
 
     const char* const str_end = str + str_capacity;
-    bool no_overlap =
-        ((to_append + strlen (to_append) <= str) || (str_end <= to_append))
-        && ((connector + strlen (connector) <= str) || (str_end <= connector));
+    bool no_overlap = ((to_append + strlen (to_append) <= str) || (str_end <= to_append))
+                      && ((connector + strlen (connector) <= str) || (str_end <= connector));
 
     if (!no_overlap) {
         DYAD_LOG_DEBUG (NULL, "DYAD UTIL: buffers overlap.\n");
@@ -365,12 +364,12 @@ int mkdir_as_needed (const char* path, const mode_t m)
             return -2;
         } else if ((sb.st_mode & RWX_UGO) ^ (m & RWX_UGO)) {
             DYAD_LOG_DEBUG (NULL,
-                "Directory \"%s\" already exists with "
-                "different permission bits %o from "
-                "the requested %o\n",
-                path,
-                (sb.st_mode & RWX_UGO),
-                (m & RWX_UGO));
+                            "Directory \"%s\" already exists with "
+                            "different permission bits %o from "
+                            "the requested %o\n",
+                            path,
+                            (sb.st_mode & RWX_UGO),
+                            (m & RWX_UGO));
             return 5;  // already exists but with different mode
         }
         return 1;  // already exists
@@ -381,16 +380,16 @@ int mkdir_as_needed (const char* path, const mode_t m)
     if (mkpath (path, m) != 0) {
         if (stat (path, &sb) == 0) {          // already exist
             if (S_ISDIR (sb.st_mode) == 0) {  // not a directory
-                DYAD_LOG_DEBUG (NULL,"\"%s\" already exists not as a directory\n", path);
+                DYAD_LOG_DEBUG (NULL, "\"%s\" already exists not as a directory\n", path);
                 return -4;
             } else if ((sb.st_mode & RWX_UGO) ^ (m & RWX_UGO)) {
                 DYAD_LOG_DEBUG (NULL,
-                    "Directory \"%s\" already exists with "
-                    "different permission bits %o from "
-                    "the requested %o\n",
-                    path,
-                    (sb.st_mode & RWX_UGO),
-                    (m & RWX_UGO));
+                                "Directory \"%s\" already exists with "
+                                "different permission bits %o from "
+                                "the requested %o\n",
+                                path,
+                                (sb.st_mode & RWX_UGO),
+                                (m & RWX_UGO));
                 return 5;  // already exists but with different mode
             }
             return 1;  // already exists
@@ -420,9 +419,10 @@ int get_path (const int fd, const size_t max_size, char* path)
     sprintf (proclink, "/proc/self/fd/%d", fd);
     ssize_t rc = readlink (proclink, path, max_size);
     if (rc < (ssize_t)0) {
-        DYAD_LOG_DEBUG (NULL, "DYAD UTIL: error reading the file link (%s): %s\n",
-                 strerror (errno),
-                 proclink);
+        DYAD_LOG_DEBUG (NULL,
+                        "DYAD UTIL: error reading the file link (%s): %s\n",
+                        strerror (errno),
+                        proclink);
         return -1;
     } else if ((size_t)rc == max_size) {
         DYAD_LOG_DEBUG (NULL, "DYAD UTIL: truncation might have happend with %s\n", proclink);
@@ -499,7 +499,7 @@ dyad_rc_t dyad_excl_flock (const dyad_ctx_t* __restrict__ ctx, int fd,
                            struct flock* __restrict__ lock)
 {
     dyad_rc_t rc = DYAD_RC_OK;
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
     DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] Applies an exclusive lock on fd %d\n", \
                    ctx->node_idx, ctx->rank, ctx->pid, fd);
@@ -521,14 +521,14 @@ dyad_rc_t dyad_excl_flock (const dyad_ctx_t* __restrict__ ctx, int fd,
                    ctx->node_idx, ctx->rank, ctx->pid, fd);
     rc = DYAD_RC_OK;
 excl_flock_end:;
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 
 dyad_rc_t dyad_shared_flock (const dyad_ctx_t* __restrict__ ctx, int fd,
                              struct flock* __restrict__ lock)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
     dyad_rc_t rc = DYAD_RC_OK;
     DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] Applies a shared lock on fd %d\n", \
@@ -551,14 +551,14 @@ dyad_rc_t dyad_shared_flock (const dyad_ctx_t* __restrict__ ctx, int fd,
                    ctx->node_idx, ctx->rank, ctx->pid, fd);
     rc = DYAD_RC_OK;
 shared_flock_end:;
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 
 dyad_rc_t dyad_release_flock (const dyad_ctx_t* __restrict__ ctx, int fd,
                               struct flock* __restrict__ lock)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
     dyad_rc_t rc = DYAD_RC_OK;
     DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] Releases a lock on fd %d\n", \
@@ -577,7 +577,7 @@ dyad_rc_t dyad_release_flock (const dyad_ctx_t* __restrict__ ctx, int fd,
                    ctx->node_idx, ctx->rank, ctx->pid, fd);
     rc = DYAD_RC_OK;
 release_flock_end:;
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 
@@ -597,10 +597,7 @@ int sync_containing_dir (const char* path)
 
     if (dir_fd < 0) {
         char errmsg[PATH_MAX + 256] = {'\0'};
-        snprintf (errmsg,
-                  PATH_MAX + 256,
-                  "Failed to open directory %s\n",
-                  containing_dir);
+        snprintf (errmsg, PATH_MAX + 256, "Failed to open directory %s\n", containing_dir);
         perror (errmsg);
         return -1;  // exit (SYS_ERR);
     }
