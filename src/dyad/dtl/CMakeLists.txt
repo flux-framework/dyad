@@ -52,8 +52,8 @@ endif ()
 if(DYAD_LOGGER STREQUAL "CPP_LOGGER")
     target_link_libraries(${PROJECT_NAME}_dtl PRIVATE ${CPP_LOGGER_LIBRARIES})
 endif()
-if(DYAD_PROFILER STREQUAL "DLIO_PROFILER")
-    target_link_libraries(${PROJECT_NAME}_dtl PRIVATE ${DLIO_PROFILER_LIBRARIES})
+if(DYAD_PROFILER STREQUAL "DFTRACER")
+    target_link_libraries(${PROJECT_NAME}_dtl PRIVATE ${DFTRACER_LIBRARIES})
 endif()
 
 install(

@@ -40,17 +40,16 @@ using namespace std;  // std::clock ()
 #endif  // defined(__cplusplus)
 
 #include <dlfcn.h>
-#include <fcntl.h>
-#include <libgen.h>  // dirname
-#include <unistd.h>
-
-#include <dyad/utils/utils.h>
 #include <dyad/common/dyad_dtl.h>
 #include <dyad/common/dyad_envs.h>
 #include <dyad/common/dyad_logging.h>
 #include <dyad/common/dyad_profiler.h>
-#include <dyad/core/dyad_ctx.h>
 #include <dyad/core/dyad_core.h>
+#include <dyad/core/dyad_ctx.h>
+#include <dyad/utils/utils.h>
+#include <fcntl.h>
+#include <libgen.h>  // dirname
+#include <unistd.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -97,37 +96,36 @@ static inline int is_wronly (int fd)
 
 void dyad_wrapper_init (void)
 {
-
 #if DYAD_PROFILER == 3
-    DLIO_PROFILER_C_FINI();
+    DFTRACER_C_FINI ();
 #endif
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     dyad_ctx_init (DYAD_COMM_RECV, NULL);
-    ctx  = ctx_mutable = dyad_ctx_get ();
+    ctx = ctx_mutable = dyad_ctx_get ();
     DYAD_LOG_INFO (ctx, "DYAD Wrapper Initialized");
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
 }
 
 void dyad_wrapper_fini ()
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     DYAD_LOG_INFO (ctx, "DYAD Wrapper Finalized");
     dyad_ctx_fini ();
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
 #if DYAD_PROFILER == 3
-    DLIO_PROFILER_C_FINI();
+    DFTRACER_C_FINI ();
 #endif
 }
 
 DYAD_DLL_EXPORTED int open (const char *path, int oflag, ...)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("path", "path");
     char *error = NULL;
     typedef int (*open_ptr_t) (const char *, int, mode_t, ...);
     open_ptr_t func_ptr = NULL;
     int mode = 0;
-    char upath[PATH_MAX+1] = {'\0'};
+    char upath[PATH_MAX + 1] = {'\0'};
 
     if (oflag & O_CREAT) {
         va_list arg;
@@ -137,11 +135,11 @@ DYAD_DLL_EXPORTED int open (const char *path, int oflag, ...)
     }
 
     // https://stackoverflow.com/questions/14134245/iso-c-void-and-function-pointers
-    //func_ptr = (open_ptr_t)dlsym (RTLD_NEXT, "open");
-    *(void**) &func_ptr = dlsym (RTLD_NEXT, "open");
+    // func_ptr = (open_ptr_t)dlsym (RTLD_NEXT, "open");
+    *(void **)&func_ptr = dlsym (RTLD_NEXT, "open");
     if ((error = dlerror ())) {
         DPRINTF (ctx, "DYAD_SYNC: error in dlsym: %s", error);
-        DYAD_C_FUNCTION_END();
+        DYAD_C_FUNCTION_END ();
         return -1;
     }
 
@@ -169,12 +167,10 @@ real_call:;
     // from a consumer that has direct access to the file. For example,
     // either the file is on a shared storage or the consumer is on
     // the same node as where the producer is.
-    if ((ret > 0) && (mode == O_WRONLY || mode == O_APPEND) && !is_path_dir (path))
-    {
-        if ((ctx->relative_to_managed_path &&
-            (strncmp (path, DYAD_PATH_DELIM, ctx->delim_len) != 0)) ||
-            cmp_canonical_path_prefix (ctx, true, path, upath, PATH_MAX))
-        {
+    if ((ret > 0) && (mode == O_WRONLY || mode == O_APPEND) && !is_path_dir (path)) {
+        if ((ctx->relative_to_managed_path
+             && (strncmp (path, DYAD_PATH_DELIM, ctx->delim_len) != 0))
+            || cmp_canonical_path_prefix (ctx, true, path, upath, PATH_MAX)) {
             struct flock exclusive_lock;
             dyad_rc_t rc = dyad_excl_flock (ctx, ret, &exclusive_lock);
             if (DYAD_IS_ERROR (rc)) {
@@ -183,24 +179,24 @@ real_call:;
         }
     }
 
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return ret;
 }
 
 DYAD_DLL_EXPORTED FILE *fopen (const char *path, const char *mode)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("path", "path");
     char *error = NULL;
     typedef FILE *(*fopen_ptr_t) (const char *, const char *);
     fopen_ptr_t func_ptr = NULL;
-    char upath[PATH_MAX+1] = {'\0'};
+    char upath[PATH_MAX + 1] = {'\0'};
 
-    //func_ptr = (fopen_ptr_t)dlsym (RTLD_NEXT, "fopen");
-    *(void**) &func_ptr = dlsym (RTLD_NEXT, "fopen");
+    // func_ptr = (fopen_ptr_t)dlsym (RTLD_NEXT, "fopen");
+    *(void **)&func_ptr = dlsym (RTLD_NEXT, "fopen");
     if ((error = dlerror ())) {
         DPRINTF (ctx, "DYAD_SYNC: error in dlsym: %s\n", error);
-        DYAD_C_FUNCTION_END();
+        DYAD_C_FUNCTION_END ();
         return NULL;
     }
 
@@ -228,12 +224,11 @@ real_call:;
     // from a consumer that has direct access to the file. For example,
     // either the file is on a shared storage or the consumer is on
     // the same node as where the producer is.
-    if ((fh != NULL) && ((strcmp (mode, "w") == 0)  || (strcmp (mode, "a") == 0)) && !is_path_dir (path))
-    {
-        if ((ctx->relative_to_managed_path &&
-            (strncmp (path, DYAD_PATH_DELIM, ctx->delim_len) != 0)) ||
-            cmp_canonical_path_prefix (ctx, true, path, upath, PATH_MAX))
-        {
+    if ((fh != NULL) && ((strcmp (mode, "w") == 0) || (strcmp (mode, "a") == 0))
+        && !is_path_dir (path)) {
+        if ((ctx->relative_to_managed_path
+             && (strncmp (path, DYAD_PATH_DELIM, ctx->delim_len) != 0))
+            || cmp_canonical_path_prefix (ctx, true, path, upath, PATH_MAX)) {
             int fd = fileno (fh);
             struct flock exclusive_lock;
             dyad_rc_t rc = dyad_excl_flock (ctx, fd, &exclusive_lock);
@@ -242,13 +237,13 @@ real_call:;
             }
         }
     }
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return fh;
 }
 
 DYAD_DLL_EXPORTED int close (int fd)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
     bool to_sync = false;
     char *error = NULL;
@@ -257,11 +252,11 @@ DYAD_DLL_EXPORTED int close (int fd)
     char path[PATH_MAX + 1] = {'\0'};
     int rc = 0;
 
-    //func_ptr = (close_ptr_t)dlsym (RTLD_NEXT, "close");
-    *(void**) &func_ptr = dlsym (RTLD_NEXT, "close");
+    // func_ptr = (close_ptr_t)dlsym (RTLD_NEXT, "close");
+    *(void **)&func_ptr = dlsym (RTLD_NEXT, "close");
     if ((error = dlerror ())) {
         DPRINTF (ctx, "DYAD_SYNC: error in dlsym: %s\n", error);
-        DYAD_C_FUNCTION_END();
+        DYAD_C_FUNCTION_END ();
         return -1;  // return the failure code
     }
 
@@ -289,7 +284,7 @@ DYAD_DLL_EXPORTED int close (int fd)
     }
 
     if (get_path (fd, PATH_MAX - 1, path) < 0) {
-        DYAD_LOG_DEBUG(ctx, "DYAD_SYNC: unable to obtain file path from a descriptor.\n");
+        DYAD_LOG_DEBUG (ctx, "DYAD_SYNC: unable to obtain file path from a descriptor.\n");
         to_sync = false;
         goto real_call;
     }
@@ -310,9 +305,9 @@ real_call:;  // semicolon here to avoid the error
         if (ctx->fsync_write) {
             fsync (fd);
 
-          #if DYAD_SYNC_DIR
+#if DYAD_SYNC_DIR
             dyad_sync_directory (ctx, path);
-          #endif  // DYAD_SYNC_DIR
+#endif  // DYAD_SYNC_DIR
         }
 
         struct flock exclusive_lock;
@@ -329,13 +324,13 @@ real_call:;  // semicolon here to avoid the error
     } else {
         rc = func_ptr (fd);
     }
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 
 DYAD_DLL_EXPORTED int fclose (FILE *fp)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     bool to_sync = false;
     char *error = NULL;
     typedef int (*fclose_ptr_t) (FILE *);
@@ -344,11 +339,11 @@ DYAD_DLL_EXPORTED int fclose (FILE *fp)
     int rc = 0;
     int fd = 0;
 
-    //func_ptr = (fclose_ptr_t)dlsym (RTLD_NEXT, "fclose");
-    *(void**) &func_ptr = dlsym (RTLD_NEXT, "fclose");
+    // func_ptr = (fclose_ptr_t)dlsym (RTLD_NEXT, "fclose");
+    *(void **)&func_ptr = dlsym (RTLD_NEXT, "fclose");
     if ((error = dlerror ())) {
         DYAD_LOG_DEBUG (ctx, "DYAD_SYNC: error in dlsym: %s\n", error);
-        DYAD_C_FUNCTION_END();
+        DYAD_C_FUNCTION_END ();
         return EOF;  // return the failure code
     }
 
@@ -396,9 +391,9 @@ real_call:;
         if (ctx->fsync_write) {
             fflush (fp);
             fsync (fd);
-          #if DYAD_SYNC_DIR
+#if DYAD_SYNC_DIR
             dyad_sync_directory (ctx, path);
-          #endif  // DYAD_SYNC_DIR
+#endif  // DYAD_SYNC_DIR
         }
 
         struct flock exclusive_lock;
@@ -415,7 +410,7 @@ real_call:;
     } else {
         rc = func_ptr (fp);
     }
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 
