@@ -4,15 +4,15 @@ from contextlib import contextmanager
 import io
 from pathlib import Path
 
-from dlio_profiler.logger import fn_interceptor
-dlio_log = fn_interceptor("DYAD_PY")
+from dftracer.logger import dft_fn 
+dft_log = dft_fn("DYAD_PY")
 DYAD_IO = None
 
 
 # The design of dyad_open is based on the PEP for Python's 'with' syntax:
 # https://peps.python.org/pep-0343/
 @contextmanager
-@dlio_log.log
+@dft_log.log
 def dyad_open(*args, dyad_ctx=None, metadata_wrapper=None, register_dyad_ctx=False, **kwargs):
     global DYAD_IO
     local_dyad_io = dyad_ctx

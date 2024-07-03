@@ -14,7 +14,7 @@ set(DYAD_MURMUR3_PUBLIC_HEADERS)
 add_library(${PROJECT_NAME}_utils SHARED ${DYAD_UTILS_SRC}
             ${DYAD_UTILS_PRIVATE_HEADERS} ${DYAD_UTILS_PUBLIC_HEADERS})
 set_target_properties(${PROJECT_NAME}_utils PROPERTIES CMAKE_INSTALL_RPATH
-                      "${CMAKE_INSTALL_PREFIX}/${DYAD_LIBDIR}")
+                      "${CMAKE_INSTALL_PREFIX}/${DYAD_INSTALL_LIBDIR}")
 target_link_libraries(${PROJECT_NAME}_utils PUBLIC
                       ${PROJECT_NAME}_base64
                       ${PROJECT_NAME}_murmur3)
@@ -22,18 +22,18 @@ target_link_libraries(${PROJECT_NAME}_utils PUBLIC
 if(DYAD_LOGGER STREQUAL "CPP_LOGGER")
     target_link_libraries(${PROJECT_NAME}_utils PRIVATE ${CPP_LOGGER_LIBRARIES})
 endif()
-if(DYAD_PROFILER STREQUAL "DLIO_PROFILER")
-    target_link_libraries(${PROJECT_NAME}_utils PRIVATE ${DLIO_PROFILER_LIBRARIES})
+if(DYAD_PROFILER STREQUAL "DFTRACER")
+    target_link_libraries(${PROJECT_NAME}_utils PRIVATE ${DFTRACER_LIBRARIES})
 endif()
 
 target_compile_definitions(${PROJECT_NAME}_utils PUBLIC DYAD_HAS_CONFIG)
 target_include_directories(${PROJECT_NAME}_utils PUBLIC
     $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/src>
-    $<INSTALL_INTERFACE:${DYAD_INSTALL_INCLUDE_DIR}>)
+    $<INSTALL_INTERFACE:${DYAD_INSTALL_INCLUDEDIR}>)
 
 add_library(${PROJECT_NAME}_murmur3 SHARED ${DYAD_MURMUR3_SRC})
 set_target_properties(${PROJECT_NAME}_murmur3 PROPERTIES CMAKE_INSTALL_RPATH
-                      "${CMAKE_INSTALL_PREFIX}/${DYAD_LIBDIR}")
+                      "${CMAKE_INSTALL_PREFIX}/${DYAD_INSTALL_LIBDIR}")
 
 add_executable(test_cmp_canonical_path_prefix test_cmp_canonical_path_prefix.c
                ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_structures.h)
@@ -47,24 +47,21 @@ target_link_libraries(test_murmur3 PUBLIC ${PROJECT_NAME}_murmur3)
 if(DYAD_LOGGER STREQUAL "CPP_LOGGER")
     target_link_libraries(test_cmp_canonical_path_prefix PRIVATE ${CPP_LOGGER_LIBRARIES})
 endif()
-if(DYAD_PROFILER STREQUAL "DLIO_PROFILER")
-    target_link_libraries(test_cmp_canonical_path_prefix PRIVATE ${DLIO_PROFILER_LIBRARIES})
+if(DYAD_PROFILER STREQUAL "DFTRACER")
+    target_link_libraries(test_cmp_canonical_path_prefix PRIVATE ${DTRACER_LIBRARIES})
 endif()
 
-
-if (TARGET DYAD_C_FLAGS_werror)
-  target_link_libraries(${PROJECT_NAME}_utils PRIVATE DYAD_C_FLAGS_werror)
-  target_link_libraries(${PROJECT_NAME}_murmur3 PRIVATE DYAD_C_FLAGS_werror)
-  target_link_libraries(test_murmur3 PRIVATE DYAD_C_FLAGS_werror)
-  target_link_libraries(test_cmp_canonical_path_prefix PRIVATE DYAD_C_FLAGS_werror)
-endif ()
+dyad_add_werror_if_needed(${PROJECT_NAME}_utils)
+dyad_add_werror_if_needed(${PROJECT_NAME}_murmur3)
+dyad_add_werror_if_needed(test_murmur3)
+dyad_add_werror_if_needed(test_cmp_canonical_path_prefix)
 
 install(
         TARGETS ${PROJECT_NAME}_utils
         EXPORT ${DYAD_EXPORTED_TARGETS}
-        LIBRARY DESTINATION ${DYAD_INSTALL_LIB_DIR}
-        ARCHIVE DESTINATION ${DYAD_INSTALL_LIB_DIR}
-        RUNTIME DESTINATION ${DYAD_INSTALL_BIN_DIR}
+        LIBRARY DESTINATION ${DYAD_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${DYAD_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${DYAD_INSTALL_BINDIR}
 )
 if(NOT "${DYAD_UTILS_PUBLIC_HEADERS}" STREQUAL "")
     dyad_install_headers("${DYAD_UTILS_PUBLIC_HEADERS}" ${CMAKE_CURRENT_SOURCE_DIR})
@@ -72,9 +69,9 @@ endif()
 install(
         TARGETS ${PROJECT_NAME}_murmur3
         EXPORT ${DYAD_EXPORTED_TARGETS}
-        LIBRARY DESTINATION ${DYAD_INSTALL_LIB_DIR}
-        ARCHIVE DESTINATION ${DYAD_INSTALL_LIB_DIR}
-        RUNTIME DESTINATION ${DYAD_INSTALL_BIN_DIR}
+        LIBRARY DESTINATION ${DYAD_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${DYAD_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${DYAD_INSTALL_BINDIR}
 )
 if(NOT "${DYAD_MURMUR3_PUBLIC_HEADERS}" STREQUAL "")
     dyad_install_headers("${DYAD_UTILS_PUBLIC_HEADERS}" ${CMAKE_CURRENT_SOURCE_DIR})
