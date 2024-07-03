@@ -14,9 +14,11 @@ if [[ "$mode" == "${valid_modes[0]}" ]]; then
     echo ${GITHUB_WORKSPACE}/docs/demos/ecp_feb_2023/c_prod 10 $DYAD_PATH_PRODUCER
     LD_PRELOAD=${DYAD_INSTALL_PREFIX}/lib/libdyad_wrapper.so ${GITHUB_WORKSPACE}/docs/demos/ecp_feb_2023/c_prod 10 $DYAD_PATH_PRODUCER
 elif [[ "$mode" == "${valid_modes[1]}" ]]; then
+    ${GITHUB_WORKSPACE}/docs/demos/ecp_feb_2023/c_exp_prod 10 ${DYAD_PATH_CONSUMER}
+elif [[ "$mode" == "${valid_modes[2]}" ]]; then
     echo ${GITHUB_WORKSPACE}/docs/demos/ecp_feb_2023/cpp_prod 10 $DYAD_PATH_PRODUCER
     ${GITHUB_WORKSPACE}/docs/demos/ecp_feb_2023/cpp_prod 10 $DYAD_PATH_PRODUCER
-elif [[ "$mode" == "${valid_modes[2]}" ]]; then
+elif [[ "$mode" == "${valid_modes[3]}" ]]; then
     echo python3 ${GITHUB_WORKSPACE}/tests/pydyad_spsc/producer.py $DYAD_PATH_PRODUCER 10 50
     python3 ${GITHUB_WORKSPACE}/tests/pydyad_spsc/producer.py $DYAD_PATH_PRODUCER 10 50
 else

@@ -9,7 +9,7 @@ fi
 
 mode="$1"
 echo "Need mode: $mode"
-valid_modes=("c" "cpp" "python")
+valid_modes=("wrapper" "c" "cpp" "python")
 mode_is_valid=0
 for vm in "${valid_modes[@]}"; do
     if [[ $mode_is_valid -eq 1 ]] || [[ "$mode" == "$vm" ]]; then

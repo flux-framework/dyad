@@ -274,6 +274,15 @@ jobs:
           export LDFLAGS="-L${DYAD_INSTALL_PREFIX}/lib"
           cd ${GITHUB_WORKSPACE}/docs/demos/ecp_feb_2023
           make all
+      - name: Test DYAD with separate FS wrapper
+        timeout-minutes: 1
+        run: |
+          mkdir -m 775 -p $DYAD_PATH
+          . ${SPACK_DIR}/share/spack/setup-env.sh
+          export PATH=${PATH}:${DYAD_INSTALL_PREFIX}/bin:${DYAD_INSTALL_PREFIX}/sbin
+          export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${DYAD_INSTALL_PREFIX}/lib
+          echo "Starting flux brokers"
+          flux start --test-size=2 /bin/bash ${GITHUB_WORKSPACE}/.github/prod-cons/dyad_prod_cons_test.sh "wrapper"
       - name: Test DYAD with separate FS c
         timeout-minutes: 1
         run: |
