@@ -9,8 +9,10 @@ mkdir -m 775 -p ${DYAD_PATH_CONSUMER}
 if [[ "$mode" == "${valid_modes[0]}" ]]; then
     LD_PRELOAD=${DYAD_INSTALL_PREFIX}/lib/libdyad_wrapper.so ${GITHUB_WORKSPACE}/docs/demos/ecp_feb_2023/c_cons 10 ${DYAD_PATH_CONSUMER}
 elif [[ "$mode" == "${valid_modes[1]}" ]]; then
-    ${GITHUB_WORKSPACE}/docs/demos/ecp_feb_2023/cpp_cons 10 ${DYAD_PATH_CONSUMER}
+    ${GITHUB_WORKSPACE}/docs/demos/ecp_feb_2023/c_exp_cons 10 ${DYAD_PATH_CONSUMER}
 elif [[ "$mode" == "${valid_modes[2]}" ]]; then
+    ${GITHUB_WORKSPACE}/docs/demos/ecp_feb_2023/cpp_cons 10 ${DYAD_PATH_CONSUMER}
+elif [[ "$mode" == "${valid_modes[3]}" ]]; then
     python3 ${GITHUB_WORKSPACE}/tests/pydyad_spsc/consumer.py ${DYAD_PATH_CONSUMER} 10 50
 else
     echo "Invalid cons test mode: $mode"

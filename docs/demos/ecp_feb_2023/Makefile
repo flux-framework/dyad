@@ -5,14 +5,21 @@ CFLAGS_LOC = -g -std=c11 -DDYAD_HAS_CONFIG=1 $(CFLAGS)
 CPPFLAGS_LOC = -g -O3 -I. $(CPPFLAGS)
 CXXFLAGS_LOC = -g -std=c++11 -DDYAD_HAS_CONFIG=1 -I$(DYAD_INCLUDE_PATH) $(CXXFLAGS)
 CXXLIBS_LOC = -L$(DYAD_LIB_PATH) -Wl,-rpath=$(DYAD_LIB_PATH) -ldyad_fstream $(CXXLIBS)
+CLIBS_EXPLICIT = -L$(DYAD_LIB_PATH) -Wl,-rpath=$(DYAD_LIB_PATH) -ldyad_c $(CLIBS)
 
-all: c_prod c_cons cpp_prod cpp_cons
+all: c_prod c_cons c_exp_prod c_exp_cons cpp_prod cpp_cons
 
 c_prod: prod.c
 	$(CC) $(CPPFLAGS_LOC) $(CFLAGS_LOC) $? -o $@
 
 c_cons: cons.c
 	$(CC) $(CPPFLAGS_LOC) $(CFLAGS_LOC) $? -o $@
+
+c_prod: prod.c
+	$(CC) $(CPPFLAGS_LOC) $(CFLAGS_LOC) $? -o $@ $(CLIBS_EXPLICIT)
+
+c_cons: cons.c
+	$(CC) $(CPPFLAGS_LOC) $(CFLAGS_LOC) $? -o $@ $(CLIBS_EXPLICIT)
 
 cpp_prod: prod.cpp
 	$(CXX) $(CPPFLAGS_LOC) $(CXXFLAGS_LOC) $? -o $@ $(CXXLIBS_LOC)
