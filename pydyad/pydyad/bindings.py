@@ -3,8 +3,8 @@ from ctypes.util import find_library
 import enum
 from pathlib import Path
 import warnings
-from dlio_profiler.logger import dlio_logger, fn_interceptor
-dlio_log = fn_interceptor("DYAD_PY")
+from dftracer.logger import dftracer, dft_fn
+dft_log = dft_fn("DYAD_PY")
 
 DYAD_LIB_DIR = None
 
@@ -94,7 +94,7 @@ class DTLCommMode(enum.IntEnum):
 
 
 class Dyad:
-    @dlio_log.log_init
+    @dft_log.log_init
     def __init__(self):
         self.initialized = False
         self.dyad_core_lib = None
@@ -211,7 +211,7 @@ class Dyad:
         self.prod_path = None
         self.log_inst = None
 
-    @dlio_log.log
+    @dft_log.log
     def init(
         self,
         debug=False,
@@ -231,7 +231,7 @@ class Dyad:
         dtl_comm_mode=DTLCommMode.DYAD_COMM_RECV,
         flux_handle=None
     ):
-        self.log_inst = dlio_logger.initialize_log(logfile=None, data_dir=None, process_id=-1)
+        self.log_inst = dftracer.initialize_log(logfile=None, data_dir=None, process_id=-1)
         if self.dyad_init is None:
             warnings.warn(
                 "Trying to initialize DYAD when libdyad_ctx.so was not found",
@@ -270,7 +270,7 @@ class Dyad:
             self.cons_path = Path(self.ctx.contents.cons_managed_path.decode("utf-8")).expanduser().resolve()
         self.initialized = True
 
-    @dlio_log.log
+    @dft_log.log
     def init_env(
         self,
         dtl_comm_mode=DTLCommMode.DYAD_COMM_RECV,
@@ -301,7 +301,7 @@ class Dyad:
     def __del__(self):
         self.finalize()
 
-    @dlio_log.log
+    @dft_log.log
     def produce(self, fname):
         if self.dyad_produce is None:
             warnings.warn(
@@ -316,7 +316,7 @@ class Dyad:
         if int(res) != 0:
             raise RuntimeError("Cannot produce data with DYAD!")
 
-    @dlio_log.log
+    @dft_log.log
     def get_metadata(self, fname, should_wait=False, raw=False):
         if self.dyad_get_metadata is None:
             warnings.warn(
@@ -337,7 +337,7 @@ class Dyad:
             return DyadMetadata(mdata, self)
         return mdata
 
-    @dlio_log.log
+    @dft_log.log
     def free_metadata(self, metadata_wrapper):
         if self.dyad_free_metadata is None:
             warnings.warn("Trying to free DYAD metadata when libdyad_core.so was not found", RuntimeWarning)
@@ -348,7 +348,7 @@ class Dyad:
         if int(res) != 0:
             raise RuntimeError("Could not free DYAD metadata")
 
-    @dlio_log.log
+    @dft_log.log
     def consume(self, fname):
         if self.dyad_consume is None:
             warnings.warn(
@@ -363,7 +363,7 @@ class Dyad:
         if int(res) != 0:
             raise RuntimeError("Cannot consume data with DYAD!")
 
-    @dlio_log.log
+    @dft_log.log
     def consume_w_metadata(self, fname, metadata_wrapper):
         if self.dyad_consume is None:
             warnings.warn(
@@ -379,7 +379,7 @@ class Dyad:
         if int(res) != 0:
             raise RuntimeError("Cannot consume data with metadata with DYAD!")
 
-    @dlio_log.log
+    @dft_log.log
     def finalize(self):
         if not self.initialized:
             return
