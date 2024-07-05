@@ -13,6 +13,10 @@
 #include <caliper/cali.h>
 #endif
 
+// Number of updates that can be added to a single profiling region.
+// Currently here because it's required to have for Caliper support.
+#define DYAD_PROFILER_NUM_UPDATES 10
+
 // clang-format off
 #ifdef __cplusplus
 #ifdef DYAD_PROFILER_NONE
@@ -69,22 +73,38 @@ extern "C" {
   #define DYAD_C_FUNCTION_UPDATE_STR(key, value) DYAD_NOOP_MACRO
 #elif defined(DYAD_PROFILER_CALIPER)  // CALIPER
   #define DYAD_C_REGION_START(name) \
-      char* cali_updated_entries_##name[DYAD_PROFILER_NUM_UPDATES]; \
-      int num_current_cali_updates_##name = 0; \
+      size_t cali_updated_entries_##name_capacity = DYAD_PROFILER_NUM_UPDATES; \
+      char** cali_updated_entries_##name = malloc(cali_updated_entries_##name_capacity * sizeof(char*)); \
+      size_t num_current_cali_updates_##name = 0; \
       CALI_MARK_BEGIN ((name));
   #define DYAD_C_REGION_END(name) \
-      CALI_MARK_END ((name)); \
-      for (int cali_update_##name_it = 0; cali_update_##name_it < num_current_cali_updates_##name; cali_update_##name_it += 1) { \
+      for (size_t cali_update_##name_it = 0; cali_update_##name_it < num_current_cali_updates_##name; cali_update_##name_it += 1) { \
         cali_end_byname(cali_updated_entries_##name[cali_update_##name_it]); \
-      }
+      } \
+      CALI_MARK_END ((name)); \
+      free(cali_updated_entries_##name);
   #define DYAD_C_REGION_UPDATE_INT(name, key, value) \
-      if (num_current_cali_updates_##name < DYAD_PROFILER_NUM_UPDATES) { \
+      if (num_current_cali_updates_##name >= cali_updated_entires_##name_capacity) { \
+        char** realloced_buffer_for_region_##name = realloc(cali_updated_entries_##name, 2 * cali_updated_entries_##name_capacity * sizeof(char*)); \
+        if (realloced_buffer_for_region_##name != NULL) { \
+          cali_updated_entries_##name = realloced_buffer_for_region_##name; \
+          cali_updated_entries_##name_capacity *= 2;
+        } \
+      } \
+      if (num_current_cali_updates_##name < cali_updated_entries_##name_capacity) { \
         cali_begin_int_byname((key), (value)); \
         cali_updated_entries_##name[num_current_cali_updates_##name] = (key); \
         num_current_cali_updates_##name += 1; \
       }
   #define DYAD_C_REGION_UPDATE_STR(name, key, value) \
-      if (num_current_cali_updates_##name < DYAD_PROFILER_NUM_UPDATES) { \
+      if (num_current_cali_updates_##name >= cali_updated_entires_##name_capacity) { \
+        char** realloced_buffer_for_region_##name = realloc(cali_updated_entries_##name, 2 * cali_updated_entries_##name_capacity * sizeof(char*)); \
+        if (realloced_buffer_for_region_##name != NULL) { \
+          cali_updated_entries_##name = realloced_buffer_for_region_##name; \
+          cali_updated_entries_##name_capacity *= 2;
+        } \
+      } \
+      if (num_current_cali_updates_##name < cali_updated_entries_##name_capacity) { \
         cali_begin_string_byname((key), (value)); \
         cali_updated_entries_##name[num_current_cali_updates_##name] = (key); \
         num_current_cali_updates_##name += 1; \
