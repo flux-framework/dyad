@@ -33,7 +33,7 @@
   #define DYAD_CPP_REGION_UPDATE(name, key, value) DYAD_NOOP_MACRO
 #elif defined(DYAD_PROFILER_CALIPER)  // CALIPER
   #define DYAD_CPP_FUNCTION() CALI_CXX_MARK_FUNCTION;
-  #define DYAD_CPP_FUNCTION_UPDATE(key, value) ;
+  #define DYAD_CPP_FUNCTION_UPDATE(key, value) DYAD_CPP_REGION_UPDATE(__func__, (key), (value));
   #define DYAD_CPP_REGION_START(name) CALI_MARK_BEGIN (name);
   #define DYAD_CPP_REGION_END(name) CALI_MARK_END (name);
   #define DYAD_CPP_REGION_UPDATE(name, key, value)            \
@@ -92,7 +92,8 @@ extern "C" {
         } \
       } \
       if (num_current_cali_updates_##name < cali_updated_entries_##name_capacity) { \
-        cali_begin_int_byname((key), (value)); \
+        cali_id_t cali_attr_region_##name_name_##key = cali_create_attribute((key), CALI_TYPE_INT, CALI_ATTR_SKIP_EVENTS); \
+        cali_begin_int(cali_attr_region_##name_name_##key, (value)); \
         cali_updated_entries_##name[num_current_cali_updates_##name] = (key); \
         num_current_cali_updates_##name += 1; \
       }
@@ -105,7 +106,8 @@ extern "C" {
         } \
       } \
       if (num_current_cali_updates_##name < cali_updated_entries_##name_capacity) { \
-        cali_begin_string_byname((key), (value)); \
+        cali_id_t cali_attr_region_##name_name_##key = cali_create_attribute((key), CALI_TYPE_STRING, CALI_ATTR_SKIP_EVENTS); \
+        cali_begin_string(cali_attr_region_##name_name_##key, (value)); \
         cali_updated_entries_##name[num_current_cali_updates_##name] = (key); \
         num_current_cali_updates_##name += 1; \
       }
