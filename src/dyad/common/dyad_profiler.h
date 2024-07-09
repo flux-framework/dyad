@@ -36,9 +36,18 @@
   #define DYAD_CPP_FUNCTION_UPDATE(key, value) DYAD_CPP_REGION_UPDATE(__func__, (key), (value));
   #define DYAD_CPP_REGION_START(name) CALI_MARK_BEGIN (name);
   #define DYAD_CPP_REGION_END(name) CALI_MARK_END (name);
-  #define DYAD_CPP_REGION_UPDATE(name, key, value)            \
-      cali::Annotation::Guard cali_update_guard_##name_##key{ \
-          cali::Annotation ((key), CALI_ATTR_SKIP_EVENTS).begin ((value))};
+  // Cannot currently implement this with Caliper because one of the following must be true
+  //   * Caliper annotation must begin before region begins and end after region ends
+  //   * Caliper annotation must be created with CALI_ATTR_UNALIGNED, and Caliper annotation must
+  //     begin after region begins and end after region ends
+  // The first bullet is incompatible with how DFTracer/DLIO Profiler works. The second bullet
+  // cannot be done with Caliper's C++ RAII wrappers.
+  //
+  // I've talked with David Boehme about this, and he may add an API to enable this.
+  // But, until then, this macro cannot be defined.
+  //
+  // TODO implement if/when David adds an API that is compatible with these macros
+  #define DYAD_CPP_REGION_UPDATE(name, key, value) DYAD_NOOP_MACRO
 #elif defined(DYAD_PROFILER_DLIO_PROFILER)  // DLIO_PROFILER
   #define DYAD_CPP_FUNCTION() DLIO_PROFILER_CPP_FUNCTION ()
   #define DYAD_CPP_FUNCTION_UPDATE(key, value) DLIO_PROFILER_CPP_FUNCTION_UPDATE ((key), (value))
