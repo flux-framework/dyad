@@ -396,9 +396,6 @@ install(DIRECTORY cmake/modules
         FILES_MATCHING PATTERN "*.cmake")
 endif (WIP_package_config)
 #...........................................
-install(DIRECTORY cmake/modules
-        DESTINATION "${DYAD_LIBDIR}/cmake/dyad"
-        FILES_MATCHING PATTERN "*.cmake")
 
 install(FILES
         "${CMAKE_INCLUDE_OUTPUT_DIRECTORY}/dyad/dyad_config.hpp"
