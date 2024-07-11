@@ -93,7 +93,7 @@ extern "C" {
       } \
       free(cali_updated_entries_##name);
   #define DYAD_C_REGION_UPDATE_INT(name, key, value) \
-      if (num_current_cali_updates_##name >= cali_updated_entires_##name##_capacity) { \
+      if (num_current_cali_updates_##name >= cali_updated_entries_##name##_capacity) { \
         cali_id_t* realloced_buffer_for_region_##name = realloc(cali_updated_entries_##name, 2 * cali_updated_entries_##name##_capacity * sizeof(cali_id_t)); \
         if (realloced_buffer_for_region_##name != NULL) { \
           cali_updated_entries_##name = realloced_buffer_for_region_##name; \
@@ -124,15 +124,15 @@ extern "C" {
       size_t cali_updated_entries_fn_capacity = DYAD_PROFILER_NUM_UPDATES; \
       cali_id_t* cali_updated_entries_fn = malloc(cali_updated_entries_fn_capacity * sizeof(cali_id_t)); \
       size_t num_current_cali_updates_fn = 0; \
-      CALI_MARK_FUNCTION_BEGIN ();
+      CALI_MARK_FUNCTION_BEGIN;
   #define DYAD_C_FUNCTION_END() \
-      CALI_MARK_FUNCTION_END (); \
+      CALI_MARK_FUNCTION_END; \
       for (size_t cali_update_fn_it = 0; cali_update_fn_it < num_current_cali_updates_fn; cali_update_fn_it += 1) { \
         cali_end(cali_updated_entries_fn[cali_update_fn_it]); \
       } \
       free(cali_updated_entries_fn);
   #define DYAD_C_FUNCTION_UPDATE_INT(key, value) \
-      if (num_current_cali_updates_fn >= cali_updated_entires_fn_capacity) { \
+      if (num_current_cali_updates_fn >= cali_updated_entries_fn_capacity) { \
         cali_id_t* realloced_buffer_for_region_fn = realloc(cali_updated_entries_fn, 2 * cali_updated_entries_fn_capacity * sizeof(cali_id_t)); \
         if (realloced_buffer_for_region_fn != NULL) { \
           cali_updated_entries_fn = realloced_buffer_for_region_fn; \
@@ -146,7 +146,7 @@ extern "C" {
         num_current_cali_updates_fn += 1; \
       } 
   #define DYAD_C_FUNCTION_UPDATE_STR(key, value) \
-      if (num_current_cali_updates_fn >= cali_updated_entires_fn_capacity) { \
+      if (num_current_cali_updates_fn >= cali_updated_entries_fn_capacity) { \
         cali_id_t* realloced_buffer_for_region_fn = realloc(cali_updated_entries_fn, 2 * cali_updated_entries_fn_capacity * sizeof(cali_id_t)); \
         if (realloced_buffer_for_region_fn != NULL) { \
           cali_updated_entries_fn = realloced_buffer_for_region_fn; \
