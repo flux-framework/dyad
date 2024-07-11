@@ -101,9 +101,9 @@ extern "C" {
         } \
       } \
       if (num_current_cali_updates_##name < cali_updated_entries_##name##_capacity) { \
-        cali_id_t cali_attr_region_##name##_name_##key = cali_create_attribute((key), CALI_TYPE_INT, CALI_ATTR_SKIP_EVENTS | CALI_ATTR_UNALIGNED); \
-        cali_begin_int(cali_attr_region_##name##_name_##key, (value)); \
-        cali_updated_entries_##name[num_current_cali_updates_##name] = cali_attr_region_##name##_name_##key; \
+        cali_id_t cali_attr_region_##name##_user_key = cali_create_attribute((key), CALI_TYPE_INT, CALI_ATTR_SKIP_EVENTS | CALI_ATTR_UNALIGNED); \
+        cali_begin_int(cali_attr_region_##name##_user_key, (value)); \
+        cali_updated_entries_##name[num_current_cali_updates_##name] = cali_attr_region_##name##_user_key; \
         num_current_cali_updates_##name += 1; \
       }
   #define DYAD_C_REGION_UPDATE_STR(name, key, value) \
@@ -115,9 +115,9 @@ extern "C" {
         } \
       } \
       if (num_current_cali_updates_##name < cali_updated_entries_##name##_capacity) { \
-        cali_id_t cali_attr_region_##name##_name_##key = cali_create_attribute((key), CALI_TYPE_STRING, CALI_ATTR_SKIP_EVENTS | CALI_ATTR_UNALIGNED); \
-        cali_begin_string(cali_attr_region_##name##_name_##key, (value)); \
-        cali_updated_entries_##name[num_current_cali_updates_##name] = cali_attr_region_##name##_name_##key; \
+        cali_id_t cali_attr_region_##name##_user_key = cali_create_attribute((key), CALI_TYPE_STRING, CALI_ATTR_SKIP_EVENTS | CALI_ATTR_UNALIGNED); \
+        cali_begin_string(cali_attr_region_##name##_user_key, (value)); \
+        cali_updated_entries_##name[num_current_cali_updates_##name] = cali_attr_region_##name##_user_key; \
         num_current_cali_updates_##name += 1; \
       }
   #define DYAD_C_FUNCTION_START() \
@@ -140,9 +140,9 @@ extern "C" {
         } \
       } \
       if (num_current_cali_updates_fn < cali_updated_entries_fn_capacity) { \
-        cali_id_t cali_attr_region_fn_name_##key = cali_create_attribute((key), CALI_TYPE_INT, CALI_ATTR_SKIP_EVENTS | CALI_ATTR_UNALIGNED); \
-        cali_begin_int(cali_attr_region_fn_name_##key, (value)); \
-        cali_updated_entries_fn[num_current_cali_updates_fn] = cali_attr_region_fn_name_##key; \
+        cali_id_t cali_attr_region_fn_user_key = cali_create_attribute((key), CALI_TYPE_INT, CALI_ATTR_SKIP_EVENTS | CALI_ATTR_UNALIGNED); \
+        cali_begin_int(cali_attr_region_fn_user_key, (value)); \
+        cali_updated_entries_fn[num_current_cali_updates_fn] = cali_attr_region_fn_user_key; \
         num_current_cali_updates_fn += 1; \
       } 
   #define DYAD_C_FUNCTION_UPDATE_STR(key, value) \
@@ -154,9 +154,9 @@ extern "C" {
         } \
       } \
       if (num_current_cali_updates_fn < cali_updated_entries_fn_capacity) { \
-        cali_id_t cali_attr_region_fn_name_##key = cali_create_attribute((key), CALI_TYPE_STRING, CALI_ATTR_SKIP_EVENTS | CALI_ATTR_UNALIGNED); \
-        cali_begin_string(cali_attr_region_fn_name_##key, (value)); \
-        cali_updated_entries_fn[num_current_cali_updates_fn] = cali_attr_region_fn_name_##key; \
+        cali_id_t cali_attr_region_fn_user_key = cali_create_attribute((key), CALI_TYPE_STRING, CALI_ATTR_SKIP_EVENTS | CALI_ATTR_UNALIGNED); \
+        cali_begin_string(cali_attr_region_fn_user_key, (value)); \
+        cali_updated_entries_fn[num_current_cali_updates_fn] = cali_attr_region_fn_user_key; \
         num_current_cali_updates_fn += 1; \
       }
 #elif defined(DYAD_PROFILER_DLIO_PROFILER)  // DLIO_PROFILER
