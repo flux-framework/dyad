@@ -83,7 +83,7 @@ extern "C" {
 #elif defined(DYAD_PROFILER_CALIPER)  // CALIPER
   #define DYAD_C_REGION_START(name) \
       size_t cali_updated_entries_##name##_capacity = DYAD_PROFILER_NUM_UPDATES; \
-      cali_id_t* cali_updated_entries_##name = malloc(cali_updated_entries_##name##_capacity * sizeof(cali_id_t)); \
+      cali_id_t* cali_updated_entries_##name = (cali_id_t*) malloc(cali_updated_entries_##name##_capacity * sizeof(cali_id_t)); \
       size_t num_current_cali_updates_##name = 0; \
       CALI_MARK_BEGIN ((name));
   #define DYAD_C_REGION_END(name) \
@@ -122,7 +122,7 @@ extern "C" {
       }
   #define DYAD_C_FUNCTION_START() \
       size_t cali_updated_entries_fn_capacity = DYAD_PROFILER_NUM_UPDATES; \
-      cali_id_t* cali_updated_entries_fn = malloc(cali_updated_entries_fn_capacity * sizeof(cali_id_t)); \
+      cali_id_t* cali_updated_entries_fn = (cali_id_t*) malloc(cali_updated_entries_fn_capacity * sizeof(cali_id_t)); \
       size_t num_current_cali_updates_fn = 0; \
       CALI_MARK_FUNCTION_BEGIN;
   #define DYAD_C_FUNCTION_END() \
