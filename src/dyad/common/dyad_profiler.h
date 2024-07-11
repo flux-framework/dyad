@@ -82,50 +82,83 @@ extern "C" {
   #define DYAD_C_FUNCTION_UPDATE_STR(key, value) DYAD_NOOP_MACRO
 #elif defined(DYAD_PROFILER_CALIPER)  // CALIPER
   #define DYAD_C_REGION_START(name) \
-      size_t cali_updated_entries_##(name)##_capacity = DYAD_PROFILER_NUM_UPDATES; \
-      cali_id_t* cali_updated_entries_##(name) = malloc(cali_updated_entries_##(name)##_capacity * sizeof(cali_id_t)); \
-      size_t num_current_cali_updates_##(name) = 0; \
+      size_t cali_updated_entries_##name##_capacity = DYAD_PROFILER_NUM_UPDATES; \
+      cali_id_t* cali_updated_entries_##name = malloc(cali_updated_entries_##name##_capacity * sizeof(cali_id_t)); \
+      size_t num_current_cali_updates_##name = 0; \
       CALI_MARK_BEGIN ((name));
   #define DYAD_C_REGION_END(name) \
       CALI_MARK_END ((name)); \
-      for (size_t cali_update_##(name)##_it = 0; cali_update_##(name)##_it < num_current_cali_updates_##(name); cali_update_##(name)##_it += 1) { \
-        cali_end(cali_updated_entries_##(name)[cali_update_##(name)##_it]); \
+      for (size_t cali_update_##name##_it = 0; cali_update_##name##_it < num_current_cali_updates_##name; cali_update_##name##_it += 1) { \
+        cali_end(cali_updated_entries_##name[cali_update_##name##_it]); \
       } \
-      free(cali_updated_entries_##(name));
+      free(cali_updated_entries_##name);
   #define DYAD_C_REGION_UPDATE_INT(name, key, value) \
-      if (num_current_cali_updates_##(name) >= cali_updated_entires_##(name)##_capacity) { \
-        cali_id_t* realloced_buffer_for_region_##(name) = realloc(cali_updated_entries_##(name), 2 * cali_updated_entries_##(name)##_capacity * sizeof(cali_id_t)); \
-        if (realloced_buffer_for_region_##(name) != NULL) { \
-          cali_updated_entries_##(name) = realloced_buffer_for_region_##(name); \
-          cali_updated_entries_##(name)##_capacity *= 2;
+      if (num_current_cali_updates_##name >= cali_updated_entires_##name##_capacity) { \
+        cali_id_t* realloced_buffer_for_region_##name = realloc(cali_updated_entries_##name, 2 * cali_updated_entries_##name##_capacity * sizeof(cali_id_t)); \
+        if (realloced_buffer_for_region_##name != NULL) { \
+          cali_updated_entries_##name = realloced_buffer_for_region_##name; \
+          cali_updated_entries_##name##_capacity *= 2;
         } \
       } \
-      if (num_current_cali_updates_##(name) < cali_updated_entries_##(name)##_capacity) { \
-        cali_id_t cali_attr_region_##(name)##_name_##(key) = cali_create_attribute((key), CALI_TYPE_INT, CALI_ATTR_SKIP_EVENTS | CALI_ATTR_UNALIGNED); \
-        cali_begin_int(cali_attr_region_##(name)##_name_##(key), (value)); \
-        cali_updated_entries_##(name)[num_current_cali_updates_##(name)] = cali_attr_region_##(name)##_name_##(key); \
-        num_current_cali_updates_##(name) += 1; \
+      if (num_current_cali_updates_##name < cali_updated_entries_##name##_capacity) { \
+        cali_id_t cali_attr_region_##name##_name_##key = cali_create_attribute((key), CALI_TYPE_INT, CALI_ATTR_SKIP_EVENTS | CALI_ATTR_UNALIGNED); \
+        cali_begin_int(cali_attr_region_##name##_name_##key, (value)); \
+        cali_updated_entries_##name[num_current_cali_updates_##name] = cali_attr_region_##name##_name_##key; \
+        num_current_cali_updates_##name += 1; \
       }
   #define DYAD_C_REGION_UPDATE_STR(name, key, value) \
-      if (num_current_cali_updates_##(name) >= cali_updated_entires_##(name)##_capacity) { \
-        cali_id_t* realloced_buffer_for_region_##(name) = realloc(cali_updated_entries_##(name), 2 * cali_updated_entries_##(name)##_capacity * sizeof(cali_id_t)); \
-        if (realloced_buffer_for_region_##(name) != NULL) { \
-          cali_updated_entries_##(name) = realloced_buffer_for_region_##(name); \
-          cali_updated_entries_##(name)##_capacity *= 2;
+      if (num_current_cali_updates_##name >= cali_updated_entires_##name##_capacity) { \
+        cali_id_t* realloced_buffer_for_region_##name = realloc(cali_updated_entries_##name, 2 * cali_updated_entries_##name##_capacity * sizeof(cali_id_t)); \
+        if (realloced_buffer_for_region_##name != NULL) { \
+          cali_updated_entries_##name = realloced_buffer_for_region_##name; \
+          cali_updated_entries_##name##_capacity *= 2;
         } \
       } \
-      if (num_current_cali_updates_##(name) < cali_updated_entries_##(name)##_capacity) { \
-        cali_id_t cali_attr_region_##(name)##_name_##(key) = cali_create_attribute((key), CALI_TYPE_STRING, CALI_ATTR_SKIP_EVENTS | CALI_ATTR_UNALIGNED); \
-        cali_begin_string(cali_attr_region_##(name)##_name_##(key), (value)); \
-        cali_updated_entries_##(name)[num_current_cali_updates_##(name)] = cali_attr_region_##(name)##_name_##(key); \
-        num_current_cali_updates_##(name) += 1; \
+      if (num_current_cali_updates_##name < cali_updated_entries_##name##_capacity) { \
+        cali_id_t cali_attr_region_##name##_name_##key = cali_create_attribute((key), CALI_TYPE_STRING, CALI_ATTR_SKIP_EVENTS | CALI_ATTR_UNALIGNED); \
+        cali_begin_string(cali_attr_region_##name##_name_##key, (value)); \
+        cali_updated_entries_##name[num_current_cali_updates_##name] = cali_attr_region_##name##_name_##key; \
+        num_current_cali_updates_##name += 1; \
       }
-  #define DYAD_C_FUNCTION_START() DYAD_C_REGION_START(__func__)
-  #define DYAD_C_FUNCTION_END() DYAD_C_REGION_END(__func__)
+  #define DYAD_C_FUNCTION_START() \
+      size_t cali_updated_entries_fn_capacity = DYAD_PROFILER_NUM_UPDATES; \
+      cali_id_t* cali_updated_entries_fn = malloc(cali_updated_entries_fn_capacity * sizeof(cali_id_t)); \
+      size_t num_current_cali_updates_fn = 0; \
+      CALI_MARK_FUNCTION_BEGIN ();
+  #define DYAD_C_FUNCTION_END() \
+      CALI_MARK_FUNCTION_END (); \
+      for (size_t cali_update_fn_it = 0; cali_update_fn_it < num_current_cali_updates_fn; cali_update_fn_it += 1) { \
+        cali_end(cali_updated_entries_fn[cali_update_fn_it]); \
+      } \
+      free(cali_updated_entries_fn);
   #define DYAD_C_FUNCTION_UPDATE_INT(key, value) \
-      DYAD_C_REGION_UPDATE_INT(__func__, (key), (value)) 
+      if (num_current_cali_updates_fn >= cali_updated_entires_fn_capacity) { \
+        cali_id_t* realloced_buffer_for_region_fn = realloc(cali_updated_entries_fn, 2 * cali_updated_entries_fn_capacity * sizeof(cali_id_t)); \
+        if (realloced_buffer_for_region_fn != NULL) { \
+          cali_updated_entries_fn = realloced_buffer_for_region_fn; \
+          cali_updated_entries_fn_capacity *= 2;
+        } \
+      } \
+      if (num_current_cali_updates_fn < cali_updated_entries_fn_capacity) { \
+        cali_id_t cali_attr_region_fn_name_##key = cali_create_attribute((key), CALI_TYPE_INT, CALI_ATTR_SKIP_EVENTS | CALI_ATTR_UNALIGNED); \
+        cali_begin_int(cali_attr_region_fn_name_##key, (value)); \
+        cali_updated_entries_fn[num_current_cali_updates_fn] = cali_attr_region_fn_name_##key; \
+        num_current_cali_updates_fn += 1; \
+      } 
   #define DYAD_C_FUNCTION_UPDATE_STR(key, value) \
-      DYAD_C_REGION_UPDATE_STR(__func__, (key), (value))
+      if (num_current_cali_updates_fn >= cali_updated_entires_fn_capacity) { \
+        cali_id_t* realloced_buffer_for_region_fn = realloc(cali_updated_entries_fn, 2 * cali_updated_entries_fn_capacity * sizeof(cali_id_t)); \
+        if (realloced_buffer_for_region_fn != NULL) { \
+          cali_updated_entries_fn = realloced_buffer_for_region_fn; \
+          cali_updated_entries_fn_capacity *= 2;
+        } \
+      } \
+      if (num_current_cali_updates_fn < cali_updated_entries_fn_capacity) { \
+        cali_id_t cali_attr_region_fn_name_##key = cali_create_attribute((key), CALI_TYPE_STRING, CALI_ATTR_SKIP_EVENTS | CALI_ATTR_UNALIGNED); \
+        cali_begin_string(cali_attr_region_fn_name_##key, (value)); \
+        cali_updated_entries_fn[num_current_cali_updates_fn] = cali_attr_region_fn_name_##key; \
+        num_current_cali_updates_fn += 1; \
+      }
 #elif defined(DYAD_PROFILER_DLIO_PROFILER)  // DLIO_PROFILER
   #define DYAD_C_REGION_START(name) DLIO_PROFILER_C_REGION_START ((name))
   #define DYAD_C_REGION_END(name) DLIO_PROFILER_C_REGION_END ((name))
