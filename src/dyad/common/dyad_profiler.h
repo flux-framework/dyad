@@ -97,7 +97,7 @@ extern "C" {
         cali_id_t* realloced_buffer_for_region_##name = realloc(cali_updated_entries_##name, 2 * cali_updated_entries_##name##_capacity * sizeof(cali_id_t)); \
         if (realloced_buffer_for_region_##name != NULL) { \
           cali_updated_entries_##name = realloced_buffer_for_region_##name; \
-          cali_updated_entries_##name##_capacity *= 2;
+          cali_updated_entries_##name##_capacity *= 2; \
         } \
       } \
       if (num_current_cali_updates_##name < cali_updated_entries_##name##_capacity) { \
@@ -111,7 +111,7 @@ extern "C" {
         cali_id_t* realloced_buffer_for_region_##name = realloc(cali_updated_entries_##name, 2 * cali_updated_entries_##name##_capacity * sizeof(cali_id_t)); \
         if (realloced_buffer_for_region_##name != NULL) { \
           cali_updated_entries_##name = realloced_buffer_for_region_##name; \
-          cali_updated_entries_##name##_capacity *= 2;
+          cali_updated_entries_##name##_capacity *= 2; \
         } \
       } \
       if (num_current_cali_updates_##name < cali_updated_entries_##name##_capacity) { \
@@ -136,7 +136,7 @@ extern "C" {
         cali_id_t* realloced_buffer_for_region_fn = realloc(cali_updated_entries_fn, 2 * cali_updated_entries_fn_capacity * sizeof(cali_id_t)); \
         if (realloced_buffer_for_region_fn != NULL) { \
           cali_updated_entries_fn = realloced_buffer_for_region_fn; \
-          cali_updated_entries_fn_capacity *= 2;
+          cali_updated_entries_fn_capacity *= 2; \
         } \
       } \
       if (num_current_cali_updates_fn < cali_updated_entries_fn_capacity) { \
@@ -150,7 +150,7 @@ extern "C" {
         cali_id_t* realloced_buffer_for_region_fn = realloc(cali_updated_entries_fn, 2 * cali_updated_entries_fn_capacity * sizeof(cali_id_t)); \
         if (realloced_buffer_for_region_fn != NULL) { \
           cali_updated_entries_fn = realloced_buffer_for_region_fn; \
-          cali_updated_entries_fn_capacity *= 2;
+          cali_updated_entries_fn_capacity *= 2; \
         } \
       } \
       if (num_current_cali_updates_fn < cali_updated_entries_fn_capacity) { \
