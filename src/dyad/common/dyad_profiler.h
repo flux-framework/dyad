@@ -187,7 +187,7 @@ extern "C" {
 
   typedef struct dyad_profiler_caliper_region_entries dyad_profiler_caliper_region_entries_t;
   
-  dyad_profiler_caliper_region_entries_t* dyad_profiler_caliper_region_start(const char* region_name)
+  static inline dyad_profiler_caliper_region_entries_t* dyad_profiler_caliper_region_start(const char* region_name)
   {
     dyad_profiler_caliper_region_entries_t* entry_list = (dyad_profiler_caliper_region_entries_t*) malloc(sizeof(struct dyad_profiler_caliper_region_entries));
     if (entry_list == NULL) {
@@ -204,7 +204,7 @@ extern "C" {
     return entry_list;
   }
   
-  void dyad_profiler_caliper_region_end(dyad_profiler_caliper_region_entries_t** entry_list, const char* region_name)
+  static inline void dyad_profiler_caliper_region_end(dyad_profiler_caliper_region_entries_t** entry_list, const char* region_name)
   {
     CALI_MARK_END(region_name);
     if (entry_list != NULL && *entry_list != NULL) {
@@ -219,7 +219,7 @@ extern "C" {
     }
   }
   
-  void dyad_profiler_caliper_region_update_int(dyad_profiler_caliper_region_entries_t* entry_list, const char* key, int value)
+  static inline void dyad_profiler_caliper_region_update_int(dyad_profiler_caliper_region_entries_t* entry_list, const char* key, int value)
   {
     if (entry_list != NULL) {
       if (entry_list->size >= entry_list->capacity) {
@@ -239,7 +239,7 @@ extern "C" {
     }
   }
   
-  void dyad_profiler_caliper_region_update_string(dyad_profiler_caliper_region_entries_t* entry_list, const char* key, const char* value)
+  static inline void dyad_profiler_caliper_region_update_string(dyad_profiler_caliper_region_entries_t* entry_list, const char* key, const char* value)
   {
     if (entry_list != NULL) {
       if (entry_list->size >= entry_list->capacity) {
