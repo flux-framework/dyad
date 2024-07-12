@@ -83,7 +83,7 @@ class CaliperFunction : public CaliperEntryList
       if (m_cali_func != NULL) {
         delete m_cali_func;
       }
-      for (size_t i = 0; i < m_entries; i++) {
+      for (size_t i = 0; i < m_entries.size(); i++) {
         if (m_entries[i] != NULL) {
           m_entries[i]->end();
           delete m_entries[i];
@@ -123,7 +123,7 @@ class CaliperRegion : public CaliperEntryList
       if (m_cali_region != NULL) {
         delete m_cali_func;
       }
-      for (size_t i = 0; i < m_entries; i++) {
+      for (size_t i = 0; i < m_entries.size(); i++) {
         if (m_entries[i] != NULL) {
           m_entries[i]->end();
           delete m_entries[i];
