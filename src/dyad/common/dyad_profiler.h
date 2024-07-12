@@ -12,11 +12,11 @@
 #ifdef DYAD_PROFILER_CALIPER
 #include <caliper/cali.h>
 
-#include <string>
-#include <vector>
-
 #ifdef __cplusplus
 #include <caliiper/Annotation.h>
+
+#include <string>
+#include <vector>
 #endif
 #endif
 
