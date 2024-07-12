@@ -121,7 +121,7 @@ class CaliperRegion : public CaliperEntryList
     void end()
     {
       if (m_cali_region != NULL) {
-        delete m_cali_func;
+        delete m_cali_region;
       }
       for (size_t i = 0; i < m_entries.size(); i++) {
         if (m_entries[i] != NULL) {
