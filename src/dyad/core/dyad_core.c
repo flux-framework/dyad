@@ -8,16 +8,16 @@
 #include <dyad/common/dyad_envs.h>
 #include <dyad/common/dyad_logging.h>
 #include <dyad/common/dyad_profiler.h>
-#include <dyad/dtl/dyad_dtl_api.h>
 #include <dyad/core/dyad_core.h>
-#include <dyad/utils/utils.h>
+#include <dyad/dtl/dyad_dtl_api.h>
 #include <dyad/utils/murmur3.h>
+#include <dyad/utils/utils.h>
+#include <errno.h>
 #include <fcntl.h>
+#include <flux/core.h>
 #include <libgen.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <flux/core.h>
-#include <errno.h>
 
 #ifdef __cplusplus
 #include <climits>
@@ -33,7 +33,6 @@
 #else
 #define DYAD_CORE_FUNC_MODS static inline
 #endif
-
 
 static int gen_path_key (const char* restrict str,
                          char* restrict path_key,
@@ -53,7 +52,7 @@ static int gen_path_key (const char* restrict str,
     const char* str_long = str;
 
     if (str == NULL || path_key == NULL || len == 0ul || str_len == 0ul) {
-        DYAD_C_FUNCTION_END();
+        DYAD_C_FUNCTION_END ();
         return -1;
     }
     path_key[0] = '\0';
@@ -105,7 +104,7 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_commit (const dyad_ctx_t* restrict ctx,
     dyad_rc_t rc = DYAD_RC_OK;
     DYAD_LOG_INFO (ctx, "Committing transaction to KVS");
     // Commit the transaction to the Flux KVS
-    f = flux_kvs_commit ((flux_t*) ctx->h, ctx->kvs_namespace, 0, txn);
+    f = flux_kvs_commit ((flux_t*)ctx->h, ctx->kvs_namespace, 0, txn);
     // If the commit failed, log an error and return DYAD_BADCOMMIT
     if (f == NULL) {
         DYAD_LOG_ERROR (ctx, "Could not commit transaction to Flux KVS");
@@ -117,13 +116,13 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_commit (const dyad_ctx_t* restrict ctx,
             DYAD_LOG_ERROR (ctx, "Error with flux_future_then");
         }
     } else {
-        DYAD_C_REGION_START ("dyad_kvs_commit_wait");
+        DYAD_C_REGION_START (dyad_kvs_commit_wait);
         // If the commit is pending, wait for it to complete
         flux_future_wait_for (f, -1.0);
         // Once the commit is complete, destroy the future and transaction
         flux_future_destroy (f);
         f = NULL;
-        DYAD_C_REGION_END ("dyad_kvs_commit_wait");
+        DYAD_C_REGION_END (dyad_kvs_commit_wait);
     }
     rc = DYAD_RC_OK;
 kvs_commit_region_finish:;
@@ -153,17 +152,17 @@ DYAD_CORE_FUNC_MODS dyad_rc_t publish_via_flux (const dyad_ctx_t* restrict ctx,
     // with the previously generated key as the key and the
     // producer's rank as the value
     DYAD_LOG_INFO (ctx, "Creating KVS transaction under the key %s", topic);
-    DYAD_C_REGION_START ("flux_kvs_txn_create");
+    DYAD_C_REGION_START (flux_kvs_txn_create);
     txn = flux_kvs_txn_create ();
-    DYAD_C_REGION_END ("flux_kvs_txn_create");
+    DYAD_C_REGION_END (flux_kvs_txn_create);
     if (txn == NULL) {
         DYAD_LOG_ERROR (ctx, "Could not create Flux KVS transaction");
         rc = DYAD_RC_FLUXFAIL;
         goto publish_done;
     }
-    DYAD_C_REGION_START ("flux_kvs_txn_pack");
+    DYAD_C_REGION_START (flux_kvs_txn_pack);
     flux_rc = flux_kvs_txn_pack (txn, 0, topic, "i", ctx->rank);
-    DYAD_C_REGION_END ("flux_kvs_txn_pack");
+    DYAD_C_REGION_END (flux_kvs_txn_pack);
     if (flux_rc < 0) {
         DYAD_LOG_ERROR (ctx, "Could not pack Flux KVS transaction");
         rc = DYAD_RC_FLUXFAIL;
@@ -190,7 +189,7 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_commit (dyad_ctx_t* restrict ctx, const char*
     DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", ctx->fname);
     dyad_rc_t rc = DYAD_RC_OK;
-    char upath[PATH_MAX+1] = {'\0'};
+    char upath[PATH_MAX + 1] = {'\0'};
 #if 0
     if (fname == NULL || strlen (fname) > PATH_MAX) {
         rc = DYAD_RC_SYSFAIL;
@@ -201,9 +200,9 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_commit (dyad_ctx_t* restrict ctx, const char*
     // must be a valid string (!NULL). ctx->delim_len is verified to be greater
     // than 0 during initialization.
     if (ctx->relative_to_managed_path &&
-       //(strlen (fname) > 0ul) && // checked where get_path() was
-        (strncmp (fname, DYAD_PATH_DELIM, ctx->delim_len) != 0))
-    {   // fname is a relative path that is relative to the prod_managed_path
+        //(strlen (fname) > 0ul) && // checked where get_path() was
+        (strncmp (fname, DYAD_PATH_DELIM, ctx->delim_len)
+         != 0)) {  // fname is a relative path that is relative to the prod_managed_path
         memcpy (upath, fname, strlen (fname));
     } else if (!cmp_canonical_path_prefix (ctx, true, fname, upath, PATH_MAX)) {
         // Extract the path to the file specified by fname relative to the
@@ -233,8 +232,7 @@ commit_done:;
     return rc;
 }
 
-static void print_mdata (const dyad_ctx_t* restrict ctx,
-                         const dyad_metadata_t* restrict mdata)
+static void print_mdata (const dyad_ctx_t* restrict ctx, const dyad_metadata_t* restrict mdata)
 {
     if (mdata == NULL) {
         DYAD_LOG_INFO (ctx, "Cannot print a NULL metadata object!");
@@ -257,7 +255,8 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_read (const dyad_ctx_t* restrict ctx,
     int kvs_lookup_flags = 0;
     flux_future_t* f = NULL;
     if (mdata == NULL) {
-        DYAD_LOG_ERROR (ctx, "Metadata double pointer is NULL. " \
+        DYAD_LOG_ERROR (ctx,
+                        "Metadata double pointer is NULL. "
                         "Cannot correctly create metadata object");
         rc = DYAD_RC_NOTFOUND;
         goto kvs_read_end;
@@ -268,7 +267,7 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_read (const dyad_ctx_t* restrict ctx,
     if (should_wait)
         kvs_lookup_flags = FLUX_KVS_WAITCREATE;
     DYAD_LOG_INFO (ctx, "Retrieving information from KVS under the key %s", topic);
-    f = flux_kvs_lookup ((flux_t*) ctx->h, ctx->kvs_namespace, kvs_lookup_flags, topic);
+    f = flux_kvs_lookup ((flux_t*)ctx->h, ctx->kvs_namespace, kvs_lookup_flags, topic);
     // If the KVS lookup failed, log an error and return DYAD_BADLOOKUP
     if (f == NULL) {
         DYAD_LOG_ERROR (ctx, "KVS lookup failed!\n");
@@ -321,8 +320,6 @@ kvs_read_end:;
     return rc;
 }
 
-
-
 DYAD_CORE_FUNC_MODS dyad_rc_t dyad_fetch_metadata (const dyad_ctx_t* restrict ctx,
                                                    const char* restrict fname,
                                                    const char* restrict upath,
@@ -332,7 +329,7 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_fetch_metadata (const dyad_ctx_t* restrict ct
     DYAD_C_FUNCTION_UPDATE_STR ("fname", fname);
     dyad_rc_t rc = DYAD_RC_OK;
     const size_t topic_len = PATH_MAX;
-    char topic[PATH_MAX+1] = {'\0'};
+    char topic[PATH_MAX + 1] = {'\0'};
     *mdata = NULL;
 #if 0
     if (fname == NULL || upath == NULL || strlen (fname) == 0ul || strlen (upath) == 0ul) {
@@ -365,9 +362,11 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_fetch_metadata (const dyad_ctx_t* restrict ct
     DYAD_C_FUNCTION_UPDATE_INT ("owner_rank", (*mdata)->owner_rank);
     DYAD_C_FUNCTION_UPDATE_INT ("node_idx", ctx->node_idx);
     if (((*mdata)->owner_rank / ctx->service_mux) == ctx->node_idx) {
-        DYAD_LOG_INFO (ctx, \
-                       "Either shared-storage is indicated or the producer rank (%u) is the" \
-                       " same as the consumer rank (%u)", (*mdata)->owner_rank, ctx->rank);
+        DYAD_LOG_INFO (ctx,
+                       "Either shared-storage is indicated or the producer rank (%u) is the"
+                       " same as the consumer rank (%u)",
+                       (*mdata)->owner_rank,
+                       ctx->rank);
         if (mdata != NULL && *mdata != NULL) {
             dyad_free_metadata (mdata);
         }
@@ -397,12 +396,13 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_get_data (const dyad_ctx_t* restrict ctx,
     DYAD_C_FUNCTION_UPDATE_STR ("fpath", mdata->fpath);
     rc = ctx->dtl_handle->rpc_pack (ctx, mdata->fpath, mdata->owner_rank, &rpc_payload);
     if (DYAD_IS_ERROR (rc)) {
-        DYAD_LOG_ERROR (ctx, "Cannot create JSON payload for Flux RPC to " \
-                             "DYAD module\n");
+        DYAD_LOG_ERROR (ctx,
+                        "Cannot create JSON payload for Flux RPC to "
+                        "DYAD module\n");
         goto get_done;
     }
     DYAD_LOG_INFO (ctx, "Sending payload for RPC to DYAD module");
-    f = flux_rpc_pack ((flux_t*) ctx->h,
+    f = flux_rpc_pack ((flux_t*)ctx->h,
                        DYAD_DTL_RPC_NAME,
                        mdata->owner_rank,
                        FLUX_RPC_STREAMING,
@@ -422,10 +422,10 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_get_data (const dyad_ctx_t* restrict ctx,
     DYAD_LOG_INFO (ctx, "Establish DTL connection with DYAD module");
     rc = ctx->dtl_handle->establish_connection (ctx);
     if (DYAD_IS_ERROR (rc)) {
-        DYAD_LOG_ERROR (ctx, \
-                      "Cannot establish connection with DYAD module on broker " \
-                      "%u\n", \
-                      mdata->owner_rank);
+        DYAD_LOG_ERROR (ctx,
+                        "Cannot establish connection with DYAD module on broker "
+                        "%u\n",
+                        mdata->owner_rank);
         goto get_done;
     }
     DYAD_LOG_INFO (ctx, "Receive file data via DTL");
@@ -454,23 +454,23 @@ get_done:;
     DYAD_LOG_INFO (ctx, "Wait for end-of-stream message from module (current RC = %d)\n", rc);
     if (rc != DYAD_RC_RPC_FINISHED && rc != DYAD_RC_BADRPC) {
         if (!(flux_rpc_get (f, NULL) < 0 && errno == ENODATA)) {
-            DYAD_LOG_ERROR (ctx, \
-                            "An error occured at end of getting data! Either the " \
-                            "module sent too many responses, or the module " \
-                            "failed with a bad error (errno = %d)\n", \
+            DYAD_LOG_ERROR (ctx,
+                            "An error occured at end of getting data! Either the "
+                            "module sent too many responses, or the module "
+                            "failed with a bad error (errno = %d)\n",
                             errno);
             rc = DYAD_RC_BADRPC;
         }
     }
 #ifdef DYAD_ENABLE_UCX_RMA
-    ctx->dtl_handle->get_buffer(ctx, 0, (void**)file_data);
+    ctx->dtl_handle->get_buffer (ctx, 0, (void**)file_data);
     ssize_t read_len = 0l;
     memcpy (&read_len, *file_data, sizeof (read_len));
     if (read_len < 0l) {
         *file_len = 0ul;
         rc = DYAD_RC_BADFIO;
     } else {
-        *file_len = (size_t) read_len;
+        *file_len = (size_t)read_len;
     }
     *file_data = ((char*)*file_data) + sizeof (read_len);
     DYAD_LOG_INFO (ctx, "Read %zd bytes from %s file", *file_len, mdata->fpath);
@@ -552,8 +552,9 @@ dyad_rc_t dyad_produce (dyad_ctx_t* restrict ctx, const char* restrict fname)
     // If the producer-managed path is NULL or empty, then the context is not
     // valid for a producer operation. So, return DYAD_BADMANAGEDPATH
     if (ctx->prod_managed_path == NULL) {
-        DYAD_LOG_ERROR(ctx, "No or empty producer managed path was found %s", \
-                       ctx->prod_managed_path);
+        DYAD_LOG_ERROR (ctx,
+                        "No or empty producer managed path was found %s",
+                        ctx->prod_managed_path);
         rc = DYAD_RC_BADMANAGEDPATH;
         goto produce_done;
     }
@@ -585,7 +586,7 @@ dyad_rc_t dyad_get_metadata (dyad_ctx_t* restrict ctx,
     }
 #endif
     const size_t fname_len = strlen (fname);
-    char upath[PATH_MAX+1] = {'\0'};
+    char upath[PATH_MAX + 1] = {'\0'};
 
     DYAD_LOG_INFO (ctx, "Obtaining file path relative to consumer directory: %s", upath);
 
@@ -593,15 +594,15 @@ dyad_rc_t dyad_get_metadata (dyad_ctx_t* restrict ctx,
         rc = DYAD_RC_BADFIO;
         goto get_metadata_done;
     }
-    if (ctx->relative_to_managed_path &&
-        (strncmp (fname, DYAD_PATH_DELIM, ctx->delim_len) != 0))
-    {   // fname is a relative path that is relative to the cons_managed_path
+    if (ctx->relative_to_managed_path
+        && (strncmp (fname, DYAD_PATH_DELIM, ctx->delim_len)
+            != 0)) {  // fname is a relative path that is relative to the cons_managed_path
         memcpy (upath, fname, fname_len);
     } else if (!cmp_canonical_path_prefix (ctx, false, fname, upath, PATH_MAX)) {
         // Extract the path to the file specified by fname relative to the
         // producer-managed path
         // This relative path will be stored in upath
-        //DYAD_LOG_TRACE (ctx, "%s is not in the Consumer's managed path\n", fname);
+        // DYAD_LOG_TRACE (ctx, "%s is not in the Consumer's managed path\n", fname);
         // NOTE: This is different from what dyad_fetch/commit returns,
         // which is DYAD_RC_OK such that dyad does not interfere accesses on
         // non-managed directories.
@@ -616,8 +617,9 @@ dyad_rc_t dyad_get_metadata (dyad_ctx_t* restrict ctx,
     if (fd != -1) {
         close (fd);
         if (mdata == NULL) {
-            DYAD_LOG_ERROR (ctx, "Metadata double pointer is NULL. " \
-                                 "Cannot correctly create metadata object");
+            DYAD_LOG_ERROR (ctx,
+                            "Metadata double pointer is NULL. "
+                            "Cannot correctly create metadata object");
             rc = DYAD_RC_NOTFOUND;
             goto get_metadata_done;
         }
@@ -645,7 +647,7 @@ dyad_rc_t dyad_get_metadata (dyad_ctx_t* restrict ctx,
     }
 
     const size_t topic_len = PATH_MAX;
-    char topic[PATH_MAX+1] = {'\0'};
+    char topic[PATH_MAX + 1] = {'\0'};
     DYAD_LOG_INFO (ctx, "Generating KVS key: %s", topic);
     gen_path_key (upath, topic, topic_len, ctx->key_depth, ctx->key_bins);
     rc = dyad_kvs_read (ctx, topic, upath, should_wait, mdata);
@@ -660,7 +662,7 @@ get_metadata_done:;
         dyad_free_metadata (mdata);
     }
     ctx->reenter = true;
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 
@@ -689,7 +691,7 @@ dyad_rc_t dyad_consume (dyad_ctx_t* restrict ctx, const char* restrict fname)
     size_t data_len = 0ul;
     dyad_metadata_t* mdata = NULL;
     struct flock exclusive_lock;
-    char upath[PATH_MAX+1] = {'\0'};
+    char upath[PATH_MAX + 1] = {'\0'};
 
     // If the context is not defined, then it is not valid.
     // So, return DYAD_NOCTX
@@ -704,15 +706,15 @@ dyad_rc_t dyad_consume (dyad_ctx_t* restrict ctx, const char* restrict fname)
         goto consume_close;
     }
 
-    if (ctx->relative_to_managed_path && (strlen (fname) > 0ul) &&
-        (strncmp (fname, DYAD_PATH_DELIM, ctx->delim_len) != 0))
-    {   // fname is a relative path that is relative to the cons_managed_path
+    if (ctx->relative_to_managed_path && (strlen (fname) > 0ul)
+        && (strncmp (fname, DYAD_PATH_DELIM, ctx->delim_len)
+            != 0)) {  // fname is a relative path that is relative to the cons_managed_path
         memcpy (upath, fname, strlen (fname));
     } else if (!cmp_canonical_path_prefix (ctx, false, fname, upath, PATH_MAX)) {
         // Extract the path to the file specified by fname relative to the
         // consumer-managed path
         // This relative path will be stored in upath
-        //DYAD_LOG_TRACE (ctx, "%s is not in the Consumer's managed path\n", fname);
+        // DYAD_LOG_TRACE (ctx, "%s is not in the Consumer's managed path\n", fname);
         rc = DYAD_RC_OK;
         goto consume_close;
     }
@@ -745,8 +747,13 @@ dyad_rc_t dyad_consume (dyad_ctx_t* restrict ctx, const char* restrict fname)
         }
     } else {
         if (file_size <= 0) {
-            DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] File (%s with lock_fd %d) is not fetched yet", \
-                           ctx->node_idx, ctx->rank, ctx->pid, fname, lock_fd);
+            DYAD_LOG_INFO (ctx,
+                           "[node %u rank %u pid %d] File (%s with lock_fd %d) is not fetched yet",
+                           ctx->node_idx,
+                           ctx->rank,
+                           ctx->pid,
+                           fname,
+                           lock_fd);
             // Call dyad_fetch to get (and possibly wait on)
             // data from the Flux KVS
             rc = dyad_fetch_metadata (ctx, fname, upath, &mdata);
@@ -780,7 +787,9 @@ dyad_rc_t dyad_consume (dyad_ctx_t* restrict ctx, const char* restrict fname)
             io_fd = open (fname, O_WRONLY);
             DYAD_C_FUNCTION_UPDATE_INT ("io_fd", io_fd);
             if (io_fd == -1) {
-                DYAD_LOG_ERROR (ctx, "Cannot open file (%s) in write mode for dyad_consume!\n", fname);
+                DYAD_LOG_ERROR (ctx,
+                                "Cannot open file (%s) in write mode for dyad_consume!\n",
+                                fname);
                 rc = DYAD_RC_BADFIO;
                 goto consume_close;
             }
@@ -822,7 +831,8 @@ consume_close:;
     return rc;
 }
 
-dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t* restrict ctx, const char* fname,
+dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t* restrict ctx,
+                                   const char* fname,
                                    const dyad_metadata_t* restrict mdata)
 {
     DYAD_C_FUNCTION_START ();
