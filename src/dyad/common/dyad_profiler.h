@@ -239,7 +239,7 @@ extern "C" {
     }
   }
   
-  void dyad_profiler_caliper_region_update_string(dyad_profiler_caliper_region_entries_t* entry_list, const char* key, char* value)
+  void dyad_profiler_caliper_region_update_string(dyad_profiler_caliper_region_entries_t* entry_list, const char* key, const char* value)
   {
     if (entry_list != NULL) {
       if (entry_list->size >= entry_list->capacity) {
