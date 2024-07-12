@@ -11,6 +11,7 @@
 #endif
 #ifdef DYAD_PROFILER_CALIPER
 #include <caliper/cali.h>
+#include <stdlib.h>
 
 #ifdef __cplusplus
 #include <caliiper/Annotation.h>
@@ -234,7 +235,7 @@ extern "C" {
       if (entry_list->size < entry_list->capacity) {
         cali_id_t cali_attr_id = cali_create_attribute(key, CALI_TYPE_INT, CALI_ATTR_SKIP_EVENTS | CALI_ATTR_UNALIGNED);
         cali_begin_int(cali_attr_id, value);
-        entry_list->entries[entry_list->size] = cali_id_t;
+        entry_list->entries[entry_list->size] = cali_attr_id;
         entry_list->size += 1;
       }
     }
@@ -254,7 +255,7 @@ extern "C" {
       if (entry_list->size < entry_list->capacity) {
         cali_id_t cali_attr_id = cali_create_attribute(key, CALI_TYPE_STRING, CALI_ATTR_SKIP_EVENTS | CALI_ATTR_UNALIGNED);
         cali_begin_string(cali_attr_id, value);
-        entry_list->entries[entry_list->size] = cali_id_t;
+        entry_list->entries[entry_list->size] = cali_attr_id;
         entry_list->size += 1;
       }
     }
