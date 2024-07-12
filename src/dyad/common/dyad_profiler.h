@@ -14,8 +14,6 @@
 #include <stdlib.h>
 
 #ifdef __cplusplus
-#include <caliiper/Annotation.h>
-
 #include <string>
 #include <vector>
 #endif
