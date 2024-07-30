@@ -460,6 +460,7 @@ get_done:;
     memcpy (&read_len, *file_data, sizeof (read_len));
     if (read_len < 0l) {
         *file_len = 0ul;
+        DYAD_LOG_DEBUG (ctx, "Not able to read from %s file", mdata->fpath);
         rc = DYAD_RC_BADFIO;
     } else {
         *file_len = (size_t) read_len;

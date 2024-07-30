@@ -413,7 +413,7 @@ static inline ucs_status_ptr_t ucx_recv_no_wait (const dyad_ctx_t* ctx,
 
 #ifndef DYAD_ENABLE_UCX_RMA
 ucx_recv_no_wait_done:;
-#endif // DYAD_ENABLE_UCX_
+#endif // DYAD_ENABLE_UCX_RMA
     DYAD_C_FUNCTION_END();
     return stat_ptr;
 }
@@ -428,7 +428,7 @@ static dyad_rc_t ucx_warmup (const dyad_ctx_t* ctx)
 #ifndef DYAD_ENABLE_UCX_RMA
     ucs_status_ptr_t recv_stat_ptr = NULL;
     size_t recv_buf_len = 0;
-#endif // DYAD_ENABLE_UCX_
+#endif // DYAD_ENABLE_UCX_RMA
     ucs_status_t send_status = UCS_OK;
     ucs_status_t recv_status = UCS_OK;
     DYAD_LOG_INFO (ctx, "Starting warmup for UCX DTL");
@@ -470,7 +470,7 @@ static dyad_rc_t ucx_warmup (const dyad_ctx_t* ctx)
     DYAD_LOG_INFO (ctx, "Waiting on warmup recv to finish");
     recv_status =
         dyad_ucx_request_wait (ctx, recv_stat_ptr);
-#endif // DYAD_ENABLE_UCX_
+#endif // DYAD_ENABLE_UCX_RMA
     DYAD_LOG_INFO (ctx, "Waiting on warmup send to finish");
     send_status =
         dyad_ucx_request_wait (ctx, send_stat_ptr);
@@ -487,7 +487,7 @@ static dyad_rc_t ucx_warmup (const dyad_ctx_t* ctx)
     DYAD_LOG_INFO (ctx, "Communication succeeded (according to UCX)");
 #ifndef DYAD_ENABLE_UCX_RMA
     assert (recv_buf_len == 1);
-#endif // DYAD_ENABLE_UCX_
+#endif // DYAD_ENABLE_UCX_RMA
     DYAD_LOG_INFO (ctx, "Correct amount of data received in warmup");
     free (recv_buf);
     rc = DYAD_RC_OK;

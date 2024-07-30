@@ -217,7 +217,7 @@ dyad_rc_t dyad_dtl_flux_recv (const dyad_ctx_t* ctx, void** buf, size_t* buflen)
     dyad_rc = DYAD_RC_OK;
 finish_recv:
    if (dtl_handle->f != NULL)
-        flux_future_destroy (dtl_handle->f);
+        flux_future_reset (dtl_handle->f);
     DYAD_C_FUNCTION_UPDATE_INT ("tmp_buflen", tmp_buflen);
     DYAD_C_FUNCTION_END();
     return dyad_rc;
