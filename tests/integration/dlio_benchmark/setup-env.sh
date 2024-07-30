@@ -22,19 +22,19 @@ export PYTHON_ENV=/usr/workspace/haridev/dyad/env/python
 export DLIO_DATA_DIR=/p/lustre2/haridev/dyad/dlio_benchmark/dyad_unet3d_basic
 
 # DLIO Profiler Configurations
-export DLIO_PROFILER_ENABLE=1
-export DLIO_PROFILER_INC_METADATA=1
-export DLIO_PROFILER_DATA_DIR=${DLIO_DATA_DIR}:${DYAD_PATH}
-export DLIO_PROFILER_LOG_FILE=/usr/workspace/haridev/dyad/tests/integration/dlio_benchmark/profiler/dyad
+export DFTRACER_ENABLE=1
+export DFTRACER_INC_METADATA=1
+export DFTRACER_DATA_DIR=${DLIO_DATA_DIR}:${DYAD_PATH}
+export DFTRACER_LOG_FILE=/usr/workspace/haridev/dyad/tests/integration/dlio_benchmark/profiler/dyad
 export DYAD_LOG_DIR=/usr/workspace/haridev/dyad/tests/integration/dlio_benchmark/logs
-export DLIO_PROFILER_LOG_LEVEL=ERROR
+export DFTRACER_LOG_LEVEL=ERROR
 #export GOTCHA_DEBUG=3
 
-export DLIO_PROFILER_BIND_SIGNALS=0
+export DFTRACER_BIND_SIGNALS=0
 export MV2_BCAST_HWLOC_TOPOLOGY=0
 
 mkdir -m 775 -p ${DYAD_PATH}
-mkdir -p ${DLIO_PROFILER_LOG_FILE}
+mkdir -p ${DFTRACER_LOG_FILE}
 # Activate Environments
 . ${SPACK_DIR}/share/spack/setup-env.sh
 spack env activate -p ${SPACK_ENV}

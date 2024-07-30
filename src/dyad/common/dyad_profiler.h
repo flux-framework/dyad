@@ -6,10 +6,11 @@
 #error "no config"
 #endif
 
-#ifdef DYAD_PROFILER_DLIO_PROFILER // DLIO_PROFILER
-#include <dlio_profiler/dlio_profiler.h>
+#ifdef DYAD_PROFILER_DFTRACER  // DFTRACER
+#include <dftracerr/dftracer.h>
 #endif
 
+// clang-format off
 #ifdef __cplusplus
 #ifdef DYAD_PROFILER_NONE
   #define DYAD_CPP_FUNCTION() DYAD_NOOP_MACRO
@@ -29,12 +30,12 @@
   #define DYAD_CPP_REGION_START(name) DYAD_NOOP_MACRO
   #define DYAD_CPP_REGION_END(name) DYAD_NOOP_MACRO
   #define DYAD_CPP_REGION_UPDATE(name) DYAD_NOOP_MACRO
-#elif defined(DYAD_PROFILER_DLIO_PROFILER) // DLIO_PROFILER
-  #define DYAD_CPP_FUNCTION() DLIO_PROFILER_CPP_FUNCTION()
-  #define DYAD_CPP_FUNCTION_UPDATE(key, value) DLIO_PROFILER_CPP_FUNCTION_UPDATE((key), (value))
-  #define DYAD_CPP_REGION_START(name) DLIO_PROFILER_CPP_REGION_START((name))
-  #define DYAD_CPP_REGION_END(name) DLIO_PROFILER_CPP_REGION_END((name))
-  #define DYAD_CPP_REGION_UPDATE(name) DLIO_PROFILER_CPP_REGION_DYN_UPDATE((name), (key), (value))
+#elif defined(DYAD_PROFILER_DFTRACER) // DFTRACER
+  #define DYAD_CPP_FUNCTION() DFTRACER_CPP_FUNCTION()
+  #define DYAD_CPP_FUNCTION_UPDATE(key, value) DFTRACER_CPP_FUNCTION_UPDATE((key), (value))
+  #define DYAD_CPP_REGION_START(name) DFTRACER_CPP_REGION_START((name))
+  #define DYAD_CPP_REGION_END(name) DFTRACER_CPP_REGION_END((name))
+  #define DYAD_CPP_REGION_UPDATE(name) DFTRACER_CPP_REGION_DYN_UPDATE((name), (key), (value))
 #endif
 #endif
 
@@ -70,19 +71,20 @@ extern "C" {
   #define DYAD_C_REGION_END(name) DYAD_NOOP_MACRO
   #define DYAD_C_REGION_UPDATE_INT(name) DYAD_NOOP_MACRO
   #define DYAD_C_REGION_UPDATE_STR(name) DYAD_NOOP_MACRO
-#elif defined(DYAD_PROFILER_DLIO_PROFILER) // DLIO_PROFILER
-  #define DYAD_C_FUNCTION_START() DLIO_PROFILER_C_FUNCTION_START()
-  #define DYAD_C_FUNCTION_END() DLIO_PROFILER_C_FUNCTION_END()
-  #define DYAD_C_FUNCTION_UPDATE_INT(key, value) DLIO_PROFILER_C_FUNCTION_UPDATE_INT((key), (value))
-  #define DYAD_C_FUNCTION_UPDATE_STR(key, value) DLIO_PROFILER_C_FUNCTION_UPDATE_STR((key), (value))
-  #define DYAD_C_REGION_START(name) DLIO_PROFILER_C_REGION_START((name))
-  #define DYAD_C_REGION_END(name) DLIO_PROFILER_C_REGION_END((name))
-  #define DYAD_C_REGION_UPDATE_INT(name) DLIO_PROFILER_C_REGION_UPDATE_INT((name), (key), (value))
-  #define DYAD_C_REGION_UPDATE_STR(name) DLIO_PROFILER_C_REGION_UPDATE_STR((name), (key), (value))
+#elif defined(DYAD_PROFILER_DFTRACER) // DFTRACER
+  #define DYAD_C_FUNCTION_START() DFTRACER_C_FUNCTION_START()
+  #define DYAD_C_FUNCTION_END() DFTRACER_C_FUNCTION_END()
+  #define DYAD_C_FUNCTION_UPDATE_INT(key, value) DFTRACER_C_FUNCTION_UPDATE_INT((key), (value))
+  #define DYAD_C_FUNCTION_UPDATE_STR(key, value) DFTRACER_C_FUNCTION_UPDATE_STR((key), (value))
+  #define DYAD_C_REGION_START(name) DFTRACER_C_REGION_START((name))
+  #define DYAD_C_REGION_END(name) DFTRACER_C_REGION_END((name))
+  #define DYAD_C_REGION_UPDATE_INT(name) DFTRACER_C_REGION_UPDATE_INT((name), (key), (value))
+  #define DYAD_C_REGION_UPDATE_STR(name) DFTRACER_C_REGION_UPDATE_STR((name), (key), (value))
 #endif
 
 #ifdef __cplusplus
 }
 #endif
+// clang-format on
 
 #endif  // DYAD_COMMON_DYAD_PROFILER_H
