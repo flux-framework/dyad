@@ -33,8 +33,8 @@ target_include_directories(${PROJECT_NAME}_fstream SYSTEM PRIVATE ${FluxCore_INC
 if (TARGET DYAD_CXX_FLAGS_werror)
     target_link_libraries(${PROJECT_NAME}_fstream PRIVATE DYAD_CXX_FLAGS_werror)
 endif ()
-if(DYAD_PROFILER STREQUAL "DLIO_PROFILER")
-    target_link_libraries(${PROJECT_NAME}_fstream PRIVATE ${DLIO_PROFILER_LIBRARIES})
+if(DYAD_PROFILER STREQUAL "DFTRACER")
+    target_link_libraries(${PROJECT_NAME}_fstream PRIVATE ${DFTRACER_LIBRARIES})
 endif()
 
 install(

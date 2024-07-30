@@ -53,8 +53,8 @@ if(DYAD_PROFILER STREQUAL "PERFFLOW_ASPECT")
     target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${perfflowaspect_INCLUDE_DIRS})
     target_compile_definitions(${PROJECT_NAME}_core PRIVATE DYAD_PERFFLOW=1)
 endif()
-if(DYAD_PROFILER STREQUAL "DLIO_PROFILER")
-    target_link_libraries(${PROJECT_NAME}_core PRIVATE ${DLIO_PROFILER_LIBRARIES})
+if(DYAD_PROFILER STREQUAL "DFTRACER")
+    target_link_libraries(${PROJECT_NAME}_core PRIVATE ${DFTRACER_LIBRARIES})
 endif()
 install(
         TARGETS ${PROJECT_NAME}_core ${PROJECT_NAME}_ctx
