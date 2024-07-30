@@ -5,12 +5,12 @@ framework: pytorch
 workflow:
   generate_data: False
   train: True
-  checkpoint: True
+  checkpoint: False
 
 dataset: 
   data_folder: data/unet3d/
   format: npz
-  num_files_train: 168
+  num_files_train: 320
   num_samples_per_file: 1
   record_length: 146600628
   record_length_stdev: 68341808
@@ -19,7 +19,7 @@ dataset:
 reader: 
   data_loader: pytorch
   batch_size: 4
-  read_threads: 3
+  read_threads: 6
   file_shuffle: seed
   sample_shuffle: seed
   multiprocessing_context: spawn
@@ -28,7 +28,7 @@ reader:
 
 train:
   epochs: 10
-  computation_time: 1.3604
+  computation_time: 0
 
 checkpoint:
   checkpoint_folder: checkpoints/unet3d

@@ -82,9 +82,12 @@ class DyadMetadata:
             self.dyad_bindings_obj = None
 
 
-class DTLMode(enum.IntEnum):
-    DYAD_DTL_UCX = 0
-    DYAD_DTL_FLUX_RPC = 1
+class DTLMode(enum.Enum):
+    DYAD_DTL_UCX = "UCX"
+    DYAD_DTL_FLUX_RPC = "FLUX_RPC"
+
+    def __str__(self):
+        return self.value
 
 class DTLCommMode(enum.IntEnum):
     DYAD_COMM_NONE = 0
@@ -252,7 +255,7 @@ class Dyad:
             prod_managed_path.encode() if prod_managed_path is not None else None,
             cons_managed_path.encode() if cons_managed_path is not None else None,
             ctypes.c_bool(relative_to_managed_path),
-            dtl_mode.encode() if dtl_mode is not None else None,
+            str(dtl_mode).encode() if dtl_mode is not None else None,
             ctypes.c_int(dtl_comm_mode),
             ctypes.c_void_p(flux_handle)
         )

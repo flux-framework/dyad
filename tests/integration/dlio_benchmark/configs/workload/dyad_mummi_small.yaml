@@ -1,0 +1,30 @@
+model: mummi
+
+framework: pytorch
+
+workflow:
+  generate_data: False
+  train: True
+
+dataset:
+  data_folder: data/mummi/
+  format: hdf5
+  num_files_train: 1
+  num_samples_per_file: 100
+  record_length: 69528
+  enable_chunking: True
+  chunk_size: 17799168
+
+reader:
+  data_loader: pytorch
+  batch_size: 1
+  read_threads: 2
+  file_shuffle: seed
+  sample_shuffle: seed
+  multiprocessing_context: spawn
+  data_loader_classname: dyad_h5_torch_data_loader.DyadH5TorchDataLoader
+  data_loader_sampler: index
+
+train:
+  epochs: 10
+  computation_time: .133

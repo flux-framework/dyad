@@ -27,14 +27,10 @@
 #include <string.h>
 #endif
 
-#if DYAD_PERFFLOW
-#define DYAD_CORE_FUNC_MODS __attribute__ ((annotate ("@critical_path()"))) static
-#else
-#define DYAD_CORE_FUNC_MODS static inline
-#endif
 
 
-static int gen_path_key (const char* restrict str,
+
+DYAD_DLL_EXPORTED int gen_path_key (const char* restrict str,
                          char* restrict path_key,
                          const size_t len,
                          const uint32_t depth,
@@ -48,13 +44,17 @@ static int gen_path_key (const char* restrict str,
     uint32_t hash[4] = {0u};  // Output for the hash
     size_t cx = 0ul;
     int n = 0;
-    size_t str_len = strlen (str);
-    const char* str_long = str;
-
-    if (str == NULL || path_key == NULL || len == 0ul || str_len == 0ul) {
+    if (str == NULL || path_key == NULL || len == 0ul) {
         DYAD_C_FUNCTION_END();
         return -1;
     }
+    size_t str_len = strlen (str);
+    if (str_len == 0ul) {
+        DYAD_C_FUNCTION_END();
+        return -1;
+    }
+    const char* str_long = str;
+    
     path_key[0] = '\0';
 
     // Just append the string so that it can be as large as 128 bytes.
@@ -79,7 +79,8 @@ static int gen_path_key (const char* restrict str,
         }
     }
     n = snprintf (path_key + cx, len - cx, "%s", str);
-    if (cx + n >= len || n < 0) {
+    // FIXME: cx + n >= len  fails for str_len > 256
+    if (n < 0) {
         DYAD_C_FUNCTION_END();
         return -1;
     }
@@ -176,7 +177,7 @@ publish_done:;
     return rc;
 }
 
-DYAD_CORE_FUNC_MODS dyad_rc_t dyad_commit (dyad_ctx_t* restrict ctx, const char* restrict fname)
+DYAD_DLL_EXPORTED dyad_rc_t dyad_commit (dyad_ctx_t* restrict ctx, const char* restrict fname)
 {
     DYAD_C_FUNCTION_START();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", ctx->fname);
@@ -236,7 +237,7 @@ static void print_mdata (const dyad_ctx_t* restrict ctx,
     }
 }
 
-DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_read (const dyad_ctx_t* restrict ctx,
+DYAD_DLL_EXPORTED dyad_rc_t dyad_kvs_read (const dyad_ctx_t* restrict ctx,
                                              const char* restrict topic,
                                              const char* restrict upath,
                                              bool should_wait,
@@ -374,7 +375,7 @@ fetch_done:;
     return rc;
 }
 
-DYAD_CORE_FUNC_MODS dyad_rc_t dyad_get_data (const dyad_ctx_t* restrict ctx,
+DYAD_DLL_EXPORTED dyad_rc_t dyad_get_data (const dyad_ctx_t* restrict ctx,
                                              const dyad_metadata_t* restrict mdata,
                                              char** restrict file_data,
                                              size_t* restrict file_len)
@@ -818,7 +819,7 @@ dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t* restrict ctx, const char* fname,
     DYAD_C_FUNCTION_START();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", fname);
     dyad_rc_t rc = DYAD_RC_OK;
-    int fd = -1;
+    int lock_fd = -1, io_fd = -1;
     ssize_t file_size = -1;
     char* file_data = NULL;
     size_t data_len = 0ul;
@@ -844,48 +845,59 @@ dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t* restrict ctx, const char* fname,
     }
     // Set reenter to false to avoid recursively performing DYAD operations
     ctx->reenter = false;
-    fd = open (fname, O_RDWR | O_CREAT, 0666);
-    DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
-    if (fd == -1) {
+    lock_fd = open (fname, O_RDWR | O_CREAT, 0666);
+    DYAD_C_FUNCTION_UPDATE_INT ("lock_fd", lock_fd);
+    if (lock_fd == -1) {
         DYAD_LOG_ERROR (ctx, "Cannot create file (%s) for dyad_consume_w_metadata!\n", fname);
         rc = DYAD_RC_BADFIO;
         goto consume_close;
     }
-    rc = dyad_excl_flock (ctx, fd, &exclusive_lock);
+    rc = dyad_excl_flock (ctx, lock_fd, &exclusive_lock);
     if (DYAD_IS_ERROR (rc)) {
-        dyad_release_flock (ctx, fd, &exclusive_lock);
+        dyad_release_flock (ctx, lock_fd, &exclusive_lock);
         goto consume_close;
     }
-    if ((file_size = get_file_size (fd)) <= 0) {
+    if ((file_size = get_file_size (lock_fd)) <= 0) {
         DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] File (%s with fd %d) is not fetched yet", \
-                       ctx->node_idx, ctx->rank, ctx->pid, fname, fd);
+                       ctx->node_idx, ctx->rank, ctx->pid, fname, lock_fd);
 
         // Call dyad_get_data to dispatch a RPC to the producer's Flux broker
         // and retrieve the data associated with the file
         rc = dyad_get_data (ctx, mdata, &file_data, &data_len);
         if (DYAD_IS_ERROR (rc)) {
             DYAD_LOG_ERROR (ctx, "dyad_get_data failed!\n");
-            dyad_release_flock (ctx, fd, &exclusive_lock);
+            dyad_release_flock (ctx, lock_fd, &exclusive_lock);
             goto consume_done;
         }
         DYAD_C_FUNCTION_UPDATE_INT ("data_len", data_len);
-
+        io_fd = open (fname, O_WRONLY);
+        DYAD_C_FUNCTION_UPDATE_INT ("io_fd", io_fd);
+        if (io_fd == -1) {
+            DYAD_LOG_ERROR (ctx, "Cannot open file (%s) in write mode for dyad_consume!\n", fname);
+            rc = DYAD_RC_BADFIO;
+            goto consume_close;
+        }
         // Call dyad_pull to fetch the data from the producer's
         // Flux broker
-        rc = dyad_cons_store (ctx, mdata, fd, data_len, file_data);
+        rc = dyad_cons_store (ctx, mdata, io_fd, data_len, file_data);
+
+        if (close (io_fd) != 0) {
+            rc = DYAD_RC_BADFIO;
+            dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+            goto consume_done;
+        }
         // If an error occured in dyad_pull, log it
         // and return the corresponding DYAD return code
         if (DYAD_IS_ERROR (rc)) {
             DYAD_LOG_ERROR (ctx, "dyad_cons_store failed!\n");
-            dyad_release_flock (ctx, fd, &exclusive_lock);
+            dyad_release_flock (ctx, io_fd, &exclusive_lock);
             goto consume_done;
         };
-        fsync (fd);
     }
-    dyad_release_flock (ctx, fd, &exclusive_lock);
+    dyad_release_flock (ctx, lock_fd, &exclusive_lock);
     DYAD_C_FUNCTION_UPDATE_INT ("file_size", file_size);
 
-    if (close (fd) != 0) {
+    if (close (lock_fd) != 0) {
         rc = DYAD_RC_BADFIO;
         goto consume_done;
     }
