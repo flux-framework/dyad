@@ -197,11 +197,7 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
         inlen = read (fd, inbuf, file_size);
 #endif
         if (inlen != file_size) {
-            DYAD_LOG_ERROR (mod_ctx->ctx,
-                            "DYAD_MOD: Failed to load file \"%s\" only read %zd of %zd.",
-                            fullpath,
-                            inlen,
-                            file_size);
+            DYAD_LOG_ERROR (mod_ctx->ctx, "DYAD_MOD: Failed to load file \"%s\" only read %zd of %zd.", fullpath, inlen, file_size);
             goto fetch_error;
         }
 #ifdef DYAD_ENABLE_UCX_RMA
@@ -235,9 +231,7 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
     }
     DYAD_LOG_DEBUG (mod_ctx->ctx, "Close RPC message stream with an ENODATA (%d) message", ENODATA);
     if (flux_respond_error (h, msg, ENODATA, NULL) < 0) {
-        DYAD_LOG_ERROR (mod_ctx->ctx,
-                        "DYAD_MOD: %s: flux_respond_error with ENODATA failed\n",
-                        __func__);
+        DYAD_LOG_ERROR (mod_ctx->ctx, "DYAD_MOD: %s: flux_respond_error with ENODATA failed\n", __func__);
     }
     DYAD_LOG_INFO (mod_ctx->ctx, "Finished %s module invocation\n", DYAD_DTL_RPC_NAME);
     goto end_fetch_cb;
