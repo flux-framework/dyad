@@ -501,7 +501,7 @@ dyad_rc_t dyad_excl_flock (const dyad_ctx_t* __restrict__ ctx, int fd,
     dyad_rc_t rc = DYAD_RC_OK;
     DYAD_C_FUNCTION_START();
     DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
-    DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] Applies an exclusive lock on fd %d\n", \
+    DYAD_LOG_DEBUG (ctx, "[node %u rank %u pid %d] Applies an exclusive lock on fd %d\n", \
                    ctx->node_idx, ctx->rank, ctx->pid, fd);
     if (!lock) {
         rc = DYAD_RC_BADFIO;
@@ -517,7 +517,7 @@ dyad_rc_t dyad_excl_flock (const dyad_ctx_t* __restrict__ ctx, int fd,
         rc = DYAD_RC_BADFIO;
         goto excl_flock_end;
     }
-    DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] Exclusive lock placed on fd %d\n", \
+    DYAD_LOG_DEBUG (ctx, "[node %u rank %u pid %d] Exclusive lock placed on fd %d\n", \
                    ctx->node_idx, ctx->rank, ctx->pid, fd);
     rc = DYAD_RC_OK;
 excl_flock_end:;
@@ -531,7 +531,7 @@ dyad_rc_t dyad_shared_flock (const dyad_ctx_t* __restrict__ ctx, int fd,
     DYAD_C_FUNCTION_START();
     DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
     dyad_rc_t rc = DYAD_RC_OK;
-    DYAD_LOG_INFO (ctx, "[node %u rank %u pid %d] Applies a shared lock on fd %d\n", \
+    DYAD_LOG_DEBUG (ctx, "[node %u rank %u pid %d] Applies a shared lock on fd %d\n", \
                    ctx->node_idx, ctx->rank, ctx->pid, fd);
     if (!lock) {
         rc = DYAD_RC_BADFIO;
