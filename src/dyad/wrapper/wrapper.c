@@ -40,12 +40,11 @@ using namespace std; // std::clock ()
 #endif // defined(__cplusplus)
 
 #include <dlfcn.h>
+#include <dyad/client/dyad_client_int.h>
 #include <dyad/common/dyad_dtl.h>
 #include <dyad/common/dyad_envs.h>
 #include <dyad/common/dyad_logging.h>
 #include <dyad/common/dyad_profiler.h>
-#include <dyad/core/dyad_core_int.h>
-#include <dyad/core/dyad_ctx.h>
 #include <dyad/utils/utils.h>
 #include <fcntl.h>
 #include <libgen.h> // dirname

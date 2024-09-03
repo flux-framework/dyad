@@ -9,14 +9,17 @@
 
 #include <dyad/common/dyad_rc.h>
 #include <dyad/common/dyad_structures.h>
+#include <dyad/core/dyad_ctx.h>
 #include <sys/types.h>
 #include <unistd.h>
 
 #ifdef __cplusplus
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #else
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #endif
@@ -29,7 +32,6 @@ extern "C" {
 #else
 #define DYAD_CORE_FUNC_MODS static inline
 #endif
-DYAD_DLL_EXPORTED extern const struct dyad_ctx dyad_ctx_default;
 
 struct dyad_metadata {
   char *fpath;

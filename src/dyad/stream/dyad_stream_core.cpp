@@ -16,8 +16,7 @@
 
 #include <dyad/stream/dyad_stream_core.hpp>
 
-#include <dyad/core/dyad_core_int.h>
-#include <dyad/core/dyad_ctx.h>
+#include <dyad/client/dyad_client_int.h>
 #include <dyad/utils/murmur3.h>
 #include <dyad/utils/utils.h>
 

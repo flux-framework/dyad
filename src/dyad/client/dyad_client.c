@@ -4,11 +4,12 @@
 #error "no config"
 #endif
 
+// clang-format off
 #include <dyad/common/dyad_dtl.h>
 #include <dyad/common/dyad_envs.h>
 #include <dyad/common/dyad_logging.h>
 #include <dyad/common/dyad_profiler.h>
-#include <dyad/core/dyad_core_int.h>
+#include <dyad/client/dyad_client_int.h>
 #include <dyad/dtl/dyad_dtl_api.h>
 #include <dyad/utils/murmur3.h>
 #include <dyad/utils/utils.h>
@@ -17,6 +18,7 @@
 #include <libgen.h>
 #include <stdlib.h>
 #include <unistd.h>
+// clang-format on
 
 #ifdef __cplusplus
 #include <climits>

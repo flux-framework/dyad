@@ -2,7 +2,7 @@ set(DYAD_WRAPPER_SRC ${CMAKE_CURRENT_SOURCE_DIR}/wrapper.c)
 set(DYAD_WRAPPER_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/../utils/utils.h
                                  ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dyad/common/dyad_dtl.h
                                  ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dyad/core/dyad_ctx.h
-                                 ${CMAKE_CURRENT_SOURCE_DIR}/../core/dyad_core_int.h)
+                                 ${CMAKE_CURRENT_SOURCE_DIR}/../client/dyad_client_int.h)
 set(DYAD_WRAPPER_PUBLIC_HEADERS)
 
 add_library(${PROJECT_NAME}_wrapper SHARED ${DYAD_WRAPPER_SRC}

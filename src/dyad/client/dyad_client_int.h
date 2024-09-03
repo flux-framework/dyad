@@ -2,7 +2,7 @@
 #define DYAD_CORE_DYAD_CORE_INT_H
 
 // clang-format off
-#include <dyad/core/dyad_core.h> 
+#include <dyad/client/dyad_client.h> 
 #include <dyad/common/dyad_structures_int.h>
 // clang-format on
 
