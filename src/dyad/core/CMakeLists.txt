@@ -22,7 +22,7 @@ set(DYAD_CTX_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/dyad_ctx.h
 add_library(${PROJECT_NAME}_core SHARED ${DYAD_CORE_SRC}
             ${DYAD_CORE_PUBLIC_HEADERS} ${DYAD_CORE_PRIVATE_HEADERS})
 set_target_properties(${PROJECT_NAME}_core PROPERTIES CMAKE_INSTALL_RPATH
-                      "${CMAKE_INSTALL_PREFIX}/${DYAD_INSTALL_LIBDIR}")
+                      "${DYAD_INSTALL_LIBDIR}")
 target_link_libraries(${PROJECT_NAME}_core PRIVATE Jansson::Jansson flux::core)
 target_link_libraries(${PROJECT_NAME}_core PRIVATE ${PROJECT_NAME}_ctx ${PROJECT_NAME}_utils
                       ${PROJECT_NAME}_murmur3 ${PROJECT_NAME}_dtl)

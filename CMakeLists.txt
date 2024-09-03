@@ -32,20 +32,20 @@ endif ()
 #
 if (CMAKE_INSTALL_LIBDIR)
    message(STATUS "CMAKE_INSTALL_LIBDIR ${CMAKE_INSTALL_LIBDIR}")
-   set(DYAD_INSTALL_BINDIR ${CMAKE_INSTALL_BINDIR})
-   set(DYAD_INSTALL_LIBDIR ${CMAKE_INSTALL_LIBDIR})
+   set(DYAD_INSTALL_BINDIR ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR})
+   set(DYAD_INSTALL_LIBDIR ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
    set(DYAD_INSTALL_INCLUDEDIR
-       ${CMAKE_INSTALL_INCLUDEDIR})
+       ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR})
    set(DYAD_INSTALL_DOCDIR
-       ${CMAKE_INSTALL_DOCDIR})
+       ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DOCDIR})
    set(DYAD_INSTALL_SYSCONFDIR
-       ${CMAKE_INSTALL_SYSCONFDIR}/modulefiles)
+       ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_SYSCONFDIR}/modulefiles)
 else ()
-   set(DYAD_INSTALL_BINDIR "bin")
-   set(DYAD_INSTALL_LIBDIR "lib")
-   set(DYAD_INSTALL_INCLUDEDIR "include")
-   set(DYAD_INSTALL_DOCDIR "doc")
-   set(DYAD_INSTALL_SYSCONFDIR "etc/modulefiles")
+   set(DYAD_INSTALL_BINDIR "${CMAKE_INSTALL_PREFIX}/bin")
+   set(DYAD_INSTALL_LIBDIR "${CMAKE_INSTALL_PREFIX}/lib")
+   set(DYAD_INSTALL_INCLUDEDIR "${CMAKE_INSTALL_PREFIX}/include")
+   set(DYAD_INSTALL_DOCDIR "${CMAKE_INSTALL_PREFIX}/doc")
+   set(DYAD_INSTALL_SYSCONFDIR "${CMAKE_INSTALL_PREFIX}/etc/modulefiles")
    message(STATUS "DYAD_INSTALL_LIBDIR set to ${DYAD_INSTALL_LIBDIR}")
 endif ()
 
@@ -56,17 +56,17 @@ endif ()
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${CMAKE_BINARY_DIR} ${CMAKE_INSTALL_PREFIX})
 # This sets where to look for dependent library's cmake files
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules)
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_BINARY_DIR}/${DYAD_INSTALL_LIBDIR}/cmake)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_BINARY_DIR}/lib/cmake)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_BINARY_DIR}/share/cmake)
 
 #------------------------------------------------------------------------------
 # This doesn't really need to be in an 'if' statement since they're cache variables
 # if (NOT DYAD_EXTERNALLY_CONFIGURED)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${DYAD_INSTALL_BINDIR} CACHE PATH "Single Directory for all Executables.")
-set(CMAKE_INCLUDE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${DYAD_INSTALL_INCLUDEDIR} CACHE PATH "Store the headers.")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin CACHE PATH "Single Directory for all Executables.")
+set(CMAKE_INCLUDE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/include CACHE PATH "Store the headers.")
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${DYAD_INSTALL_LIBDIR} CACHE PATH "Single Directory for all Libraries")
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${DYAD_INSTALL_LIBDIR} CACHE PATH "Single Directory for all static libraries.")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib CACHE PATH "Single Directory for all Libraries")
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib CACHE PATH "Single Directory for all static libraries.")
 # endif ()
 
 #-----------------------------------------------------------------------------
@@ -374,7 +374,7 @@ configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/configure_files/
 # Write the configure file for the install tree
 set(EXTRA_CMAKE_MODULE_DIR "")
 set(INCLUDE_INSTALL_DIRS "${DYAD_INSTALL_INCLUDEDIR}")
-set(LIB_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/${DYAD_INSTALL_LIBDIR}")
+set(LIB_INSTALL_DIR "${DYAD_INSTALL_LIBDIR}")
 configure_package_config_file(cmake/configure_files/DYADConfig.cmake.in
   "${DYAD_INSTALL_TMP_CMAKE_DIR}/DYADConfig.cmake"
   INSTALL_DESTINATION "${DYAD_INSTALL_CMAKE_DIR}"

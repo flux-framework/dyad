@@ -29,7 +29,7 @@ endif()
 add_library(${PROJECT_NAME}_dtl SHARED ${DTL_SRC} ${DTL_PUBLIC_HEADERS} ${DTL_PRIVATE_HEADERS})
 target_link_libraries(${PROJECT_NAME}_dtl PRIVATE ${PROJECT_NAME}_utils Jansson::Jansson flux::core flux::optparse)
 set_target_properties(${PROJECT_NAME}_dtl PROPERTIES CMAKE_INSTALL_RPATH
-                      "${CMAKE_INSTALL_PREFIX}/${DYAD_INSTALL_LIBDIR}")
+                      "${DYAD_INSTALL_LIBDIR}")
 
 if(DYAD_ENABLE_UCX_DTL OR DYAD_ENABLE_UCX_DATA_RMA)
     target_link_libraries(${PROJECT_NAME}_dtl PRIVATE ucx::ucp ucx::ucs)
