@@ -1,8 +1,8 @@
 set(DYAD_FSTREAM_SRC ${CMAKE_CURRENT_SOURCE_DIR}/dyad_stream_core.cpp)
-set(DYAD_FSTREAM_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_rc.h
-                                 ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_dtl.h
-                                 ${CMAKE_CURRENT_SOURCE_DIR}/../core/dyad_ctx.h
-                                 ${CMAKE_CURRENT_SOURCE_DIR}/../core/dyad_core.h
+set(DYAD_FSTREAM_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dyad/common/dyad_rc.h
+                                 ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dyad/common/dyad_dtl.h
+                                 ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dyad/core/dyad_ctx.h
+                                 ${CMAKE_CURRENT_SOURCE_DIR}/../core/dyad_core_int.h
                                  ${CMAKE_CURRENT_SOURCE_DIR}/../utils/utils.h)
 set(DYAD_FSTREAM_PUBLIC_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dyad/stream/dyad_stream_api.hpp
                                 ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dyad/stream/dyad_params.hpp

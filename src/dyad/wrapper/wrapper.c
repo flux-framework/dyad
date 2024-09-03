@@ -16,7 +16,7 @@
 
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
-#endif  // _GNU_SOURCE
+#endif // _GNU_SOURCE
 
 #if defined(__cplusplus)
 #include <cerrno>
@@ -26,7 +26,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
-using namespace std;  // std::clock ()
+using namespace std; // std::clock ()
 // #include <cstdbool> // c++11
 #else
 #include <errno.h>
@@ -37,18 +37,18 @@ using namespace std;  // std::clock ()
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#endif  // defined(__cplusplus)
+#endif // defined(__cplusplus)
 
 #include <dlfcn.h>
 #include <dyad/common/dyad_dtl.h>
 #include <dyad/common/dyad_envs.h>
 #include <dyad/common/dyad_logging.h>
 #include <dyad/common/dyad_profiler.h>
-#include <dyad/core/dyad_core.h>
+#include <dyad/core/dyad_core_int.h>
 #include <dyad/core/dyad_ctx.h>
 #include <dyad/utils/utils.h>
 #include <fcntl.h>
-#include <libgen.h>  // dirname
+#include <libgen.h> // dirname
 #include <unistd.h>
 
 #ifdef __cplusplus
@@ -57,12 +57,12 @@ extern "C" {
 
 static __thread const dyad_ctx_t *ctx = NULL;
 static __thread dyad_ctx_t *ctx_mutable = NULL;
-static void dyad_wrapper_init (void) __attribute__ ((constructor));
-static void dyad_wrapper_fini (void) __attribute__ ((destructor));
+static void dyad_wrapper_init(void) __attribute__((constructor));
+static void dyad_wrapper_fini(void) __attribute__((destructor));
 
 #if DYAD_SYNC_DIR
-int sync_directory (const char *path);
-#endif  // DYAD_SYNC_DIR
+int sync_directory(const char *path);
+#endif // DYAD_SYNC_DIR
 
 /*****************************************************************************
  *                                                                           *
@@ -78,14 +78,13 @@ int sync_directory (const char *path);
  * @return 1 if the file descriptor is write-only, 0 if not, and -1
  *         if there was an error in fcntl
  */
-static inline int is_wronly (int fd)
-{
-    int rc = fcntl (fd, F_GETFL);
-    if (rc == -1)
-        return -1;
-    if ((rc & O_ACCMODE) == O_WRONLY)
-        return 1;
-    return 0;
+static inline int is_wronly(int fd) {
+  int rc = fcntl(fd, F_GETFL);
+  if (rc == -1)
+    return -1;
+  if ((rc & O_ACCMODE) == O_WRONLY)
+    return 1;
+  return 0;
 }
 
 /*****************************************************************************
@@ -94,324 +93,322 @@ static inline int is_wronly (int fd)
  *                                                                           *
  *****************************************************************************/
 
-void dyad_wrapper_init (void)
-{
+void dyad_wrapper_init(void) {
 #if DYAD_PROFILER == 3
-    DFTRACER_C_FINI ();
+  DFTRACER_C_FINI();
 #endif
-    DYAD_C_FUNCTION_START ();
-    dyad_ctx_init (DYAD_COMM_RECV, NULL);
-    ctx = ctx_mutable = dyad_ctx_get ();
-    DYAD_LOG_INFO (ctx, "DYAD Wrapper Initialized");
-    DYAD_C_FUNCTION_END ();
+  DYAD_C_FUNCTION_START();
+  dyad_ctx_init(DYAD_COMM_RECV, NULL);
+  ctx = ctx_mutable = dyad_ctx_get();
+  DYAD_LOG_INFO(ctx, "DYAD Wrapper Initialized");
+  DYAD_C_FUNCTION_END();
 }
 
-void dyad_wrapper_fini ()
-{
-    DYAD_C_FUNCTION_START ();
-    DYAD_LOG_INFO (ctx, "DYAD Wrapper Finalized");
-    dyad_ctx_fini ();
-    DYAD_C_FUNCTION_END ();
+void dyad_wrapper_fini() {
+  DYAD_C_FUNCTION_START();
+  DYAD_LOG_INFO(ctx, "DYAD Wrapper Finalized");
+  dyad_ctx_fini();
+  DYAD_C_FUNCTION_END();
 #if DYAD_PROFILER == 3
-    DFTRACER_C_FINI ();
+  DFTRACER_C_FINI();
 #endif
 }
 
-DYAD_DLL_EXPORTED int open (const char *path, int oflag, ...)
-{
-    DYAD_C_FUNCTION_START ();
-    DYAD_C_FUNCTION_UPDATE_STR ("path", "path");
-    char *error = NULL;
-    typedef int (*open_ptr_t) (const char *, int, mode_t, ...);
-    open_ptr_t func_ptr = NULL;
-    int mode = 0;
-    char upath[PATH_MAX + 1] = {'\0'};
+DYAD_DLL_EXPORTED int open(const char *path, int oflag, ...) {
+  DYAD_C_FUNCTION_START();
+  DYAD_C_FUNCTION_UPDATE_STR("path", "path");
+  char *error = NULL;
+  typedef int (*open_ptr_t)(const char *, int, mode_t, ...);
+  open_ptr_t func_ptr = NULL;
+  int mode = 0;
+  char upath[PATH_MAX + 1] = {'\0'};
 
-    if (oflag & O_CREAT) {
-        va_list arg;
-        va_start (arg, oflag);
-        mode = va_arg (arg, int);
-        va_end (arg);
-    }
+  if (oflag & O_CREAT) {
+    va_list arg;
+    va_start(arg, oflag);
+    mode = va_arg(arg, int);
+    va_end(arg);
+  }
 
-    // https://stackoverflow.com/questions/14134245/iso-c-void-and-function-pointers
-    // func_ptr = (open_ptr_t)dlsym (RTLD_NEXT, "open");
-    *(void **)&func_ptr = dlsym (RTLD_NEXT, "open");
-    if ((error = dlerror ())) {
-        DPRINTF (ctx, "DYAD_SYNC: error in dlsym: %s", error);
-        DYAD_C_FUNCTION_END ();
-        return -1;
-    }
+  // https://stackoverflow.com/questions/14134245/iso-c-void-and-function-pointers
+  // func_ptr = (open_ptr_t)dlsym (RTLD_NEXT, "open");
+  *(void **)&func_ptr = dlsym(RTLD_NEXT, "open");
+  if ((error = dlerror())) {
+    DPRINTF(ctx, "DYAD_SYNC: error in dlsym: %s", error);
+    DYAD_C_FUNCTION_END();
+    return -1;
+  }
 
-    if ((mode != O_RDONLY) || is_path_dir (path)) {
-        // TODO: make sure if the directory mode is consistent
-        goto real_call;
-    }
+  if ((mode != O_RDONLY) || is_path_dir(path)) {
+    // TODO: make sure if the directory mode is consistent
+    goto real_call;
+  }
 
-    if (!(ctx && ctx->h) || (ctx && !ctx->reenter)) {
-        IPRINTF (ctx, "DYAD_SYNC: open sync not applicable for \"%s\".", path);
-        goto real_call;
-    }
+  if (!(ctx && ctx->h) || (ctx && !ctx->reenter)) {
+    IPRINTF(ctx, "DYAD_SYNC: open sync not applicable for \"%s\".", path);
+    goto real_call;
+  }
 
-    IPRINTF (ctx, "DYAD_SYNC: enters open sync (\"%s\").", path);
-    if (DYAD_IS_ERROR (dyad_consume (ctx_mutable, path))) {
-        DPRINTF (ctx, "DYAD_SYNC: failed open sync (\"%s\").", path);
-        goto real_call;
-    }
-    IPRINTF (ctx, "DYAD_SYNC: exists open sync (\"%s\").", path);
-
-real_call:;
-    int ret = (func_ptr (path, oflag, mode));
-
-    // This lock is to protect the file being produced by a producer
-    // from a consumer that has direct access to the file. For example,
-    // either the file is on a shared storage or the consumer is on
-    // the same node as where the producer is.
-    if ((ret > 0) && (mode == O_WRONLY || mode == O_APPEND) && !is_path_dir (path)) {
-        if ((ctx->relative_to_managed_path
-             && (strncmp (path, DYAD_PATH_DELIM, ctx->delim_len) != 0))
-            || cmp_canonical_path_prefix (ctx, true, path, upath, PATH_MAX)) {
-            struct flock exclusive_lock;
-            dyad_rc_t rc = dyad_excl_flock (ctx, ret, &exclusive_lock);
-            if (DYAD_IS_ERROR (rc)) {
-                dyad_release_flock (ctx, ret, &exclusive_lock);
-            }
-        }
-    }
-
-    DYAD_C_FUNCTION_END ();
-    return ret;
-}
-
-DYAD_DLL_EXPORTED FILE *fopen (const char *path, const char *mode)
-{
-    DYAD_C_FUNCTION_START ();
-    DYAD_C_FUNCTION_UPDATE_STR ("path", "path");
-    char *error = NULL;
-    typedef FILE *(*fopen_ptr_t) (const char *, const char *);
-    fopen_ptr_t func_ptr = NULL;
-    char upath[PATH_MAX + 1] = {'\0'};
-
-    // func_ptr = (fopen_ptr_t)dlsym (RTLD_NEXT, "fopen");
-    *(void **)&func_ptr = dlsym (RTLD_NEXT, "fopen");
-    if ((error = dlerror ())) {
-        DPRINTF (ctx, "DYAD_SYNC: error in dlsym: %s\n", error);
-        DYAD_C_FUNCTION_END ();
-        return NULL;
-    }
-
-    if ((strcmp (mode, "r") != 0) || is_path_dir (path)) {
-        // TODO: make sure if the directory mode is consistent
-        goto real_call;
-    }
-
-    if (!(ctx && ctx->h) || (ctx && !ctx->reenter) || !path) {
-        IPRINTF (ctx, "DYAD_SYNC: fopen sync not applicable for \"%s\".\n", ((path) ? path : ""));
-        goto real_call;
-    }
-
-    IPRINTF (ctx, "DYAD_SYNC: enters fopen sync (\"%s\").\n", path);
-    if (DYAD_IS_ERROR (dyad_consume (ctx_mutable, path))) {
-        DPRINTF (ctx, "DYAD_SYNC: failed fopen sync (\"%s\").\n", path);
-        goto real_call;
-    }
-    IPRINTF (ctx, "DYAD_SYNC: exits fopen sync (\"%s\").\n", path);
+  IPRINTF(ctx, "DYAD_SYNC: enters open sync (\"%s\").", path);
+  if (DYAD_IS_ERROR(dyad_consume(ctx_mutable, path))) {
+    DPRINTF(ctx, "DYAD_SYNC: failed open sync (\"%s\").", path);
+    goto real_call;
+  }
+  IPRINTF(ctx, "DYAD_SYNC: exists open sync (\"%s\").", path);
 
 real_call:;
-    FILE *fh = (func_ptr (path, mode));
+  int ret = (func_ptr(path, oflag, mode));
 
-    // This lock is to protect the file being produced by a producer
-    // from a consumer that has direct access to the file. For example,
-    // either the file is on a shared storage or the consumer is on
-    // the same node as where the producer is.
-    if ((fh != NULL) && ((strcmp (mode, "w") == 0) || (strcmp (mode, "a") == 0))
-        && !is_path_dir (path)) {
-        if ((ctx->relative_to_managed_path
-             && (strncmp (path, DYAD_PATH_DELIM, ctx->delim_len) != 0))
-            || cmp_canonical_path_prefix (ctx, true, path, upath, PATH_MAX)) {
-            int fd = fileno (fh);
-            struct flock exclusive_lock;
-            dyad_rc_t rc = dyad_excl_flock (ctx, fd, &exclusive_lock);
-            if (DYAD_IS_ERROR (rc)) {
-                dyad_release_flock (ctx, fd, &exclusive_lock);
-            }
-        }
+  // This lock is to protect the file being produced by a producer
+  // from a consumer that has direct access to the file. For example,
+  // either the file is on a shared storage or the consumer is on
+  // the same node as where the producer is.
+  if ((ret > 0) && (mode == O_WRONLY || mode == O_APPEND) &&
+      !is_path_dir(path)) {
+    if ((ctx->relative_to_managed_path &&
+         (strncmp(path, DYAD_PATH_DELIM, ctx->delim_len) != 0)) ||
+        cmp_canonical_path_prefix(ctx, true, path, upath, PATH_MAX)) {
+      struct flock exclusive_lock;
+      dyad_rc_t rc = dyad_excl_flock(ctx, ret, &exclusive_lock);
+      if (DYAD_IS_ERROR(rc)) {
+        dyad_release_flock(ctx, ret, &exclusive_lock);
+      }
     }
-    DYAD_C_FUNCTION_END ();
-    return fh;
+  }
+
+  DYAD_C_FUNCTION_END();
+  return ret;
 }
 
-DYAD_DLL_EXPORTED int close (int fd)
-{
-    DYAD_C_FUNCTION_START ();
-    DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
-    bool to_sync = false;
-    char *error = NULL;
-    typedef int (*close_ptr_t) (int);
-    close_ptr_t func_ptr = NULL;
-    char path[PATH_MAX + 1] = {'\0'};
-    int rc = 0;
+DYAD_DLL_EXPORTED FILE *fopen(const char *path, const char *mode) {
+  DYAD_C_FUNCTION_START();
+  DYAD_C_FUNCTION_UPDATE_STR("path", "path");
+  char *error = NULL;
+  typedef FILE *(*fopen_ptr_t)(const char *, const char *);
+  fopen_ptr_t func_ptr = NULL;
+  char upath[PATH_MAX + 1] = {'\0'};
 
-    // func_ptr = (close_ptr_t)dlsym (RTLD_NEXT, "close");
-    *(void **)&func_ptr = dlsym (RTLD_NEXT, "close");
-    if ((error = dlerror ())) {
-        DPRINTF (ctx, "DYAD_SYNC: error in dlsym: %s\n", error);
-        DYAD_C_FUNCTION_END ();
-        return -1;  // return the failure code
+  // func_ptr = (fopen_ptr_t)dlsym (RTLD_NEXT, "fopen");
+  *(void **)&func_ptr = dlsym(RTLD_NEXT, "fopen");
+  if ((error = dlerror())) {
+    DPRINTF(ctx, "DYAD_SYNC: error in dlsym: %s\n", error);
+    DYAD_C_FUNCTION_END();
+    return NULL;
+  }
+
+  if ((strcmp(mode, "r") != 0) || is_path_dir(path)) {
+    // TODO: make sure if the directory mode is consistent
+    goto real_call;
+  }
+
+  if (!(ctx && ctx->h) || (ctx && !ctx->reenter) || !path) {
+    IPRINTF(ctx, "DYAD_SYNC: fopen sync not applicable for \"%s\".\n",
+            ((path) ? path : ""));
+    goto real_call;
+  }
+
+  IPRINTF(ctx, "DYAD_SYNC: enters fopen sync (\"%s\").\n", path);
+  if (DYAD_IS_ERROR(dyad_consume(ctx_mutable, path))) {
+    DPRINTF(ctx, "DYAD_SYNC: failed fopen sync (\"%s\").\n", path);
+    goto real_call;
+  }
+  IPRINTF(ctx, "DYAD_SYNC: exits fopen sync (\"%s\").\n", path);
+
+real_call:;
+  FILE *fh = (func_ptr(path, mode));
+
+  // This lock is to protect the file being produced by a producer
+  // from a consumer that has direct access to the file. For example,
+  // either the file is on a shared storage or the consumer is on
+  // the same node as where the producer is.
+  if ((fh != NULL) && ((strcmp(mode, "w") == 0) || (strcmp(mode, "a") == 0)) &&
+      !is_path_dir(path)) {
+    if ((ctx->relative_to_managed_path &&
+         (strncmp(path, DYAD_PATH_DELIM, ctx->delim_len) != 0)) ||
+        cmp_canonical_path_prefix(ctx, true, path, upath, PATH_MAX)) {
+      int fd = fileno(fh);
+      struct flock exclusive_lock;
+      dyad_rc_t rc = dyad_excl_flock(ctx, fd, &exclusive_lock);
+      if (DYAD_IS_ERROR(rc)) {
+        dyad_release_flock(ctx, fd, &exclusive_lock);
+      }
     }
+  }
+  DYAD_C_FUNCTION_END();
+  return fh;
+}
 
-    if ((fd < 0) || (ctx == NULL) || (ctx->h == NULL) || !ctx->reenter) {
+DYAD_DLL_EXPORTED int close(int fd) {
+  DYAD_C_FUNCTION_START();
+  DYAD_C_FUNCTION_UPDATE_INT("fd", fd);
+  bool to_sync = false;
+  char *error = NULL;
+  typedef int (*close_ptr_t)(int);
+  close_ptr_t func_ptr = NULL;
+  char path[PATH_MAX + 1] = {'\0'};
+  int rc = 0;
+
+  // func_ptr = (close_ptr_t)dlsym (RTLD_NEXT, "close");
+  *(void **)&func_ptr = dlsym(RTLD_NEXT, "close");
+  if ((error = dlerror())) {
+    DPRINTF(ctx, "DYAD_SYNC: error in dlsym: %s\n", error);
+    DYAD_C_FUNCTION_END();
+    return -1; // return the failure code
+  }
+
+  if ((fd < 0) || (ctx == NULL) || (ctx->h == NULL) || !ctx->reenter) {
 #if defined(IPRINTF_DEFINED)
-        if (ctx == NULL) {
-            IPRINTF (ctx, "DYAD_SYNC: close sync not applicable. (no context)\n");
-        } else if (ctx->h == NULL) {
-            IPRINTF (ctx, "DYAD_SYNC: close sync not applicable. (no flux)\n");
-        } else if (!ctx->reenter) {
-            IPRINTF (ctx, "DYAD_SYNC: close sync not applicable. (no reenter)\n");
-        } else if (fd >= 0) {
-            IPRINTF (ctx,
-                     "DYAD_SYNC: close sync not applicable. (invalid file "
-                     "descriptor)\n");
-        }
-#endif  // defined(IPRINTF_DEFINED)
-        to_sync = false;
-        goto real_call;
+    if (ctx == NULL) {
+      IPRINTF(ctx, "DYAD_SYNC: close sync not applicable. (no context)\n");
+    } else if (ctx->h == NULL) {
+      IPRINTF(ctx, "DYAD_SYNC: close sync not applicable. (no flux)\n");
+    } else if (!ctx->reenter) {
+      IPRINTF(ctx, "DYAD_SYNC: close sync not applicable. (no reenter)\n");
+    } else if (fd >= 0) {
+      IPRINTF(ctx, "DYAD_SYNC: close sync not applicable. (invalid file "
+                   "descriptor)\n");
     }
+#endif // defined(IPRINTF_DEFINED)
+    to_sync = false;
+    goto real_call;
+  }
 
-    if (is_fd_dir (fd)) {
-        // TODO: make sure if the directory mode is consistent
-        goto real_call;
-    }
+  if (is_fd_dir(fd)) {
+    // TODO: make sure if the directory mode is consistent
+    goto real_call;
+  }
 
-    if (get_path (fd, PATH_MAX - 1, path) < 0) {
-        DYAD_LOG_DEBUG (ctx, "DYAD_SYNC: unable to obtain file path from a descriptor.\n");
-        to_sync = false;
-        goto real_call;
-    }
+  if (get_path(fd, PATH_MAX - 1, path) < 0) {
+    DYAD_LOG_DEBUG(
+        ctx, "DYAD_SYNC: unable to obtain file path from a descriptor.\n");
+    to_sync = false;
+    goto real_call;
+  }
 
-    to_sync = true;
+  to_sync = true;
 
-real_call:;  // semicolon here to avoid the error
-    // "a label can only be part of a statement and a declaration is not a
-    // statement"
+real_call:; // semicolon here to avoid the error
+  // "a label can only be part of a statement and a declaration is not a
+  // statement"
 
-    int wronly = is_wronly (fd);
+  int wronly = is_wronly(fd);
 
-    if (wronly == -1) {
-        DPRINTF (ctx, "Failed to check the mode of the file with fcntl: %s\n", strerror (errno));
-    }
+  if (wronly == -1) {
+    DPRINTF(ctx, "Failed to check the mode of the file with fcntl: %s\n",
+            strerror(errno));
+  }
 
-    if (to_sync && wronly == 1) {
-        if (ctx->fsync_write) {
-            fsync (fd);
+  if (to_sync && wronly == 1) {
+    if (ctx->fsync_write) {
+      fsync(fd);
 
 #if DYAD_SYNC_DIR
-            dyad_sync_directory (ctx, path);
-#endif  // DYAD_SYNC_DIR
-        }
-
-        struct flock exclusive_lock;
-        dyad_release_flock (ctx, fd, &exclusive_lock);
-        rc = func_ptr (fd);
-        if (rc != 0) {
-            DPRINTF (ctx, "Failed close (\"%s\").: %s\n", path, strerror (errno));
-        }
-        IPRINTF (ctx, "DYAD_SYNC: enters close sync (\"%s\").\n", path);
-        if (DYAD_IS_ERROR (dyad_produce (ctx_mutable, path))) {
-            DPRINTF (ctx, "DYAD_SYNC: failed close sync (\"%s\").\n", path);
-        }
-        IPRINTF (ctx, "DYAD_SYNC: exits close sync (\"%s\").\n", path);
-    } else {
-        rc = func_ptr (fd);
+      dyad_sync_directory(ctx, path);
+#endif // DYAD_SYNC_DIR
     }
-    DYAD_C_FUNCTION_END ();
-    return rc;
+
+    struct flock exclusive_lock;
+    dyad_release_flock(ctx, fd, &exclusive_lock);
+    rc = func_ptr(fd);
+    if (rc != 0) {
+      DPRINTF(ctx, "Failed close (\"%s\").: %s\n", path, strerror(errno));
+    }
+    IPRINTF(ctx, "DYAD_SYNC: enters close sync (\"%s\").\n", path);
+    if (DYAD_IS_ERROR(dyad_produce(ctx_mutable, path))) {
+      DPRINTF(ctx, "DYAD_SYNC: failed close sync (\"%s\").\n", path);
+    }
+    IPRINTF(ctx, "DYAD_SYNC: exits close sync (\"%s\").\n", path);
+  } else {
+    rc = func_ptr(fd);
+  }
+  DYAD_C_FUNCTION_END();
+  return rc;
 }
 
-DYAD_DLL_EXPORTED int fclose (FILE *fp)
-{
-    DYAD_C_FUNCTION_START ();
-    bool to_sync = false;
-    char *error = NULL;
-    typedef int (*fclose_ptr_t) (FILE *);
-    fclose_ptr_t func_ptr = NULL;
-    char path[PATH_MAX + 1] = {'\0'};
-    int rc = 0;
-    int fd = 0;
+DYAD_DLL_EXPORTED int fclose(FILE *fp) {
+  DYAD_C_FUNCTION_START();
+  bool to_sync = false;
+  char *error = NULL;
+  typedef int (*fclose_ptr_t)(FILE *);
+  fclose_ptr_t func_ptr = NULL;
+  char path[PATH_MAX + 1] = {'\0'};
+  int rc = 0;
+  int fd = 0;
 
-    // func_ptr = (fclose_ptr_t)dlsym (RTLD_NEXT, "fclose");
-    *(void **)&func_ptr = dlsym (RTLD_NEXT, "fclose");
-    if ((error = dlerror ())) {
-        DYAD_LOG_DEBUG (ctx, "DYAD_SYNC: error in dlsym: %s\n", error);
-        DYAD_C_FUNCTION_END ();
-        return EOF;  // return the failure code
-    }
+  // func_ptr = (fclose_ptr_t)dlsym (RTLD_NEXT, "fclose");
+  *(void **)&func_ptr = dlsym(RTLD_NEXT, "fclose");
+  if ((error = dlerror())) {
+    DYAD_LOG_DEBUG(ctx, "DYAD_SYNC: error in dlsym: %s\n", error);
+    DYAD_C_FUNCTION_END();
+    return EOF; // return the failure code
+  }
 
-    if ((fp == NULL) || (ctx == NULL) || (ctx->h == NULL) || !ctx->reenter) {
+  if ((fp == NULL) || (ctx == NULL) || (ctx->h == NULL) || !ctx->reenter) {
 #if defined(IPRINTF_DEFINED)
-        if (ctx == NULL) {
-            IPRINTF (ctx, "DYAD_SYNC: fclose sync not applicable. (no context)\n");
-        } else if (ctx->h == NULL) {
-            IPRINTF (ctx, "DYAD_SYNC: fclose sync not applicable. (no flux)\n");
-        } else if (!ctx->reenter) {
-            IPRINTF (ctx, "DYAD_SYNC: fclose sync not applicable. (no reenter)\n");
-        } else if (fp == NULL) {
-            IPRINTF (ctx,
-                     "DYAD_SYNC: fclose sync not applicable. (invalid file "
-                     "pointer)\n");
-        }
-#endif  // defined(IPRINTF_DEFINED)
-        to_sync = false;
-        goto real_call;
+    if (ctx == NULL) {
+      IPRINTF(ctx, "DYAD_SYNC: fclose sync not applicable. (no context)\n");
+    } else if (ctx->h == NULL) {
+      IPRINTF(ctx, "DYAD_SYNC: fclose sync not applicable. (no flux)\n");
+    } else if (!ctx->reenter) {
+      IPRINTF(ctx, "DYAD_SYNC: fclose sync not applicable. (no reenter)\n");
+    } else if (fp == NULL) {
+      IPRINTF(ctx, "DYAD_SYNC: fclose sync not applicable. (invalid file "
+                   "pointer)\n");
     }
+#endif // defined(IPRINTF_DEFINED)
+    to_sync = false;
+    goto real_call;
+  }
 
-    if (is_fd_dir (fileno (fp))) {
-        // TODO: make sure if the directory mode is consistent
-        goto real_call;
-    }
+  if (is_fd_dir(fileno(fp))) {
+    // TODO: make sure if the directory mode is consistent
+    goto real_call;
+  }
 
-    if (get_path (fileno (fp), PATH_MAX - 1, path) < 0) {
-        DYAD_LOG_DEBUG (ctx, "DYAD_SYNC: unable to obtain file path from a descriptor.\n");
-        to_sync = false;
-        goto real_call;
-    }
+  if (get_path(fileno(fp), PATH_MAX - 1, path) < 0) {
+    DYAD_LOG_DEBUG(
+        ctx, "DYAD_SYNC: unable to obtain file path from a descriptor.\n");
+    to_sync = false;
+    goto real_call;
+  }
 
-    to_sync = true;
+  to_sync = true;
 
 real_call:;
-    fd = fileno (fp);
+  fd = fileno(fp);
 
-    int wronly = is_wronly (fd);
+  int wronly = is_wronly(fd);
 
-    if (wronly == -1) {
-        DPRINTF (ctx, "Failed to check the mode of the file with fcntl: %s\n", strerror (errno));
-    }
+  if (wronly == -1) {
+    DPRINTF(ctx, "Failed to check the mode of the file with fcntl: %s\n",
+            strerror(errno));
+  }
 
-    if (to_sync && wronly == 1) {
-        if (ctx->fsync_write) {
-            fflush (fp);
-            fsync (fd);
+  if (to_sync && wronly == 1) {
+    if (ctx->fsync_write) {
+      fflush(fp);
+      fsync(fd);
 #if DYAD_SYNC_DIR
-            dyad_sync_directory (ctx, path);
-#endif  // DYAD_SYNC_DIR
-        }
-
-        struct flock exclusive_lock;
-        dyad_release_flock (ctx, fd, &exclusive_lock);
-        rc = func_ptr (fp);
-        if (rc != 0) {
-            DPRINTF (ctx, "Failed fclose (\"%s\").\n", path);
-        }
-        IPRINTF (ctx, "DYAD_SYNC: enters fclose sync (\"%s\").\n", path);
-        if (DYAD_IS_ERROR (dyad_produce (ctx_mutable, path))) {
-            DPRINTF (ctx, "DYAD_SYNC: failed fclose sync (\"%s\").\n", path);
-        }
-        IPRINTF (ctx, "DYAD_SYNC: exits fclose sync (\"%s\").\n", path);
-    } else {
-        rc = func_ptr (fp);
+      dyad_sync_directory(ctx, path);
+#endif // DYAD_SYNC_DIR
     }
-    DYAD_C_FUNCTION_END ();
-    return rc;
+
+    struct flock exclusive_lock;
+    dyad_release_flock(ctx, fd, &exclusive_lock);
+    rc = func_ptr(fp);
+    if (rc != 0) {
+      DPRINTF(ctx, "Failed fclose (\"%s\").\n", path);
+    }
+    IPRINTF(ctx, "DYAD_SYNC: enters fclose sync (\"%s\").\n", path);
+    if (DYAD_IS_ERROR(dyad_produce(ctx_mutable, path))) {
+      DPRINTF(ctx, "DYAD_SYNC: failed fclose sync (\"%s\").\n", path);
+    }
+    IPRINTF(ctx, "DYAD_SYNC: exits fclose sync (\"%s\").\n", path);
+  } else {
+    rc = func_ptr(fp);
+  }
+  DYAD_C_FUNCTION_END();
+  return rc;
 }
 
 #ifdef __cplusplus
