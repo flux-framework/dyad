@@ -57,6 +57,7 @@ set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${CMAKE_BINARY_DIR} ${CMAKE_INSTALL_P
 # This sets where to look for dependent library's cmake files
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_BINARY_DIR}/lib/cmake)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_BINARY_DIR}/lib64/cmake)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_BINARY_DIR}/share/cmake)
 
 #------------------------------------------------------------------------------
@@ -288,47 +289,9 @@ include_directories(${CMAKE_SOURCE_DIR}/include)  # public header
 add_subdirectory(src/dyad)
 #cmake_policy(SET CMP0079 NEW) # In case that we need more control over the target building order
 
-
-#-----------------------------------------------------------------------------
-# Configure the config.cmake file for the build directory
-#-----------------------------------------------------------------------------
-# configure_file(
-#         ${CMAKE_CURRENT_SOURCE_DIR}/CMake/${PROJECT_NAME}-config.cmake.build.in
-#         ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake/${PROJECT_NAME}/${PROJECT_NAME}-config.cmake @ONLY
-# )
-# 
-# configure_file(
-#         ${CMAKE_CURRENT_SOURCE_DIR}/CMake/${PROJECT_NAME}-config.cmake.install.in
-#         ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake/${PROJECT_NAME}/install/${PROJECT_NAME}-config.cmake @ONLY
-# )
-# install(
-#         FILES
-#         ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake/${PROJECT_NAME}/install/${PROJECT_NAME}-config.cmake
-#         DESTINATION
-#         ${DYAD_LIBDIR}/cmake/${PROJECT_NAME}
-# )
-#-----------------------------------------------------------------------------
-# Configure the ${PROJECT_NAME}-config-version .cmake file for the install directory
-#-----------------------------------------------------------------------------
-# configure_file(
-#         ${CMAKE_CURRENT_SOURCE_DIR}/CMake/${PROJECT_NAME}-config-version.cmake.in
-#         ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake/${PROJECT_NAME}/${PROJECT_NAME}-config-version.cmake @ONLY
-# )
-# 
-# install(
-#         FILES
-#         ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake/${PROJECT_NAME}/${PROJECT_NAME}-config-version.cmake
-#         DESTINATION
-#         ${DYAD_LIBDIR}/cmake/${PROJECT_NAME}
-# )
-# 
-# export(EXPORT ${DYAD_EXPORTED_TARGETS}
-#         FILE "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/cmake/${PROJECT_NAME}/${PROJECT_NAME}Targets.cmake")
-
 # Write the configure file
 configure_file("${CMAKE_SOURCE_DIR}/cmake/configure_files/dyad_config.hpp.in"
                "${CMAKE_INCLUDE_OUTPUT_DIRECTORY}/dyad/dyad_config.hpp" @ONLY)
-
 
 ################################################################
 # Install DYAD
@@ -348,21 +311,7 @@ write_basic_package_version_file(
 file(COPY ${DYAD_BUILD_CMAKE_DIR}/DYADConfigVersion.cmake
   DESTINATION ${DYAD_INSTALL_TMP_CMAKE_DIR})
 
-#...........................................
-# TODO: There are two different places where cmake config is handled currently.
-# Need to clean up and merge
-
-# if (WIP_package_config)
 # This is for the build tree
-#set(INCLUDE_INSTALL_DIRS
-#  "${CMAKE_SOURCE_DIR}/src/dyad/common"
-#  "${CMAKE_SOURCE_DIR}/src/dyad/core"
-#  "${CMAKE_SOURCE_DIR}/src/dyad/dtl"
-#  "${CMAKE_SOURCE_DIR}/src/dyad/module"
-#  "${CMAKE_SOURCE_DIR}/src/dyad/wrapper"
-#  "${CMAKE_SOURCE_DIR}/src/dyad/utils"
-#  "${CMAKE_SOURCE_DIR}/src/dyad/utils/base64")
-#  "${CMAKE_SOURCE_DIR}/include/dyad/stream")
 set(EXTRA_CMAKE_MODULE_DIR "${CMAKE_SOURCE_DIR}/cmake/modules")
 set(INCLUDE_INSTALL_DIRS ${CMAKE_INCLUDE_OUTPUT_DIRECTORY})
 set(LIB_INSTALL_DIR ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
@@ -394,21 +343,11 @@ install(DIRECTORY "${DYAD_INSTALL_TMP_CMAKE_DIR}/" # Trailing slash ensures dire
 install(DIRECTORY cmake/modules
         DESTINATION "${DYAD_INSTALL_CMAKE_DIR}"
         FILES_MATCHING PATTERN "*.cmake")
-# endif (WIP_package_config)
-#...........................................
 
 install(FILES
         "${CMAKE_INCLUDE_OUTPUT_DIRECTORY}/dyad/dyad_config.hpp"
         DESTINATION
         ${DYAD_INSTALL_INCLUDEDIR}/dyad)
-
-# install(EXPORT
-#         ${DYAD_EXPORTED_TARGETS}
-#         DESTINATION
-#         ${DYAD_LIBDIR}/cmake/${PROJECT_NAME}
-#         FILE
-#         ${DYAD_EXPORTED_TARGETS}.cmake
-#         )
 
 # Install license and readme
 install(FILES

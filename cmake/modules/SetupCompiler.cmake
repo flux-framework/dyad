@@ -119,25 +119,6 @@ macro(dyad_add_werror_if_needed target)
   endif()
 endmacro(dyad_add_werror_if_needed target)
 
-# if (DYAD_WARNINGS_AS_ERRORS)
-#   dyad_add_cxx_flags(_WERROR_FLAGS -Werror)
-#   separate_arguments(_WERROR_FLAGS NATIVE_COMMAND "${_WERROR_FLAGS}")
-#   if (NOT TARGET DYAD_CXX_FLAGS_werror)
-#     add_library(DYAD_CXX_FLAGS_werror INTERFACE)
-#     set_property(TARGET DYAD_CXX_FLAGS_werror PROPERTY
-#       INTERFACE_COMPILE_OPTIONS $<$<COMPILE_LANGUAGE:CXX>:${_WERROR_FLAGS}>)
-# 
-#     add_library(DYAD_C_FLAGS_werror INTERFACE)
-#     set_property(TARGET DYAD_C_FLAGS_werror PROPERTY
-#       INTERFACE_COMPILE_OPTIONS $<$<COMPILE_LANGUAGE:C>:${_WERROR_FLAGS}>)
-# 
-#     # Add the "library" to the export
-#     install(TARGETS DYAD_C_FLAGS_werror EXPORT ${DYAD_EXPORTED_TARGETS})
-#     install(TARGETS DYAD_CXX_FLAGS_werror EXPORT ${DYAD_EXPORTED_TARGETS})
-#   endif ()
-# endif ()
-
-
 ################################################################
 # Handle compiler dependent behaviors
 ################################################################
