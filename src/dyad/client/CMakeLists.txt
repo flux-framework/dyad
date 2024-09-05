@@ -9,6 +9,7 @@ set(DYAD_CLIENT_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_loggi
 set(DYAD_CLIENT_PUBLIC_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dyad/common/dyad_rc.h
                              ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dyad/common/dyad_dtl.h
                              ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dyad/common/dyad_envs.h
+                             ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dyad/common/dyad_structures.h
                              ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dyad/client/dyad_client.h)
 
 add_library(${PROJECT_NAME}_client SHARED ${DYAD_CLIENT_SRC}
