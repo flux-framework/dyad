@@ -7,8 +7,8 @@ set(DYAD_WRAPPER_PUBLIC_HEADERS)
 
 add_library(${PROJECT_NAME}_wrapper SHARED ${DYAD_WRAPPER_SRC}
             ${DYAD_WRAPPER_PRIVATE_HEADERS} ${DYAD_WRAPPER_PUBLIC_HEADERS})
-set_target_properties(${PROJECT_NAME}_wrapper PROPERTIES CMAKE_INSTALL_RPATH
-                      "${DYAD_INSTALL_LIBDIR}")
+# set_target_properties(${PROJECT_NAME}_wrapper PROPERTIES CMAKE_INSTALL_RPATH
+#                       "${DYAD_INSTALL_LIBDIR}")
 target_link_libraries(${PROJECT_NAME}_wrapper PRIVATE ${PROJECT_NAME}_ctx ${PROJECT_NAME}_core)
 target_link_libraries(${PROJECT_NAME}_wrapper PRIVATE ${PROJECT_NAME}_utils flux::core)
 target_compile_definitions(${PROJECT_NAME}_wrapper PUBLIC BUILDING_DYAD=1)

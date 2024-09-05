@@ -13,8 +13,8 @@ set(DYAD_MURMUR3_PUBLIC_HEADERS)
 
 add_library(${PROJECT_NAME}_utils SHARED ${DYAD_UTILS_SRC}
             ${DYAD_UTILS_PRIVATE_HEADERS} ${DYAD_UTILS_PUBLIC_HEADERS})
-set_target_properties(${PROJECT_NAME}_utils PROPERTIES CMAKE_INSTALL_RPATH
-                      "${DYAD_INSTALL_LIBDIR}")
+# set_target_properties(${PROJECT_NAME}_utils PROPERTIES CMAKE_INSTALL_RPATH
+#                       "${DYAD_INSTALL_LIBDIR}")
 target_link_libraries(${PROJECT_NAME}_utils PUBLIC
                       ${PROJECT_NAME}_base64
                       ${PROJECT_NAME}_murmur3)
@@ -32,8 +32,8 @@ target_include_directories(${PROJECT_NAME}_utils PUBLIC
     $<INSTALL_INTERFACE:${DYAD_INSTALL_INCLUDEDIR}>)
 
 add_library(${PROJECT_NAME}_murmur3 SHARED ${DYAD_MURMUR3_SRC})
-set_target_properties(${PROJECT_NAME}_murmur3 PROPERTIES CMAKE_INSTALL_RPATH
-                      "${DYAD_INSTALL_LIBDIR}")
+# set_target_properties(${PROJECT_NAME}_murmur3 PROPERTIES CMAKE_INSTALL_RPATH
+#                       "${DYAD_INSTALL_LIBDIR}")
 
 add_executable(test_cmp_canonical_path_prefix test_cmp_canonical_path_prefix.c
                ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_structures.h)

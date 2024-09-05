@@ -11,8 +11,8 @@ set(DYAD_FSTREAM_PUBLIC_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dya
 
 add_library(${PROJECT_NAME}_fstream SHARED ${DYAD_FSTREAM_SRC}
             ${DYAD_FSTREAM_PRIVATE_HEADERS} ${DYAD_FSTREAM_PUBLIC_HEADERS})
-set_target_properties(${PROJECT_NAME}_fstream PROPERTIES CMAKE_INSTALL_RPATH
-                      "${DYAD_INSTALL_LIBDIR}")
+# set_target_properties(${PROJECT_NAME}_fstream PROPERTIES CMAKE_INSTALL_RPATH
+#                       "${DYAD_INSTALL_LIBDIR}")
 target_compile_features(${PROJECT_NAME}_fstream PRIVATE)
 target_link_libraries(${PROJECT_NAME}_fstream PRIVATE ${PROJECT_NAME}_ctx ${PROJECT_NAME}_core
                                                       ${PROJECT_NAME}_utils flux::core)
