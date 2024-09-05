@@ -14,8 +14,6 @@ set(DYAD_MODULE_PUBLIC_HEADERS)
 add_library(${PROJECT_NAME} SHARED ${DYAD_MODULE_SRC}
             ${DYAD_MODULE_PRIVATE_HEADERS} ${DYAD_MODULE_PUBLIC_HEADERS})
 set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
-# set_target_properties(${PROJECT_NAME} PROPERTIES CMAKE_INSTALL_RPATH
-#                       "${DYAD_INSTALL_LIBDIR}")
 target_link_libraries(${PROJECT_NAME} PRIVATE Jansson::Jansson)
 target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_dtl)
 target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_ctx)
