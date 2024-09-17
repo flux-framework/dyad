@@ -285,6 +285,25 @@ include_directories(${CMAKE_SOURCE_DIR}/include)  # public header
 add_subdirectory(src/dyad)
 #cmake_policy(SET CMP0079 NEW) # In case that we need more control over the target building order
 
+if (DEFINED BOOST_ROOT)
+    message(STATUS "BOOST_ROOT: " ${BOOST_ROOT})
+    set(Boost_NO_SYSTEM_PATHS ON)
+else ()
+    if (DEFINED ENV{BOOST_ROOT})
+        message(STATUS "ENV BOOST_ROOT: " $ENV{BOOST_ROOT})
+        set(Boost_NO_SYSTEM_PATHS ON)
+    endif ()
+endif ()
+
+# boost::multi_index is needed and is header-only
+find_package(Boost
+    #         HINTS ${BOOST_ROOT} $ENV{BOOST_ROOT}
+             REQUIRED COMPONENTS)
+    #         regex filesystem system program_options)
+
+message(STATUS "Boost_INCLUDE_DIRS: " ${Boost_INCLUDE_DIRS})
+message(STATUS "Boost_LIBRARY_DIRS: " ${Boost_LIBRARY_DIRS})
+
 
 #-----------------------------------------------------------------------------
 # Configure the config.cmake file for the build directory

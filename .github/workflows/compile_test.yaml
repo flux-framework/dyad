@@ -65,7 +65,8 @@ jobs:
                               lz4 \
                               pkgconf \
                               libzmq5 \
-                              sqlite
+                              sqlite \
+                              libboost-all-dev
           sudo pip install jsonschema cffi ply pyyaml
           sudo chmod 777 /usr -R
       - name: Install Spack
@@ -194,6 +195,11 @@ jobs:
               buildable: False
               externals:
                 - spec: "pkg-config@0.29.1"
+                  prefix: /usr
+            boost:
+              buildable: False
+              externals:
+                - spec: "boost@1.71.0"
                   prefix: /usr
             gcc:
               externals:
