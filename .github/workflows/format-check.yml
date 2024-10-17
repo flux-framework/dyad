@@ -2,9 +2,9 @@ name: Check code formatting
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
 
 jobs:
   cpp-format-check:

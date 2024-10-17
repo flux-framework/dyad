@@ -46,8 +46,14 @@ cd ..
 
 echo "Check formatting of C/C++ code in 'src'"
 find src -name "*.c" -or -name "*.cpp" -or -name "*.h" -or -name "*.hpp" | xargs $clang_format_exe --dry-run -Werror
+src_check_rc=$?
 
 echo "Check formatting of C/C++ code in 'include'"
 find include -name "*.c" -or -name "*.cpp" -or -name "*.h" -or -name "*.hpp" | xargs $clang_format_exe --dry-run -Werror
+include_check_rc=$?
 
 cd $curr_dir
+
+if [ $src_check_rc -ne 0 ] || [ $include_check_rc -ne 0 ]; then
+    exit 2
+fi
