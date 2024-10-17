@@ -24,8 +24,6 @@ RUN adduser \
 COPY --chown=${LOCAL_USER} --chmod=777 ./scripts /home/jovyan/
 COPY --chown=${LOCAL_USER} --chmod=666 ./src /home/jovyan/
 COPY --chown=${LOCAL_USER} --chmod=666 ./include /home/jovyan/
-COPY --chown=${LOCAL_USER} --chmod=666 ./examples /home/jovyan/
-COPY --chown=${LOCAL_USER} --chmod=666 ./test /home/jovyan/
 
 USER ${LOCAL_USER}
 
