@@ -14,18 +14,6 @@
 #error "no config"
 #endif
 
-// #include <dyad/core/dyad_core.h>
-#include <dyad/common/dyad_dtl.h>
-#include <dyad/common/dyad_envs.h>
-#include <dyad/common/dyad_logging.h>
-#include <dyad/common/dyad_profiler.h>
-#include <dyad/common/dyad_rc.h>
-#include <dyad/common/dyad_structures.h>
-#include <dyad/core/dyad_ctx.h>
-#include <dyad/dtl/dyad_dtl_api.h>
-#include <dyad/utils/read_all.h>
-#include <dyad/utils/utils.h>
-
 #if defined(__cplusplus)
 #include <cerrno>
 #include <cstddef>
@@ -48,6 +36,18 @@
 #include <linux/limits.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+// #include <dyad/core/dyad_core.h>
+#include <dyad/common/dyad_dtl.h>
+#include <dyad/common/dyad_envs.h>
+#include <dyad/common/dyad_logging.h>
+#include <dyad/common/dyad_profiler.h>
+#include <dyad/common/dyad_rc.h>
+#include <dyad/common/dyad_structures.h>
+#include <dyad/core/dyad_ctx.h>
+#include <dyad/dtl/dyad_dtl_api.h>
+#include <dyad/utils/read_all.h>
+#include <dyad/utils/utils.h>
 
 #define TIME_DIFF(Tstart, Tend)                                                                    \
     ((double)(1000000000L * ((Tend).tv_sec - (Tstart).tv_sec) + (Tend).tv_nsec - (Tstart).tv_nsec) \
@@ -197,7 +197,11 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
         inlen = read (fd, inbuf, file_size);
 #endif
         if (inlen != file_size) {
-            DYAD_LOG_ERROR (mod_ctx->ctx, "DYAD_MOD: Failed to load file \"%s\" only read %zd of %zd.", fullpath, inlen, file_size);
+            DYAD_LOG_ERROR (mod_ctx->ctx,
+                            "DYAD_MOD: Failed to load file \"%s\" only read %zd of %zd.",
+                            fullpath,
+                            inlen,
+                            file_size);
             goto fetch_error;
         }
 #ifdef DYAD_ENABLE_UCX_RMA
@@ -230,7 +234,9 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
     }
     DYAD_LOG_DEBUG (mod_ctx->ctx, "Close RPC message stream with an ENODATA (%d) message", ENODATA);
     if (flux_respond_error (h, msg, ENODATA, NULL) < 0) {
-        DYAD_LOG_ERROR (mod_ctx->ctx, "DYAD_MOD: %s: flux_respond_error with ENODATA failed\n", __func__);
+        DYAD_LOG_ERROR (mod_ctx->ctx,
+                        "DYAD_MOD: %s: flux_respond_error with ENODATA failed\n",
+                        __func__);
     }
     DYAD_LOG_INFO (mod_ctx->ctx, "Finished %s module invocation\n", DYAD_DTL_RPC_NAME);
     goto end_fetch_cb;
@@ -351,8 +357,10 @@ static int opt_parse (opt_parse_out_t *restrict opt,
                 // mode as the option, then skip reinitializing
                 DYAD_LOG_STDERR ("DYAD_MOD: DTL 'mode' option -m with value `%s'\n", optarg);
                 opt->dtl_mode = optarg;
-                if (strcmp("UCX", optarg) == 0) *dtl_mode = DYAD_DTL_UCX;
-                else if (strcmp("FLUX_RPC", optarg) == 0) *dtl_mode = DYAD_DTL_FLUX_RPC;
+                if (strcmp ("UCX", optarg) == 0)
+                    *dtl_mode = DYAD_DTL_UCX;
+                else if (strcmp ("FLUX_RPC", optarg) == 0)
+                    *dtl_mode = DYAD_DTL_FLUX_RPC;
                 break;
             case 'i':
 #ifndef DYAD_LOGGER_NO_LOG
@@ -423,12 +431,12 @@ dyad_rc_t dyad_module_ctx_init (const opt_parse_out_t *opt, flux_t *h)
             DYAD_DTL_MODE_ENV,
             getenv (DYAD_DTL_MODE_ENV));
     }
-    char* kvs = getenv("DYAD_KVS_NAMESPACE");
+    char *kvs = getenv ("DYAD_KVS_NAMESPACE");
     if (kvs != NULL) {
-       DYAD_LOG_STDERR ("DYAD_MOD: DYAD_KVS_NAMESPACE is set to `%s'\n", kvs);
+        DYAD_LOG_STDERR ("DYAD_MOD: DYAD_KVS_NAMESPACE is set to `%s'\n", kvs);
     } else {
         DYAD_LOG_STDERR ("DYAD_MOD: DYAD_KVS_NAMESPACE is not set\n");
-    }    
+    }
     dyad_ctx_init (DYAD_COMM_SEND, h);
     mod_ctx->ctx = dyad_ctx_get ();
     dyad_ctx_t *ctx = mod_ctx->ctx;

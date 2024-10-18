@@ -4,27 +4,27 @@
 #error "no config"
 #endif
 
-#include <dyad/dtl/dyad_dtl_api.h>
-#include <dyad/dtl/flux_dtl.h>
 #include <dyad/common/dyad_logging.h>
 #include <dyad/common/dyad_profiler.h>
+#include <dyad/dtl/dyad_dtl_api.h>
+#include <dyad/dtl/flux_dtl.h>
 
 #if DYAD_ENABLE_UCX_DTL || DYAD_ENABLE_UCX_RMA
 #include "ucx_dtl.h"
-#endif // DYAD_ENABLE_UCX_DTL || DYAD_ENABLE_UCX_RMA
+#endif  // DYAD_ENABLE_UCX_DTL || DYAD_ENABLE_UCX_RMA
 
 dyad_rc_t dyad_dtl_init (dyad_ctx_t* ctx,
                          dyad_dtl_mode_t mode,
                          dyad_dtl_comm_mode_t comm_mode,
                          bool debug)
 {
-    DYAD_C_FUNCTION_START();
-    DYAD_LOG_DEBUG(ctx, "Initializing DTL ...");
+    DYAD_C_FUNCTION_START ();
+    DYAD_LOG_DEBUG (ctx, "Initializing DTL ...");
     dyad_rc_t rc = DYAD_RC_OK;
     ctx->dtl_handle = malloc (sizeof (struct dyad_dtl));
     if (ctx->dtl_handle == NULL) {
         rc = DYAD_RC_SYSFAIL;
-        DYAD_LOG_ERROR(ctx, "Cannot allocate Memory");
+        DYAD_LOG_ERROR (ctx, "Cannot allocate Memory");
         goto dtl_init_done;
     }
     ctx->dtl_handle->mode = mode;
@@ -36,9 +36,9 @@ dyad_rc_t dyad_dtl_init (dyad_ctx_t* ctx,
             goto dtl_init_done;
         }
     } else if (mode == DYAD_DTL_FLUX_RPC) {
-#else  // DYAD_ENABLE_UCX_DTL || DYAD_ENABLE_UCX_RMA
+#else   // DYAD_ENABLE_UCX_DTL || DYAD_ENABLE_UCX_RMA
     if (mode == DYAD_DTL_FLUX_RPC) {
-#endif // DYAD_ENABLE_UCX_DTL || DYAD_ENABLE_UCX_RMA
+#endif  // DYAD_ENABLE_UCX_DTL || DYAD_ENABLE_UCX_RMA
         rc = dyad_dtl_flux_init (ctx, mode, comm_mode, debug);
         if (DYAD_IS_ERROR (rc)) {
             DYAD_LOG_ERROR (ctx, "dyad_dtl_flux_init initialization failed rc %d", rc);
@@ -46,19 +46,21 @@ dyad_rc_t dyad_dtl_init (dyad_ctx_t* ctx,
         }
     } else {
         rc = DYAD_RC_BADDTLMODE;
-        DYAD_LOG_ERROR (ctx, "dyad_dtl_flux_init initialization failed with incorrect mode %d", mode);
+        DYAD_LOG_ERROR (ctx,
+                        "dyad_dtl_flux_init initialization failed with incorrect mode %d",
+                        mode);
         goto dtl_init_done;
     }
     rc = DYAD_RC_OK;
     DYAD_LOG_DEBUG (ctx, "Finished dyad_dtl_init successfully");
 dtl_init_done:;
-     DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 
 dyad_rc_t dyad_dtl_finalize (dyad_ctx_t* ctx)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     dyad_rc_t rc = DYAD_RC_OK;
     if (ctx->dtl_handle == NULL) {
         // We should only reach this line if the user has passed
@@ -77,9 +79,9 @@ dyad_rc_t dyad_dtl_finalize (dyad_ctx_t* ctx)
             }
         }
     } else if ((ctx->dtl_handle)->mode == DYAD_DTL_FLUX_RPC) {
-#else  // DYAD_ENABLE_UCX_DTL || DYAD_ENABLE_UCX_RMA
+#else   // DYAD_ENABLE_UCX_DTL || DYAD_ENABLE_UCX_RMA
     if ((ctx->dtl_handle)->mode == DYAD_DTL_FLUX_RPC) {
-#endif // DYAD_ENABLE_UCX_DTL || DYAD_ENABLE_UCX_RMA
+#endif  // DYAD_ENABLE_UCX_DTL || DYAD_ENABLE_UCX_RMA
         if ((ctx->dtl_handle)->private_dtl.flux_dtl_handle != NULL) {
             rc = dyad_dtl_flux_finalize (ctx);
             if (DYAD_IS_ERROR (rc)) {
@@ -95,6 +97,6 @@ dyad_rc_t dyad_dtl_finalize (dyad_ctx_t* ctx)
 dtl_finalize_done:;
     free (ctx->dtl_handle);
     ctx->dtl_handle = NULL;
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }

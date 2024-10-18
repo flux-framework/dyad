@@ -24,18 +24,18 @@
 #if defined(__cplusplus)
 // #include <cstdbool> // c++11
 #include <cstddef>
-#include <cstdio>
 #include <cstdint>
+#include <cstdio>
 #else
 #include <stdbool.h>
 #include <stddef.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 #endif  // defined(__cplusplus)
-
 #include <fcntl.h>
-#include <dyad/common/dyad_structures.h>
+
 #include <dyad/common/dyad_rc.h>
+#include <dyad/common/dyad_structures.h>
 
 #if defined(__cplusplus)
 extern "C" {
@@ -93,11 +93,14 @@ bool get_stat (const char* path, unsigned int max_retry, long ns_sleep);
 
 ssize_t get_file_size (int fd);
 
-dyad_rc_t dyad_excl_flock (const dyad_ctx_t* __restrict__ ctx, int fd,
+dyad_rc_t dyad_excl_flock (const dyad_ctx_t* __restrict__ ctx,
+                           int fd,
                            struct flock* __restrict__ lock);
-dyad_rc_t dyad_shared_flock (const dyad_ctx_t* __restrict__ ctx, int fd,
+dyad_rc_t dyad_shared_flock (const dyad_ctx_t* __restrict__ ctx,
+                             int fd,
                              struct flock* __restrict__ lock);
-dyad_rc_t dyad_release_flock (const dyad_ctx_t* __restrict__ ctx, int fd,
+dyad_rc_t dyad_release_flock (const dyad_ctx_t* __restrict__ ctx,
+                              int fd,
                               struct flock* __restrict__ lock);
 
 #if DYAD_SYNC_DIR

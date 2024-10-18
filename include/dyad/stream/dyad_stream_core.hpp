@@ -17,9 +17,9 @@
 #error "no config"
 #endif
 
+#include <climits>
 #include <iostream>
 #include <string>
-#include <climits>
 
 #include <dyad/stream/dyad_params.hpp>
 
@@ -52,12 +52,12 @@ class dyad_stream_core
     bool chk_initialized () const;
 
     bool chk_fsync_write () const;
-    bool cmp_canonical_path_prefix (bool is_prod, const char* const __restrict__ path);
+    bool cmp_canonical_path_prefix (bool is_prod, const char *const __restrict__ path);
     std::string get_upath () const;
 
-    int file_lock_exclusive(int fd) const;
-    int file_lock_shared(int fd) const;
-    int file_unlock(int fd) const;
+    int file_lock_exclusive (int fd) const;
+    int file_lock_shared (int fd) const;
+    int file_unlock (int fd) const;
 
    private:
     const dyad_ctx *m_ctx;

@@ -1,8 +1,9 @@
-#include "dyad/utils/murmur3.h"
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 #include <limits.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "dyad/utils/murmur3.h"
 
 static int gen_path_key (const char* restrict str,
                          char* restrict path_key,
@@ -42,7 +43,7 @@ static int gen_path_key (const char* restrict str,
         MurmurHash3_x64_128 (str_long, str_len, seed, hash);
         uint32_t bin = (hash[0] ^ hash[1] ^ hash[2] ^ hash[3]) % width;
         n = snprintf (path_key + cx, len - cx, "%x.", bin);
-        //n = snprintf (path_key + cx, len - cx, "%x%x%x%x.", hash[0], hash[1], hash[2], hash[3]);
+        // n = snprintf (path_key + cx, len - cx, "%x%x%x%x.", hash[0], hash[1], hash[2], hash[3]);
         cx += n;
         if (cx >= len || n < 0) {
             return -1;
@@ -56,7 +57,6 @@ static int gen_path_key (const char* restrict str,
     return 0;
 }
 
-
 int main (int argc, char** argv)
 {
     if (argc < 4) {
@@ -67,9 +67,9 @@ int main (int argc, char** argv)
     int depth = atoi (argv[1]);
     int width = atoi (argv[2]);
     for (int i = 3; i < argc; i++) {
-        char path_key [PATH_MAX + 1] = {'\0'};
+        char path_key[PATH_MAX + 1] = {'\0'};
         gen_path_key (argv[i], path_key, PATH_MAX, depth, width);
-        printf("%s\t%s\n", argv[i], path_key);
+        printf ("%s\t%s\n", argv[i], path_key);
     }
 
     return EXIT_SUCCESS;

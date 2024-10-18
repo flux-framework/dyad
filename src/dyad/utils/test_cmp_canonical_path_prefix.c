@@ -4,12 +4,13 @@
 #error "no config"
 #endif
 
-#include <dyad/common/dyad_structures.h>
-#include <dyad/utils/utils.h>
-#include <stdlib.h>
 #include <limits.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
+
+#include <dyad/common/dyad_structures.h>
+#include <dyad/utils/utils.h>
 
 int main (int argc, char** argv)
 {
@@ -32,7 +33,8 @@ int main (int argc, char** argv)
     }
 
     const size_t prefix_len = strlen (prefix);
-    const size_t can_prefix_len = can_prefix? strlen (can_prefix) : 0u;;
+    const size_t can_prefix_len = can_prefix ? strlen (can_prefix) : 0u;
+    ;
     uint32_t prefix_hash = hash_str (prefix, DYAD_SEED);
     uint32_t can_prefix_hash = hash_str (can_prefix, DYAD_SEED);
 

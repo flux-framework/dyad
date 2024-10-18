@@ -4,34 +4,34 @@
 #error "no config"
 #endif
 
-#include <dyad/dtl/ucx_ep_cache.h>
-#include <dyad/common/dyad_profiler.h>
-#include <dyad/common/dyad_logging.h>
-#include <dyad/common/dyad_structures.h>
-
 #include <functional>
 #include <new>
 #include <unordered_map>
 #include <utility>
 
+#include <dyad/common/dyad_logging.h>
+#include <dyad/common/dyad_profiler.h>
+#include <dyad/common/dyad_structures.h>
+#include <dyad/dtl/ucx_ep_cache.h>
+
 using key_type = uint64_t;
 using cache_type = std::unordered_map<key_type, ucp_ep_h>;
 
-static void __attribute__((unused))
+static void __attribute__ ((unused))
 dyad_ucx_ep_err_handler (void* arg, ucp_ep_h ep, ucs_status_t status)
 {
-    DYAD_C_FUNCTION_START();
-    dyad_ctx_t __attribute__((unused)) *ctx = (dyad_ctx_t*)arg;
+    DYAD_C_FUNCTION_START ();
+    dyad_ctx_t __attribute__ ((unused))* ctx = (dyad_ctx_t*)arg;
     DYAD_LOG_ERROR (ctx, "An error occured on the UCP endpoint (status = %d)", status);
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
 }
 
-dyad_rc_t ucx_connect (const dyad_ctx_t *ctx,
+dyad_rc_t ucx_connect (const dyad_ctx_t* ctx,
                        ucp_worker_h worker,
                        const ucp_address_t* addr,
                        ucp_ep_h* ep)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     dyad_rc_t rc = DYAD_RC_OK;
     ucp_ep_params_t params;
     ucs_status_t status = UCS_OK;
@@ -49,13 +49,13 @@ dyad_rc_t ucx_connect (const dyad_ctx_t *ctx,
         goto ucx_connect_done;
     }
 ucx_connect_done:;
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 
-dyad_rc_t ucx_disconnect (const dyad_ctx_t *ctx, ucp_worker_h worker, ucp_ep_h ep)
+dyad_rc_t ucx_disconnect (const dyad_ctx_t* ctx, ucp_worker_h worker, ucp_ep_h ep)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     dyad_rc_t rc = DYAD_RC_OK;
     ucs_status_t status = UCS_OK;
     ucs_status_ptr_t stat_ptr;
@@ -100,13 +100,13 @@ dyad_rc_t ucx_disconnect (const dyad_ctx_t *ctx, ucp_worker_h worker, ucp_ep_h e
         }
     }
 ucx_disconnect_region_finish:
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 
-dyad_rc_t dyad_ucx_ep_cache_init (const dyad_ctx_t *ctx, ucx_ep_cache_h* cache)
+dyad_rc_t dyad_ucx_ep_cache_init (const dyad_ctx_t* ctx, ucx_ep_cache_h* cache)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     dyad_rc_t rc = DYAD_RC_OK;
     if (cache == nullptr || *cache != nullptr) {
         rc = DYAD_RC_BADBUF;
@@ -118,17 +118,17 @@ dyad_rc_t dyad_ucx_ep_cache_init (const dyad_ctx_t *ctx, ucx_ep_cache_h* cache)
         goto ucx_ep_cache_init_done;
     }
 ucx_ep_cache_init_done:;
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 
-dyad_rc_t dyad_ucx_ep_cache_find (const dyad_ctx_t *ctx,
+dyad_rc_t dyad_ucx_ep_cache_find (const dyad_ctx_t* ctx,
                                   const ucx_ep_cache_h cache,
                                   const ucp_address_t* addr,
                                   const size_t addr_size,
                                   ucp_ep_h* ep)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     dyad_rc_t rc = DYAD_RC_OK;
     if (ep == nullptr || *ep != nullptr) {
         rc = DYAD_RC_BADBUF;
@@ -150,22 +150,23 @@ dyad_rc_t dyad_ucx_ep_cache_find (const dyad_ctx_t *ctx,
         rc = DYAD_RC_SYSFAIL;
     }
 ucx_ep_cache_find_done:;
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 
-dyad_rc_t dyad_ucx_ep_cache_insert (const dyad_ctx_t *ctx,
+dyad_rc_t dyad_ucx_ep_cache_insert (const dyad_ctx_t* ctx,
                                     ucx_ep_cache_h cache,
                                     const ucp_address_t* addr,
                                     const size_t addr_size,
                                     ucp_worker_h worker)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     dyad_rc_t rc = DYAD_RC_OK;
     try {
         cache_type* cpp_cache = reinterpret_cast<cache_type*> (cache);
         uint64_t key = ctx->dtl_handle->private_dtl.ucx_dtl_handle->consumer_conn_key;
-        DYAD_C_FUNCTION_UPDATE_INT("cons_key", ctx->dtl_handle->private_dtl.ucx_dtl_handle->consumer_conn_key)
+        DYAD_C_FUNCTION_UPDATE_INT ("cons_key",
+                                    ctx->dtl_handle->private_dtl.ucx_dtl_handle->consumer_conn_key)
         auto cache_it = cpp_cache->find (key);
         if (cache_it != cpp_cache->end ()) {
             rc = DYAD_RC_OK;
@@ -173,43 +174,43 @@ dyad_rc_t dyad_ucx_ep_cache_insert (const dyad_ctx_t *ctx,
             DYAD_LOG_INFO (ctx, "No cache entry found. Creating new connection");
             rc = ucx_connect (ctx, worker, addr, &ctx->dtl_handle->private_dtl.ucx_dtl_handle->ep);
             if (!DYAD_IS_ERROR (rc)) {
-                cpp_cache->insert_or_assign(key, ctx->dtl_handle->private_dtl.ucx_dtl_handle->ep);
+                cpp_cache->insert_or_assign (key, ctx->dtl_handle->private_dtl.ucx_dtl_handle->ep);
                 rc = DYAD_RC_OK;
             }
         }
     } catch (...) {
         rc = DYAD_RC_SYSFAIL;
     }
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 
-static inline cache_type::iterator cache_remove_impl (const dyad_ctx_t *ctx,
+static inline cache_type::iterator cache_remove_impl (const dyad_ctx_t* ctx,
                                                       cache_type* cache,
                                                       cache_type::iterator it,
                                                       ucp_worker_h worker)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     if (it != cache->end ()) {
         ucx_disconnect (ctx, worker, it->second);
         // The UCP address was allocated with 'malloc' while unpacking
         // the RPC message. So, we extract it from the key and free
         // it after erasing the iterator
         auto next_it = cache->erase (it);
-        DYAD_C_FUNCTION_END();
+        DYAD_C_FUNCTION_END ();
         return next_it;
     }
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return cache->end ();
 }
 
-dyad_rc_t dyad_ucx_ep_cache_remove (const dyad_ctx_t *ctx,
+dyad_rc_t dyad_ucx_ep_cache_remove (const dyad_ctx_t* ctx,
                                     ucx_ep_cache_h cache,
                                     const ucp_address_t* addr,
                                     const size_t addr_size,
                                     ucp_worker_h worker)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     dyad_rc_t rc = DYAD_RC_OK;
     try {
         cache_type* cpp_cache = reinterpret_cast<cache_type*> (cache);
@@ -220,13 +221,15 @@ dyad_rc_t dyad_ucx_ep_cache_remove (const dyad_ctx_t *ctx,
     } catch (...) {
         rc = DYAD_RC_SYSFAIL;
     }
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return rc;
 }
 
-dyad_rc_t dyad_ucx_ep_cache_finalize (const dyad_ctx_t *ctx, ucx_ep_cache_h* cache, ucp_worker_h worker)
+dyad_rc_t dyad_ucx_ep_cache_finalize (const dyad_ctx_t* ctx,
+                                      ucx_ep_cache_h* cache,
+                                      ucp_worker_h worker)
 {
-    DYAD_C_FUNCTION_START();
+    DYAD_C_FUNCTION_START ();
     if (cache == nullptr || *cache == nullptr) {
         return DYAD_RC_OK;
     }
@@ -236,6 +239,6 @@ dyad_rc_t dyad_ucx_ep_cache_finalize (const dyad_ctx_t *ctx, ucx_ep_cache_h* cac
     }
     delete cpp_cache;
     *cache = nullptr;
-    DYAD_C_FUNCTION_END();
+    DYAD_C_FUNCTION_END ();
     return DYAD_RC_OK;
 }

@@ -14,7 +14,6 @@
 #include <stdint.h>
 #endif
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -24,21 +23,21 @@ extern "C" {
  */
 struct dyad_ctx {
     // Internal
-    void* h;                        // the Flux handle for DYAD
-    struct dyad_dtl* dtl_handle;    // Opaque handle to DTL info
-    const char* fname;              // Used to track which file is getting processed.
-    bool use_fs_locks;              // Used to track if fs locks should be used.
-    char* prod_real_path;           // producer managed real path
-    char* cons_real_path;           // consumer managed real path
-    uint32_t prod_managed_len;      // length of producer path managed by DYAD
-    uint32_t cons_managed_len;      // length of consumer path managed by DYAD
-    uint32_t prod_real_len;         // length of producer managed real path
-    uint32_t cons_real_len;         // length of consumer managed real path
-    uint32_t prod_managed_hash;     // hash of producer path managed by DYAD
-    uint32_t cons_managed_hash;     // hash of consumer path managed by DYAD
-    uint32_t prod_real_hash;        // hash of producer managed real path
-    uint32_t cons_real_hash;        // hash of consumer managed real path
-    uint32_t delim_len;             // length of path delimiter
+    void* h;                      // the Flux handle for DYAD
+    struct dyad_dtl* dtl_handle;  // Opaque handle to DTL info
+    const char* fname;            // Used to track which file is getting processed.
+    bool use_fs_locks;            // Used to track if fs locks should be used.
+    char* prod_real_path;         // producer managed real path
+    char* cons_real_path;         // consumer managed real path
+    uint32_t prod_managed_len;    // length of producer path managed by DYAD
+    uint32_t cons_managed_len;    // length of consumer path managed by DYAD
+    uint32_t prod_real_len;       // length of producer managed real path
+    uint32_t cons_real_len;       // length of consumer managed real path
+    uint32_t prod_managed_hash;   // hash of producer path managed by DYAD
+    uint32_t cons_managed_hash;   // hash of consumer path managed by DYAD
+    uint32_t prod_real_hash;      // hash of producer managed real path
+    uint32_t cons_real_hash;      // hash of consumer managed real path
+    uint32_t delim_len;           // length of path delimiter
     // User Facing
     bool debug;                     // if true, perform debug logging
     bool check;                     // if true, perform some check logging
@@ -60,7 +59,6 @@ struct dyad_ctx {
 };
 typedef struct dyad_ctx dyad_ctx_t;
 typedef void* ucx_ep_cache_h;
-
 
 #ifdef __cplusplus
 }

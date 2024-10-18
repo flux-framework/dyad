@@ -24,7 +24,7 @@ namespace dyad
 struct dyad_params {
     bool m_debug;
     /** Indicate if the storage associated with the managed path is shared
-      * (i.e. visible to all ranks) */
+     * (i.e. visible to all ranks) */
     bool m_shared_storage;
     /// Indicate if reinitialization is required even if already initinialized
     bool m_reinit;

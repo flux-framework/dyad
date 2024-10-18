@@ -4,13 +4,7 @@
 #error "no config"
 #endif
 
-#include <dyad/common/dyad_envs.h>
-#include <dyad/common/dyad_logging.h>
-#include <dyad/common/dyad_profiler.h>
-#include <dyad/core/dyad_core.h>
-#include <dyad/core/dyad_ctx.h>
-#include <dyad/dtl/dyad_dtl_api.h>
-#include <dyad/utils/utils.h>
+#include <errno.h>
 #include <flux/core.h>
 
 #ifdef __cplusplus
@@ -26,7 +20,13 @@
 #include <string.h>
 #endif
 
-#include <errno.h>
+#include <dyad/common/dyad_envs.h>
+#include <dyad/common/dyad_logging.h>
+#include <dyad/common/dyad_profiler.h>
+#include <dyad/core/dyad_core.h>
+#include <dyad/core/dyad_ctx.h>
+#include <dyad/dtl/dyad_dtl_api.h>
+#include <dyad/utils/utils.h>
 
 // Note:
 // To ensure we don't have multiple initialization, we need the following:
@@ -289,7 +289,9 @@ dyad_rc_t dyad_init (bool debug,
     }
 
     ctx->relative_to_managed_path = relative_to_managed_path;
-    DYAD_LOG_INFO (ctx, "DYAD_CORE INIT: relative_to_managed_path %s", ctx->relative_to_managed_path ? "true" : "false");
+    DYAD_LOG_INFO (ctx,
+                   "DYAD_CORE INIT: relative_to_managed_path %s",
+                   ctx->relative_to_managed_path ? "true" : "false");
 
     DYAD_C_FUNCTION_UPDATE_STR ("prod_managed_path", ctx->prod_managed_path);
     DYAD_C_FUNCTION_UPDATE_STR ("cons_managed_path", ctx->cons_managed_path);
@@ -803,7 +805,7 @@ DYAD_DLL_EXPORTED dyad_rc_t dyad_finalize ()
 {
     DYAD_C_FUNCTION_START ();
     dyad_rc_t rc = DYAD_RC_OK;
-    //DYAD_LOG_STDERR ("DYAD context is being destroyed!\n");
+    // DYAD_LOG_STDERR ("DYAD context is being destroyed!\n");
     if (ctx == NULL) {
         rc = DYAD_RC_OK;
         goto finalize_region_finish;

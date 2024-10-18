@@ -7,8 +7,6 @@
 #error "no config"
 #endif
 
-#include <dyad/common/dyad_rc.h>
-#include <dyad/common/dyad_structures.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -21,6 +19,8 @@
 #include <stdlib.h>
 #endif
 
+#include <dyad/common/dyad_rc.h>
+#include <dyad/common/dyad_structures.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -41,16 +41,16 @@ typedef struct dyad_metadata dyad_metadata_t;
 // Debug message
 #ifndef DPRINTF
 #if VA_OPT_SUPPORTED
-#define DPRINTF(curr_dyad_ctx, fmt, ...)           \
-    do {                                           \
-        if ((curr_dyad_ctx) && (curr_dyad_ctx)->debug) \
-            fprintf (stderr, (fmt) __VA_OPT__(,) __VA_ARGS__);  \
+#define DPRINTF(curr_dyad_ctx, fmt, ...)                        \
+    do {                                                        \
+        if ((curr_dyad_ctx) && (curr_dyad_ctx)->debug)          \
+            fprintf (stderr, (fmt)__VA_OPT__ (, ) __VA_ARGS__); \
     } while (0)
 #else
-#define DPRINTF(curr_dyad_ctx, fmt, ...)           \
-    do {                                           \
+#define DPRINTF(curr_dyad_ctx, fmt, ...)               \
+    do {                                               \
         if ((curr_dyad_ctx) && (curr_dyad_ctx)->debug) \
-            fprintf (stderr, (fmt), ##__VA_ARGS__);  \
+            fprintf (stderr, (fmt), ##__VA_ARGS__);    \
     } while (0)
 #endif
 #endif  // DPRINTF
@@ -66,7 +66,6 @@ typedef struct dyad_metadata dyad_metadata_t;
 #else
 #define IPRINTF(curr_dyad_ctx, fmt, ...)
 #endif  // DYAD_FULL_DEBUG
-
 
 /**
  * @brief Wrapper function that performs all the common tasks needed
@@ -114,28 +113,29 @@ DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_consume (dyad_ctx_t* ctx, con
  *
  * @return An error code from dyad_rc.h
  */
-DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t* ctx, const char* fname,
-                                                                       const dyad_metadata_t* mdata);
-
+DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t
+dyad_consume_w_metadata (dyad_ctx_t* ctx, const char* fname, const dyad_metadata_t* mdata);
 
 /**
  * Private Function definitions
  */
-DYAD_DLL_EXPORTED dyad_rc_t dyad_get_data (const dyad_ctx_t* ctx, const dyad_metadata_t* mdata,
-                                                         char** file_data,
-                                                         size_t* file_len);
+DYAD_DLL_EXPORTED dyad_rc_t dyad_get_data (const dyad_ctx_t* ctx,
+                                           const dyad_metadata_t* mdata,
+                                           char** file_data,
+                                           size_t* file_len);
 DYAD_DLL_EXPORTED dyad_rc_t dyad_commit (dyad_ctx_t* ctx, const char* fname);
 
-DYAD_DLL_EXPORTED int gen_path_key (const char* str, char* path_key,
-                                                          const size_t len,
-                                                          const uint32_t depth,
-                                                          const uint32_t width);
+DYAD_DLL_EXPORTED int gen_path_key (const char* str,
+                                    char* path_key,
+                                    const size_t len,
+                                    const uint32_t depth,
+                                    const uint32_t width);
 
 DYAD_DLL_EXPORTED dyad_rc_t dyad_kvs_read (const dyad_ctx_t* ctx,
-                                             const char* topic,
-                                             const char* upath,
-                                             bool should_wait,
-                                             dyad_metadata_t** mdata);
+                                           const char* topic,
+                                           const char* upath,
+                                           bool should_wait,
+                                           dyad_metadata_t** mdata);
 
 #if DYAD_SYNC_DIR
 DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED int dyad_sync_directory (dyad_ctx_t* ctx, const char* path);

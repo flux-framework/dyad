@@ -59,9 +59,7 @@ size_t base64_encoded_length (size_t srclen)
     return ((srclen + 2) / 3) * 4;
 }
 
-void base64_encode_triplet_using_maps (const base64_maps_t *maps,
-                                       char dest[4],
-                                       const char src[3])
+void base64_encode_triplet_using_maps (const base64_maps_t *maps, char dest[4], const char src[3])
 {
     char a = src[0];
     char b = src[1];

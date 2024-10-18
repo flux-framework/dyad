@@ -11,15 +11,16 @@
 extern "C" {
 #endif
 
-
-enum dyad_dtl_mode { DYAD_DTL_UCX = 0,
-                     DYAD_DTL_FLUX_RPC = 1,
-                     DYAD_DTL_DEFAULT = 1,
-                     DYAD_DTL_END = 2 };
+enum dyad_dtl_mode {
+    DYAD_DTL_UCX = 0,
+    DYAD_DTL_FLUX_RPC = 1,
+    DYAD_DTL_DEFAULT = 1,
+    DYAD_DTL_END = 2
+};
 typedef enum dyad_dtl_mode dyad_dtl_mode_t;
 
-static const char* dyad_dtl_mode_name[DYAD_DTL_END+1] __attribute__((unused))
-    = {"UCX", "FLUX_RPC", "DTL_UNKNOWN"};
+static const char* dyad_dtl_mode_name[DYAD_DTL_END + 1]
+    __attribute__ ((unused)) = {"UCX", "FLUX_RPC", "DTL_UNKNOWN"};
 
 enum dyad_dtl_comm_mode {
     DYAD_COMM_NONE = 0,  // Sanity check value for when
@@ -29,7 +30,6 @@ enum dyad_dtl_comm_mode {
     DYAD_COMM_END = 3
 };
 typedef enum dyad_dtl_comm_mode dyad_dtl_comm_mode_t;
-
 
 #define DYAD_DTL_RPC_NAME "dyad.fetch"
 

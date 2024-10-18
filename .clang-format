@@ -23,4 +23,7 @@ TabWidth: '4'
 UseTab: Never
 AlwaysBreakAfterReturnType: None
 AlwaysBreakAfterDefinitionReturnType: None
-ContinuationIndentWidth: Always
+ContinuationIndentWidth: '4' 
+IncludeBlocks: 'Preserve'
+SortIncludes: 'CaseSensitive'
+InsertNewlineAtEOF: 'true'

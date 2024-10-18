@@ -7,8 +7,8 @@
 #error "no config"
 #endif
 
-#include <dyad/common/dyad_rc.h>
 #include <dyad/common/dyad_dtl.h>
+#include <dyad/common/dyad_rc.h>
 #include <dyad/common/dyad_structures.h>
 
 #ifdef __cplusplus
@@ -16,8 +16,7 @@ extern "C" {
 #endif
 
 DYAD_DLL_EXPORTED dyad_ctx_t* dyad_ctx_get ();
-DYAD_DLL_EXPORTED void dyad_ctx_init (dyad_dtl_comm_mode_t dtl_comm_mode,
-                                      void* flux_handle);
+DYAD_DLL_EXPORTED void dyad_ctx_init (dyad_dtl_comm_mode_t dtl_comm_mode, void* flux_handle);
 DYAD_DLL_EXPORTED void dyad_ctx_fini ();
 
 /**
@@ -59,7 +58,7 @@ DYAD_DLL_EXPORTED dyad_rc_t dyad_init (bool debug,
                                        const char* prod_managed_path,
                                        const char* cons_managed_path,
                                        bool relative_to_managed_path,
-                                       const char*  dtl_mode_str,
+                                       const char* dtl_mode_str,
                                        const dyad_dtl_comm_mode_t dtl_comm_mode,
                                        void* flux_handle);
 
