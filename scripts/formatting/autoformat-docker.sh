@@ -15,10 +15,12 @@ cd $SCRIPT_DIR
 cd ..
 cd ..
 
+export DOCKER_BUILDKIT=1
+
 echo "Bulding Docker image"
-docker build -t caliper-autoformat -f ./scripts/formatting/Dockerfile.format .
+docker build --target autoformat -t dyad-autoformat -f ./scripts/formatting/Dockerfile.format .
 
 echo "Running Docker container to autoformat code with clang-format 17.0.6"
-docker run --rm -v $(pwd):/home/jovyan --name caliper-autoformat-container caliper-autoformat
+docker run --rm -v $(pwd):/home/jovyan --name dyad-autoformat-container dyad-autoformat
 
 cd $curr_dir

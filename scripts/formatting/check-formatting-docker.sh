@@ -15,10 +15,12 @@ cd $SCRIPT_DIR
 cd ..
 cd ..
 
+export DOCKER_BUILDKIT=1
+
 echo "Bulding Docker image"
-docker build -t caliper-check-format -f ./scripts/formatting/Dockerfile.check .
+docker build --target check -t dyad-check-format -f ./scripts/formatting/Dockerfile.format .
 
 echo "Running Docker container to check formatting of code with clang-format 17.0.6"
-docker run --rm -v $(pwd):/home/jovyan --name caliper-check-format-container caliper-check-format
+docker run --rm -v $(pwd):/home/jovyan --name dyad-check-format-container dyad-check-format
 
 cd $curr_dir

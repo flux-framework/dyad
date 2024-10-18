@@ -1,4 +1,4 @@
-FROM ubuntu:24.04
+FROM ubuntu:24.04 as base
 
 USER root
 
@@ -27,4 +27,10 @@ COPY --chown=${LOCAL_USER} --chmod=666 ./include /home/jovyan/
 
 USER ${LOCAL_USER}
 
+FROM base as autoformat
+
 ENTRYPOINT [ "/home/jovyan/scripts/formatting/autoformat.sh", "/usr/bin/clang-format-17" ]
+
+FROM base as check
+
+ENTRYPOINT [ "/home/jovyan/scripts/formatting/check-formatting.sh", "/usr/bin/clang-format-17" ]
