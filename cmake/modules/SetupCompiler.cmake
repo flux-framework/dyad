@@ -26,14 +26,20 @@ include(CheckIncludeFileCXX)
 
 MACRO (CHECK_GLIBC_VERSION)
     EXECUTE_PROCESS (
-        COMMAND ${CMAKE_C_COMPILER} -print-file-name=libc.so.6
-        OUTPUT_VARIABLE GLIBC
-        OUTPUT_STRIP_TRAILING_WHITESPACE)
+        COMMAND ${CMAKE_C_COMPILER} ${CMAKE_SOURCE_DIR}/cmake/tests/check_glibc_version.c -o ${CMAKE_BINARY_DIR}/check_glibc_version
+        RESULT_VARIABLE COULD_COMPILE_GLIBC_CHECKER)
+    if (NOT COULD_COMPILE_GLIBC_CHECKER EQUAL 0)
+      message(FATAL_ERROR "Could not compile glibc version checker")
+    endif ()
+    EXECUTE_PROCESS(
+        COMMAND ${CMAKE_BINARY_DIR}/check_glibc_version
+        OUTPUT_VARIABLE GLIBC_VERSION
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        RESULT_VARIABLE COULD_GET_GLIBC_VERSION)
+    if (NOT COULD_GET_GLIBC_VERSION EQUAL 0)
+      message(FATAL_ERROR "Could not get glibc version")
+    endif ()
 
-    GET_FILENAME_COMPONENT (GLIBC ${GLIBC} REALPATH)
-    GET_FILENAME_COMPONENT (GLIBC_VERSION ${GLIBC} NAME)
-    STRING (REPLACE "libc-" "" GLIBC_VERSION ${GLIBC_VERSION})
-    STRING (REPLACE ".so" "" GLIBC_VERSION ${GLIBC_VERSION})
     IF (NOT GLIBC_VERSION MATCHES "^[0-9.]+$")
         MESSAGE (FATAL_ERROR "Unknown glibc version: ${GLIBC_VERSION}")
     ENDIF (NOT GLIBC_VERSION MATCHES "^[0-9.]+$")
@@ -89,11 +95,11 @@ macro(dyad_add_c_flags MY_FLAGS)
 endmacro()
 
 dyad_add_cxx_flags(CMAKE_CXX_FLAGS
-  -fPIC -Wall -Wextra -pedantic -Wno-unused-parameter -Wnon-virtual-dtor
+  -Wall -Wextra -pedantic -Wno-unused-parameter -Wnon-virtual-dtor
   -Wno-deprecated-declarations)
 
 dyad_add_c_flags(CMAKE_C_FLAGS
-  -fPIC -Wall -Wextra -pedantic -Wno-unused-parameter
+  -Wall -Wextra -pedantic -Wno-unused-parameter
   -Wno-deprecated-declarations)
 
 if (${GLIBC_VERSION} VERSION_GREATER_EQUAL "2.19")
@@ -105,24 +111,13 @@ endif ()
 # Promote a compiler warning as an error for project targets
 ################################################################
 
-if (DYAD_WARNINGS_AS_ERRORS)
-  dyad_add_cxx_flags(_WERROR_FLAGS -Werror)
-  separate_arguments(_WERROR_FLAGS NATIVE_COMMAND "${_WERROR_FLAGS}")
-  if (NOT TARGET DYAD_CXX_FLAGS_werror)
-    add_library(DYAD_CXX_FLAGS_werror INTERFACE)
-    set_property(TARGET DYAD_CXX_FLAGS_werror PROPERTY
-      INTERFACE_COMPILE_OPTIONS $<$<COMPILE_LANGUAGE:CXX>:${_WERROR_FLAGS}>)
-
-    add_library(DYAD_C_FLAGS_werror INTERFACE)
-    set_property(TARGET DYAD_C_FLAGS_werror PROPERTY
-      INTERFACE_COMPILE_OPTIONS $<$<COMPILE_LANGUAGE:C>:${_WERROR_FLAGS}>)
-
-    # Add the "library" to the export
-    install(TARGETS DYAD_C_FLAGS_werror EXPORT ${DYAD_EXPORTED_TARGETS})
-    install(TARGETS DYAD_CXX_FLAGS_werror EXPORT ${DYAD_EXPORTED_TARGETS})
-  endif ()
-endif ()
-
+macro(dyad_add_werror_if_needed target)
+  if (DYAD_WARNINGS_AS_ERRORS)
+    target_compile_options(${target} PRIVATE 
+      $<$<COMPILER_LANGUAGE:CXX>:"-Werror">
+      $<$<COMPILER_LANGUAGE:C>:"-Werror">)
+  endif()
+endmacro(dyad_add_werror_if_needed target)
 
 ################################################################
 # Handle compiler dependent behaviors
@@ -194,25 +189,17 @@ set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 
 # Add the automatically determined parts of the RPATH
 # which point to directories outside the build tree to the install RPATH
-set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE CACHE BOOL "")
 
-if (NOT DYAD_LIBDIR)
-  if (CMAKE_INSTALL_LIBDIR)
-    set(DYAD_LIBDIR ${CMAKE_INSTALL_LIBDIR})
-  else ()
-    set(DYAD_LIBDIR "lib")
-  endif ()
-endif ()
-
-set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${DYAD_LIBDIR}")
+set(CMAKE_INSTALL_RPATH "${DYAD_INSTALL_LIBDIR}" CACHE STRING "")
 
 list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES
-    "${CMAKE_INSTALL_PREFIX}/${DYAD_LIBDIR}" _IS_SYSTEM_DIR)
+    "${DYAD_INSTALL_LIBDIR}" _IS_SYSTEM_DIR)
 
 if (${_IS_SYSTEM_DIR} STREQUAL "-1")
     # Set the install RPATH correctly
     list(APPEND CMAKE_INSTALL_RPATH
-      "${CMAKE_INSTALL_PREFIX}/${DYAD_LIBDIR}")
+      "${DYAD_INSTALL_LIBDIR}")
 endif ()
 
 
