@@ -17,10 +17,9 @@ extern "C" {
 
 DYAD_DLL_EXPORTED extern const struct dyad_ctx dyad_ctx_default;
 
-DYAD_DLL_EXPORTED dyad_ctx_t *dyad_ctx_get();
-DYAD_DLL_EXPORTED void dyad_ctx_init(dyad_dtl_comm_mode_t dtl_comm_mode,
-                                     void *flux_handle);
-DYAD_DLL_EXPORTED void dyad_ctx_fini();
+DYAD_DLL_EXPORTED dyad_ctx_t *dyad_ctx_get ();
+DYAD_DLL_EXPORTED void dyad_ctx_init (dyad_dtl_comm_mode_t dtl_comm_mode, void *flux_handle);
+DYAD_DLL_EXPORTED void dyad_ctx_fini ();
 
 /**
  * @brief Intialize the DYAD context
@@ -47,21 +46,30 @@ DYAD_DLL_EXPORTED void dyad_ctx_fini();
  *
  * @return An error code from dyad_rc.h
  */
-DYAD_DLL_EXPORTED dyad_rc_t dyad_init(
-    bool debug, bool check, bool shared_storage, bool reinit,
-    bool async_publish, bool fsync_write, unsigned int key_depth,
-    unsigned int key_bins, unsigned int service_mux, const char *kvs_namespace,
-    const char *prod_managed_path, const char *cons_managed_path,
-    bool relative_to_managed_path, const char *dtl_mode_str,
-    const dyad_dtl_comm_mode_t dtl_comm_mode, void *flux_handle);
+DYAD_DLL_EXPORTED dyad_rc_t dyad_init (bool debug,
+                                       bool check,
+                                       bool shared_storage,
+                                       bool reinit,
+                                       bool async_publish,
+                                       bool fsync_write,
+                                       unsigned int key_depth,
+                                       unsigned int key_bins,
+                                       unsigned int service_mux,
+                                       const char *kvs_namespace,
+                                       const char *prod_managed_path,
+                                       const char *cons_managed_path,
+                                       bool relative_to_managed_path,
+                                       const char *dtl_mode_str,
+                                       const dyad_dtl_comm_mode_t dtl_comm_mode,
+                                       void *flux_handle);
 
 /**
  * @brief Intialize the DYAD context using environment variables
  *
  * @return An error code from dyad_rc.h
  */
-DYAD_DLL_EXPORTED dyad_rc_t
-dyad_init_env(const dyad_dtl_comm_mode_t dtl_comm_mode, void *flux_handle);
+DYAD_DLL_EXPORTED dyad_rc_t dyad_init_env (const dyad_dtl_comm_mode_t dtl_comm_mode,
+                                           void *flux_handle);
 
 /**
  * @brief Reset producer path. Can be used by the module
@@ -69,7 +77,7 @@ dyad_init_env(const dyad_dtl_comm_mode_t dtl_comm_mode, void *flux_handle);
  *
  * @return An error code from dyad_rc.h
  */
-DYAD_DLL_EXPORTED dyad_rc_t dyad_set_prod_path(const char *path);
+DYAD_DLL_EXPORTED dyad_rc_t dyad_set_prod_path (const char *path);
 
 /**
  * @brief Reset consumer path. Can be used by the module
@@ -77,7 +85,7 @@ DYAD_DLL_EXPORTED dyad_rc_t dyad_set_prod_path(const char *path);
  *
  * @return An error code from dyad_rc.h
  */
-DYAD_DLL_EXPORTED dyad_rc_t dyad_set_cons_path(const char *path);
+DYAD_DLL_EXPORTED dyad_rc_t dyad_set_cons_path (const char *path);
 
 /**
  * @brief Reset dtl mode. Can be used by the module
@@ -86,8 +94,8 @@ DYAD_DLL_EXPORTED dyad_rc_t dyad_set_cons_path(const char *path);
  *
  * @return An error code from dyad_rc.h
  */
-DYAD_DLL_EXPORTED dyad_rc_t dyad_set_and_init_dtl_mode(
-    const char *dtl_mode_name, dyad_dtl_comm_mode_t dtl_comm_mode);
+DYAD_DLL_EXPORTED dyad_rc_t dyad_set_and_init_dtl_mode (const char *dtl_mode_name,
+                                                        dyad_dtl_comm_mode_t dtl_comm_mode);
 
 /**
  * Reset the contents of the ctx to the default values and deallocate
@@ -95,14 +103,14 @@ DYAD_DLL_EXPORTED dyad_rc_t dyad_set_and_init_dtl_mode(
  * This is needed for wrapper to handle dyad exceptions as the wrapper requires
  * ctx for it's lifetime
  */
-DYAD_DLL_EXPORTED dyad_rc_t dyad_clear();
+DYAD_DLL_EXPORTED dyad_rc_t dyad_clear ();
 
 /**
  * @brief Finalizes the DYAD instance and deallocates the context
  *
  * @return An error code from dyad_rc.h
  */
-DYAD_DLL_EXPORTED dyad_rc_t dyad_finalize();
+DYAD_DLL_EXPORTED dyad_rc_t dyad_finalize ();
 
 #ifdef __cplusplus
 }
