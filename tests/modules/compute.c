@@ -138,12 +138,12 @@ int main (int argc, char **argv)
 
     // Extract the data from reply
     const char *file_data = NULL;
-    int file_len = 0;
+    size_t file_len = 0;
     if (flux_rpc_get_raw (f2, (const void **)&file_data, &file_len) < 0) {
         flux_log_error (h, "flux_rpc_get_raw(\"%s\") failed.\n", file_name);
         goto done;
     }
-    fprintf (df, "Consumer file size: %d\n", file_len);
+    fprintf (df, "Consumer file size: %zu\n", file_len);
 
     // Set output file path
     char file_path[PATH_MAX + 1] = {'\0'};
@@ -167,7 +167,7 @@ int main (int argc, char **argv)
         fprintf (df, "Could not write file: %s\n", file_path);
         goto done;
     }
-    fwrite (file_data, sizeof (char), (size_t)file_len, of);
+    fwrite (file_data, sizeof (char), file_len, of);
     fclose (of);
 
     flux_future_destroy (f2);

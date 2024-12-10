@@ -162,7 +162,7 @@ dyad_rc_t dyad_dtl_flux_send (const dyad_ctx_t* ctx, void* buf, size_t buflen)
     rc = flux_respond_raw (ctx->dtl_handle->private_dtl.flux_dtl_handle->h,
                            ctx->dtl_handle->private_dtl.flux_dtl_handle->msg,
                            buf,
-                           (int)buflen);
+                           buflen);
     if (FLUX_IS_ERROR (rc)) {
         DYAD_LOG_ERROR (ctx,
                       "Could not send Flux RPC response containing file "
@@ -196,8 +196,8 @@ dyad_rc_t dyad_dtl_flux_recv (const dyad_ctx_t* ctx, void** buf, size_t* buflen)
         goto finish_recv;
     }
     void* tmp_buf;
-    int tmp_buflen = 0;
-    rc = flux_rpc_get_raw (dtl_handle->f, (const void**)&tmp_buf, (int*)&tmp_buflen);
+    size_t tmp_buflen = 0;
+    rc = flux_rpc_get_raw (dtl_handle->f, (const void**)&tmp_buf, &tmp_buflen);
     if (FLUX_IS_ERROR (rc)) {
         DYAD_LOG_ERROR (ctx, "Could not get file data from Flux RPC");
         if (errno == ENODATA)
@@ -206,7 +206,7 @@ dyad_rc_t dyad_dtl_flux_recv (const dyad_ctx_t* ctx, void** buf, size_t* buflen)
             dyad_rc = DYAD_RC_BADRPC;
         goto finish_recv;
     }
-    *buflen = (size_t) tmp_buflen;
+    *buflen = tmp_buflen;
     dyad_rc = ctx->dtl_handle->get_buffer (ctx, *buflen, buf);
     if (DYAD_IS_ERROR (dyad_rc)) {
         *buf = NULL;
