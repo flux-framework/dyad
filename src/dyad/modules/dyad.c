@@ -321,27 +321,32 @@ static int opt_parse (opt_parse_out_t *restrict opt,
 
     // In case getopt() is called multiple times, e.g.,
     // when doing "flux module load dyad.so -h"
-    // optind must be reset. Otherwise, getopt() may cause crash.
-    // Note here we set it to 0 instead of 1 is because
-    // Flux module's argv does not the executable name
-    // in its first argujment.
-    optind = 0;
+    // optind must be reset to 1.
+    // Otherwise, getopt() may cause crash.
+    // Note, getopt() assumes the first argument, i.e.,
+    // argv[0] to be the executable name, so it starts
+    // checking from optind = 1.
+    // since Flux module argv doesn't contain the executable
+    // name as its first argument, we need to create a dummy
+    // argc and argv here for getopt() to work properly.
+    extern int optind;
+    optind = 1;
+    int _argc = argc + 1;
+    char** _argv = malloc(sizeof(char*) * _argc);
+    _argv[0] = NULL;
+    for (int i = 1; i < _argc; i++) {
+        _argv[i] = strdup(argv[i-1]);
+    }
 
-    while (1) {
-        static struct option long_options[] = {{"help", no_argument, 0, 'h'},
-                                               {"debug", no_argument, 0, 'd'},
-                                               {"mode", required_argument, 0, 'm'},
-                                               {"info_log", required_argument, 0, 'i'},
-                                               {"error_log", required_argument, 0, 'e'},
-                                               {0, 0, 0, 0}};
-        int c = -1;
-        c = getopt_long (argc, argv, "hdm:i:e:", long_options, NULL);
+    static struct option long_options[] = {{"help", no_argument, 0, 'h'},
+                                           {"debug", no_argument, 0, 'd'},
+                                           {"mode", required_argument, 0, 'm'},
+                                           {"info_log", required_argument, 0, 'i'},
+                                           {"error_log", required_argument, 0, 'e'},
+                                           {0, 0, 0, 0}};
 
-        // end of the options
-        if (c == -1) {
-            break;
-        }
-
+    int c;
+    while ((c = getopt_long(_argc, _argv, "hdm:i:e:", long_options, NULL)) != -1) {
         switch (c) {
             case 'h':
                 show_help ();
@@ -375,13 +380,16 @@ static int opt_parse (opt_parse_out_t *restrict opt,
                 break;
             default:
                 DYAD_LOG_STDERR ("DYAD_MOD: option parsing failed %d\n", c);
+                for(int i = 1; i < _argc; i++)
+                    free(_argv[i]);
+                free(_argv);
                 return DYAD_RC_SYSFAIL;
         }
     }
 
 #ifndef DYAD_LOGGER_NO_LOG
-    DYAD_LOG_STDOUT_REDIRECT (log_file_name);
-    DYAD_LOG_STDERR_REDIRECT (err_file_name);
+    //DYAD_LOG_STDOUT_REDIRECT (log_file_name);
+    //DYAD_LOG_STDERR_REDIRECT (err_file_name);
 #endif  // DYAD_LOGGER_NO_LOG
 
     if (*dtl_mode == DYAD_DTL_END) {
@@ -389,12 +397,15 @@ static int opt_parse (opt_parse_out_t *restrict opt,
     }
 
     /* Print any remaining command line arguments (not options). */
-    while (optind < argc) {
-        DYAD_LOG_STDERR ("DYAD_MOD: positional arguments %s\n", argv[optind]);
-        prod_managed_path = argv[optind++];
+    while (optind < _argc) {
+        DYAD_LOG_STDERR ("DYAD_MOD: positional arguments %s\n", _argv[optind]);
+        prod_managed_path = _argv[optind++];
     }
     opt->prod_managed_path = prod_managed_path;
 
+    for(int i = 1; i < _argc; i++)
+        free(_argv[i]);
+    free(_argv);
     return DYAD_RC_OK;
 }
 
