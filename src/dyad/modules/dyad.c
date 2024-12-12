@@ -352,7 +352,7 @@ static int opt_parse (opt_parse_out_t *restrict opt,
                 show_help ();
                 break;
             case 'd':
-                DYAD_LOG_STDERR ("DYAD_MOD: 'debug' option -d \n");
+                DYAD_LOG_STDERR ("DYAD_MOD: 'debug' option -d\n");
                 opt->debug = true;
                 break;
             case 'm':
@@ -366,7 +366,7 @@ static int opt_parse (opt_parse_out_t *restrict opt,
             case 'i':
 #ifndef DYAD_LOGGER_NO_LOG
                 DYAD_LOG_STDERR ("DYAD_MOD: 'info_log' option -i with value `%s'\n", optarg);
-                sprintf (log_file_name, "%s_%u.out", optarg, broker_rank);
+                sprintf (log_file_name, "%s_%d.out", optarg, broker_rank);
 #endif  // DYAD_LOGGER_NO_LOG
                 break;
             case 'e':
@@ -388,8 +388,8 @@ static int opt_parse (opt_parse_out_t *restrict opt,
     }
 
 #ifndef DYAD_LOGGER_NO_LOG
-    //DYAD_LOG_STDOUT_REDIRECT (log_file_name);
-    //DYAD_LOG_STDERR_REDIRECT (err_file_name);
+    DYAD_LOG_STDOUT_REDIRECT (log_file_name);
+    DYAD_LOG_STDERR_REDIRECT (err_file_name);
 #endif  // DYAD_LOGGER_NO_LOG
 
     if (*dtl_mode == DYAD_DTL_END) {
