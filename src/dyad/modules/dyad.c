@@ -295,6 +295,7 @@ struct opt_parse_out {
     const char *prod_managed_path;
     const char *dtl_mode;
     bool debug;
+    bool showed_help;
 };
 
 typedef struct opt_parse_out opt_parse_out_t;
@@ -351,6 +352,9 @@ int opt_parse(opt_parse_out_t *restrict opt,
         switch (c) {
             case 'h':
                 show_help ();
+                // set this to true, so we later we will directly
+                // return without loading the Flux module.
+                opt->showed_help = true;
                 break;
             case 'd':
                 DYAD_LOG_STDERR ("DYAD_MOD: 'debug' option -d\n");
@@ -492,12 +496,17 @@ DYAD_DLL_EXPORTED int mod_main (flux_t *h, int argc, char **argv)
 #endif
     DYAD_C_FUNCTION_START ();
 
-    opt_parse_out_t opt = {NULL, NULL, false};
+    opt_parse_out_t opt = {NULL, NULL, false, false};
     DYAD_LOG_STDOUT ("DYAD_MOD: Parsing command line options\n");
 
     if (DYAD_IS_ERROR (opt_parse (&opt, broker_rank, &dtl_mode, argc, argv))) {
         DYAD_LOG_STDERR ("DYAD_MOD: Cannot parse command line arguments\n");
         goto mod_error;
+    }
+    // the service was invoked with "-h"
+    // then we return directly after printing out help message
+    if (opt.showed_help) {
+        goto mod_done;
     }
 
     // initialize mod_ctx->ctx, which is the dyad context
@@ -511,7 +520,7 @@ DYAD_DLL_EXPORTED int mod_main (flux_t *h, int argc, char **argv)
     }
 
     if (flux_reactor_run (flux_get_reactor (mod_ctx->ctx->h), 0) < 0) {
-        DYAD_LOG_DEBUG (mod_ctx->ctx, "DYAD_MOD: flux_reactor_run: %s\n", strerror (errno));
+        DYAD_LOG_ERROR (mod_ctx->ctx, "DYAD_MOD: flux_reactor_run: %s\n", strerror (errno));
         goto mod_error;
     }
     DYAD_LOG_STDOUT ("DYAD_MOD: Finished\n");
