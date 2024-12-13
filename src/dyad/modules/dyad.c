@@ -299,7 +299,7 @@ struct opt_parse_out {
 
 typedef struct opt_parse_out opt_parse_out_t;
 
-static int opt_parse (opt_parse_out_t *restrict opt,
+int opt_parse(opt_parse_out_t *restrict opt,
                       const unsigned broker_rank,
                       dyad_dtl_mode_t *restrict dtl_mode,
                       int argc,
@@ -328,14 +328,15 @@ static int opt_parse (opt_parse_out_t *restrict opt,
     // checking from optind = 1.
     // since Flux module argv doesn't contain the executable
     // name as its first argument, we need to create a dummy
-    // argc and argv here for getopt() to work properly.
+    // _argc and _argv here for getopt() to work properly.
     extern int optind;
     optind = 1;
     int _argc = argc + 1;
     char** _argv = malloc(sizeof(char*) * _argc);
     _argv[0] = NULL;
     for (int i = 1; i < _argc; i++) {
-        _argv[i] = strdup(argv[i-1]);
+        // we will reuse the same same string in argv[].
+        _argv[i] = argv[i-1];
     }
 
     static struct option long_options[] = {{"help", no_argument, 0, 'h'},
@@ -380,8 +381,6 @@ static int opt_parse (opt_parse_out_t *restrict opt,
                 break;
             default:
                 DYAD_LOG_STDERR ("DYAD_MOD: option parsing failed %d\n", c);
-                for(int i = 1; i < _argc; i++)
-                    free(_argv[i]);
                 free(_argv);
                 return DYAD_RC_SYSFAIL;
         }
@@ -396,15 +395,14 @@ static int opt_parse (opt_parse_out_t *restrict opt,
         opt->dtl_mode = NULL;
     }
 
-    /* Print any remaining command line arguments (not options). */
+    // Retrive the remaining command line argument (not options).
+    // it is expected to be the producer managed directory
     while (optind < _argc) {
         DYAD_LOG_STDERR ("DYAD_MOD: positional arguments %s\n", _argv[optind]);
         prod_managed_path = _argv[optind++];
     }
     opt->prod_managed_path = prod_managed_path;
 
-    for(int i = 1; i < _argc; i++)
-        free(_argv[i]);
     free(_argv);
     return DYAD_RC_OK;
 }
