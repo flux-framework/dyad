@@ -1,14 +1,14 @@
 set(DYAD_MODULE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/dyad.c)
-set(DYAD_MODULE_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_envs.h
-                                ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_dtl.h
-                                ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_rc.h
+set(DYAD_MODULE_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dyad/common/dyad_envs.h
+                                ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dyad/common/dyad_dtl.h
+                                ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dyad/common/dyad_rc.h
                                 ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_logging.h
-                                ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_structures.h
+                                ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_structures_int.h
                                 ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_profiler.h
                                 ${CMAKE_CURRENT_SOURCE_DIR}/../dtl/dyad_dtl_api.h
                                 ${CMAKE_CURRENT_SOURCE_DIR}/../utils/read_all.h
                                 ${CMAKE_CURRENT_SOURCE_DIR}/../utils/utils.h
-                                ${CMAKE_CURRENT_SOURCE_DIR}/../core/dyad_ctx.h)
+                                ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dyad/core/dyad_ctx.h)
 set(DYAD_MODULE_PUBLIC_HEADERS)
 
 add_library(${PROJECT_NAME} SHARED ${DYAD_MODULE_SRC}
@@ -27,11 +27,11 @@ target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${JANSSON_INCLUDE_DIRS
 target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${FluxCore_INCLUDE_DIRS})
 
 add_executable(test_opt_parse test_opt_parse.c
-               ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_envs.h
-               ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_dtl.h
-               ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_rc.h
+               ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dyad/common/dyad_envs.h
+               ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dyad/common/dyad_dtl.h
+               ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dyad/common/dyad_rc.h
                ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_logging.h
-               ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_structures.h)
+               ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_structures_int.h)
 target_compile_definitions(test_opt_parse PUBLIC DYAD_HAS_CONFIG)
 target_include_directories(test_opt_parse PUBLIC
     $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/src>

@@ -1,15 +1,15 @@
 set(DYAD_WRAPPER_SRC ${CMAKE_CURRENT_SOURCE_DIR}/wrapper.c)
 set(DYAD_WRAPPER_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/../utils/utils.h
-                                 ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_dtl.h
-                                 ${CMAKE_CURRENT_SOURCE_DIR}/../core/dyad_ctx.h
-                                 ${CMAKE_CURRENT_SOURCE_DIR}/../core/dyad_core.h)
+                                 ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dyad/common/dyad_dtl.h
+                                 ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dyad/core/dyad_ctx.h
+                                 ${CMAKE_CURRENT_SOURCE_DIR}/../client/dyad_client_int.h)
 set(DYAD_WRAPPER_PUBLIC_HEADERS)
 
 add_library(${PROJECT_NAME}_wrapper SHARED ${DYAD_WRAPPER_SRC}
             ${DYAD_WRAPPER_PRIVATE_HEADERS} ${DYAD_WRAPPER_PUBLIC_HEADERS})
 # set_target_properties(${PROJECT_NAME}_wrapper PROPERTIES CMAKE_INSTALL_RPATH
 #                       "${DYAD_INSTALL_LIBDIR}")
-target_link_libraries(${PROJECT_NAME}_wrapper PRIVATE ${PROJECT_NAME}_ctx ${PROJECT_NAME}_core)
+target_link_libraries(${PROJECT_NAME}_wrapper PRIVATE ${PROJECT_NAME}_ctx ${PROJECT_NAME}_client)
 target_link_libraries(${PROJECT_NAME}_wrapper PRIVATE ${PROJECT_NAME}_utils flux::core)
 target_compile_definitions(${PROJECT_NAME}_wrapper PUBLIC BUILDING_DYAD=1)
 target_compile_definitions(${PROJECT_NAME}_wrapper PUBLIC DYAD_HAS_CONFIG)
