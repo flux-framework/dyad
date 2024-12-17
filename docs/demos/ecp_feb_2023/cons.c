@@ -27,9 +27,10 @@ int consume_file (char* full_path, int32_t seed, int32_t* val_buf)
         printf ("File %ld: Cannot open\n", (long)seed);
         return -1;
     }
-    // Read the file or abort if not possible
+    // Read then close the file
     size_t items_read = fread (val_buf, sizeof (int32_t), NUM_VALS, fp);
     fclose (fp);
+
     // Print an error if the number of items read is not what was expected
     if (items_read != NUM_VALS) {
         fprintf (stderr, "Could not read the full file (%s)\n", full_path);
@@ -45,15 +46,14 @@ int main (int argc, char** argv)
     int32_t num_transfers;
     char* fpath;
     int rc = parse_cmd_line (argc, argv, &num_transfers, &fpath);
-    // If an error occured during command-line parsing,
-    // abort the consumer
+    // abort if an error occured during command-line parsing,
     if (rc != 0) {
         return rc;
     }
+
     // Largest number of digits for a int32_t when converted to string
     const size_t max_digits = 10;
-    // First 4 is for "data"
-    // Second 4 is for ".txt"
+    // First 4 is for "data" and second 4 is for ".txt"
     size_t path_len = strlen (fpath) + 4 + max_digits + 4;
     // Allocate a buffer for the file path
     char* full_path = malloc (path_len + 1);
@@ -85,11 +85,13 @@ int main (int argc, char** argv)
         }
         // Validate the content of the file
         if (vals_are_valid (seed, val_buf)) {
-            printf ("File %ld: OK\n", (long)seed);
+            printf ("File %ld validation: OK\n", (long)seed);
         } else {
-            printf ("File %ld: BAD\n", (long)seed);
+            printf ("File %ld validation: BAD\n", (long)seed);
         }
     }
     free (val_buf);
     free (full_path);
+
+    return 0;
 }
