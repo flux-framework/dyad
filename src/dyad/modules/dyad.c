@@ -14,17 +14,19 @@
 #error "no config"
 #endif
 
-// #include <dyad/core/dyad_core.h>
+// clang-format off
+// #include <dyad/core/dyad_core_int.h>
 #include <dyad/common/dyad_dtl.h>
 #include <dyad/common/dyad_envs.h>
 #include <dyad/common/dyad_logging.h>
 #include <dyad/common/dyad_profiler.h>
 #include <dyad/common/dyad_rc.h>
-#include <dyad/common/dyad_structures.h>
+#include <dyad/common/dyad_structures_int.h>
 #include <dyad/core/dyad_ctx.h>
 #include <dyad/dtl/dyad_dtl_api.h>
 #include <dyad/utils/read_all.h>
 #include <dyad/utils/utils.h>
+// clang-format on
 
 #if defined(__cplusplus)
 #include <cerrno>
@@ -200,7 +202,8 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
     DYAD_LOG_DEBUG (mod_ctx->ctx, "DYAD_MOD: file %s has size %zd", fullpath, file_size);
     rc = mod_ctx->ctx->dtl_handle->get_buffer (mod_ctx->ctx, file_size, (void **)&inbuf);
 #ifdef DYAD_ENABLE_UCX_RMA
-    // To reduce the number of RMA calls, we are encoding file size at the start of the buffer
+    // To reduce the number of RMA calls, we are encoding file size at the start
+    // of the buffer
     memcpy (inbuf, &file_size, sizeof (file_size));
 #endif
     if (file_size > 0l) {
@@ -210,7 +213,11 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
         inlen = read (fd, inbuf, file_size);
 #endif
         if (inlen != file_size) {
-            DYAD_LOG_ERROR (mod_ctx->ctx, "DYAD_MOD: Failed to load file \"%s\" only read %zd of %zd.", fullpath, inlen, file_size);
+            DYAD_LOG_ERROR (mod_ctx->ctx,
+                            "DYAD_MOD: Failed to load file \"%s\" only read %zd of %zd.",
+                            fullpath,
+                            inlen,
+                            file_size);
             goto fetch_error;
         }
 #ifdef DYAD_ENABLE_UCX_RMA
@@ -243,7 +250,9 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
     }
     DYAD_LOG_DEBUG (mod_ctx->ctx, "Close RPC message stream with an ENODATA (%d) message", ENODATA);
     if (flux_respond_error (h, msg, ENODATA, NULL) < 0) {
-        DYAD_LOG_ERROR (mod_ctx->ctx, "DYAD_MOD: %s: flux_respond_error with ENODATA failed\n", __func__);
+        DYAD_LOG_ERROR (mod_ctx->ctx,
+                        "DYAD_MOD: %s: flux_respond_error with ENODATA failed\n",
+                        __func__);
     }
     DYAD_LOG_INFO (mod_ctx->ctx, "Finished %s module invocation\n", DYAD_DTL_RPC_NAME);
     goto end_fetch_cb;
@@ -365,8 +374,10 @@ int opt_parse(opt_parse_out_t *restrict opt,
                 // mode as the option, then skip reinitializing
                 DYAD_LOG_STDERR ("DYAD_MOD: DTL 'mode' option -m with value `%s'\n", optarg);
                 opt->dtl_mode = optarg;
-                if (strcmp("UCX", optarg) == 0) *dtl_mode = DYAD_DTL_UCX;
-                else if (strcmp("FLUX_RPC", optarg) == 0) *dtl_mode = DYAD_DTL_FLUX_RPC;
+                if (strcmp ("UCX", optarg) == 0)
+                    *dtl_mode = DYAD_DTL_UCX;
+                else if (strcmp ("FLUX_RPC", optarg) == 0)
+                    *dtl_mode = DYAD_DTL_FLUX_RPC;
                 break;
             case 'i':
 #ifndef DYAD_LOGGER_NO_LOG
@@ -444,6 +455,9 @@ dyad_rc_t dyad_module_ctx_init (const opt_parse_out_t *opt, flux_t *h)
        DYAD_LOG_STDERR ("DYAD_MOD: DYAD_KVS_NAMESPACE is set to `%s'\n", kvs_namespace);
     } else {
         DYAD_LOG_STDERR ("DYAD_MOD: DYAD_KVS_NAMESPACE is not set\n");
+        // Required so that dyad_ctx_init can pass
+        // TODO: figure out a better for this.
+        setenv (DYAD_KVS_NAMESPACE_ENV, "dyad_module_dummy_env", 1);
     }
 
     // Initialize DYAD context

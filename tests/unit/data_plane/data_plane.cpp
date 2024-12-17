@@ -1,5 +1,5 @@
 #include <dyad/common/dyad_logging.h>
-#include <dyad/core/dyad_core.h>
+#include <dyad/core/dyad_core_int.h>
 #include <dyad/core/dyad_ctx.h>
 #include <fcntl.h>
 
@@ -59,7 +59,7 @@ TEST_CASE("RemoteDataBandwidth", "[files= " + std::to_string(args.number_of_file
     dyad_metadata_t mdata;
     mdata.owner_rank = neighour_broker_idx;
     size_t data_len = args.request_size * args.iteration;
-    char* file_data = NULL;
+    char *file_data = NULL;
     for (size_t file_idx = 0; file_idx < args.number_of_files; ++file_idx) {
       sprintf(filename, "%s_%u_%zu.bat", args.filename.c_str(),
               neighour_broker_idx, file_idx);
@@ -100,7 +100,8 @@ TEST_CASE("RemoteDataAggBandwidth", "[files= " + std::to_string(args.number_of_f
     dyad_metadata_t mdata;
     mdata.owner_rank = neighour_broker_idx;
     size_t data_len = args.request_size * args.iteration;
-    if (info.rank % args.process_per_node != 0) usleep(10000);
+    if (info.rank % args.process_per_node != 0)
+      usleep(10000);
     for (size_t file_idx = 0; file_idx < args.number_of_files; ++file_idx) {
       sprintf(upath, "%s_%u_%zu.bat", args.filename.c_str(),
               neighour_broker_idx, file_idx);
@@ -140,7 +141,7 @@ TEST_CASE("LocalProcessDataBandwidth", "[files= " + std::to_string(args.number_o
     Timer data_time;
     char filename[4096];
     size_t data_len = args.request_size * args.iteration;
-    char* file_data = (char*)malloc(data_len);
+    char *file_data = (char *)malloc(data_len);
     for (size_t file_idx = 0; file_idx < args.number_of_files; ++file_idx) {
       sprintf(filename, "%s/%s_%u_%zu.bat", args.dyad_managed_dir.c_str(),
               args.filename.c_str(), info.broker_idx, file_idx);
@@ -184,7 +185,7 @@ TEST_CASE("LocalNodeDataBandwidth", "[files= " + std::to_string(args.number_of_f
     Timer data_time;
     char filename[4096];
     size_t data_len = args.request_size * args.iteration;
-    char* file_data = (char*)malloc(data_len);
+    char *file_data = (char *)malloc(data_len);
     for (size_t file_idx = 0; file_idx < args.number_of_files; ++file_idx) {
       sprintf(filename, "%s/%s_%u_%zu.bat", args.dyad_managed_dir.c_str(),
               args.filename.c_str(), info.broker_idx, file_idx);

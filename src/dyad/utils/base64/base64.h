@@ -53,9 +53,7 @@ void base64_init_maps (base64_maps_t *dest, const char src[64]);
  * @param dest Buffer containing 3 bytes
  * @param src Buffer containing 4 characters
  */
-void base64_encode_triplet_using_maps (const base64_maps_t *maps,
-                                       char dest[4],
-                                       const char src[3]);
+void base64_encode_triplet_using_maps (const base64_maps_t *maps, char dest[4], const char src[3]);
 
 /**
  * base64_encode_tail_using_maps - encode the final bytes of a source using a specific
@@ -164,10 +162,7 @@ extern const base64_maps_t base64_maps_rfc4648;
  *	encoded_length = base64_encode(dest, sizeof(dest), src, strlen(src));
  *	printf("Returned data of length %zd @%p", encoded_length, &dest);
  */
-static inline ssize_t base64_encode (char *dest,
-                                     size_t destlen,
-                                     const char *src,
-                                     size_t srclen)
+static inline ssize_t base64_encode (char *dest, size_t destlen, const char *src, size_t srclen)
 {
     return base64_encode_using_maps (&base64_maps_rfc4648, dest, destlen, src, srclen);
 }
@@ -214,10 +209,7 @@ static inline void base64_encode_tail (char dest[4], const char *src, size_t src
  *	decoded_length = base64_decode(ret, sizeof(ret), src, strlen(src));
  *	printf("Returned data of length %zd @%p", decoded_length, &ret);
  */
-static inline ssize_t base64_decode (char *dest,
-                                     size_t destlen,
-                                     const char *src,
-                                     size_t srclen)
+static inline ssize_t base64_decode (char *dest, size_t destlen, const char *src, size_t srclen)
 {
     return base64_decode_using_maps (&base64_maps_rfc4648, dest, destlen, src, srclen);
 }

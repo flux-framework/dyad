@@ -7,7 +7,7 @@
 #include <dyad/common/dyad_envs.h>
 #include <dyad/common/dyad_logging.h>
 #include <dyad/common/dyad_profiler.h>
-#include <dyad/core/dyad_core.h>
+// #include <dyad/core/dyad_core_int.h>
 #include <dyad/core/dyad_ctx.h>
 #include <dyad/dtl/dyad_dtl_api.h>
 #include <dyad/utils/utils.h>
@@ -26,13 +26,11 @@
 #include <string.h>
 #endif
 
-#include <errno.h>
-
 // Note:
 // To ensure we don't have multiple initialization, we need the following:
 // 1) The DYAD context (ctx below) must be static
 // 2) The DYAD context should be on the heap (done w/ malloc in dyad_init)
-static __thread dyad_ctx_t* ctx = NULL;
+static __thread dyad_ctx_t *ctx = NULL;
 
 const struct dyad_ctx dyad_ctx_default = {
     // Internal
@@ -71,12 +69,12 @@ const struct dyad_ctx dyad_ctx_default = {
     false   // relative_to_managed_path
 };
 
-DYAD_DLL_EXPORTED dyad_ctx_t* dyad_ctx_get ()
+DYAD_DLL_EXPORTED dyad_ctx_t *dyad_ctx_get ()
 {
     return ctx;
 }
 
-DYAD_DLL_EXPORTED void dyad_ctx_init (const dyad_dtl_comm_mode_t dtl_comm_mode, void* flux_handle)
+DYAD_DLL_EXPORTED void dyad_ctx_init (const dyad_dtl_comm_mode_t dtl_comm_mode, void *flux_handle)
 {
 #if DYAD_PROFILER == 3
     DFTRACER_C_FINI ();
@@ -127,20 +125,20 @@ dyad_rc_t dyad_init (bool debug,
                      unsigned int key_depth,
                      unsigned int key_bins,
                      unsigned int service_mux,
-                     const char* kvs_namespace,
-                     const char* prod_managed_path,
-                     const char* cons_managed_path,
+                     const char *kvs_namespace,
+                     const char *prod_managed_path,
+                     const char *cons_managed_path,
                      bool relative_to_managed_path,
-                     const char* dtl_mode_str,
+                     const char *dtl_mode_str,
                      const dyad_dtl_comm_mode_t dtl_comm_mode,
-                     void* flux_handle)
+                     void *flux_handle)
 {
     DYAD_LOGGER_INIT ();
     unsigned my_rank = 0u;
     size_t namespace_len = 0ul;
 
 #ifdef DYAD_PROFILER_DFTRACER
-    const char* file_prefix = getenv (DFTRACER_LOG_FILE);
+    const char *file_prefix = getenv (DFTRACER_LOG_FILE);
     if (file_prefix == NULL)
         file_prefix = "./dyad_";
     char log_file[4096] = {'\0'};
@@ -156,7 +154,6 @@ dyad_rc_t dyad_init (bool debug,
     // return DYAD_OK.
     if (!reinit && (ctx != NULL)) {
         if ((ctx)->initialized) {
-            // TODO Indicate already initialized
             DYAD_LOG_DEBUG ((ctx), "DYAD context already initialized\n");
             rc = DYAD_RC_OK;
             goto init_region_finish;
@@ -166,7 +163,7 @@ dyad_rc_t dyad_init (bool debug,
             dyad_finalize ();
         // Allocate the dyad_ctx_t object and make sure the allocation
         // worked successfully
-        ctx = (dyad_ctx_t*)malloc (sizeof (struct dyad_ctx));
+        ctx = (dyad_ctx_t *)malloc (sizeof (struct dyad_ctx));
         if (ctx == NULL) {
             fprintf (stderr, "Could not allocate DYAD context!\n");
             rc = DYAD_RC_NOCTX;
@@ -211,7 +208,7 @@ dyad_rc_t dyad_init (bool debug,
     // instead of getting it by flux_open()
 
     if (flux_handle != NULL) {
-        ctx->h = (flux_t*)flux_handle;
+        ctx->h = (flux_t *)flux_handle;
     } else {
         ctx->h = flux_open (NULL, 0);
     }
@@ -256,7 +253,7 @@ dyad_rc_t dyad_init (bool debug,
         goto init_region_failed;
     }
     namespace_len = strlen (kvs_namespace);
-    ctx->kvs_namespace = (char*)calloc (namespace_len + 1, sizeof (char));
+    ctx->kvs_namespace = (char *)calloc (namespace_len + 1, sizeof (char));
     if (ctx->kvs_namespace == NULL) {
         DYAD_LOG_ERROR (ctx, "Could not allocate buffer for KVS namespace!\n");
         goto init_region_failed;
@@ -278,18 +275,22 @@ dyad_rc_t dyad_init (bool debug,
         DYAD_LOG_INFO (ctx, "DYAD_CORE INIT: dtl_mode %s", dtl_mode_str);
     }
 
-    // If the producer-managed path is provided, copy it into the dyad_ctx_t object
+    // If the producer-managed path is provided, copy it into the dyad_ctx_t
+    // object
     if (dyad_set_prod_path (prod_managed_path) != DYAD_RC_OK) {
         goto init_region_failed;
     }
 
-    // If the consumer-managed path is provided, copy it into the dyad_ctx_t object
+    // If the consumer-managed path is provided, copy it into the dyad_ctx_t
+    // object
     if (dyad_set_cons_path (cons_managed_path) != DYAD_RC_OK) {
         goto init_region_failed;
     }
 
     ctx->relative_to_managed_path = relative_to_managed_path;
-    DYAD_LOG_INFO (ctx, "DYAD_CORE INIT: relative_to_managed_path %s", ctx->relative_to_managed_path ? "true" : "false");
+    DYAD_LOG_INFO (ctx,
+                   "DYAD_CORE INIT: relative_to_managed_path %s",
+                   ctx->relative_to_managed_path ? "true" : "false");
 
     DYAD_C_FUNCTION_UPDATE_STR ("prod_managed_path", ctx->prod_managed_path);
     DYAD_C_FUNCTION_UPDATE_STR ("cons_managed_path", ctx->cons_managed_path);
@@ -327,10 +328,10 @@ init_region_finish:;
 }
 
 DYAD_DLL_EXPORTED dyad_rc_t dyad_init_env (const dyad_dtl_comm_mode_t dtl_comm_mode,
-                                           void* flux_handle)
+                                           void *flux_handle)
 {
     DYAD_C_FUNCTION_START ();
-    const char* e = NULL;
+    const char *e = NULL;
     bool debug = false;
     bool check = false;
     bool shared_storage = false;
@@ -341,10 +342,10 @@ DYAD_DLL_EXPORTED dyad_rc_t dyad_init_env (const dyad_dtl_comm_mode_t dtl_comm_m
     unsigned int key_depth = 0u;
     unsigned int key_bins = 0u;
     unsigned int service_mux = 1u;
-    const char* kvs_namespace = NULL;
-    const char* prod_managed_path = NULL;
-    const char* cons_managed_path = NULL;
-    const char* dtl_mode = NULL;
+    const char *kvs_namespace = NULL;
+    const char *prod_managed_path = NULL;
+    const char *cons_managed_path = NULL;
+    const char *dtl_mode = NULL;
 
     if ((e = getenv (DYAD_SYNC_DEBUG_ENV))) {
         debug = true;
@@ -461,7 +462,7 @@ DYAD_DLL_EXPORTED dyad_rc_t dyad_init_env (const dyad_dtl_comm_mode_t dtl_comm_m
     return rc;
 }
 
-DYAD_DLL_EXPORTED dyad_rc_t dyad_set_and_init_dtl_mode (const char* dtl_name,
+DYAD_DLL_EXPORTED dyad_rc_t dyad_set_and_init_dtl_mode (const char *dtl_name,
                                                         dyad_dtl_comm_mode_t dtl_comm_mode)
 {
     int rc = DYAD_RC_OK;
@@ -504,7 +505,7 @@ set_and_init_dtl_mode_region_finish:;
     return rc;
 }
 
-DYAD_DLL_EXPORTED dyad_rc_t dyad_set_prod_path (const char* prod_managed_path)
+DYAD_DLL_EXPORTED dyad_rc_t dyad_set_prod_path (const char *prod_managed_path)
 {
     dyad_rc_t rc = DYAD_RC_OK;
     bool reenter_backup = false;
@@ -551,7 +552,7 @@ DYAD_DLL_EXPORTED dyad_rc_t dyad_set_prod_path (const char* prod_managed_path)
             rc = DYAD_RC_BADMANAGEDPATH;
             goto set_prod_path_region_failed;
         }
-        ctx->prod_managed_path = (char*)calloc (prod_path_len + 1, sizeof (char));
+        ctx->prod_managed_path = (char *)calloc (prod_path_len + 1, sizeof (char));
         if (ctx->prod_managed_path == NULL) {
             DYAD_LOG_ERROR (ctx, "Could not allocate buffer for Producer managed path!\n");
             rc = DYAD_RC_SYSFAIL;
@@ -581,7 +582,8 @@ DYAD_DLL_EXPORTED dyad_rc_t dyad_set_prod_path (const char* prod_managed_path)
             prod_realpath_len = strlen (prod_real_path);
         }
 
-        // If the realpath is the same, we turn off checking against it as it is redundant
+        // If the realpath is the same, we turn off checking against it as it is
+        // redundant
         if (prod_realpath_len == 0u
             || strncmp (prod_managed_path, prod_real_path, prod_path_len) == 0) {
             DYAD_LOG_INFO (ctx, "DYAD_CORE: producer real path is redundant");
@@ -589,7 +591,7 @@ DYAD_DLL_EXPORTED dyad_rc_t dyad_set_prod_path (const char* prod_managed_path)
             ctx->prod_real_len = 0u;
             ctx->prod_real_hash = 0u;
         } else {
-            ctx->prod_real_path = (char*)calloc (prod_realpath_len + 1, sizeof (char));
+            ctx->prod_real_path = (char *)calloc (prod_realpath_len + 1, sizeof (char));
             if (ctx->prod_real_path == NULL || prod_realpath_len == 0ul) {
                 DYAD_LOG_ERROR (ctx, "Could not allocate buffer for Producer managed path!\n");
                 rc = DYAD_RC_SYSFAIL;
@@ -630,7 +632,7 @@ set_prod_path_region_finish:;
     return rc;
 }
 
-DYAD_DLL_EXPORTED dyad_rc_t dyad_set_cons_path (const char* cons_managed_path)
+DYAD_DLL_EXPORTED dyad_rc_t dyad_set_cons_path (const char *cons_managed_path)
 {
     dyad_rc_t rc = DYAD_RC_OK;
     bool reenter_backup = false;
@@ -677,7 +679,7 @@ DYAD_DLL_EXPORTED dyad_rc_t dyad_set_cons_path (const char* cons_managed_path)
             rc = DYAD_RC_BADMANAGEDPATH;
             goto set_cons_path_region_failed;
         }
-        ctx->cons_managed_path = (char*)calloc (cons_path_len + 1, sizeof (char));
+        ctx->cons_managed_path = (char *)calloc (cons_path_len + 1, sizeof (char));
         if (ctx->cons_managed_path == NULL) {
             DYAD_LOG_ERROR (ctx, "Could not allocate buffer for Consumer managed path!\n");
             rc = DYAD_RC_SYSFAIL;
@@ -707,7 +709,8 @@ DYAD_DLL_EXPORTED dyad_rc_t dyad_set_cons_path (const char* cons_managed_path)
             cons_realpath_len = strlen (cons_real_path);
         }
 
-        // If the realpath is the same, we turn off checking against it as it is redundant
+        // If the realpath is the same, we turn off checking against it as it is
+        // redundant
         if (cons_realpath_len == 0u
             || strncmp (cons_managed_path, cons_real_path, cons_path_len) == 0) {
             DYAD_LOG_INFO (ctx, "DYAD_CORE: consucer real path is redundant");
@@ -715,7 +718,7 @@ DYAD_DLL_EXPORTED dyad_rc_t dyad_set_cons_path (const char* cons_managed_path)
             ctx->cons_real_len = 0u;
             ctx->cons_real_hash = 0u;
         } else {
-            ctx->cons_real_path = (char*)calloc (cons_realpath_len + 1, sizeof (char));
+            ctx->cons_real_path = (char *)calloc (cons_realpath_len + 1, sizeof (char));
             if (ctx->cons_real_path == NULL || cons_realpath_len == 0ul) {
                 DYAD_LOG_ERROR (ctx, "Could not allocate buffer for Consumer managed path!\n");
                 rc = DYAD_RC_SYSFAIL;
@@ -803,7 +806,7 @@ DYAD_DLL_EXPORTED dyad_rc_t dyad_finalize ()
 {
     DYAD_C_FUNCTION_START ();
     dyad_rc_t rc = DYAD_RC_OK;
-    //DYAD_LOG_STDERR ("DYAD context is being destroyed!\n");
+    // DYAD_LOG_STDERR ("DYAD context is being destroyed!\n");
     if (ctx == NULL) {
         rc = DYAD_RC_OK;
         goto finalize_region_finish;
