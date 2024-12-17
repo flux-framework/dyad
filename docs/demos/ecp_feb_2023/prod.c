@@ -24,12 +24,13 @@ int produce_file (char* full_path, int32_t seed, int32_t* val_buf)
         printf ("File %ld: Cannot open\n", (long)seed);
         return -1;
     }
-    // Write the file or abort if not possible
-    size_t items_read = fwrite (val_buf, sizeof (int32_t), NUM_VALS, fp);
-    // Close the file
-    fclose (fp);
+
+    // Write then close the file
+    size_t items_write = fwrite (val_buf, sizeof(int32_t), NUM_VALS, fp);
+    fclose(fp);
+
     // If an error occured during writing, abort
-    if (items_read != NUM_VALS) {
+    if (items_write != NUM_VALS) {
         fprintf (stderr, "Could not write the full file (%s)\n", full_path);
         printf ("File %ld: Cannot write\n", (long)seed);
         return -1;
@@ -43,15 +44,13 @@ int main (int argc, char** argv)
     int32_t num_transfers;
     char* fpath;
     int rc = parse_cmd_line (argc, argv, &num_transfers, &fpath);
-    // If an error occured during command-line parsing,
-    // abort the consumer
+    // abort if an error occured during command-line parsing
     if (rc != 0) {
         return rc;
     }
     // Largest number of digits for a int32_t when converted to string
     const size_t max_digits = 10;
-    // First 4 is for "data"
-    // Second 4 is for ".txt"
+    // First 4 is for "data", second 4 is for ".txt"
     size_t path_len = strlen (fpath) + 4 + max_digits + 4;
     // Allocate a buffer for the file path
     char* full_path = malloc (path_len + 1);
@@ -86,4 +85,6 @@ int main (int argc, char** argv)
         }
     }
     free (full_path);
+
+    return 0;
 }

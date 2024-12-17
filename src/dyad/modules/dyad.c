@@ -55,7 +55,6 @@
     ((double)(1000000000L * ((Tend).tv_sec - (Tstart).tv_sec) + (Tend).tv_nsec - (Tstart).tv_nsec) \
      / 1000000000L)
 
-
 /**
  * Flux services are implemented as dynamically loaded broker
  * plugins called “broker modules”.
@@ -68,7 +67,6 @@
  * This code implements such a flux module, which can be loaded
  * using "flux module load".
  */
-
 
 typedef struct dyad_mod_ctx {
     flux_msg_handler_t **handlers;
@@ -309,11 +307,11 @@ struct opt_parse_out {
 
 typedef struct opt_parse_out opt_parse_out_t;
 
-int opt_parse(opt_parse_out_t *restrict opt,
-                      const unsigned broker_rank,
-                      dyad_dtl_mode_t *restrict dtl_mode,
-                      int argc,
-                      char **restrict argv)
+int opt_parse (opt_parse_out_t *restrict opt,
+               const unsigned broker_rank,
+               dyad_dtl_mode_t *restrict dtl_mode,
+               int argc,
+               char **restrict argv)
 {
 #ifndef DYAD_LOGGER_NO_LOG
     char log_file_name[PATH_MAX + 1] = {'\0'};
@@ -342,11 +340,11 @@ int opt_parse(opt_parse_out_t *restrict opt,
     extern int optind;
     optind = 1;
     int _argc = argc + 1;
-    char** _argv = malloc(sizeof(char*) * _argc);
+    char **_argv = malloc (sizeof (char *) * _argc);
     _argv[0] = NULL;
     for (int i = 1; i < _argc; i++) {
         // we will reuse the same same string in argv[].
-        _argv[i] = argv[i-1];
+        _argv[i] = argv[i - 1];
     }
 
     static struct option long_options[] = {{"help", no_argument, 0, 'h'},
@@ -357,7 +355,7 @@ int opt_parse(opt_parse_out_t *restrict opt,
                                            {0, 0, 0, 0}};
 
     int c;
-    while ((c = getopt_long(_argc, _argv, "hdm:i:e:", long_options, NULL)) != -1) {
+    while ((c = getopt_long (_argc, _argv, "hdm:i:e:", long_options, NULL)) != -1) {
         switch (c) {
             case 'h':
                 show_help ();
@@ -396,7 +394,7 @@ int opt_parse(opt_parse_out_t *restrict opt,
                 break;
             default:
                 DYAD_LOG_STDERR ("DYAD_MOD: option parsing failed %d\n", c);
-                free(_argv);
+                free (_argv);
                 return DYAD_RC_SYSFAIL;
         }
     }
@@ -418,10 +416,9 @@ int opt_parse(opt_parse_out_t *restrict opt,
     }
     opt->prod_managed_path = prod_managed_path;
 
-    free(_argv);
+    free (_argv);
     return DYAD_RC_OK;
 }
-
 
 dyad_rc_t dyad_module_ctx_init (const opt_parse_out_t *opt, flux_t *h)
 {
@@ -441,18 +438,18 @@ dyad_rc_t dyad_module_ctx_init (const opt_parse_out_t *opt, flux_t *h)
 
     if (opt->dtl_mode) {
         setenv (DYAD_DTL_MODE_ENV, opt->dtl_mode, 1);
-        DYAD_LOG_STDERR (
-            "DYAD_MOD: DTL 'mode' option set. Setting env %s=%s\n",
-            DYAD_DTL_MODE_ENV, opt->dtl_mode);
+        DYAD_LOG_STDERR ("DYAD_MOD: DTL 'mode' option set. Setting env %s=%s\n",
+                         DYAD_DTL_MODE_ENV,
+                         opt->dtl_mode);
     } else {
-        DYAD_LOG_STDERR (
-            "DYAD_MOD: Did not find DTL 'mode' option. Using env %s=%s\n",
-            DYAD_DTL_MODE_ENV, getenv (DYAD_DTL_MODE_ENV));
+        DYAD_LOG_STDERR ("DYAD_MOD: Did not find DTL 'mode' option. Using env %s=%s\n",
+                         DYAD_DTL_MODE_ENV,
+                         getenv (DYAD_DTL_MODE_ENV));
     }
 
-    char* kvs_namespace = getenv("DYAD_KVS_NAMESPACE");
+    char *kvs_namespace = getenv ("DYAD_KVS_NAMESPACE");
     if (kvs_namespace != NULL) {
-       DYAD_LOG_STDERR ("DYAD_MOD: DYAD_KVS_NAMESPACE is set to `%s'\n", kvs_namespace);
+        DYAD_LOG_STDERR ("DYAD_MOD: DYAD_KVS_NAMESPACE is set to `%s'\n", kvs_namespace);
     } else {
         DYAD_LOG_STDERR ("DYAD_MOD: DYAD_KVS_NAMESPACE is not set\n");
         // Required so that dyad_ctx_init can pass
