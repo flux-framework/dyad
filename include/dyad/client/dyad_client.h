@@ -28,14 +28,14 @@
 extern "C" {
 #endif
 #if DYAD_PERFFLOW
-#define DYAD_CORE_FUNC_MODS __attribute__((annotate("@critical_path()"))) static
+#define DYAD_CORE_FUNC_MODS __attribute__ ((annotate ("@critical_path()"))) static
 #else
 #define DYAD_CORE_FUNC_MODS static inline
 #endif
 
 struct dyad_metadata {
-  char *fpath;
-  uint32_t owner_rank;
+    char *fpath;
+    uint32_t owner_rank;
 };
 typedef struct dyad_metadata dyad_metadata_t;
 
@@ -47,8 +47,7 @@ typedef struct dyad_metadata dyad_metadata_t;
  *
  * @return An error code from dyad_rc.h
  */
-DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_produce(dyad_ctx_t *ctx,
-                                                           const char *fname);
+DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_produce (dyad_ctx_t *ctx, const char *fname);
 
 /**
  * @brief Obtain DYAD metadata for a file in the consumer-managed directory
@@ -61,12 +60,12 @@ DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_produce(dyad_ctx_t *ctx,
  *
  * @return An error code from dyad_rc.h
  */
-DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t
-dyad_get_metadata(dyad_ctx_t *ctx, const char *fname, bool should_wait,
-                  dyad_metadata_t **mdata);
+DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_get_metadata (dyad_ctx_t *ctx,
+                                                                 const char *fname,
+                                                                 bool should_wait,
+                                                                 dyad_metadata_t **mdata);
 
-DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t
-dyad_free_metadata(dyad_metadata_t **mdata);
+DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_free_metadata (dyad_metadata_t **mdata);
 
 /**
  * @brief Wrapper function that performs all the common tasks needed
@@ -76,8 +75,7 @@ dyad_free_metadata(dyad_metadata_t **mdata);
  *
  * @return An error code from dyad_rc.h
  */
-DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_consume(dyad_ctx_t *ctx,
-                                                           const char *fname);
+DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_consume (dyad_ctx_t *ctx, const char *fname);
 
 /**
  * @brief Wrapper function that performs all the common tasks needed
@@ -89,8 +87,8 @@ DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_consume(dyad_ctx_t *ctx,
  *
  * @return An error code from dyad_rc.h
  */
-DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_consume_w_metadata(
-    dyad_ctx_t *ctx, const char *fname, const dyad_metadata_t *mdata);
+DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t
+dyad_consume_w_metadata (dyad_ctx_t *ctx, const char *fname, const dyad_metadata_t *mdata);
 
 #ifdef __cplusplus
 }

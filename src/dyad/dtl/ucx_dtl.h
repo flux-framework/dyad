@@ -7,10 +7,11 @@
 #error "no config"
 #endif
 
+#include <stdlib.h>
+#include <ucp/api/ucp.h>
+
 #include <dyad/dtl/dyad_dtl_api.h>
 #include <dyad/dtl/ucx_ep_cache.h>
-#include <ucp/api/ucp.h>
-#include <stdlib.h>
 
 struct dyad_dtl_ucx {
     flux_t* h;
@@ -34,7 +35,7 @@ struct dyad_dtl_ucx {
     size_t rkey_size;
     uint64_t cons_buf_ptr;
     // Internal for Sender
-    ucp_rkey_h 	rkey;
+    ucp_rkey_h rkey;
 };
 
 typedef struct dyad_dtl_ucx dyad_dtl_ucx_t;
@@ -45,9 +46,9 @@ dyad_rc_t dyad_dtl_ucx_init (const dyad_ctx_t* ctx,
                              bool debug);
 
 dyad_rc_t dyad_dtl_ucx_rpc_pack (const dyad_ctx_t* ctx,
-                                 const char*  upath,
+                                 const char* upath,
                                  uint32_t producer_rank,
-                                 json_t**  packed_obj);
+                                 json_t** packed_obj);
 
 dyad_rc_t dyad_dtl_ucx_rpc_unpack (const dyad_ctx_t* ctx, const flux_msg_t* msg, char** upath);
 
