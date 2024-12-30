@@ -429,6 +429,9 @@ dyad_rc_t dyad_module_ctx_init (const opt_parse_out_t *opt, flux_t *h)
         return DYAD_RC_NOCTX;
     }
 
+    // DYAD can be configured via environment variables
+    // and users can override the settings through command
+    // line arguments.
     if (opt->prod_managed_path) {
         setenv (DYAD_PATH_PRODUCER_ENV, opt->prod_managed_path, 1);
         const mode_t m = (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH | S_ISGID);
@@ -438,20 +441,15 @@ dyad_rc_t dyad_module_ctx_init (const opt_parse_out_t *opt, flux_t *h)
 
     if (opt->dtl_mode) {
         setenv (DYAD_DTL_MODE_ENV, opt->dtl_mode, 1);
-        DYAD_LOG_STDERR ("DYAD_MOD: DTL 'mode' option set. Setting env %s=%s\n",
+        DYAD_LOG_STDERR ("DYAD_MOD: DTL mode option set. Setting env %s=%s\n",
                          DYAD_DTL_MODE_ENV,
                          opt->dtl_mode);
-    } else {
-        DYAD_LOG_STDERR ("DYAD_MOD: Did not find DTL 'mode' option. Using env %s=%s\n",
-                         DYAD_DTL_MODE_ENV,
-                         getenv (DYAD_DTL_MODE_ENV));
     }
 
     char *kvs_namespace = getenv ("DYAD_KVS_NAMESPACE");
     if (kvs_namespace != NULL) {
         DYAD_LOG_STDERR ("DYAD_MOD: DYAD_KVS_NAMESPACE is set to `%s'\n", kvs_namespace);
     } else {
-        DYAD_LOG_STDERR ("DYAD_MOD: DYAD_KVS_NAMESPACE is not set\n");
         // Required so that dyad_ctx_init can pass
         // TODO: figure out a better for this.
         setenv (DYAD_KVS_NAMESPACE_ENV, "dyad_module_dummy_env", 1);
