@@ -411,7 +411,6 @@ int opt_parse (opt_parse_out_t *restrict opt,
     // Retrive the remaining command line argument (not options).
     // it is expected to be the producer managed directory
     while (optind < _argc) {
-        DYAD_LOG_STDERR ("DYAD_MOD: positional arguments %s\n", _argv[optind]);
         prod_managed_path = _argv[optind++];
     }
     opt->prod_managed_path = prod_managed_path;
@@ -436,19 +435,19 @@ dyad_rc_t dyad_module_ctx_init (const opt_parse_out_t *opt, flux_t *h)
         setenv (DYAD_PATH_PRODUCER_ENV, opt->prod_managed_path, 1);
         const mode_t m = (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH | S_ISGID);
         mkdir_as_needed (opt->prod_managed_path, m);
-        DYAD_LOG_STDERR ("DYAD_MOD: Loading DYAD Module with Path %s\n", opt->prod_managed_path);
+        DYAD_LOG_STDOUT ("DYAD_MOD: Loading DYAD Module with Path %s\n", opt->prod_managed_path);
     }
 
     if (opt->dtl_mode) {
         setenv (DYAD_DTL_MODE_ENV, opt->dtl_mode, 1);
-        DYAD_LOG_STDERR ("DYAD_MOD: DTL mode option set. Setting env %s=%s\n",
+        DYAD_LOG_STDOUT ("DYAD_MOD: DTL mode option set. Setting env %s=%s\n",
                          DYAD_DTL_MODE_ENV,
                          opt->dtl_mode);
     }
 
     char *kvs_namespace = getenv ("DYAD_KVS_NAMESPACE");
     if (kvs_namespace != NULL) {
-        DYAD_LOG_STDERR ("DYAD_MOD: DYAD_KVS_NAMESPACE is set to `%s'\n", kvs_namespace);
+        DYAD_LOG_STDOUT ("DYAD_MOD: DYAD_KVS_NAMESPACE is set to `%s'\n", kvs_namespace);
     } else {
         // Required so that dyad_ctx_init can pass
         // TODO: figure out a better for this.
