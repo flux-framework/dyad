@@ -309,7 +309,6 @@ typedef struct opt_parse_out opt_parse_out_t;
 
 int opt_parse (opt_parse_out_t *restrict opt,
                const unsigned broker_rank,
-               dyad_dtl_mode_t *restrict dtl_mode,
                int argc,
                char **restrict argv)
 {
@@ -319,7 +318,6 @@ int opt_parse (opt_parse_out_t *restrict opt,
     sprintf (log_file_name, "dyad_mod_%u.out", broker_rank);
     sprintf (err_file_name, "dyad_mod_%d.err", broker_rank);
 #endif  // DYAD_LOGGER_NO_LOG
-    *dtl_mode = DYAD_DTL_END;
 
     int rc = DYAD_RC_OK;
     char *prod_managed_path = NULL;
@@ -335,7 +333,7 @@ int opt_parse (opt_parse_out_t *restrict opt,
     // argv[0] to be the executable name, so it starts
     // checking from optind = 1.
     // since Flux module argv doesn't contain the executable
-    // name as its first argument, we need to create a dummy
+    // name in its first argument, we need to create a dummy
     // _argc and _argv here for getopt() to work properly.
     extern int optind;
     optind = 1;
@@ -343,7 +341,7 @@ int opt_parse (opt_parse_out_t *restrict opt,
     char **_argv = malloc (sizeof (char *) * _argc);
     _argv[0] = NULL;
     for (int i = 1; i < _argc; i++) {
-        // we will reuse the same same string in argv[].
+        // we will reuse the same string in argv[].
         _argv[i] = argv[i - 1];
     }
 
@@ -372,10 +370,7 @@ int opt_parse (opt_parse_out_t *restrict opt,
                 // mode as the option, then skip reinitializing
                 DYAD_LOG_STDERR ("DYAD_MOD: DTL 'mode' option -m with value `%s'\n", optarg);
                 opt->dtl_mode = optarg;
-                if (strcmp ("UCX", optarg) == 0)
-                    *dtl_mode = DYAD_DTL_UCX;
-                else if (strcmp ("FLUX_RPC", optarg) == 0)
-                    *dtl_mode = DYAD_DTL_FLUX_RPC;
+                // TODO: check if the user specified dtl_mode is valid.
                 break;
             case 'i':
 #ifndef DYAD_LOGGER_NO_LOG
@@ -404,14 +399,9 @@ int opt_parse (opt_parse_out_t *restrict opt,
     DYAD_LOG_STDERR_REDIRECT (err_file_name);
 #endif  // DYAD_LOGGER_NO_LOG
 
-    if (*dtl_mode == DYAD_DTL_END) {
-        opt->dtl_mode = NULL;
-    }
-
     // Retrive the remaining command line argument (not options).
     // it is expected to be the producer managed directory
     while (optind < _argc) {
-        DYAD_LOG_STDERR ("DYAD_MOD: positional arguments %s\n", _argv[optind]);
         prod_managed_path = _argv[optind++];
     }
     opt->prod_managed_path = prod_managed_path;
@@ -429,29 +419,27 @@ dyad_rc_t dyad_module_ctx_init (const opt_parse_out_t *opt, flux_t *h)
         return DYAD_RC_NOCTX;
     }
 
+    // DYAD can be configured via environment variables
+    // and users can override the settings through command
+    // line arguments.
     if (opt->prod_managed_path) {
         setenv (DYAD_PATH_PRODUCER_ENV, opt->prod_managed_path, 1);
         const mode_t m = (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH | S_ISGID);
         mkdir_as_needed (opt->prod_managed_path, m);
-        DYAD_LOG_STDERR ("DYAD_MOD: Loading DYAD Module with Path %s\n", opt->prod_managed_path);
+        DYAD_LOG_STDOUT ("DYAD_MOD: Loading DYAD Module with Path %s\n", opt->prod_managed_path);
     }
 
     if (opt->dtl_mode) {
         setenv (DYAD_DTL_MODE_ENV, opt->dtl_mode, 1);
-        DYAD_LOG_STDERR ("DYAD_MOD: DTL 'mode' option set. Setting env %s=%s\n",
+        DYAD_LOG_STDOUT ("DYAD_MOD: DTL mode option set. Setting env %s=%s\n",
                          DYAD_DTL_MODE_ENV,
                          opt->dtl_mode);
-    } else {
-        DYAD_LOG_STDERR ("DYAD_MOD: Did not find DTL 'mode' option. Using env %s=%s\n",
-                         DYAD_DTL_MODE_ENV,
-                         getenv (DYAD_DTL_MODE_ENV));
     }
 
     char *kvs_namespace = getenv ("DYAD_KVS_NAMESPACE");
     if (kvs_namespace != NULL) {
-        DYAD_LOG_STDERR ("DYAD_MOD: DYAD_KVS_NAMESPACE is set to `%s'\n", kvs_namespace);
+        DYAD_LOG_STDOUT ("DYAD_MOD: DYAD_KVS_NAMESPACE is set to `%s'\n", kvs_namespace);
     } else {
-        DYAD_LOG_STDERR ("DYAD_MOD: DYAD_KVS_NAMESPACE is not set\n");
         // Required so that dyad_ctx_init can pass
         // TODO: figure out a better for this.
         setenv (DYAD_KVS_NAMESPACE_ENV, "dyad_module_dummy_env", 1);
@@ -490,7 +478,6 @@ DYAD_DLL_EXPORTED int mod_main (flux_t *h, int argc, char **argv)
     DYAD_LOGGER_INIT ();
     DYAD_LOG_STDOUT ("DYAD_MOD: Loading mod_main\n");
     dyad_mod_ctx_t *mod_ctx = NULL;
-    dyad_dtl_mode_t dtl_mode = DYAD_DTL_DEFAULT;
 
     if (!h) {
         DYAD_LOG_STDERR ("DYAD_MOD: Failed to get flux handle\n");
@@ -510,7 +497,7 @@ DYAD_DLL_EXPORTED int mod_main (flux_t *h, int argc, char **argv)
     opt_parse_out_t opt = {NULL, NULL, false, false};
     DYAD_LOG_STDOUT ("DYAD_MOD: Parsing command line options\n");
 
-    if (DYAD_IS_ERROR (opt_parse (&opt, broker_rank, &dtl_mode, argc, argv))) {
+    if (DYAD_IS_ERROR (opt_parse (&opt, broker_rank, argc, argv))) {
         DYAD_LOG_STDERR ("DYAD_MOD: Cannot parse command line arguments\n");
         goto mod_error;
     }
