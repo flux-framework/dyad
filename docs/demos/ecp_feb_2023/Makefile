@@ -1,4 +1,4 @@
-DYAD_LIB_PATH = $(DYAD_INSTALL_PREFIX)/lib
+DYAD_LIB_PATH = $(DYAD_INSTALL_PREFIX)/lib64
 DYAD_INCLUDE_PATH = $(DYAD_INSTALL_PREFIX)/include
 #UCX_PATH = /p/gpfs1/ice4hpc/install
 #UCXLIBS = -L$(UCX_PATH)/lib -Wl,-rpath=$(UCX_PATH)/lib -lucs -lucp
