@@ -1,4 +1,4 @@
-## DYAD module
+## DYAD Service
 
 DYAD component to transfer files from a producer server to a consumer client using Flux APIs
 
