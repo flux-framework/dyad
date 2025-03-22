@@ -618,6 +618,7 @@ dyad_rc_t dyad_get_metadata (dyad_ctx_t *restrict ctx,
 
     if (fname_len == 0ul) {
         rc = DYAD_RC_BADFIO;
+        DYAD_LOG_ERROR (ctx, "Filename length is zero");
         goto get_metadata_done;
     }
     if (ctx->relative_to_managed_path
