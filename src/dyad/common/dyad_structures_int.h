@@ -61,6 +61,8 @@ struct dyad_ctx {
 };
 typedef void *ucx_ep_cache_h;
 
+#define DYAD_POSIX_TRANSFER_GRANULARITY 1024L*1024L*1024L
+
 #ifdef __cplusplus
 }
 #endif

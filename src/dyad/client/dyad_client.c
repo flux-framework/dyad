@@ -511,7 +511,31 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_cons_store (const dyad_ctx_t *restrict ctx,
     }
 
     // Write the file contents to the location specified by the user
-    written_len = write (fd, file_data, data_len);
+    if (data_len < DYAD_POSIX_TRANSFER_GRANULARITY) {
+        written_len = write (fd, file_data, data_len);
+    } else {
+        ssize_t written_data = 0;
+        ssize_t granularity = DYAD_POSIX_TRANSFER_GRANULARITY;
+        DYAD_LOG_DEBUG (ctx, " writing file %s with bytes %zd is big. Writing in granularity %zd", file_path, data_len, granularity);
+        while(written_data < data_len) {
+            ssize_t written_size = (data_len - written_data) > granularity ? granularity : (data_len - written_data);
+            written_len = write (fd, file_data + written_data, written_size);
+            DYAD_LOG_DEBUG (ctx, " writing file %s with bytes %zd of %zd", file_path, written_size, written_len);
+            if (written_len <= 0) {
+                DYAD_LOG_ERROR (ctx,
+                    "Failed to write file \"%s\" only read %zd of %zd of %zd. with code %d:%s.",
+                    file_path,
+                    written_len,
+                    written_size, 
+                    data_len, 
+                    errno, 
+                    strerror(errno));
+                goto pull_done;
+            }
+            written_data += written_len;
+        }
+        written_len = written_data;
+    }
     if (written_len != data_len) {
         DYAD_LOG_ERROR (ctx, "cons store write of pulled file failed!\n");
         rc = DYAD_RC_BADFIO;
@@ -582,7 +606,7 @@ dyad_rc_t dyad_get_metadata (dyad_ctx_t *restrict ctx,
     const size_t fname_len = strlen (fname);
     char upath[PATH_MAX + 1] = {'\0'};
 
-    DYAD_LOG_INFO (ctx, "Obtaining file path relative to consumer directory: %s", upath);
+    // DYAD_LOG_INFO (ctx, "Obtaining file path relative to consumer directory: %s", upath);
 
     if (fname_len == 0ul) {
         rc = DYAD_RC_BADFIO;
