@@ -20,7 +20,7 @@
 
 extern const base64_maps_t base64_maps_rfc4648;
 
-#define UCX_MAX_TRANSFER_SIZE (1024 * 1024 * 1024)
+#define UCX_MAX_TRANSFER_SIZE (4 * 1024L * 1024L * 1024L)
 
 // Tag mask for UCX Tag send/recv
 #define DYAD_UCX_TAG_MASK UINT64_MAX
@@ -413,11 +413,14 @@ static inline ucs_status_ptr_t ucx_recv_no_wait (const dyad_ctx_t* ctx,
 #else   // DYAD_ENABLE_UCX_RMA
     dyad_dtl_ucx_t* dtl_handle = ctx->dtl_handle->private_dtl.ucx_dtl_handle;
     ssize_t temp = 0l;
+    int is_first = 1;
     do {
         memcpy (&temp, dtl_handle->net_buf, sizeof (temp));
         ucp_worker_progress (ctx->dtl_handle->private_dtl.ucx_dtl_handle->ucx_worker);
         nanosleep ((const struct timespec[]){{0, 10000L}}, NULL);
-        DYAD_LOG_DEBUG (ctx, "Consumer Waiting for worker to finsih all work");
+        if (is_first == 1)
+            DYAD_LOG_DEBUG (ctx, "Consumer Waiting for worker to finsih all work");
+        is_first = 0;
     } while (temp == 0l);
 #endif  // DYAD_ENABLE_UCX_RMA
     DYAD_LOG_DEBUG (ctx, "Consumer finsihed all work");
