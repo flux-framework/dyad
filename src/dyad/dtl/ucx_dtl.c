@@ -418,7 +418,8 @@ static inline ucs_status_ptr_t ucx_recv_no_wait (const dyad_ctx_t* ctx,
         memcpy (&temp, dtl_handle->net_buf, sizeof (temp));
         ucp_worker_progress (ctx->dtl_handle->private_dtl.ucx_dtl_handle->ucx_worker);
         nanosleep ((const struct timespec[]){{0, 10000L}}, NULL);
-        if (is_first == 1) DYAD_LOG_DEBUG (ctx, "Consumer Waiting for worker to finsih all work");
+        if (is_first == 1)
+            DYAD_LOG_DEBUG (ctx, "Consumer Waiting for worker to finsih all work");
         is_first = 0;
     } while (temp == 0l);
 #endif  // DYAD_ENABLE_UCX_RMA

@@ -211,19 +211,25 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
         } else {
             ssize_t read_data = 0;
             int granularity = DYAD_POSIX_TRANSFER_GRANULARITY;
-            while(read_data < file_size) {
-                ssize_t read_size = (file_size - read_data) > granularity ? granularity : (file_size - read_data);
+            while (read_data < file_size) {
+                ssize_t read_size =
+                    (file_size - read_data) > granularity ? granularity : (file_size - read_data);
                 inlen = read (fd, inbuf + sizeof (file_size) + read_data, read_size);
-                DYAD_LOG_DEBUG (mod_ctx->ctx, "DYAD_MOD: reading file %s with bytes %zd of %zd", fullpath, read_size, inlen);
+                DYAD_LOG_DEBUG (mod_ctx->ctx,
+                                "DYAD_MOD: reading file %s with bytes %zd of %zd",
+                                fullpath,
+                                read_size,
+                                inlen);
                 if (inlen <= 0) {
                     DYAD_LOG_ERROR (mod_ctx->ctx,
-                        "DYAD_MOD: Failed to load file \"%s\" only read %zd of %zd of %zd. with code %d:%s.",
-                        fullpath,
-                        inlen,
-                        read_size, 
-                        file_size, 
-                        errno, 
-                        strerror(errno));
+                                    "DYAD_MOD: Failed to load file \"%s\" only read %zd of %zd of "
+                                    "%zd. with code %d:%s.",
+                                    fullpath,
+                                    inlen,
+                                    read_size,
+                                    file_size,
+                                    errno,
+                                    strerror (errno));
                     goto fetch_error;
                 }
                 read_data += inlen;
@@ -236,29 +242,36 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
         } else {
             ssize_t read_data = 0;
             ssize_t granularity = DYAD_POSIX_TRANSFER_GRANULARITY;
-            while(read_data < file_size) {
-                ssize_t read_size = (file_size - read_data) > granularity ? granularity : (file_size - read_data);
+            while (read_data < file_size) {
+                ssize_t read_size =
+                    (file_size - read_data) > granularity ? granularity : (file_size - read_data);
                 inlen = read (fd, inbuf + read_data, read_size);
                 if (inlen < 0) {
                     DYAD_LOG_ERROR (mod_ctx->ctx,
-                        "DYAD_MOD: Failed to load file \"%s\" only read %zd of %zd. with code %d:%s.",
-                        fullpath,
-                        inlen,
-                        file_size, errno, strerror(errno));
+                                    "DYAD_MOD: Failed to load file \"%s\" only read %zd of %zd. "
+                                    "with code %d:%s.",
+                                    fullpath,
+                                    inlen,
+                                    file_size,
+                                    errno,
+                                    strerror (errno));
                     goto fetch_error;
                 }
                 read_data += inlen;
             }
             inlen = read_data;
         }
-        
+
 #endif
         if (inlen != file_size) {
             DYAD_LOG_ERROR (mod_ctx->ctx,
-                            "DYAD_MOD: Failed to load file \"%s\" only read %zd of %zd. with code %d:%s.",
+                            "DYAD_MOD: Failed to load file \"%s\" only read %zd of %zd. with code "
+                            "%d:%s.",
                             fullpath,
                             inlen,
-                            file_size, errno, strerror(errno));
+                            file_size,
+                            errno,
+                            strerror (errno));
             goto fetch_error;
         }
 #ifdef DYAD_ENABLE_UCX_RMA

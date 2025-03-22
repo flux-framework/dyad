@@ -516,20 +516,30 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_cons_store (const dyad_ctx_t *restrict ctx,
     } else {
         ssize_t written_data = 0;
         ssize_t granularity = DYAD_POSIX_TRANSFER_GRANULARITY;
-        DYAD_LOG_DEBUG (ctx, " writing file %s with bytes %zd is big. Writing in granularity %zd", file_path, data_len, granularity);
-        while(written_data < data_len) {
-            ssize_t written_size = (data_len - written_data) > granularity ? granularity : (data_len - written_data);
+        DYAD_LOG_DEBUG (ctx,
+                        " writing file %s with bytes %zd is big. Writing in granularity %zd",
+                        file_path,
+                        data_len,
+                        granularity);
+        while (written_data < data_len) {
+            ssize_t written_size =
+                (data_len - written_data) > granularity ? granularity : (data_len - written_data);
             written_len = write (fd, file_data + written_data, written_size);
-            DYAD_LOG_DEBUG (ctx, " writing file %s with bytes %zd of %zd", file_path, written_size, written_len);
+            DYAD_LOG_DEBUG (ctx,
+                            " writing file %s with bytes %zd of %zd",
+                            file_path,
+                            written_size,
+                            written_len);
             if (written_len <= 0) {
                 DYAD_LOG_ERROR (ctx,
-                    "Failed to write file \"%s\" only read %zd of %zd of %zd. with code %d:%s.",
-                    file_path,
-                    written_len,
-                    written_size, 
-                    data_len, 
-                    errno, 
-                    strerror(errno));
+                                "Failed to write file \"%s\" only read %zd of %zd of %zd. with "
+                                "code %d:%s.",
+                                file_path,
+                                written_len,
+                                written_size,
+                                data_len,
+                                errno,
+                                strerror (errno));
                 goto pull_done;
             }
             written_data += written_len;
