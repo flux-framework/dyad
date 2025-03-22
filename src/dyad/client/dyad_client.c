@@ -616,8 +616,6 @@ dyad_rc_t dyad_get_metadata (dyad_ctx_t *restrict ctx,
     const size_t fname_len = strlen (fname);
     char upath[PATH_MAX + 1] = {'\0'};
 
-    // DYAD_LOG_INFO (ctx, "Obtaining file path relative to consumer directory: %s", upath);
-
     if (fname_len == 0ul) {
         rc = DYAD_RC_BADFIO;
         goto get_metadata_done;
@@ -639,6 +637,7 @@ dyad_rc_t dyad_get_metadata (dyad_ctx_t *restrict ctx,
         rc = DYAD_RC_UNTRACKED;
         goto get_metadata_done;
     }
+    DYAD_LOG_INFO (ctx, "Obtaining file path relative to consumer directory: %s", upath);
     ctx->reenter = false;
     DYAD_C_FUNCTION_UPDATE_STR ("upath", upath);
 
