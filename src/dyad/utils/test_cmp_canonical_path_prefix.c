@@ -4,18 +4,21 @@
 #error "no config"
 #endif
 
-#include <dyad/common/dyad_structures.h>
+// clang-format off
+#include <dyad/common/dyad_structures_int.h>
 #include <dyad/utils/utils.h>
 #include <stdlib.h>
 #include <limits.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
+// clang-format on
 
-int main (int argc, char** argv)
+int main (int argc, char **argv)
 {
-    char* prefix = NULL;
-    char* can_prefix = NULL;
-    char* path = NULL;
+    char *prefix = NULL;
+    char *can_prefix = NULL;
+    char *path = NULL;
     bool ret = false;
     char upath[PATH_MAX] = {'\0'};
 
@@ -32,7 +35,8 @@ int main (int argc, char** argv)
     }
 
     const size_t prefix_len = strlen (prefix);
-    const size_t can_prefix_len = can_prefix? strlen (can_prefix) : 0u;;
+    const size_t can_prefix_len = can_prefix ? strlen (can_prefix) : 0u;
+    ;
     uint32_t prefix_hash = hash_str (prefix, DYAD_SEED);
     uint32_t can_prefix_hash = hash_str (can_prefix, DYAD_SEED);
 

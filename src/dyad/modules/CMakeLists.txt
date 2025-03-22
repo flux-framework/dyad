@@ -1,21 +1,19 @@
 set(DYAD_MODULE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/dyad.c)
-set(DYAD_MODULE_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_envs.h
-                                ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_dtl.h
-                                ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_rc.h
+set(DYAD_MODULE_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dyad/common/dyad_envs.h
+                                ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dyad/common/dyad_dtl.h
+                                ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dyad/common/dyad_rc.h
                                 ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_logging.h
-                                ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_structures.h
+                                ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_structures_int.h
                                 ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_profiler.h
                                 ${CMAKE_CURRENT_SOURCE_DIR}/../dtl/dyad_dtl_api.h
                                 ${CMAKE_CURRENT_SOURCE_DIR}/../utils/read_all.h
                                 ${CMAKE_CURRENT_SOURCE_DIR}/../utils/utils.h
-                                ${CMAKE_CURRENT_SOURCE_DIR}/../core/dyad_ctx.h)
+                                ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dyad/core/dyad_ctx.h)
 set(DYAD_MODULE_PUBLIC_HEADERS)
 
 add_library(${PROJECT_NAME} SHARED ${DYAD_MODULE_SRC}
             ${DYAD_MODULE_PRIVATE_HEADERS} ${DYAD_MODULE_PUBLIC_HEADERS})
 set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "")
-set_target_properties(${PROJECT_NAME} PROPERTIES CMAKE_INSTALL_RPATH
-                      "${CMAKE_INSTALL_PREFIX}/${DYAD_LIBDIR}")
 target_link_libraries(${PROJECT_NAME} PRIVATE Jansson::Jansson)
 target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_dtl)
 target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_ctx)
@@ -24,25 +22,23 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC BUILDING_DYAD=1)
 target_compile_definitions(${PROJECT_NAME} PUBLIC DYAD_HAS_CONFIG)
 target_include_directories(${PROJECT_NAME} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/src>
-    $<INSTALL_INTERFACE:${DYAD_INSTALL_INCLUDE_DIR}>)
+    $<INSTALL_INTERFACE:${DYAD_INSTALL_INCLUDEDIR}>)
 target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${JANSSON_INCLUDE_DIRS})
 target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${FluxCore_INCLUDE_DIRS})
 
 add_executable(test_opt_parse test_opt_parse.c
-               ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_envs.h
-               ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_dtl.h
-               ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_rc.h
+               ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dyad/common/dyad_envs.h
+               ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dyad/common/dyad_dtl.h
+               ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dyad/common/dyad_rc.h
                ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_logging.h
-               ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_structures.h)
+               ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_structures_int.h)
 target_compile_definitions(test_opt_parse PUBLIC DYAD_HAS_CONFIG)
 target_include_directories(test_opt_parse PUBLIC
     $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/src>
-    $<INSTALL_INTERFACE:${DYAD_INSTALL_INCLUDE_DIR}>)
+    $<INSTALL_INTERFACE:${DYAD_INSTALL_INCLUDEDIR}>)
 
-if (TARGET DYAD_C_FLAGS_werror)
-  target_link_libraries(${PROJECT_NAME} PRIVATE DYAD_C_FLAGS_werror)
-  target_link_libraries(test_opt_parse PRIVATE DYAD_C_FLAGS_werror)
-endif ()
+dyad_add_werror_if_needed(${PROJECT_NAME})
+dyad_add_werror_if_needed(test_opt_parse)
 
 if(DYAD_PROFILER STREQUAL "PERFFLOW_ASPECT")
     target_link_libraries(${PROJECT_NAME} PRIVATE perfflowaspect::perfflowaspect)
@@ -56,9 +52,9 @@ endif()
 install(
         TARGETS ${PROJECT_NAME}
         EXPORT ${DYAD_EXPORTED_TARGETS}
-        LIBRARY DESTINATION ${DYAD_INSTALL_LIB_DIR}
-        ARCHIVE DESTINATION ${DYAD_INSTALL_LIB_DIR}
-        RUNTIME DESTINATION ${DYAD_INSTALL_BIN_DIR}
+        LIBRARY DESTINATION ${DYAD_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${DYAD_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${DYAD_INSTALL_BINDIR}
 )
 if(NOT "${DYAD_MODULE_PUBLIC_HEADERS}" STREQUAL "")
     dyad_install_headers("${DYAD_MODULE_PUBLIC_HEADERS}" ${CMAKE_CURRENT_SOURCE_DIR})
