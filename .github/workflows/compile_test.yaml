@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        flux: [ 0.52.0, 0.49.0]
+        flux: [ 0.52.0, 'master' ]
         mode: ["UCX"]
         os: [ ubuntu-20.04 ]
         compiler: [ gcc ]
