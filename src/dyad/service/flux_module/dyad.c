@@ -567,13 +567,10 @@ DYAD_DLL_EXPORTED int mod_main (flux_t *h, int argc, char **argv)
         goto mod_error;
     }
 
-    DYAD_LOG_STDOUT ("DYAD_MOD: here 1\n");
-
     if (flux_msg_handler_addvec (mod_ctx->ctx->h, htab, (void *)h, &mod_ctx->handlers) < 0) {
         DYAD_LOG_ERROR (mod_ctx->ctx, "DYAD_MOD: flux_msg_handler_addvec: %s\n", strerror (errno));
         goto mod_error;
     }
-    DYAD_LOG_STDOUT ("DYAD_MOD: here 2\n");
 
     if (flux_reactor_run (flux_get_reactor (mod_ctx->ctx->h), 0) < 0) {
         DYAD_LOG_STDOUT ("DYAD_MOD: flux_get_reactor error, %s !\n", strerror(errno));

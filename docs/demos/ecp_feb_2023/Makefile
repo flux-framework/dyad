@@ -1,3 +1,8 @@
+# Note:
+# Please set environment variable
+# DYAD_INSTALL_PREFIX to your DYAD
+# install directory first!
+
 DYAD_INSTALL_LIBDIR = $(shell if [ -d $${DYAD_INSTALL_PREFIX}/lib64 ] ; then echo $${DYAD_INSTALL_PREFIX}/lib64; elif [ -d $${DYAD_INSTALL_PREFIX}/lib ] ; then echo $${DYAD_INSTALL_PREFIX}/lib; fi)
 DYAD_INCLUDE_PATH = $(DYAD_INSTALL_PREFIX)/include
 
