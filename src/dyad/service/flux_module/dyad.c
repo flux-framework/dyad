@@ -93,14 +93,10 @@ static void freectx (void *arg)
     dyad_mod_ctx_t *mod_ctx = (dyad_mod_ctx_t *)arg;
     flux_msg_handler_delvec (mod_ctx->handlers);
     if (mod_ctx->ctx) {
-        DYAD_LOG_INFO(mod_ctx->ctx, "DYAD_MOD: chen freectx is called 1!");
         dyad_ctx_fini ();
-        DYAD_LOG_INFO(mod_ctx->ctx, "DYAD_MOD: chen freectx is called 2!");
         mod_ctx->ctx = NULL;
     }
-    DYAD_LOG_STDOUT ("DYAD_MOD: chen freectx finished 1\n");
     free (mod_ctx);
-    DYAD_LOG_STDOUT ("DYAD_MOD: chen freectx finished 2\n");
 }
 
 static dyad_mod_ctx_t *get_mod_ctx (flux_t *h)
