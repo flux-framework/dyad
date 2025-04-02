@@ -38,6 +38,7 @@ struct dyad_dtl_flux;
 union dyad_dtl_private {
     struct dyad_dtl_ucx *ucx_dtl_handle;
     struct dyad_dtl_flux *flux_dtl_handle;
+    struct dyad_dtl_margo *margo_dtl_handle;
 } __attribute__ ((aligned (16)));
 typedef union dyad_dtl_private dyad_dtl_private_t;
 

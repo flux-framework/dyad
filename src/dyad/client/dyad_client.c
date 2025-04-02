@@ -201,7 +201,7 @@ DYAD_DLL_EXPORTED dyad_rc_t dyad_commit (dyad_ctx_t *restrict ctx, const char *r
         // Extract the path to the file specified by fname relative to the
         // producer-managed path
         // This relative path will be stored in upath
-        DYAD_LOG_INFO (ctx, "%s is not in the Producer's managed path", fname);
+        DYAD_LOG_DEBUG (ctx, "%s is not in the Producer's managed path", fname);
         rc = DYAD_RC_OK;
         goto commit_done;
     }
