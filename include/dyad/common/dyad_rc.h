@@ -63,6 +63,9 @@ enum dyad_core_return_codes {
     DYAD_RC_UCXRKEY_PACK_FAILED = -3006,    // Failed to perform operations with ucp_mem_map
     DYAD_RC_UCXRKEY_UNPACK_FAILED = -3007,  // Failed to perform operations with ucp_mem_map
 
+    // MARGO
+    DYAD_RC_MARGOINIT_FAIL = -4001,           // Margo initialization failed
+
 };
 
 typedef enum dyad_core_return_codes dyad_rc_t;

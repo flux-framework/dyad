@@ -108,6 +108,13 @@ if (DYAD_ENABLE_UCX_DATA_RMA)
     set (DYAD_ENABLE_UCX_RMA 1)
 endif ()
 
+option (DYAD_ENABLE_MARGO_DATA "Use Margo for RPC and DTL")
+if (DYAD_ENABLE_MARGO_DATA)
+    set (DYAD_ENABLE_MARGO_DTL 1)
+endif()
+
+
+
 set(DYAD_PROFILER "NONE" CACHE STRING "Profiler to use for DYAD")
 set_property(CACHE DYAD_PROFILER PROPERTY STRINGS PERFFLOW_ASPECT CALIPER DFTRACER NONE)
 set(DYAD_LOGGER "NONE" CACHE STRING "Logger to use for DYAD")
@@ -267,6 +274,14 @@ if(DYAD_ENABLE_UCX_DATA OR DYAD_ENABLE_UCX_DATA_RMA)
     else ()
         message(FATAL_ERROR "-- [${PROJECT_NAME}] ucx is needed for ${PROJECT_NAME} build")
     endif ()
+endif()
+
+# Check the mochi-margo doc for how to build
+# cmake project with margo.
+if (DYAD_ENABLE_MARGO)
+  find_package (PkgConfig REQUIRED)
+  find_package(json-c CONFIG)
+  pkg_check_modules (MARGO REQUIRED IMPORTED_TARGET margo)
 endif()
 
 function(dyad_install_headers public_headers current_dir)

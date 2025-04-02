@@ -1,7 +1,6 @@
 DYAD_INSTALL_LIBDIR = $(shell if [ -d $${DYAD_INSTALL_PREFIX}/lib64 ] ; then echo $${DYAD_INSTALL_PREFIX}/lib64; elif [ -d $${DYAD_INSTALL_PREFIX}/lib ] ; then echo $${DYAD_INSTALL_PREFIX}/lib; fi)
 DYAD_INCLUDE_PATH = $(DYAD_INSTALL_PREFIX)/include
-#UCX_PATH = /p/gpfs1/ice4hpc/install
-#UCXLIBS = -L$(UCX_PATH)/lib -Wl,-rpath=$(UCX_PATH)/lib -lucs -lucp
+
 
 CFLAGS_LOC = -g -std=c11 -DDYAD_HAS_CONFIG=1 $(CFLAGS)
 CPPFLAGS_LOC = -g -O3 -I. $(CPPFLAGS)
