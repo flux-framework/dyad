@@ -561,7 +561,7 @@ dyad_rc_t dyad_shared_flock (const dyad_ctx_t* __restrict__ ctx,
         rc = DYAD_RC_BADFIO;
         goto shared_flock_end;
     }
-    DYAD_LOG_INFO (ctx,
+    DYAD_LOG_DEBUG (ctx,
                    "[node %u rank %u pid %d] Shared lock placed on fd %d\n",
                    ctx->node_idx,
                    ctx->rank,
@@ -580,7 +580,7 @@ dyad_rc_t dyad_release_flock (const dyad_ctx_t* __restrict__ ctx,
     DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
     dyad_rc_t rc = DYAD_RC_OK;
-    DYAD_LOG_INFO (ctx,
+    DYAD_LOG_DEBUG (ctx,
                    "[node %u rank %u pid %d] Releases a lock on fd %d\n",
                    ctx->node_idx,
                    ctx->rank,
@@ -596,7 +596,7 @@ dyad_rc_t dyad_release_flock (const dyad_ctx_t* __restrict__ ctx,
         rc = DYAD_RC_BADFIO;
         goto release_flock_end;
     }
-    DYAD_LOG_INFO (ctx,
+    DYAD_LOG_DEBUG (ctx,
                    "[node %u rank %u pid %d] lock lifted from fd %d\n",
                    ctx->node_idx,
                    ctx->rank,

@@ -480,6 +480,8 @@ DYAD_DLL_EXPORTED dyad_rc_t dyad_set_and_init_dtl_mode (const char *dtl_name,
         dtl_mode = DYAD_DTL_DEFAULT;
     } else if (strncmp (dtl_name, dyad_dtl_mode_name[DYAD_DTL_UCX], dtl_name_len) == 0) {
         dtl_mode = DYAD_DTL_UCX;
+    } else if (strncmp (dtl_name, dyad_dtl_mode_name[DYAD_DTL_MARGO], dtl_name_len) == 0) {
+        dtl_mode = DYAD_DTL_MARGO;
     } else if (strncmp (dtl_name, dyad_dtl_mode_name[DYAD_DTL_FLUX_RPC], dtl_name_len) == 0) {
         dtl_mode = DYAD_DTL_FLUX_RPC;
     } else {

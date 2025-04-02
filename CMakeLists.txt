@@ -108,7 +108,10 @@ if (DYAD_ENABLE_UCX_DATA_RMA)
     set (DYAD_ENABLE_UCX_RMA 1)
 endif ()
 
-option (DYAD_ENABLE_MARGO "Use Margo for RPC and DTL")
+option (DYAD_ENABLE_MARGO_DATA "Use Margo for RPC and DTL")
+if (DYAD_ENABLE_MARGO_DATA)
+    set (DYAD_ENABLE_MARGO_DTL 1)
+endif()
 
 
 

@@ -93,10 +93,14 @@ static void freectx (void *arg)
     dyad_mod_ctx_t *mod_ctx = (dyad_mod_ctx_t *)arg;
     flux_msg_handler_delvec (mod_ctx->handlers);
     if (mod_ctx->ctx) {
+        DYAD_LOG_INFO(mod_ctx->ctx, "DYAD_MOD: chen freectx is called 1!");
         dyad_ctx_fini ();
+        DYAD_LOG_INFO(mod_ctx->ctx, "DYAD_MOD: chen freectx is called 2!");
         mod_ctx->ctx = NULL;
     }
+    DYAD_LOG_STDOUT ("DYAD_MOD: chen freectx finished 1\n");
     free (mod_ctx);
+    DYAD_LOG_STDOUT ("DYAD_MOD: chen freectx finished 2\n");
 }
 
 static dyad_mod_ctx_t *get_mod_ctx (flux_t *h)
@@ -246,9 +250,9 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
     } else {
         goto fetch_error;
     }
-    DYAD_LOG_DEBUG (mod_ctx->ctx, "Close RPC message stream with an ENODATA (%d) message", ENODATA);
+    DYAD_LOG_INFO (mod_ctx->ctx, "Close RPC message stream with an ENODATA (%d) message", ENODATA);
     if (flux_respond_error (h, msg, ENODATA, NULL) < 0) {
-        DYAD_LOG_ERROR (mod_ctx->ctx,
+        DYAD_LOG_INFO (mod_ctx->ctx,
                         "DYAD_MOD: %s: flux_respond_error with ENODATA failed\n",
                         __func__);
     }
@@ -495,7 +499,6 @@ DYAD_DLL_EXPORTED int mod_main (flux_t *h, int argc, char **argv)
     DYAD_C_FUNCTION_START ();
 
     opt_parse_out_t opt = {NULL, NULL, false, false};
-    DYAD_LOG_STDOUT ("DYAD_MOD: Parsing command line options\n");
 
     if (DYAD_IS_ERROR (opt_parse (&opt, broker_rank, argc, argv))) {
         DYAD_LOG_STDERR ("DYAD_MOD: Cannot parse command line arguments\n");
@@ -512,12 +515,16 @@ DYAD_DLL_EXPORTED int mod_main (flux_t *h, int argc, char **argv)
         goto mod_error;
     }
 
+    DYAD_LOG_STDOUT ("DYAD_MOD: here 1\n");
+
     if (flux_msg_handler_addvec (mod_ctx->ctx->h, htab, (void *)h, &mod_ctx->handlers) < 0) {
         DYAD_LOG_ERROR (mod_ctx->ctx, "DYAD_MOD: flux_msg_handler_addvec: %s\n", strerror (errno));
         goto mod_error;
     }
+    DYAD_LOG_STDOUT ("DYAD_MOD: here 2\n");
 
     if (flux_reactor_run (flux_get_reactor (mod_ctx->ctx->h), 0) < 0) {
+        DYAD_LOG_STDOUT ("DYAD_MOD: flux_get_reactor error, %s !\n", strerror(errno));
         DYAD_LOG_ERROR (mod_ctx->ctx, "DYAD_MOD: flux_reactor_run: %s\n", strerror (errno));
         goto mod_error;
     }

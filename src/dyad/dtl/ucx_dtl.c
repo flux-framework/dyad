@@ -209,7 +209,7 @@ static dyad_rc_t ucx_free_buffer (const dyad_ctx_t* ctx,
         DYAD_LOG_ERROR (ctx, "No memory buffer provided");
         goto ucx_free_buf_done;
     }
-    DYAD_LOG_INFO (ctx, "Releasing UCX allocated memory");
+    DYAD_LOG_DEBUG (ctx, "Releasing UCX allocated memory");
     ucp_mem_unmap (ucp_ctx, mem_handle);
     *buf = NULL;
     rc = DYAD_RC_OK;
@@ -246,10 +246,10 @@ static inline ucs_status_ptr_t ucx_send_no_wait (const dyad_ctx_t* ctx,
     ucp_request_param_t params;
     params.op_attr_mask = UCP_OP_ATTR_FIELD_CALLBACK;
     params.cb.send = dyad_send_callback;
-    DYAD_LOG_INFO (ctx, "Sending data to consumer with ucp_tag_send_nbx");
+    DYAD_LOG_DEBUG (ctx, "Sending data to consumer with ucp_tag_send_nbx");
     stat_ptr = ucp_tag_send_nbx (dtl_handle->ep, buf, buflen, dtl_handle->comm_tag, &params);
 #else   // UCP_API_VERSION
-    DYAD_LOG_INFO (ctx, "Sending %lu bytes of data to consumer with ucp_tag_send_nb", buflen);
+    DYAD_LOG_DEBUG (ctx, "Sending %lu bytes of data to consumer with ucp_tag_send_nb", buflen);
     stat_ptr = ucp_tag_send_nb (dtl_handle->ep,
                                 buf,
                                 buflen,
@@ -1099,7 +1099,7 @@ dyad_rc_t dyad_dtl_ucx_finalize (const dyad_ctx_t* ctx)
         goto dtl_ucx_finalize_region_finish;
     }
     dtl_handle = ctx->dtl_handle->private_dtl.ucx_dtl_handle;
-    DYAD_LOG_INFO (ctx, "Finalizing UCX DTL\n");
+    DYAD_LOG_INFO (ctx, "Finalizing UCX DTL");
     if (dtl_handle->ep != NULL) {
         dyad_dtl_ucx_close_connection (ctx);
         dtl_handle->ep = NULL;
