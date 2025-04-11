@@ -278,7 +278,7 @@ endif()
 
 # Check the mochi-margo doc for how to build
 # cmake project with margo.
-if (DYAD_ENABLE_MARGO)
+if (DYAD_ENABLE_MARGO_DTL)
   find_package (PkgConfig REQUIRED)
   find_package(json-c CONFIG)
   pkg_check_modules (MARGO REQUIRED IMPORTED_TARGET margo)
