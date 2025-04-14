@@ -79,18 +79,24 @@ static void dyad_mod_fini (void) __attribute__ ((destructor));
 
 void dyad_mod_fini (void)
 {
+    // Chen: commented out the following, which
+    // seems to be erroneous
+    // flux_open() at finalization time often
+    // cause errors
+    /*
     flux_t *h = flux_open (NULL, 0);
-
     if (h != NULL) {
     }
+    */
 #ifdef DYAD_PROFILER_DFTRACER
     DFTRACER_C_FINI ();
 #endif
 }
 
+// This will be called at flux module finalization time
 static void freectx (void *arg)
 {
-    dyad_mod_ctx_t *mod_ctx = (dyad_mod_ctx_t *)arg;
+    dyad_mod_ctx_t *mod_ctx = (dyad_mod_ctx_t *) arg;
     flux_msg_handler_delvec (mod_ctx->handlers);
     if (mod_ctx->ctx) {
         dyad_ctx_fini ();
@@ -544,10 +550,12 @@ DYAD_DLL_EXPORTED int mod_main (flux_t *h, int argc, char **argv)
 
     uint32_t broker_rank;
     flux_get_rank (h, &broker_rank);
+
 #ifdef DYAD_PROFILER_DFTRACER
     int pid = broker_rank;
     DFTRACER_C_INIT (NULL, NULL, &pid);
 #endif
+
     DYAD_C_FUNCTION_START ();
 
     opt_parse_out_t opt = {NULL, NULL, false, false};
@@ -573,7 +581,6 @@ DYAD_DLL_EXPORTED int mod_main (flux_t *h, int argc, char **argv)
     }
 
     if (flux_reactor_run (flux_get_reactor (mod_ctx->ctx->h), 0) < 0) {
-        DYAD_LOG_STDOUT ("DYAD_MOD: flux_get_reactor error, %s !\n", strerror(errno));
         DYAD_LOG_ERROR (mod_ctx->ctx, "DYAD_MOD: flux_reactor_run: %s\n", strerror (errno));
         goto mod_error;
     }
