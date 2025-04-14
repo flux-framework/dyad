@@ -32,7 +32,7 @@ ssize_t
 read_all (int fd, void **bufp);
 
 #if defined(__cplusplus)
-};
+}
 #endif  // defined(__cplusplus)
 
 #endif /* DYAD_UTILS_READ_ALL_H */

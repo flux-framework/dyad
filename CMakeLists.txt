@@ -287,6 +287,7 @@ endfunction()
 include(DYADUtils)
 include_directories(${CMAKE_SOURCE_DIR}/include)  # public header
 add_subdirectory(src/dyad)
+add_subdirectory(tests/shuffle)
 #cmake_policy(SET CMP0079 NEW) # In case that we need more control over the target building order
 
 # Write the configure file
