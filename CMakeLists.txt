@@ -101,14 +101,14 @@ option (DYAD_ENABLE_UCX_DATA "Allow to dynamically select UCX for DYAD's Data Pl
 if (DYAD_ENABLE_UCX_DATA)
     set (DYAD_ENABLE_UCX_DTL 1)
 else ()
-    option (DYAD_ENABLE_UCX_DATA_RMA "Use UCX's RMA for DYAD's Data Plane" ON)
+    option (DYAD_ENABLE_UCX_DATA_RMA "Use UCX's RMA for DYAD's Data Plane" OFF)
 endif ()
 
 if (DYAD_ENABLE_UCX_DATA_RMA)
     set (DYAD_ENABLE_UCX_RMA 1)
 endif ()
 
-option (DYAD_ENABLE_MARGO_DATA "Use Margo for RPC and DTL")
+option (DYAD_ENABLE_MARGO_DATA "Allow to dynamically select Margo for DYAD's Data Plane" OFF)
 if (DYAD_ENABLE_MARGO_DATA)
     set (DYAD_ENABLE_MARGO_DTL 1)
 endif()
