@@ -30,19 +30,7 @@ target_include_directories(${DYAD_FLUX_MODULE} PUBLIC
 target_include_directories(${DYAD_FLUX_MODULE} SYSTEM PRIVATE ${JANSSON_INCLUDE_DIRS})
 target_include_directories(${DYAD_FLUX_MODULE} SYSTEM PRIVATE ${FluxCore_INCLUDE_DIRS})
 
-add_executable(test_opt_parse test_opt_parse.c
-               ${CMAKE_CURRENT_SOURCE_DIR}/../../../../include/dyad/common/dyad_envs.h
-               ${CMAKE_CURRENT_SOURCE_DIR}/../../../../include/dyad/common/dyad_dtl.h
-               ${CMAKE_CURRENT_SOURCE_DIR}/../../../../include/dyad/common/dyad_rc.h
-               ${CMAKE_CURRENT_SOURCE_DIR}/../../common/dyad_logging.h
-               ${CMAKE_CURRENT_SOURCE_DIR}/../../common/dyad_structures_int.h)
-target_compile_definitions(test_opt_parse PUBLIC DYAD_HAS_CONFIG)
-target_include_directories(test_opt_parse PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/src>
-    $<INSTALL_INTERFACE:${DYAD_INSTALL_INCLUDEDIR}>)
-
 dyad_add_werror_if_needed(${DYAD_FLUX_MODULE})
-dyad_add_werror_if_needed(test_opt_parse)
 
 if(DYAD_PROFILER STREQUAL "PERFFLOW_ASPECT")
     target_link_libraries(${DYAD_FLUX_MODULE} PRIVATE perfflowaspect::perfflowaspect)
