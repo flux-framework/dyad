@@ -27,7 +27,7 @@
  * functions.
  */
 MERCURY_GEN_PROC(sum_in_t,
-        ((int32_t)(n))\
+        ((int64_t)(n))\
         ((hg_bulk_t)(bulk)))
 MERCURY_GEN_PROC(sum_out_t, ((int32_t)(ret)))
 
@@ -61,7 +61,7 @@ static void data_ready_rpc(hg_handle_t h)
             in.bulk, 0, local_bulk, 0, margo_handle->recv_len);
     assert(ret == HG_SUCCESS);
 
-    DYAD_LOG_INFO(ctx, "[MARGO DTL] RDMA pulled from the producer\n");
+    DYAD_LOG_DEBUG(ctx, "[MARGO DTL] RDMA pulled from the producer\n");
 
     out.ret = 0;
     ret = margo_respond(h, &out);
@@ -131,7 +131,7 @@ dyad_rc_t dyad_dtl_margo_init (const dyad_ctx_t* ctx,
 
     ctx->dtl_handle->private_dtl.margo_dtl_handle = malloc (sizeof (struct dyad_dtl_margo));
     if (ctx->dtl_handle->private_dtl.margo_dtl_handle == NULL) {
-        DYAD_LOG_INFO (ctx, "Could not allocate internal Margo DTL context\n");
+        DYAD_LOG_ERROR (ctx, "Could not allocate internal Margo DTL context\n");
         DYAD_C_FUNCTION_END ();
         return DYAD_RC_SYSFAIL;
     }
@@ -140,10 +140,15 @@ dyad_rc_t dyad_dtl_margo_init (const dyad_ctx_t* ctx,
     margo_handle->h = (flux_t*)ctx->h; // flux handle
     margo_handle->debug = debug;
 
+    // the underlying network protocol
+    // to use for the margo dtl.
+    // TODO: currently hardcoded.
+    char margo_na_protocol[] = "ofi+tcp";
+    //char margo_na_protocol[] = "ofi+verbs";
     // producer (FLUX broker)
     // essentially the margo client
     if (comm_mode == DYAD_COMM_SEND) {
-        margo_handle->mid = margo_init("tcp", MARGO_CLIENT_MODE, 0, -1);
+        margo_handle->mid = margo_init(margo_na_protocol, MARGO_CLIENT_MODE, 0, -1);
         margo_handle->sendrecv_rpc_id = MARGO_REGISTER(margo_handle->mid, "data_ready_rpc", sum_in_t, sum_out_t, NULL);
     }
     // consumer (dyad client c wrapper)
@@ -160,7 +165,7 @@ dyad_rc_t dyad_dtl_margo_init (const dyad_ctx_t* ctx,
         // make Margo execute RPCs in the ES that called margo_init. A value of -1
         // will make Margo execute the RPCs in the ES running the progress loop.
         // A positive value will make Margo create new ESs to run the RPCs.
-        margo_handle->mid = margo_init("tcp", MARGO_SERVER_MODE, 1, -1);
+        margo_handle->mid = margo_init(margo_na_protocol, MARGO_SERVER_MODE, 1, -1);
         margo_handle->sendrecv_rpc_id = MARGO_REGISTER(margo_handle->mid, "data_ready_rpc", sum_in_t, sum_out_t, data_ready_rpc);
         margo_register_data(margo_handle->mid, margo_handle->sendrecv_rpc_id, margo_handle, NULL);
     }
@@ -303,7 +308,7 @@ dyad_rc_t dyad_dtl_margo_send (const dyad_ctx_t* ctx, void* buf, size_t buflen)
     DYAD_C_FUNCTION_START ();
     dyad_rc_t rc = DYAD_RC_OK;
 
-    DYAD_LOG_INFO(ctx, "[MARGO DTL] margo_send is called, buflen: %ld\n", buflen);
+    DYAD_LOG_DEBUG(ctx, "[MARGO DTL] margo_send is called, buflen: %ld\n", buflen);
     dyad_dtl_margo_t* margo_handle = ctx->dtl_handle->private_dtl.margo_dtl_handle;
 
     hg_size_t segment_sizes[1] = { buflen };
@@ -341,7 +346,7 @@ dyad_rc_t dyad_dtl_margo_recv (const dyad_ctx_t* ctx, void** buf, size_t* buflen
 
     dyad_dtl_margo_t* margo_handle = ctx->dtl_handle->private_dtl.margo_dtl_handle;
     while (!margo_handle->recv_ready) {
-        sleep(1);
+        usleep(100);
     }
 
     // recv message handled, reset it to 0
@@ -349,7 +354,7 @@ dyad_rc_t dyad_dtl_margo_recv (const dyad_ctx_t* ctx, void** buf, size_t* buflen
     *buf = malloc(*buflen);
     memcpy(*buf, margo_handle->recv_buffer, margo_handle->recv_len);
 
-    DYAD_LOG_INFO(ctx, "[MARGO DTL] margo_recv is called, received %d bytes\n", margo_handle->recv_len);
+    DYAD_LOG_DEBUG(ctx, "[MARGO DTL] margo_recv is called, received %d bytes\n", margo_handle->recv_len);
 
     // margo_handle->recv_buffer is allocated in data_ready_rpc()
     free(margo_handle->recv_buffer);
