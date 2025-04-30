@@ -666,9 +666,9 @@ DYAD_DLL_EXPORTED dyad_rc_t dyad_set_cons_path (const char *cons_managed_path)
         ctx->cons_real_hash = 0u;
     }
 
-    DYAD_LOG_INFO (ctx, "DYAD_CORE: saving consucer path");
+    DYAD_LOG_INFO (ctx, "DYAD_CORE: saving consumer path");
     if (cons_managed_path == NULL) {
-        DYAD_LOG_INFO (ctx, "DYAD_CORE: consucer path is not provided");
+        DYAD_LOG_INFO (ctx, "DYAD_CORE: consumer path is not provided");
         ctx->cons_managed_path = NULL;
         ctx->cons_managed_len = 0u;
         ctx->cons_managed_hash = 0u;
