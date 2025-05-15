@@ -9,11 +9,7 @@
 #include <dyad/dtl/dyad_dtl_api.h>
 #include <dyad/dtl/flux_dtl.h>
 
-#if DYAD_ENABLE_UCX_DTL || DYAD_ENABLE_UCX_RMA
 #include "ucx_dtl.h"
-#endif  // DYAD_ENABLE_UCX_DTL || DYAD_ENABLE_UCX_RMA
-
-// TODO: CHECK Margo if we should include this file
 #include "margo_dtl.h"
 
 dyad_rc_t dyad_dtl_init (dyad_ctx_t* ctx,
@@ -32,14 +28,9 @@ dyad_rc_t dyad_dtl_init (dyad_ctx_t* ctx,
     }
 
     ctx->dtl_handle->mode = mode;
-#if DYAD_ENABLE_UCX_DTL || DYAD_ENABLE_UCX_RMA
     if (mode == DYAD_DTL_UCX) {
         rc = dyad_dtl_ucx_init (ctx, mode, comm_mode, debug);
-
     } else if (mode == DYAD_DTL_FLUX_RPC) {
-#else   // DYAD_ENABLE_UCX_DTL || DYAD_ENABLE_UCX_RMA
-    if (mode == DYAD_DTL_FLUX_RPC) {
-#endif  // DYAD_ENABLE_UCX_DTL || DYAD_ENABLE_UCX_RMA
         rc = dyad_dtl_flux_init (ctx, mode, comm_mode, debug);
     } else if (mode == DYAD_DTL_MARGO) {
         rc = dyad_dtl_margo_init (ctx, mode, comm_mode, debug);
@@ -64,15 +55,11 @@ dyad_rc_t dyad_dtl_finalize (dyad_ctx_t* ctx)
         rc = DYAD_RC_OK;
         goto dtl_finalize_done;
     }
-#if DYAD_ENABLE_UCX_DTL || DYAD_ENABLE_UCX_RMA
     if ((ctx->dtl_handle)->mode == DYAD_DTL_UCX) {
         if ((ctx->dtl_handle)->private_dtl.ucx_dtl_handle != NULL) {
             rc = dyad_dtl_ucx_finalize (ctx);
         }
     } else if ((ctx->dtl_handle)->mode == DYAD_DTL_FLUX_RPC) {
-#else   // DYAD_ENABLE_UCX_DTL || DYAD_ENABLE_UCX_RMA
-    if ((ctx->dtl_handle)->mode == DYAD_DTL_FLUX_RPC) {
-#endif  // DYAD_ENABLE_UCX_DTL || DYAD_ENABLE_UCX_RMA
         if ((ctx->dtl_handle)->private_dtl.flux_dtl_handle != NULL) {
             rc = dyad_dtl_flux_finalize (ctx);
         }
