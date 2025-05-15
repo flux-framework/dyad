@@ -86,6 +86,7 @@ class DyadMetadata:
 
 class DTLMode(enum.Enum):
     DYAD_DTL_UCX = "UCX"
+    DYAD_DTL_MARGO = "MARGO"
     DYAD_DTL_FLUX_RPC = "FLUX_RPC"
 
     def __str__(self):
