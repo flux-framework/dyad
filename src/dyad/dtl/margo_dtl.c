@@ -61,7 +61,7 @@ static void data_ready_rpc(hg_handle_t h)
             in.bulk, 0, local_bulk, 0, margo_handle->recv_len);
     assert(ret == HG_SUCCESS);
 
-    DYAD_LOG_DEBUG(ctx, "[MARGO DTL] RDMA pulled from the producer\n");
+    //DYAD_LOG_DEBUG(ctx, "[MARGO DTL] RDMA pulled from the producer\n");
 
     out.ret = 0;
     ret = margo_respond(h, &out);
