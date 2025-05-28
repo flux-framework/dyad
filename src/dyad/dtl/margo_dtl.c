@@ -139,12 +139,14 @@ dyad_rc_t dyad_dtl_margo_init (const dyad_ctx_t* ctx,
     margo_handle = ctx->dtl_handle->private_dtl.margo_dtl_handle;
     margo_handle->h = (flux_t*)ctx->h; // flux handle
     margo_handle->debug = debug;
+    margo_handle->recv_ready = 0;
 
     // the underlying network protocol
     // to use for the margo dtl.
     // TODO: currently hardcoded.
-    char margo_na_protocol[] = "ofi+tcp";
+    // char margo_na_protocol[] = "ofi+tcp";
     //char margo_na_protocol[] = "ofi+verbs";
+    char margo_na_protocol[] = "ofi+cxi";
     // producer (FLUX broker)
     // essentially the margo client
     if (comm_mode == DYAD_COMM_SEND) {
@@ -185,9 +187,9 @@ dyad_rc_t dyad_dtl_margo_init (const dyad_ctx_t* ctx,
     ctx->dtl_handle->close_connection = dyad_dtl_margo_close_connection;
 
     if (comm_mode == DYAD_COMM_SEND)
-        DYAD_LOG_INFO(ctx, "[MARGO DTL] margo dtl initialized - flux side");
+        DYAD_LOG_DEBUG (ctx, "[MARGO DTL] margo dtl initialized - flux side");
     if (comm_mode == DYAD_COMM_RECV)
-        DYAD_LOG_INFO(ctx, "[MARGO DTL] margo dtl initialized - client side");
+        DYAD_LOG_DEBUG (ctx, "[MARGO DTL] margo dtl initialized - client side");
 
     DYAD_C_FUNCTION_END ();
     return DYAD_RC_OK;
@@ -228,12 +230,12 @@ dyad_rc_t dyad_dtl_margo_rpc_pack (const dyad_ctx_t* ctx,
                              addr_str_size);
 
     if (*packed_obj == NULL) {
-        DYAD_LOG_INFO (ctx, "Could not pack upath and Margo address for RPC\n");
+        DYAD_LOG_ERROR (ctx, "Could not pack upath and Margo address for RPC\n");
         rc = DYAD_RC_BADPACK;
         goto dtl_margo_rpc_pack_region_finish;
     }
 
-    //DYAD_LOG_INFO(ctx, "[MARGO DTL] pack/send margo sever addr: %s, %ld\n", addr_str, addr_str_size);
+    DYAD_LOG_DEBUG (ctx, "[MARGO DTL] pack/send margo sever addr: %s, %ld\n", addr_str, addr_str_size);
 
 dtl_margo_rpc_pack_region_finish:;
     DYAD_C_FUNCTION_END ();
@@ -267,12 +269,12 @@ dyad_rc_t dyad_dtl_margo_rpc_unpack (const dyad_ctx_t* ctx, const flux_msg_t* ms
                                    &addr_str,
                                    &addr_str_size);
     if (errcode < 0) {
-        DYAD_LOG_INFO (ctx, "Could not unpack Flux message from consumer!\n");
+        DYAD_LOG_ERROR (ctx, "Could not unpack Flux message from consumer!\n");
         rc = DYAD_RC_BADUNPACK;
         goto dtl_margo_rpc_unpack_region_finish;
     }
 
-    //DYAD_LOG_INFO(ctx, "[MARGO DTL] recv/unpack margo sever addr: %s, %ld\n", addr_str, addr_str_size);
+    DYAD_LOG_DEBUG (ctx, "[MARGO DTL] recv/unpack margo sever addr: %s, %ld\n", addr_str, addr_str_size);
     margo_addr_lookup(margo_handle->mid, addr_str, &margo_handle->remote_addr);
 
 dtl_margo_rpc_unpack_region_finish:;
@@ -308,7 +310,7 @@ dyad_rc_t dyad_dtl_margo_send (const dyad_ctx_t* ctx, void* buf, size_t buflen)
     DYAD_C_FUNCTION_START ();
     dyad_rc_t rc = DYAD_RC_OK;
 
-    DYAD_LOG_DEBUG(ctx, "[MARGO DTL] margo_send is called, buflen: %ld\n", buflen);
+    DYAD_LOG_DEBUG (ctx, "[MARGO DTL] margo_send is called, buflen: %ld.", buflen);
     dyad_dtl_margo_t* margo_handle = ctx->dtl_handle->private_dtl.margo_dtl_handle;
 
     hg_size_t segment_sizes[1] = { buflen };
@@ -334,6 +336,8 @@ dyad_rc_t dyad_dtl_margo_send (const dyad_ctx_t* ctx, void* buf, size_t buflen)
     margo_free_output(h,&resp);
     margo_destroy(h);
 
+    DYAD_LOG_DEBUG (ctx, "[MARGO DTL] margo_send completed.", buflen);
+
     DYAD_C_FUNCTION_END ();
     return rc;
 }
@@ -343,18 +347,20 @@ dyad_rc_t dyad_dtl_margo_recv (const dyad_ctx_t* ctx, void** buf, size_t* buflen
 {
     DYAD_C_FUNCTION_START ();
     dyad_rc_t rc = DYAD_RC_OK;
+    DYAD_LOG_DEBUG (ctx, "[MARGO DTL] margo_recv is called, waiting for data.");
 
     dyad_dtl_margo_t* margo_handle = ctx->dtl_handle->private_dtl.margo_dtl_handle;
+
     while (!margo_handle->recv_ready) {
         usleep(100);
     }
+
+    DYAD_LOG_DEBUG (ctx, "[MARGO DTL] margo_recv received %ld bytes.", margo_handle->recv_len);
 
     // recv message handled, reset it to 0
     *buflen = margo_handle->recv_len;
     *buf = malloc(*buflen);
     memcpy(*buf, margo_handle->recv_buffer, margo_handle->recv_len);
-
-    DYAD_LOG_DEBUG(ctx, "[MARGO DTL] margo_recv is called, received %d bytes\n", margo_handle->recv_len);
 
     // margo_handle->recv_buffer is allocated in data_ready_rpc()
     free(margo_handle->recv_buffer);
@@ -397,7 +403,7 @@ dyad_rc_t dyad_dtl_margo_finalize (const dyad_ctx_t* ctx)
     free (margo_handle);
     ctx->dtl_handle->private_dtl.margo_dtl_handle = NULL;
 
-    DYAD_LOG_INFO(ctx, "[MARGO DTL] margo dtl finalized");
+    DYAD_LOG_DEBUG (ctx, "[MARGO DTL] margo dtl finalized");
 
 dtl_margo_finalize_finish:;
     DYAD_C_FUNCTION_END ();
