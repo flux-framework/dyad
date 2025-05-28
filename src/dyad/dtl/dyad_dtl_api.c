@@ -18,7 +18,6 @@ dyad_rc_t dyad_dtl_init (dyad_ctx_t* ctx,
                          bool debug)
 {
     DYAD_C_FUNCTION_START ();
-    DYAD_LOG_DEBUG (ctx, "Initializing DTL ...");
     dyad_rc_t rc = DYAD_RC_OK;
     ctx->dtl_handle = malloc (sizeof (struct dyad_dtl));
     if (ctx->dtl_handle == NULL) {
