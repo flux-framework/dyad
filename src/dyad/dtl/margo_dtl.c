@@ -26,16 +26,16 @@
  * and output structures along with the serialization
  * functions.
  */
-MERCURY_GEN_PROC(sum_in_t,
+MERCURY_GEN_PROC(margo_rpc_in_t,
         ((int64_t)(n))\
         ((hg_bulk_t)(bulk)))
-MERCURY_GEN_PROC(sum_out_t, ((int32_t)(ret)))
+MERCURY_GEN_PROC(margo_rpc_out_t, ((int32_t)(ret)))
 
 static void data_ready_rpc(hg_handle_t h)
 {
     hg_return_t ret;
-    sum_in_t in;
-    sum_out_t out;
+    margo_rpc_in_t in;
+    margo_rpc_out_t out;
     hg_bulk_t local_bulk;
 
     margo_instance_id mid = margo_hg_handle_get_instance(h);
@@ -144,14 +144,14 @@ dyad_rc_t dyad_dtl_margo_init (const dyad_ctx_t* ctx,
     // the underlying network protocol
     // to use for the margo dtl.
     // TODO: currently hardcoded.
-    // char margo_na_protocol[] = "ofi+tcp";
-    //char margo_na_protocol[] = "ofi+verbs";
-    char margo_na_protocol[] = "ofi+cxi";
+    char margo_na_protocol[] = "ofi+tcp";       // works everywhere
+    // char margo_na_protocol[] = "ofi+verbs";  // best for infiniband
+    // char margo_na_protocol[] = "ofi+cxi";    // bset for HPC slingshot
     // producer (FLUX broker)
     // essentially the margo client
     if (comm_mode == DYAD_COMM_SEND) {
         margo_handle->mid = margo_init(margo_na_protocol, MARGO_CLIENT_MODE, 0, -1);
-        margo_handle->sendrecv_rpc_id = MARGO_REGISTER(margo_handle->mid, "data_ready_rpc", sum_in_t, sum_out_t, NULL);
+        margo_handle->sendrecv_rpc_id = MARGO_REGISTER(margo_handle->mid, "data_ready_rpc", margo_rpc_in_t, margo_rpc_out_t, NULL);
     }
     // consumer (dyad client c wrapper)
     // essentially the margo server
@@ -168,7 +168,7 @@ dyad_rc_t dyad_dtl_margo_init (const dyad_ctx_t* ctx,
         // will make Margo execute the RPCs in the ES running the progress loop.
         // A positive value will make Margo create new ESs to run the RPCs.
         margo_handle->mid = margo_init(margo_na_protocol, MARGO_SERVER_MODE, 1, -1);
-        margo_handle->sendrecv_rpc_id = MARGO_REGISTER(margo_handle->mid, "data_ready_rpc", sum_in_t, sum_out_t, data_ready_rpc);
+        margo_handle->sendrecv_rpc_id = MARGO_REGISTER(margo_handle->mid, "data_ready_rpc", margo_rpc_in_t, margo_rpc_out_t, data_ready_rpc);
         margo_register_data(margo_handle->mid, margo_handle->sendrecv_rpc_id, margo_handle, NULL);
     }
     // both margo client and server
@@ -321,7 +321,7 @@ dyad_rc_t dyad_dtl_margo_send (const dyad_ctx_t* ctx, void* buf, size_t buflen)
     hg_bulk_t local_bulk;
     margo_bulk_create(margo_handle->mid, 1, segment_ptrs, segment_sizes, HG_BULK_READ_ONLY, &local_bulk);
 
-    sum_in_t args;
+    margo_rpc_in_t args;
     args.n = buflen;
     args.bulk = local_bulk;
 
@@ -331,7 +331,7 @@ dyad_rc_t dyad_dtl_margo_send (const dyad_ctx_t* ctx, void* buf, size_t buflen)
     margo_create(margo_handle->mid, margo_handle->remote_addr, margo_handle->sendrecv_rpc_id, &h);
     margo_forward(h, &args);
 
-    sum_out_t resp;
+    margo_rpc_out_t resp;
     margo_get_output(h, &resp);
     margo_free_output(h,&resp);
     margo_destroy(h);
