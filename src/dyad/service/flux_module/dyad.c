@@ -176,7 +176,7 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
 
     rc = mod_ctx->ctx->dtl_handle->rpc_respond (mod_ctx->ctx, msg);
     if (DYAD_IS_ERROR (rc)) {
-        DYAD_LOG_ERROR (mod_ctx->ctx, "Could not send primary RPC response to client");
+        DYAD_LOG_ERROR (mod_ctx->ctx, "DYAD_MOD: Could not send primary RPC response to client");
         goto fetch_error_wo_flock;
     }
 

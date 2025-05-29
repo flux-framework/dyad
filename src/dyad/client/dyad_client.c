@@ -398,14 +398,14 @@ DYAD_DLL_EXPORTED dyad_rc_t dyad_get_data (const dyad_ctx_t *restrict ctx,
                        "o",
                        rpc_payload);
     if (f == NULL) {
-        DYAD_LOG_ERROR (ctx, "Cannot send RPC to producer module\n");
+        DYAD_LOG_ERROR (ctx, "Cannot send RPC to producer module.");
         rc = DYAD_RC_BADRPC;
         goto get_done;
     }
     DYAD_LOG_DEBUG (ctx, "DYAD CLIENT: Receive RPC response from DYAD module");
     rc = ctx->dtl_handle->rpc_recv_response (ctx, f);
     if (DYAD_IS_ERROR (rc)) {
-        DYAD_LOG_ERROR (ctx, "Cannot receive and/or parse the RPC response\n");
+        DYAD_LOG_ERROR (ctx, "Cannot receive and/or parse the RPC response.");
         goto get_done;
     }
     DYAD_LOG_DEBUG (ctx, "DYAD CLIENT: Establish DTL connection with DYAD module");
@@ -413,7 +413,7 @@ DYAD_DLL_EXPORTED dyad_rc_t dyad_get_data (const dyad_ctx_t *restrict ctx,
     if (DYAD_IS_ERROR (rc)) {
         DYAD_LOG_ERROR (ctx,
                         "Cannot establish connection with DYAD module on broker "
-                        "%u\n",
+                        "%u.",
                         mdata->owner_rank);
         goto get_done;
     }
@@ -422,7 +422,7 @@ DYAD_DLL_EXPORTED dyad_rc_t dyad_get_data (const dyad_ctx_t *restrict ctx,
     DYAD_LOG_DEBUG (ctx, "DYAD CLIENT: Close DTL connection with DYAD module");
     ctx->dtl_handle->close_connection (ctx);
     if (DYAD_IS_ERROR (rc)) {
-        DYAD_LOG_ERROR (ctx, "Cannot receive data from producer module\n");
+        DYAD_LOG_ERROR (ctx, "Cannot receive data from producer module.");
         goto get_done;
     }
     DYAD_C_FUNCTION_UPDATE_INT ("file_len", *file_len);
@@ -440,13 +440,13 @@ get_done:;
     // well in the module, this last message will set errno to ENODATA (i.e.,
     // end of stream). Otherwise, something went wrong, so we'll return
     // DYAD_RC_BADRPC.
-    DYAD_LOG_DEBUG (ctx, "Wait for end-of-stream message from module (current RC = %d)\n", rc);
+    // DYAD_LOG_DEBUG (ctx, "DYAD CLIENT: Wait for end-of-stream message from module (current RC = %d)", rc);
     if (rc != DYAD_RC_RPC_FINISHED && rc != DYAD_RC_BADRPC) {
         if (!(flux_rpc_get (f, NULL) < 0 && errno == ENODATA)) {
             DYAD_LOG_ERROR (ctx,
                             "An error occured at end of getting data! Either the "
                             "module sent too many responses, or the module "
-                            "failed with a bad error (errno = %d)\n",
+                            "failed with a bad error (errno = %d).",
                             errno);
             rc = DYAD_RC_BADRPC;
         }
@@ -463,9 +463,9 @@ get_done:;
         *file_len = (size_t)read_len;
     }
     *file_data = ((char *)*file_data) + sizeof (read_len);
-    DYAD_LOG_INFO (ctx, "Read %zd bytes from %s file", *file_len, mdata->fpath);
+    DYAD_LOG_DEBUG (ctx, "DYAD CLIENT: Read %zd bytes from %s file", *file_len, mdata->fpath);
 #endif
-    DYAD_LOG_INFO (ctx, "Destroy the Flux future for the RPC\n");
+    DYAD_LOG_DEBUG (ctx, "DYAD CLIENT: Destroy the Flux future for the RPC.");
     flux_future_destroy (f);
     DYAD_C_FUNCTION_END ();
     return rc;
@@ -496,12 +496,12 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_cons_store (const dyad_ctx_t *restrict ctx,
     DYAD_C_FUNCTION_UPDATE_STR ("fpath", mdata->fpath);
     DYAD_C_FUNCTION_UPDATE_STR ("file_path_copy", file_path_copy);
 
-    DYAD_LOG_INFO (ctx, "Saving retrieved data to %s\n", file_path);
+    DYAD_LOG_DEBUG (ctx, "DYAD CLIENT: Saving retrieved data to %s", file_path);
     // Create the directory as needed
     // TODO: Need to be consistent with the mode at the source
     odir = dirname (file_path_copy);
     if ((strncmp (odir, ".", strlen (".")) != 0) && (mkdir_as_needed (odir, m) < 0)) {
-        DYAD_LOG_ERROR (ctx, "Cannot create needed directories for pulled file\n");
+        DYAD_LOG_ERROR (ctx, "DYAD CLIENT: Cannot create needed directories for pulled file");
         rc = DYAD_RC_BADFIO;
         goto pull_done;
     }
@@ -528,7 +528,7 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_cons_store (const dyad_ctx_t *restrict ctx,
                             written_len);
             if (written_len <= 0) {
                 DYAD_LOG_ERROR (ctx,
-                                "Failed to write file \"%s\" only read %zd of %zd of %zd. with "
+                                "DYAD CLIENT: Failed to write file \"%s\" only read %zd of %zd of %zd. with "
                                 "code %d:%s.",
                                 file_path,
                                 written_len,
@@ -543,7 +543,7 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_cons_store (const dyad_ctx_t *restrict ctx,
         written_len = written_data;
     }
     if (written_len != data_len) {
-        DYAD_LOG_ERROR (ctx, "cons store write of pulled file failed!\n");
+        DYAD_LOG_ERROR (ctx, "DYAD CLIENT: cons store write of pulled file failed!\n");
         rc = DYAD_RC_BADFIO;
         goto pull_done;
     }
@@ -634,7 +634,7 @@ dyad_rc_t dyad_get_metadata (dyad_ctx_t *restrict ctx,
         rc = DYAD_RC_UNTRACKED;
         goto get_metadata_done;
     }
-    DYAD_LOG_INFO (ctx, "Obtaining file path relative to consumer directory: %s", upath);
+    DYAD_LOG_DEBUG (ctx, "DYAD CLIENT: Obtaining file path relative to consumer directory: %s", upath);
     ctx->reenter = false;
     DYAD_C_FUNCTION_UPDATE_STR ("upath", upath);
 
@@ -650,7 +650,7 @@ dyad_rc_t dyad_get_metadata (dyad_ctx_t *restrict ctx,
             goto get_metadata_done;
         }
         if (*mdata != NULL) {
-            DYAD_LOG_INFO (ctx, "Metadata object is already allocated. Skipping allocation");
+            DYAD_LOG_DEBUG (ctx, "DYAD CLIENT: Metadata object is already allocated. Skipping allocation");
         } else {
             *mdata = (dyad_metadata_t *)malloc (sizeof (struct dyad_metadata));
             if (*mdata == NULL) {

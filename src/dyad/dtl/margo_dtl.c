@@ -61,7 +61,7 @@ static void data_ready_rpc(hg_handle_t h)
             in.bulk, 0, local_bulk, 0, margo_handle->recv_len);
     assert(ret == HG_SUCCESS);
 
-    //DYAD_LOG_DEBUG(ctx, "[MARGO DTL] RDMA pulled from the producer\n");
+    //DYAD_LOG_DEBUG(ctx, "[MARGO DTL] RDMA pulled from the producer.");
 
     out.ret = 0;
     ret = margo_respond(h, &out);
@@ -230,12 +230,12 @@ dyad_rc_t dyad_dtl_margo_rpc_pack (const dyad_ctx_t* ctx,
                              addr_str_size);
 
     if (*packed_obj == NULL) {
-        DYAD_LOG_ERROR (ctx, "Could not pack upath and Margo address for RPC\n");
+        DYAD_LOG_ERROR (ctx, "Could not pack upath and Margo address for RPC.");
         rc = DYAD_RC_BADPACK;
         goto dtl_margo_rpc_pack_region_finish;
     }
 
-    DYAD_LOG_DEBUG (ctx, "[MARGO DTL] pack/send margo sever addr: %s, %ld\n", addr_str, addr_str_size);
+    DYAD_LOG_DEBUG (ctx, "[MARGO DTL] pack/send margo sever addr: %s, %ld.", addr_str, addr_str_size);
 
 dtl_margo_rpc_pack_region_finish:;
     DYAD_C_FUNCTION_END ();
@@ -274,7 +274,7 @@ dyad_rc_t dyad_dtl_margo_rpc_unpack (const dyad_ctx_t* ctx, const flux_msg_t* ms
         goto dtl_margo_rpc_unpack_region_finish;
     }
 
-    DYAD_LOG_DEBUG (ctx, "[MARGO DTL] recv/unpack margo sever addr: %s, %ld\n", addr_str, addr_str_size);
+    DYAD_LOG_DEBUG (ctx, "[MARGO DTL] recv/unpack margo sever addr: %s, %ld.", addr_str, addr_str_size);
     margo_addr_lookup(margo_handle->mid, addr_str, &margo_handle->remote_addr);
 
 dtl_margo_rpc_unpack_region_finish:;

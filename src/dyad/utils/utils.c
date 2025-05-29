@@ -350,7 +350,7 @@ int mkpath (const char* dir, const mode_t m)
 int mkdir_as_needed (const char* path, const mode_t m)
 {
     if (path == NULL || strlen (path) == 0ul) {
-        DYAD_LOG_DEBUG (NULL, "DYAD UTL: Cannot create a directory with no name\n");
+        DYAD_LOG_ERROR (NULL, "DYAD UTL: Cannot create a directory with no name\n");
         return -3;
     }
 
