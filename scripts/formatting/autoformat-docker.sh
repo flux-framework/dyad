@@ -20,7 +20,7 @@ export DOCKER_BUILDKIT=1
 echo "Bulding Docker image"
 docker build --target autoformat -t dyad-autoformat -f ./scripts/formatting/Dockerfile.format .
 
-echo "Running Docker container to autoformat code with clang-format 17.0.6"
+echo "Running Docker container to autoformat code with clang-format"
 docker run --rm -v $(pwd):/home/jovyan --name dyad-autoformat-container dyad-autoformat
 
 cd $curr_dir

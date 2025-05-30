@@ -5,7 +5,7 @@ if [ $# -ge 1 ]; then
     clang_format_exe="$1"
 fi
 
-SUPPORTED_CLANG_FORMAT_VERSION="17.0.6"
+SUPPORTED_CLANG_FORMAT_VERSION="18.1.8"
 
 if [ command -v $clang_format_exe >/dev/null 2>&1 ]; then
     echo "You must have 'clang-format' in PATH to use 'check-formatting.sh'"
