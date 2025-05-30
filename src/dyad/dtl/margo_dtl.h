@@ -7,17 +7,17 @@
 #error "no config"
 #endif
 
-#include <stdlib.h>
 #include <dyad/dtl/dyad_dtl_api.h>
 #include <margo.h>
+#include <stdlib.h>
 
 struct dyad_dtl_margo {
     flux_t* h;
     bool debug;
-    margo_instance_id mid;      // margo id
-    hg_addr_t local_addr;       // margo local server address
-    hg_addr_t remote_addr;      // margo remote server address
-    hg_id_t sendrecv_rpc_id;    // margo rpc id for send/recv
+    margo_instance_id mid;    // margo id
+    hg_addr_t local_addr;     // margo local server address
+    hg_addr_t remote_addr;    // margo remote server address
+    hg_id_t sendrecv_rpc_id;  // margo rpc id for send/recv
     bool recv_ready;
     size_t recv_len;
     void* recv_buffer;
@@ -26,14 +26,14 @@ struct dyad_dtl_margo {
 typedef struct dyad_dtl_margo dyad_dtl_margo_t;
 
 dyad_rc_t dyad_dtl_margo_init (const dyad_ctx_t* ctx,
-                             dyad_dtl_mode_t mode,
-                             dyad_dtl_comm_mode_t comm_mode,
-                             bool debug);
+                               dyad_dtl_mode_t mode,
+                               dyad_dtl_comm_mode_t comm_mode,
+                               bool debug);
 
 dyad_rc_t dyad_dtl_margo_rpc_pack (const dyad_ctx_t* ctx,
-                                 const char* upath,
-                                 uint32_t producer_rank,
-                                 json_t** packed_obj);
+                                   const char* upath,
+                                   uint32_t producer_rank,
+                                   json_t** packed_obj);
 
 dyad_rc_t dyad_dtl_margo_rpc_unpack (const dyad_ctx_t* ctx, const flux_msg_t* msg, char** upath);
 

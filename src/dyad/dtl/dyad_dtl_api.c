@@ -9,8 +9,8 @@
 #include <dyad/dtl/dyad_dtl_api.h>
 #include <dyad/dtl/flux_dtl.h>
 
-#include "ucx_dtl.h"
 #include "margo_dtl.h"
+#include "ucx_dtl.h"
 
 dyad_rc_t dyad_dtl_init (dyad_ctx_t* ctx,
                          dyad_dtl_mode_t mode,
