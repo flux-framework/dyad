@@ -394,7 +394,10 @@ int mkdir_as_needed (const char* path, const mode_t m)
             }
             return 1;  // already exists
         }
-        DYAD_LOG_DEBUG (NULL, "DYAD UTIL: Cannot create directory \"%s\": %s.", path, strerror (errno));
+        DYAD_LOG_DEBUG (NULL,
+                        "DYAD UTIL: Cannot create directory \"%s\": %s.",
+                        path,
+                        strerror (errno));
         perror ("mkdir_as_needed() ");
         return -1;
     }
@@ -569,11 +572,11 @@ dyad_rc_t dyad_release_flock (const dyad_ctx_t* __restrict__ ctx,
     DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
     dyad_rc_t rc = DYAD_RC_OK;
     DYAD_LOG_DEBUG (ctx,
-                   "DYAD UTIL: [node %u rank %u pid %d] Releases a lock on fd %d.",
-                   ctx->node_idx,
-                   ctx->rank,
-                   ctx->pid,
-                   fd);
+                    "DYAD UTIL: [node %u rank %u pid %d] Releases a lock on fd %d.",
+                    ctx->node_idx,
+                    ctx->rank,
+                    ctx->pid,
+                    fd);
     if (!lock) {
         rc = DYAD_RC_BADFIO;
         goto release_flock_end;
@@ -606,7 +609,10 @@ int sync_containing_dir (const char* path)
 
     if (dir_fd < 0) {
         char errmsg[PATH_MAX + 256] = {'\0'};
-        snprintf (errmsg, PATH_MAX + 256, "DYAD UTIL: Failed to open directory %s.\n", containing_dir);
+        snprintf (errmsg,
+                  PATH_MAX + 256,
+                  "DYAD UTIL: Failed to open directory %s.\n",
+                  containing_dir);
         perror (errmsg);
         return -1;  // exit (SYS_ERR);
     }

@@ -288,8 +288,8 @@ dyad_rc_t dyad_init (bool debug,
 
     ctx->relative_to_managed_path = relative_to_managed_path;
     DYAD_LOG_DEBUG (ctx,
-                   "DYAD_CORE: relative_to_managed_path %s",
-                   ctx->relative_to_managed_path ? "true" : "false");
+                    "DYAD_CORE: relative_to_managed_path %s",
+                    ctx->relative_to_managed_path ? "true" : "false");
 
     DYAD_C_FUNCTION_UPDATE_STR ("prod_managed_path", ctx->prod_managed_path);
     DYAD_C_FUNCTION_UPDATE_STR ("cons_managed_path", ctx->cons_managed_path);

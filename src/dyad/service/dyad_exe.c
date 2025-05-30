@@ -1,11 +1,11 @@
+#include <errno.h>
+#include <getopt.h>
+#include <limits.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <getopt.h>
-#include <stdbool.h>
-#include <unistd.h>
 #include <string.h>
-#include <errno.h>
-#include <limits.h>
+#include <unistd.h>
 
 #if defined(DYAD_HAS_CONFIG)
 #include <dyad/dyad_config.hpp>
@@ -13,10 +13,9 @@
 #error "no config"
 #endif
 
-
 struct dyad_cli_args {
-    char *prod_managed_path;
-    char *dtl_mode;
+    char* prod_managed_path;
+    char* dtl_mode;
     bool debug;
 };
 typedef struct dyad_cli_args dyad_cli_args_t;
@@ -24,22 +23,16 @@ typedef struct dyad_cli_args dyad_cli_args_t;
 // global variable to store parsed command line arguments
 static dyad_cli_args_t cli_args = {NULL, NULL, false};
 
-typedef enum {
-    INVALID_ACTION   = -1,
-    ACT_START        = 0,
-    ACT_STOP         = 1,
-    N_ACT            = 2
-} action_e;
+typedef enum { INVALID_ACTION = -1, ACT_START = 0, ACT_STOP = 1, N_ACT = 2 } action_e;
 
-static char* actions[N_ACT] = { "start", "stop" };
+static char* actions[N_ACT] = {"start", "stop"};
 
 // global variable storing the action to perform
 static action_e action = INVALID_ACTION;
 
-//static dyad_resource_t resource;
+// static dyad_resource_t resource;
 
-
-static void usage(int status)
+static void usage (int status)
 {
     printf (
         "\n"
@@ -73,10 +66,10 @@ static void usage(int status)
         "Command options for \"stop\":\n"
         "   to be implemented...\n");
 
-    exit(status);
+    exit (status);
 }
 
-static void parse_cmd_arguments(int argc, char** argv)
+static void parse_cmd_arguments (int argc, char** argv)
 {
     int ch = 0;
     int optidx = 2;
@@ -91,10 +84,10 @@ static void parse_cmd_arguments(int argc, char** argv)
                                            {0, 0, 0, 0}};
     static char* short_options = "hdm:i:e:p:";
 
-    while ((ch = getopt_long(argc, argv, short_options, long_options, &optidx)) >= 0) {
+    while ((ch = getopt_long (argc, argv, short_options, long_options, &optidx)) >= 0) {
         switch (ch) {
             case 'h':
-                usage(EXIT_SUCCESS);
+                usage (EXIT_SUCCESS);
                 break;
             case 'd':
                 cli_args.debug = true;
@@ -114,34 +107,54 @@ static void parse_cmd_arguments(int argc, char** argv)
                 // getopt_long already printed an error message.
                 break;
             default:
-                usage(EXIT_FAILURE);
+                usage (EXIT_FAILURE);
                 break;
         }
     }
 }
 
-int dyad_start_service(dyad_cli_args_t* cli_args) {
+int dyad_start_service (dyad_cli_args_t* cli_args)
+{
     // DYAD_INSTALL_LIBDIR is defined in dyad_config.h.in
-    char dyad_module_path[PATH_MAX+1] = {0};
-    sprintf(dyad_module_path, "%s/dyad.so", DYAD_INSTALL_LIBDIR);
+    char dyad_module_path[PATH_MAX + 1] = {0};
+    sprintf (dyad_module_path, "%s/dyad.so", DYAD_INSTALL_LIBDIR);
     // the second argument is the name in process table.
-    execlp ("flux", "flux-dyad-module-load", "exec", "-r", "all", "flux", "module", "load", dyad_module_path, cli_args->prod_managed_path, NULL);
+    execlp ("flux",
+            "flux-dyad-module-load",
+            "exec",
+            "-r",
+            "all",
+            "flux",
+            "module",
+            "load",
+            dyad_module_path,
+            cli_args->prod_managed_path,
+            NULL);
     return 0;
 }
 
-int dyad_stop_service(dyad_cli_args_t* cli_args) {
-    execlp ("flux", "flux-dyad-module-remove", "exec", "-r", "all", "flux", "module", "remove", "dyad", NULL);
+int dyad_stop_service (dyad_cli_args_t* cli_args)
+{
+    execlp ("flux",
+            "flux-dyad-module-remove",
+            "exec",
+            "-r",
+            "all",
+            "flux",
+            "module",
+            "remove",
+            "dyad",
+            NULL);
     return 0;
 }
 
-
-int main(int argc, char** argv)
+int main (int argc, char** argv)
 {
     char* cmd = NULL;
 
     // Usage: dyad start|stop [options]
     if (argc < 2) {
-        usage(EXIT_FAILURE);
+        usage (EXIT_FAILURE);
     }
 
     // argv[0]: dyad
@@ -149,17 +162,17 @@ int main(int argc, char** argv)
     cmd = argv[1];
 
     for (int i = 0; i < N_ACT; i++) {
-        if (strcmp(cmd, actions[i]) == 0) {
+        if (strcmp (cmd, actions[i]) == 0) {
             action = (action_e)i;
             break;
         }
     }
 
     if (action == INVALID_ACTION) {
-        usage(EXIT_FAILURE);
+        usage (EXIT_FAILURE);
     }
 
-    parse_cmd_arguments(argc, argv);
+    parse_cmd_arguments (argc, argv);
 
     // Detect the job scheduler
     /*
@@ -173,15 +186,14 @@ int main(int argc, char** argv)
 
     if (action == ACT_START) {
         if (NULL == cli_args.prod_managed_path) {
-            printf("USAGE ERROR: producer managed directory (-p) is required!\n");
-            usage(EXIT_FAILURE);
+            printf ("USAGE ERROR: producer managed directory (-p) is required!\n");
+            usage (EXIT_FAILURE);
         }
-        return dyad_start_service(&cli_args);
+        return dyad_start_service (&cli_args);
     } else if (action == ACT_STOP) {
-        return dyad_stop_service(&cli_args);
+        return dyad_stop_service (&cli_args);
     } else {
-        fprintf(stderr, "USAGE ERROR: unhandled action %d\n", (int)action);
+        fprintf (stderr, "USAGE ERROR: unhandled action %d\n", (int)action);
         return EXIT_FAILURE;
     }
-
 }

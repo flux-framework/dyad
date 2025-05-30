@@ -96,7 +96,7 @@ void dyad_mod_fini (void)
 // This will be called at flux module finalization time
 static void freectx (void *arg)
 {
-    dyad_mod_ctx_t *mod_ctx = (dyad_mod_ctx_t *) arg;
+    dyad_mod_ctx_t *mod_ctx = (dyad_mod_ctx_t *)arg;
     flux_msg_handler_delvec (mod_ctx->handlers);
     if (mod_ctx->ctx) {
         dyad_ctx_fini ();
@@ -286,11 +286,12 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
         DYAD_C_FUNCTION_UPDATE_INT ("file_size", file_size);
         dyad_release_flock (mod_ctx->ctx, fd, &shared_lock);
         close (fd);
-        //DYAD_LOG_DEBUG (mod_ctx->ctx, "Is inbuf NULL? -> %i", (int)(inbuf == NULL));
+        // DYAD_LOG_DEBUG (mod_ctx->ctx, "Is inbuf NULL? -> %i", (int)(inbuf == NULL));
         DYAD_LOG_DEBUG (mod_ctx->ctx, "DYAD_MOD: Establish DTL connection with consumer");
         rc = mod_ctx->ctx->dtl_handle->establish_connection (mod_ctx->ctx);
         if (DYAD_IS_ERROR (rc)) {
-            DYAD_LOG_ERROR (mod_ctx->ctx, "DYAD_MOD: Could not establish DTL connection with client");
+            DYAD_LOG_ERROR (mod_ctx->ctx,
+                            "DYAD_MOD: Could not establish DTL connection with client");
             errno = ECONNREFUSED;
             goto fetch_error_wo_flock;
         }
@@ -307,7 +308,9 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
     } else {
         goto fetch_error;
     }
-    DYAD_LOG_DEBUG (mod_ctx->ctx, "DYAD_MOD: Close RPC message stream with an ENODATA (%d) message", ENODATA);
+    DYAD_LOG_DEBUG (mod_ctx->ctx,
+                    "DYAD_MOD: Close RPC message stream with an ENODATA (%d) message",
+                    ENODATA);
     if (flux_respond_error (h, msg, ENODATA, NULL) < 0) {
         DYAD_LOG_DEBUG (mod_ctx->ctx,
                         "DYAD_MOD: %s: flux_respond_error with ENODATA failed\n",
@@ -321,7 +324,9 @@ fetch_error:;
     close (fd);
 
 fetch_error_wo_flock:;
-    DYAD_LOG_ERROR (mod_ctx->ctx, "DYAD_MOD: Close RPC message stream with an error (errno = %d)\n", errno);
+    DYAD_LOG_ERROR (mod_ctx->ctx,
+                    "DYAD_MOD: Close RPC message stream with an error (errno = %d)\n",
+                    errno);
     if (flux_respond_error (h, msg, errno, NULL) < 0) {
         DYAD_LOG_ERROR (mod_ctx->ctx, "DYAD_MOD: %s: flux_respond_error", __func__);
     }

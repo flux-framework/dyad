@@ -440,7 +440,8 @@ get_done:;
     // well in the module, this last message will set errno to ENODATA (i.e.,
     // end of stream). Otherwise, something went wrong, so we'll return
     // DYAD_RC_BADRPC.
-    // DYAD_LOG_DEBUG (ctx, "DYAD CLIENT: Wait for end-of-stream message from module (current RC = %d)", rc);
+    // DYAD_LOG_DEBUG (ctx, "DYAD CLIENT: Wait for end-of-stream message from module (current RC =
+    // %d)", rc);
     if (rc != DYAD_RC_RPC_FINISHED && rc != DYAD_RC_BADRPC) {
         if (!(flux_rpc_get (f, NULL) < 0 && errno == ENODATA)) {
             DYAD_LOG_ERROR (ctx,
@@ -528,7 +529,8 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_cons_store (const dyad_ctx_t *restrict ctx,
                             written_len);
             if (written_len <= 0) {
                 DYAD_LOG_ERROR (ctx,
-                                "DYAD CLIENT: Failed to write file \"%s\" only read %zd of %zd of %zd. with "
+                                "DYAD CLIENT: Failed to write file \"%s\" only read %zd of %zd of "
+                                "%zd. with "
                                 "code %d:%s.",
                                 file_path,
                                 written_len,
@@ -634,7 +636,9 @@ dyad_rc_t dyad_get_metadata (dyad_ctx_t *restrict ctx,
         rc = DYAD_RC_UNTRACKED;
         goto get_metadata_done;
     }
-    DYAD_LOG_DEBUG (ctx, "DYAD CLIENT: Obtaining file path relative to consumer directory: %s", upath);
+    DYAD_LOG_DEBUG (ctx,
+                    "DYAD CLIENT: Obtaining file path relative to consumer directory: %s",
+                    upath);
     ctx->reenter = false;
     DYAD_C_FUNCTION_UPDATE_STR ("upath", upath);
 
@@ -650,7 +654,9 @@ dyad_rc_t dyad_get_metadata (dyad_ctx_t *restrict ctx,
             goto get_metadata_done;
         }
         if (*mdata != NULL) {
-            DYAD_LOG_DEBUG (ctx, "DYAD CLIENT: Metadata object is already allocated. Skipping allocation");
+            DYAD_LOG_DEBUG (ctx,
+                            "DYAD CLIENT: Metadata object is already allocated. Skipping "
+                            "allocation");
         } else {
             *mdata = (dyad_metadata_t *)malloc (sizeof (struct dyad_metadata));
             if (*mdata == NULL) {
@@ -907,7 +913,8 @@ dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t *restrict ctx,
     }
     if ((file_size = get_file_size (lock_fd)) <= 0) {
         DYAD_LOG_INFO (ctx,
-                       "DYAD CLIENT: [node %u rank %u pid %d] File (%s with fd %d) is not fetched yet",
+                       "DYAD CLIENT: [node %u rank %u pid %d] File (%s with fd %d) is not fetched "
+                       "yet",
                        ctx->node_idx,
                        ctx->rank,
                        ctx->pid,
