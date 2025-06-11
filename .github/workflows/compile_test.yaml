@@ -234,7 +234,7 @@ jobs:
           echo "Activating spack"
           . ${SPACK_DIR}/share/spack/setup-env.sh
           spack load flux-core
-          spacl load mochi-margo
+          spack load mochi-margo
           if [[ $DYAD_DTL_MODE == 'UCX' ]]; then
             spack load ucx@1.18.0
           fi
