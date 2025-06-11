@@ -1,6 +1,16 @@
 name: Compilation Testing for DYAD
 
 on:
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: 'Log level'
+        required: true
+        default: 'warning'
+      environment:
+        description: 'Environment to deploy'
+        required: false
+        default: 'staging'
   push:
     branches: [ main ]
   pull_request:
@@ -11,11 +21,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        flux: [ 0.52.0, 0.49.0]
+        flux: [ 0.73.0 ]
         mode: ["UCX"]
-        os: [ ubuntu-20.04 ]
+        os: [ ubuntu-24.04 ]
         compiler: [ gcc ]
-        gcc: [ 10 ]
+        gcc: [ 14 ]
         profiler_mode: ["NONE"]
     name: ${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.gcc }}-${{ matrix.flux }}-${{ matrix.mode }}
     runs-on: ${{ matrix.os }} # Docker-based jobs must run on Ubuntu
@@ -57,7 +67,7 @@ jobs:
                               ncurses-bin \
                               hwloc \
                               lua5.3 liblua5.3-dev \
-                              python3.10 \
+                              python3 \
                               python3-pip \
                               python3-venv \
                               libczmq-dev \
@@ -65,8 +75,10 @@ jobs:
                               lz4 \
                               pkgconf \
                               libzmq5 \
-                              sqlite
-          sudo pip install jsonschema cffi ply pyyaml
+                              sqlite3
+          pip3 --version && python3 --version
+          gcc --version
+          sudo pip3 install jsonschema cffi ply pyyaml
           sudo chmod 777 /usr -R
       - name: Install Spack
         run: |
@@ -75,10 +87,7 @@ jobs:
         run: |
           . ${SPACK_DIR}/share/spack/setup-env.sh
           mkdir -p /home/runner/.spack
-          GCC_VERSION="9.3.0"
-          if [[ $CC == 'gcc-10' ]]; then
-              GCC_VERSION="10.3.0"
-          fi
+          GCC_VERSION="14.2.0"
           cat > /home/runner/.spack/packages.yaml <<EOF
           packages:
             all:
@@ -88,27 +97,22 @@ jobs:
             python:
               buildable: False
               externals:
-                - spec: "python@3.10.12"
+                - spec: "python@3.12.3"
                   prefix: /usr
             py-cffi:
               buildable: False
               externals:
-                - spec: "py-cffi@1.15.1"
+                - spec: "py-cffi@1.17.1"
                   prefix: /usr
             py-jsonschema:
               buildable: False
               externals:
-                - spec: "py-jsonschema@4.17.3"
+                - spec: "py-jsonschema@4.10.3"
                   prefix: /usr
             py-ply:
               buildable: False
               externals:
                 - spec: "py-ply@3.11"
-                  prefix: /usr
-            py-pyyaml:
-              buildable: False
-              externals:
-                - spec: "py-pyyaml@6.0"
                   prefix: /usr
             czmq:
               buildable: False
@@ -118,12 +122,12 @@ jobs:
             sqlite:
               buildable: False
               externals:
-                - spec: "sqlite@3.37.2"
+                - spec: "sqlite@3.45.1"
                   prefix: /usr
             libzmq:
               buildable: False
               externals:
-                - spec: "libzmq@4.3.4"
+                - spec: "libzmq@4.3.5"
                   prefix: /usr
             lua:
               buildable: False
@@ -133,68 +137,68 @@ jobs:
             lua-luaposix:
               buildable: False
               externals:
-                - spec: "lua-luaposix@33.4.0"
+                - spec: "lua-luaposix@36.2.1"
                   prefix: /usr
             lz4:
               buildable: False
               externals:
-                - spec: "lz4@1.9.3"
+                - spec: "lz4@1.9.4"
                   prefix: /usr
             ncurses:
               buildable: False
               externals:
-                - spec: "ncurses@6.3.2"
+                - spec: "ncurses@6.4"
                   prefix: /usr
             pkgconf:
               buildable: False
               externals:
-                - spec: "pkgconf@1.8.0"
+                - spec: "pkgconf@1.8.1"
                   prefix: /usr
             hwloc:
               buildable: False
               externals:
-                - spec: "hwloc@2.7.0"
+                - spec: "hwloc@2.10.0"
                   prefix: /usr
             libarchive:
               buildable: False
               externals:
-                - spec: "libarchive@3.6.0"
+                - spec: "libarchive@3.7.2"
                   prefix: /usr
             autoconf:
               buildable: False
               externals:
-                - spec: "autoconf@2.69"
+                - spec: "autoconf@2.71"
                   prefix: /usr
             automake:
               buildable: False
               externals:
-                - spec: "automake@1.16.1"
+                - spec: "automake@1.16.5"
                   prefix: /usr
             libtool:
               buildable: False
               externals:
-                - spec: "libtool@2.4.6"
+                - spec: "libtool@2.4.7"
                   prefix: /usr
             m4:
               buildable: False
               externals:
-                - spec: "m4@1.4.18"
+                - spec: "m4@1.4.19"
                   prefix: /usr
             openmpi:
               buildable: False
               externals:
-                - spec: "openmpi@4.0.3"
+                - spec: "openmpi@4.1.6"
                   prefix: /usr
             openssl:
               buildable: False
               externals:
-                - spec: "openssl@1.1.1f"
+                - spec: "openssl@2.1.7"
                   prefix: /usr
-            pkg-config:
-              buildable: False
-              externals:
-                - spec: "pkg-config@0.29.1"
-                  prefix: /usr
+            # pkg-config:
+            #   buildable: False
+            #   externals:
+            #     - spec: "pkg-config@0.29.1"
+            #       prefix: /usr
             gcc:
               externals:
               - spec: gcc@${GCC_VERSION} languages=c,c++
@@ -209,41 +213,34 @@ jobs:
           cat /home/runner/.spack/packages.yaml
           echo "-------------------------------"
           spack compiler find --scope=user
-          if [[ $CC == 'gcc-10' ]]; then
-              spack config add "packages:all:compiler:[gcc@10.3.0]"
-          else
-              spack config add "packages:all:compiler:[gcc@9.3.0]"
-          fi
           spack external find
-          spack spec flux-core@${FLUX_VERSION}
-          spack spec cpp-logger@develop
-          if [[ $DYAD_DTL_MODE == 'UCX' ]]; then
-            spack spec ucx@1.13.1
-          fi
-      - name: Install dependencies
+      - name: Install Spack dependencies
         run: |
           mkdir -p ${DYAD_INSTALL_PREFIX}
           python3 -m venv ${DYAD_INSTALL_PREFIX}
           . ${SPACK_DIR}/share/spack/setup-env.sh
           spack install -j4 flux-core@${FLUX_VERSION}
           if [[ $DYAD_DTL_MODE == 'UCX' ]]; then
-            spack install -j4 ucx@1.13.1
+            spack install -j4 ucx@1.18.0
+            spack load ucx@1.18.0
           fi
           if [[ $DYAD_PROFILER_MODE == 'CALIPER' ]]; then
             spack install -j4 caliper
+            spack load caliper
           fi
-          spack install cpp-logger@develop
-          spack view --verbose symlink ${DYAD_INSTALL_PREFIX} flux-core@${FLUX_VERSION} cpp-logger@develop
-          if [[ $DYAD_DTL_MODE == 'UCX' ]]; then
-            spack view --verbose symlink ${DYAD_INSTALL_PREFIX} ucx@1.13.1
-          fi
-          if [[ $DYAD_PROFILER_MODE == 'CALIPER' ]]; then
-            spack view --verbose symlink ${DYAD_INSTALL_PREFIX} caliper
-          fi
+          #spack install cpp-logger
+          #spack load cpp-logger
       - name: Compile DYAD
         run: |
           echo "Activating spack"
           . ${SPACK_DIR}/share/spack/setup-env.sh
+          spack load flux-core
+          if [[ $DYAD_DTL_MODE == 'UCX' ]]; then
+            spack load ucx@1.18.0
+          fi
+          if [[ $DYAD_PROFILER_MODE == 'CALIPER' ]]; then
+            spack load caliper
+          fi
           echo "Install DYAD"
           cd ${GITHUB_WORKSPACE}
           ls
@@ -255,7 +252,7 @@ jobs:
           if [[ $DYAD_DTL_MODE == 'UCX' ]]; then
             CONFIGURE_FLAGS="-DDYAD_ENABLE_UCX_DATA=ON -DDYAD_PROFILER=NONE"
           fi
-          TEST_CONF="-DDYAD_LIBDIR_AS_LIB:BOOL=ON -DCMAKE_BUILD_TYPE=Debug -DDYAD_LOGGER=CPP_LOGGER -DDYAD_LOGGER_LEVEL=DEBUG"
+          TEST_CONF="-DDYAD_LIBDIR_AS_LIB:BOOL=ON -DCMAKE_BUILD_TYPE=Debug -DDYAD_LOGGER=FLUX -DDYAD_LOGGER_LEVEL=INFO"
           cmake --version
           cmake -DCMAKE_INSTALL_PREFIX=${DYAD_INSTALL_PREFIX} ${CONFIGURE_FLAGS} ${TEST_CONF} ..
           make VERBOSE=1 install -j
@@ -279,6 +276,7 @@ jobs:
         run: |
           mkdir -m 775 -p $DYAD_PATH
           . ${SPACK_DIR}/share/spack/setup-env.sh
+          spack load flux-core
           export PATH=${PATH}:${DYAD_INSTALL_PREFIX}/bin:${DYAD_INSTALL_PREFIX}/sbin
           export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${DYAD_INSTALL_PREFIX}/lib
           echo "Starting flux brokers"
@@ -288,6 +286,7 @@ jobs:
         run: |
           mkdir -m 775 -p $DYAD_PATH
           . ${SPACK_DIR}/share/spack/setup-env.sh
+          spack load flux-core
           export PATH=${PATH}:${DYAD_INSTALL_PREFIX}/bin:${DYAD_INSTALL_PREFIX}/sbin
           export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${DYAD_INSTALL_PREFIX}/lib
           echo "Starting flux brokers"
@@ -298,6 +297,7 @@ jobs:
           mkdir -m 775 -p $DYAD_PATH
           source ${DYAD_INSTALL_PREFIX}/bin/activate
           . ${SPACK_DIR}/share/spack/setup-env.sh
+          spack load flux-core
           export PATH=${PATH}:${DYAD_INSTALL_PREFIX}/bin:${DYAD_INSTALL_PREFIX}/sbin
           export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${DYAD_INSTALL_PREFIX}/lib
           echo "Starting flux brokers"
