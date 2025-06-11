@@ -16,14 +16,28 @@ set(UCX_DTL_SRC ${CMAKE_CURRENT_SOURCE_DIR}/ucx_dtl.c ${CMAKE_CURRENT_SOURCE_DIR
 set(UCX_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/ucx_dtl.h ${CMAKE_CURRENT_SOURCE_DIR}/ucx_ep_cache.h)
 set(UCX_PUBLIC_HEADERS)
 
+# Margo implementation for DTL
+set(MARGO_DTL_SRC ${CMAKE_CURRENT_SOURCE_DIR}/margo_dtl.c)
+set(MARGO_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/margo_dtl.h)
+set(MARGO_PUBLIC_HEADERS)
+
+# Flux is enabled by default
 list(APPEND DTL_SRC ${FLUX_DTL_SRC})
 list(APPEND DTL_PRIVATE_HEADERS ${FLUX_PRIVATE_HEADERS})
 list(APPEND DTL_PUBLIC_HEADERS ${FLUX_PUBLIC_HEADERS})
 
+# UCX: compile-time selection
 if(DYAD_ENABLE_UCX_DTL OR DYAD_ENABLE_UCX_DATA_RMA)
     list(APPEND DTL_SRC ${UCX_DTL_SRC})
     list(APPEND DTL_PRIVATE_HEADERS ${UCX_PRIVATE_HEADERS})
     list(APPEND DTL_PUBLIC_HEADERS ${UCX_PUBLIC_HEADERS})
+endif()
+
+# Margo: compile-time selection
+if(DYAD_ENABLE_MARGO_DTL)
+    list(APPEND DTL_SRC ${MARGO_DTL_SRC})
+    list(APPEND DTL_PRIVATE_HEADERS ${MARGO_PRIVATE_HEADERS})
+    list(APPEND DTL_PUBLIC_HEADERS ${MARGO_PUBLIC_HEADERS})
 endif()
 
 add_library(${PROJECT_NAME}_dtl SHARED ${DTL_SRC} ${DTL_PUBLIC_HEADERS} ${DTL_PRIVATE_HEADERS})
@@ -32,6 +46,10 @@ target_link_libraries(${PROJECT_NAME}_dtl PRIVATE ${PROJECT_NAME}_utils Jansson:
 if(DYAD_ENABLE_UCX_DTL OR DYAD_ENABLE_UCX_DATA_RMA)
     target_link_libraries(${PROJECT_NAME}_dtl PRIVATE ucx::ucp ucx::ucs)
     target_include_directories(${PROJECT_NAME}_dtl SYSTEM PUBLIC ${ucx_INCLUDE_DIRS})
+endif()
+
+if(DYAD_ENABLE_MARGO_DTL)
+    target_link_libraries(${PROJECT_NAME}_dtl PRIVATE PkgConfig::MARGO json-c::json-c)
 endif()
 
 target_compile_definitions(${PROJECT_NAME}_dtl PUBLIC DYAD_HAS_CONFIG)

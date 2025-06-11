@@ -18,8 +18,8 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y --no-install-recommends \
             build-essential \
-            clang-format-17
+            clang-format-18
 
     - name: Test formatting
       run: |
-        ./scripts/formatting/check-formatting.sh /usr/bin/clang-format-17
+        ./scripts/formatting/check-formatting.sh /usr/bin/clang-format-18

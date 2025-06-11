@@ -220,13 +220,12 @@ jobs:
           python3 -m venv ${DYAD_INSTALL_PREFIX}
           . ${SPACK_DIR}/share/spack/setup-env.sh
           spack install -j4 flux-core@${FLUX_VERSION}
+          spack install -j4 mochi-margo
           if [[ $DYAD_DTL_MODE == 'UCX' ]]; then
             spack install -j4 ucx@1.18.0
-            spack load ucx@1.18.0
           fi
           if [[ $DYAD_PROFILER_MODE == 'CALIPER' ]]; then
             spack install -j4 caliper
-            spack load caliper
           fi
           #spack install cpp-logger
           #spack load cpp-logger
@@ -235,6 +234,7 @@ jobs:
           echo "Activating spack"
           . ${SPACK_DIR}/share/spack/setup-env.sh
           spack load flux-core
+          spack load mochi-margo
           if [[ $DYAD_DTL_MODE == 'UCX' ]]; then
             spack load ucx@1.18.0
           fi
@@ -252,9 +252,9 @@ jobs:
           if [[ $DYAD_DTL_MODE == 'UCX' ]]; then
             CONFIGURE_FLAGS="-DDYAD_ENABLE_UCX_DATA=ON -DDYAD_PROFILER=NONE"
           fi
-          TEST_CONF="-DDYAD_LIBDIR_AS_LIB:BOOL=ON -DCMAKE_BUILD_TYPE=Debug -DDYAD_LOGGER=FLUX -DDYAD_LOGGER_LEVEL=INFO"
+          COMMON_FLAGS="-DDYAD_LIBDIR_AS_LIB=ON -DDYAD_ENABLE_MARGO_DATA=ON -DCMAKE_BUILD_TYPE=Debug -DDYAD_LOGGER=FLUX -DDYAD_LOGGER_LEVEL=INFO"
           cmake --version
-          cmake -DCMAKE_INSTALL_PREFIX=${DYAD_INSTALL_PREFIX} ${CONFIGURE_FLAGS} ${TEST_CONF} ..
+          cmake -DCMAKE_INSTALL_PREFIX=${DYAD_INSTALL_PREFIX} ${CONFIGURE_FLAGS} ${COMMON_FLAGS} ..
           make VERBOSE=1 install -j
       - name: Install PyDYAD
         run: |
