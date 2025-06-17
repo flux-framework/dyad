@@ -9,8 +9,13 @@
 #include <dyad/dtl/dyad_dtl_api.h>
 #include <dyad/dtl/flux_dtl.h>
 
+#if defined (DYAD_ENABLE_MARGO_DTL)
 #include "margo_dtl.h"
+#endif // defined (DYAD_ENABLE_MARGO_DTL)
+
+#if defined (DYAD_ENABLE_UCX_DTL) || defined(DYAD_ENABLE_UCX_DATA_RMA)
 #include "ucx_dtl.h"
+#endif //defined (DYAD_ENABLE_UCX_DTL) || defined(DYAD_ENABLE_UCX_DATA_RMA)
 
 dyad_rc_t dyad_dtl_init (dyad_ctx_t* ctx,
                          dyad_dtl_mode_t mode,
@@ -27,12 +32,18 @@ dyad_rc_t dyad_dtl_init (dyad_ctx_t* ctx,
     }
 
     ctx->dtl_handle->mode = mode;
+#if defined (DYAD_ENABLE_UCX_DTL) || defined(DYAD_ENABLE_UCX_DATA_RMA)
     if (mode == DYAD_DTL_UCX) {
         rc = dyad_dtl_ucx_init (ctx, mode, comm_mode, debug);
-    } else if (mode == DYAD_DTL_FLUX_RPC) {
-        rc = dyad_dtl_flux_init (ctx, mode, comm_mode, debug);
-    } else if (mode == DYAD_DTL_MARGO) {
+    } else
+#endif //defined (DYAD_ENABLE_UCX_DTL) || defined(DYAD_ENABLE_UCX_DATA_RMA)
+#if defined (DYAD_ENABLE_MARGO_DTL)
+    if (mode == DYAD_DTL_MARGO) {
         rc = dyad_dtl_margo_init (ctx, mode, comm_mode, debug);
+    } else
+#endif // defined (DYAD_ENABLE_MARGO_DTL)
+    if (mode == DYAD_DTL_FLUX_RPC) {
+        rc = dyad_dtl_flux_init (ctx, mode, comm_mode, debug);
     } else {
         rc = DYAD_RC_BADDTLMODE;
     }
@@ -54,16 +65,22 @@ dyad_rc_t dyad_dtl_finalize (dyad_ctx_t* ctx)
         rc = DYAD_RC_OK;
         goto dtl_finalize_done;
     }
+#if defined (DYAD_ENABLE_UCX_DTL) || defined(DYAD_ENABLE_UCX_DATA_RMA)
     if ((ctx->dtl_handle)->mode == DYAD_DTL_UCX) {
         if ((ctx->dtl_handle)->private_dtl.ucx_dtl_handle != NULL) {
             rc = dyad_dtl_ucx_finalize (ctx);
         }
-    } else if ((ctx->dtl_handle)->mode == DYAD_DTL_FLUX_RPC) {
+    } else
+#endif //defined (DYAD_ENABLE_UCX_DTL) || defined(DYAD_ENABLE_UCX_DATA_RMA)
+#if defined (DYAD_ENABLE_MARGO_DTL)
+    if ((ctx->dtl_handle)->mode == DYAD_DTL_MARGO) {
+        rc = dyad_dtl_margo_finalize (ctx);
+    } else
+#endif // defined (DYAD_ENABLE_MARGO_DTL)
+    if ((ctx->dtl_handle)->mode == DYAD_DTL_FLUX_RPC) {
         if ((ctx->dtl_handle)->private_dtl.flux_dtl_handle != NULL) {
             rc = dyad_dtl_flux_finalize (ctx);
         }
-    } else if ((ctx->dtl_handle)->mode == DYAD_DTL_MARGO) {
-        rc = dyad_dtl_margo_finalize (ctx);
     } else {
         rc = DYAD_RC_BADDTLMODE;
     }

@@ -35,6 +35,7 @@ static void data_ready_rpc (hg_handle_t h)
     margo_rpc_in_t in;
     margo_rpc_out_t out;
     hg_bulk_t local_bulk;
+    (void) ret;
 
     margo_instance_id mid = margo_hg_handle_get_instance (h);
     margo_set_log_level (mid, MARGO_LOG_INFO);
@@ -134,7 +135,7 @@ dyad_rc_t dyad_dtl_margo_init (const dyad_ctx_t* ctx,
 {
     DYAD_C_FUNCTION_START ();
 
-    dyad_rc_t rc = DYAD_RC_OK;
+    // dyad_rc_t rc = DYAD_RC_OK;
     dyad_dtl_margo_t* margo_handle = NULL;
 
     ctx->dtl_handle->private_dtl.margo_dtl_handle = malloc (sizeof (struct dyad_dtl_margo));
@@ -202,15 +203,17 @@ dyad_rc_t dyad_dtl_margo_init (const dyad_ctx_t* ctx,
     ctx->dtl_handle->recv = dyad_dtl_margo_recv;
     ctx->dtl_handle->close_connection = dyad_dtl_margo_close_connection;
 
-    if (comm_mode == DYAD_COMM_SEND)
+    if (comm_mode == DYAD_COMM_SEND) {
         DYAD_LOG_DEBUG (ctx, "[MARGO DTL] margo dtl initialized - flux side");
-    if (comm_mode == DYAD_COMM_RECV)
+    }
+    if (comm_mode == DYAD_COMM_RECV) {
         DYAD_LOG_DEBUG (ctx, "[MARGO DTL] margo dtl initialized - client side");
+    }
 
     DYAD_C_FUNCTION_END ();
     return DYAD_RC_OK;
 
-error:;
+error: __attribute__((unused));
     // If an error occured, finalize the DTL handle and
     // return a failing error code
     dyad_dtl_margo_finalize (ctx);
