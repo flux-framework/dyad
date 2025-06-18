@@ -518,9 +518,10 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_cons_store (const dyad_ctx_t *restrict ctx,
                         file_path,
                         data_len,
                         granularity);
-        while (written_data < data_len) {
-            ssize_t written_size =
-                (data_len - written_data) > granularity ? granularity : (data_len - written_data);
+        while (written_data < (ssize_t)data_len) {
+            ssize_t written_size = (ssize_t)(data_len - written_data) > granularity
+                                       ? granularity
+                                       : (ssize_t)(data_len - written_data);
             written_len = write (fd, file_data + written_data, written_size);
             DYAD_LOG_DEBUG (ctx,
                             " writing file %s with bytes %zd of %zd",
