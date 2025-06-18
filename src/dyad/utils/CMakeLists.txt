@@ -11,6 +11,10 @@ set(DYAD_MURMUR3_SRC ${CMAKE_CURRENT_SOURCE_DIR}/murmur3.c)
 set(DYAD_MURMUR3_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/murmur3.h)
 set(DYAD_MURMUR3_PUBLIC_HEADERS)
 
+set(DYAD_MEMSTAT_SRC ${CMAKE_CURRENT_SOURCE_DIR}/memstat.c)
+set(DYAD_MEMSTAT_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/memstat.h)
+set(DYAD_MEMSTAT_PUBLIC_HEADERS)
+
 add_library(${PROJECT_NAME}_utils SHARED ${DYAD_UTILS_SRC}
             ${DYAD_UTILS_PRIVATE_HEADERS} ${DYAD_UTILS_PUBLIC_HEADERS})
 # set_target_properties(${PROJECT_NAME}_utils PROPERTIES CMAKE_INSTALL_RPATH
@@ -51,10 +55,16 @@ if(DYAD_PROFILER STREQUAL "DFTRACER")
     target_link_libraries(test_cmp_canonical_path_prefix PRIVATE ${DTRACER_LIBRARIES})
 endif()
 
+add_library(${PROJECT_NAME}_memstat SHARED ${DYAD_MEMSTAT_SRC})
+target_compile_definitions(${PROJECT_NAME}_memstat PUBLIC DYAD_HAS_CONFIG)
+#set_target_properties(${PROJECT_NAME}_memstat PROPERTIES CMAKE_INSTALL_RPATH
+#                      "${DYAD_INSTALL_LIBDIR}")
+
 dyad_add_werror_if_needed(${PROJECT_NAME}_utils)
 dyad_add_werror_if_needed(${PROJECT_NAME}_murmur3)
 dyad_add_werror_if_needed(test_murmur3)
 dyad_add_werror_if_needed(test_cmp_canonical_path_prefix)
+dyad_add_werror_if_needed(${PROJECT_NAME}_memstat)
 
 install(
         TARGETS ${PROJECT_NAME}_utils
@@ -74,5 +84,15 @@ install(
         RUNTIME DESTINATION ${DYAD_INSTALL_BINDIR}
 )
 if(NOT "${DYAD_MURMUR3_PUBLIC_HEADERS}" STREQUAL "")
-    dyad_install_headers("${DYAD_UTILS_PUBLIC_HEADERS}" ${CMAKE_CURRENT_SOURCE_DIR})
+    dyad_install_headers("${DYAD_MURMUR3_PUBLIC_HEADERS}" ${CMAKE_CURRENT_SOURCE_DIR})
+endif()
+install(
+        TARGETS ${PROJECT_NAME}_memstat
+        EXPORT ${DYAD_EXPORTED_TARGETS}
+        LIBRARY DESTINATION ${DYAD_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${DYAD_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${DYAD_INSTALL_BINDIR}
+)
+if(NOT "${DYAD_MEMSTAT_PUBLIC_HEADERS}" STREQUAL "")
+    dyad_install_headers("${DYAD_MEMSTAT_PUBLIC_HEADERS}" ${CMAKE_CURRENT_SOURCE_DIR})
 endif()

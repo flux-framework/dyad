@@ -579,9 +579,7 @@ dyad_rc_t dyad_produce (dyad_ctx_t *restrict ctx, const char *restrict fname)
     // If the producer-managed path is NULL or empty, then the context is not
     // valid for a producer operation. So, return DYAD_BADMANAGEDPATH
     if (ctx->prod_managed_path == NULL) {
-        DYAD_LOG_ERROR (ctx,
-                        "DYAD CLIENT: No or empty producer managed path was found %s",
-                        ctx->prod_managed_path);
+        DYAD_LOG_ERROR (ctx, "DYAD CLIENT: No producer managed path was found");
         rc = DYAD_RC_BADMANAGEDPATH;
         goto produce_done;
     }

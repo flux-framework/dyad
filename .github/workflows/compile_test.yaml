@@ -75,7 +75,8 @@ jobs:
                               lz4 \
                               pkgconf \
                               libzmq5 \
-                              sqlite3
+                              sqlite3 \
+                              libboost-all-dev
           pip3 --version && python3 --version
           gcc --version
           sudo pip3 install jsonschema cffi ply pyyaml
@@ -199,6 +200,11 @@ jobs:
             #   externals:
             #     - spec: "pkg-config@0.29.1"
             #       prefix: /usr
+            boost:
+              buildable: False
+              externals:
+                - spec: "boost@1.83.0"
+                  prefix: /usr
             gcc:
               externals:
               - spec: gcc@${GCC_VERSION} languages=c,c++
