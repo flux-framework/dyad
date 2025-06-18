@@ -12,7 +12,6 @@ DYAD_IO = None
 # The design of dyad_open is based on the PEP for Python's 'with' syntax:
 # https://peps.python.org/pep-0343/
 @contextmanager
-@dft_log.log
 def dyad_open(*args, dyad_ctx=None, metadata_wrapper=None, register_dyad_ctx=False, **kwargs):
     global DYAD_IO
     local_dyad_io = dyad_ctx

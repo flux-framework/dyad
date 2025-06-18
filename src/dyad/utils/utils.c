@@ -67,12 +67,14 @@ uint32_t hash_str (const char* str, const uint32_t seed)
         return 0u;
     const char* str_long = str;
     size_t str_len = strlen (str);
+    char buf[256] = {'\0'};
+    uint32_t hash[4] = {0u};  // Output for the hash
+
     if (str_len == 0ul)
         return 0u;
 
     // Just append the string so that it can be as large as 128 bytes.
     if (str_len < 128ul) {
-        char buf[256] = {'\0'};
         memcpy (buf, str, str_len);
         memset (buf + str_len, '@', 128ul - str_len);
         buf[128u] = '\0';
@@ -80,7 +82,6 @@ uint32_t hash_str (const char* str, const uint32_t seed)
         str_long = buf;
     }
 
-    uint32_t hash[4] = {0u};  // Output for the hash
     MurmurHash3_x64_128 (str_long, str_len, seed, hash);
     return (hash[0] ^ hash[1] ^ hash[2] ^ hash[3]) + 1;
 }
@@ -94,6 +95,8 @@ uint32_t hash_path_prefix (const char* str, const uint32_t seed, const size_t le
     }
     const char* str_long = str;
     size_t str_len = strlen (str);
+    char buf[256] = {'\0'};
+    uint32_t hash[4] = {0u};  // Output for the hash
 
     if (str_len < len)
         return 0u;
@@ -101,7 +104,6 @@ uint32_t hash_path_prefix (const char* str, const uint32_t seed, const size_t le
 
     // Just append the string so that it can be as large as 128 bytes.
     if (len < 128ul) {
-        char buf[256] = {'\0'};
         memcpy (buf, str, len);
         memset (buf + len, '@', 128ul - len);
         buf[128u] = '\0';
@@ -109,7 +111,6 @@ uint32_t hash_path_prefix (const char* str, const uint32_t seed, const size_t le
         str_long = buf;
     }
 
-    uint32_t hash[4] = {0u};  // Output for the hash
     MurmurHash3_x64_128 (str_long, str_len, seed, hash);
     return (hash[0] ^ hash[1] ^ hash[2] ^ hash[3]) + 1;
 }
