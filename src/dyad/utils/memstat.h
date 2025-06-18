@@ -19,4 +19,4 @@ int print_rusage_in_a_line (const char* note, char* buf, unsigned bufsize);
 }
 #endif
 
-#endif // DYAD_UTILS_MEMSTAT_H
+#endif  // DYAD_UTILS_MEMSTAT_H
