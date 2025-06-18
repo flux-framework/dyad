@@ -18,7 +18,6 @@ typedef struct {
 // https://docs.kernel.org/filesystems/proc.html
 static int get_mem_status (statm_t* ms)
 {
-    unsigned long dummy;
     const char* statm_path = "/proc/self/statm";
 
     FILE* f = fopen (statm_path, "r");

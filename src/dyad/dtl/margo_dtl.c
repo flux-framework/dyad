@@ -370,7 +370,7 @@ dyad_rc_t dyad_dtl_margo_send (const dyad_ctx_t* ctx, void* buf, size_t buflen)
     margo_free_output (h, &resp);
     margo_destroy (h);
 
-    DYAD_LOG_DEBUG (ctx, "[MARGO DTL] margo_send completed.", buflen);
+    DYAD_LOG_DEBUG (ctx, "[MARGO DTL] margo_send (buflen=%lu) completed.", buflen);
 
     DYAD_C_FUNCTION_END ();
     return rc;
