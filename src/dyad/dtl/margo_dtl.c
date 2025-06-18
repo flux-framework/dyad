@@ -35,7 +35,9 @@ static void data_ready_rpc (hg_handle_t h)
     margo_rpc_in_t in;
     margo_rpc_out_t out;
     hg_bulk_t local_bulk;
+    // clang-format off
     (void) ret;
+    // clang-format on
 
     margo_instance_id mid = margo_hg_handle_get_instance (h);
     margo_set_log_level (mid, MARGO_LOG_INFO);
@@ -213,7 +215,9 @@ dyad_rc_t dyad_dtl_margo_init (const dyad_ctx_t* ctx,
     DYAD_C_FUNCTION_END ();
     return DYAD_RC_OK;
 
+    // clang-format off
 error: __attribute__((unused));
+    // clang-format on
     // If an error occured, finalize the DTL handle and
     // return a failing error code
     dyad_dtl_margo_finalize (ctx);

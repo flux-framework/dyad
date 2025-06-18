@@ -9,13 +9,13 @@
 #include <dyad/dtl/dyad_dtl_api.h>
 #include <dyad/dtl/flux_dtl.h>
 
-#if defined (DYAD_ENABLE_MARGO_DTL)
+#if defined(DYAD_ENABLE_MARGO_DTL)
 #include "margo_dtl.h"
-#endif // defined (DYAD_ENABLE_MARGO_DTL)
+#endif  // defined (DYAD_ENABLE_MARGO_DTL)
 
-#if defined (DYAD_ENABLE_UCX_DTL) || defined(DYAD_ENABLE_UCX_DATA_RMA)
+#if defined(DYAD_ENABLE_UCX_DTL) || defined(DYAD_ENABLE_UCX_DATA_RMA)
 #include "ucx_dtl.h"
-#endif //defined (DYAD_ENABLE_UCX_DTL) || defined(DYAD_ENABLE_UCX_DATA_RMA)
+#endif  // defined (DYAD_ENABLE_UCX_DTL) || defined(DYAD_ENABLE_UCX_DATA_RMA)
 
 dyad_rc_t dyad_dtl_init (dyad_ctx_t* ctx,
                          dyad_dtl_mode_t mode,
@@ -32,6 +32,7 @@ dyad_rc_t dyad_dtl_init (dyad_ctx_t* ctx,
     }
 
     ctx->dtl_handle->mode = mode;
+    // clang-format off
 #if defined (DYAD_ENABLE_UCX_DTL) || defined(DYAD_ENABLE_UCX_DATA_RMA)
     if (mode == DYAD_DTL_UCX) {
         rc = dyad_dtl_ucx_init (ctx, mode, comm_mode, debug);
@@ -47,6 +48,7 @@ dyad_rc_t dyad_dtl_init (dyad_ctx_t* ctx,
     } else {
         rc = DYAD_RC_BADDTLMODE;
     }
+    // clang-format on
 
 dtl_init_done:;
     DYAD_C_FUNCTION_END ();
@@ -65,6 +67,7 @@ dyad_rc_t dyad_dtl_finalize (dyad_ctx_t* ctx)
         rc = DYAD_RC_OK;
         goto dtl_finalize_done;
     }
+    // clang-format off
 #if defined (DYAD_ENABLE_UCX_DTL) || defined(DYAD_ENABLE_UCX_DATA_RMA)
     if ((ctx->dtl_handle)->mode == DYAD_DTL_UCX) {
         if ((ctx->dtl_handle)->private_dtl.ucx_dtl_handle != NULL) {
@@ -84,6 +87,7 @@ dyad_rc_t dyad_dtl_finalize (dyad_ctx_t* ctx)
     } else {
         rc = DYAD_RC_BADDTLMODE;
     }
+    // clang-format on
     rc = DYAD_RC_OK;
 
 dtl_finalize_done:;
