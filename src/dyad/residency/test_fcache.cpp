@@ -1,30 +1,32 @@
-#include <dyad/residency/fcache.hpp>
-#include <string>
-#include <iostream>
 #include <cstdlib>
+#include <dyad/residency/fcache.hpp>
+#include <iostream>
 #include <memory>
+#include <string>
 #include <type_traits>
 
 namespace dyad_residency
 {
 
-enum Set_Type {Set_LRU_, Set_MRU_, Set_Prio_, Set_End_};
+enum Set_Type { Set_LRU_, Set_MRU_, Set_Prio_, Set_End_ };
 
-
-template<Set_Type V>
+template <Set_Type V>
 using st = std::integral_constant<Set_Type, V>;
 
-std::unique_ptr<Cache<Set_LRU>> make_cache(st<Set_LRU_>, unsigned size, unsigned ways) {
-    return std::unique_ptr<Cache<Set_LRU>>(new Cache<Set_LRU>(size, ways));
+std::unique_ptr<Cache<Set_LRU>> make_cache (st<Set_LRU_>, unsigned size, unsigned ways)
+{
+    return std::unique_ptr<Cache<Set_LRU>> (new Cache<Set_LRU> (size, ways));
 }
-std::unique_ptr<Cache<Set_MRU>> make_cache(st<Set_MRU_>, unsigned size, unsigned ways) {
-    return std::unique_ptr<Cache<Set_MRU>>(new Cache<Set_MRU>(size, ways));
+std::unique_ptr<Cache<Set_MRU>> make_cache (st<Set_MRU_>, unsigned size, unsigned ways)
+{
+    return std::unique_ptr<Cache<Set_MRU>> (new Cache<Set_MRU> (size, ways));
 }
-std::unique_ptr<Cache<Set_Prioritized>> make_cache(st<Set_Prio_>, unsigned size, unsigned ways) {
-    return std::unique_ptr<Cache<Set_Prioritized>>(new Cache<Set_Prioritized>(size, ways));
+std::unique_ptr<Cache<Set_Prioritized>> make_cache (st<Set_Prio_>, unsigned size, unsigned ways)
+{
+    return std::unique_ptr<Cache<Set_Prioritized>> (new Cache<Set_Prioritized> (size, ways));
 }
 
-template< template<typename S> typename C, typename S>
+template <template <typename S> typename C, typename S>
 int run_cache (int seed,
                std::unique_ptr<C<S>>& cacheL1,
                std::unique_ptr<C<S>>& cacheL2,
@@ -47,7 +49,8 @@ int run_cache (int seed,
     std::cout << "accessing block 1, 4, 2, and 3 in order" << std::endl;
     for (unsigned int i = 0; (i < cacheL1->size ()) && (i < acc.size ()); i++) {
         hitL1 = cacheL1->access (acc[i]);
-        if (!hitL1) cacheL2->access (acc[i]);
+        if (!hitL1)
+            cacheL2->access (acc[i]);
     }
 
     std::cout << "-------------------------L1----------------------------" << std::endl;
@@ -58,7 +61,8 @@ int run_cache (int seed,
 
     std::cout << "accessing block 5" << std::endl;
     hitL1 = cacheL1->access (acc[4]);
-    if (!hitL1) cacheL2->access (acc[4]);
+    if (!hitL1)
+        cacheL2->access (acc[4]);
 
     std::cout << "-------------------------L1----------------------------" << std::endl;
     std::cout << *cacheL1 << std::endl;
@@ -69,7 +73,8 @@ int run_cache (int seed,
     std::cout << "accessing block 1, 4, 2, 3, 5, 5, and 3 in order" << std::endl;
     for (unsigned int i = 0; i < acc.size (); i++) {
         hitL1 = cacheL1->access (acc[i]);
-        if (!hitL1) cacheL2->access (acc[i]);
+        if (!hitL1)
+            cacheL2->access (acc[i]);
     }
 
     std::cout << "-------------------------L1----------------------------" << std::endl;
@@ -81,29 +86,33 @@ int run_cache (int seed,
     return EXIT_SUCCESS;
 }
 
-int cache_demo (const Set_Type st, int seed,
-                unsigned sizeL1, unsigned waysL1,
-                unsigned sizeL2, unsigned waysL2,
+int cache_demo (const Set_Type st,
+                int seed,
+                unsigned sizeL1,
+                unsigned waysL1,
+                unsigned sizeL2,
+                unsigned waysL2,
                 const std::vector<std::string>& acc)
 {
     if (st == Set_LRU_) {
-        auto cacheL1 = std::unique_ptr<Cache<Set_LRU>>(new Cache<Set_LRU> (sizeL1, waysL1));
-        auto cacheL2 = std::unique_ptr<Cache<Set_LRU>>(new Cache<Set_LRU> (sizeL2, waysL2));
+        auto cacheL1 = std::unique_ptr<Cache<Set_LRU>> (new Cache<Set_LRU> (sizeL1, waysL1));
+        auto cacheL2 = std::unique_ptr<Cache<Set_LRU>> (new Cache<Set_LRU> (sizeL2, waysL2));
         return run_cache (seed, cacheL1, cacheL2, acc);
     } else if (st == Set_MRU_) {
-        auto cacheL1 = std::unique_ptr<Cache<Set_MRU>>(new Cache<Set_MRU> (sizeL1, waysL1));
-        auto cacheL2 = std::unique_ptr<Cache<Set_MRU>>(new Cache<Set_MRU> (sizeL2, waysL2));
+        auto cacheL1 = std::unique_ptr<Cache<Set_MRU>> (new Cache<Set_MRU> (sizeL1, waysL1));
+        auto cacheL2 = std::unique_ptr<Cache<Set_MRU>> (new Cache<Set_MRU> (sizeL2, waysL2));
         return run_cache (seed, cacheL1, cacheL2, acc);
     } else if (st == Set_Prio_) {
-        auto cacheL1 = std::unique_ptr<Cache<Set_Prioritized>>(new Cache<Set_Prioritized> (sizeL1, waysL1));
-        auto cacheL2 = std::unique_ptr<Cache<Set_Prioritized>>(new Cache<Set_Prioritized> (sizeL2, waysL2));
+        auto cacheL1 =
+            std::unique_ptr<Cache<Set_Prioritized>> (new Cache<Set_Prioritized> (sizeL1, waysL1));
+        auto cacheL2 =
+            std::unique_ptr<Cache<Set_Prioritized>> (new Cache<Set_Prioritized> (sizeL2, waysL2));
         return run_cache (seed, cacheL1, cacheL2, acc);
     }
     return EXIT_FAILURE;
 }
 
-} // end of namespace dyad_Residency
-
+}  // namespace dyad_residency
 
 int main (int argc, char** argv)
 {
@@ -124,7 +133,7 @@ int main (int argc, char** argv)
     }
 
     typedef std::vector<std::string> access;
-    access acc; // access pattern in terms of the block index
+    access acc;  // access pattern in terms of the block index
     acc.push_back ("1");
     acc.push_back ("4");
     acc.push_back ("2");

@@ -1,18 +1,18 @@
-#include <dyad/residency/fcache.hpp>
 #include <dyad/utils/murmur3.h>
+#include <dyad/residency/fcache.hpp>
 
 #define DYAD_UTIL_LOGGER
 #include <dyad/common/dyad_logging.h>
 
-
-namespace dyad_residency {
+namespace dyad_residency
+{
 
 //=============================================================================
 //                          Associative Cache Set
 //=============================================================================
 
 // -------------------------- LRU ------------------------
-bool Set_LRU::lookup (const std::string& fname, id_iterator_t &it)
+bool Set_LRU::lookup (const std::string& fname, id_iterator_t& it)
 {
     id_idx_t& index_id = boost::multi_index::get<id> (m_block_set);
     it = index_id.find (fname);
@@ -20,13 +20,17 @@ bool Set_LRU::lookup (const std::string& fname, id_iterator_t &it)
 }
 
 void Set_LRU::evict (void)
-{ // LRU
-    if (m_block_set.size () == 0) return;
+{  // LRU
+    if (m_block_set.size () == 0)
+        return;
     priority_idx_t& index_priority = boost::multi_index::get<priority> (m_block_set);
     if (!index_priority.empty ()) {
         priority_iterator_t it = index_priority.begin ();
-        DYAD_LOG_INFO (NULL, "    %s evicts %s from set %u\n", \
-                       m_level.c_str (), it->m_id.c_str (), m_id);
+        DYAD_LOG_INFO (NULL,
+                       "    %s evicts %s from set %u\n",
+                       m_level.c_str (),
+                       it->m_id.c_str (),
+                       m_id);
         index_priority.erase (it);
     }
 }
@@ -35,8 +39,7 @@ void Set_LRU::load_and_access (const std::string& fname)
 {
     m_num_miss++;
 
-    DYAD_LOG_INFO (NULL, "    %s adds %s to set %u\n", \
-                   m_level.c_str (), fname.c_str (), m_id);
+    DYAD_LOG_INFO (NULL, "    %s adds %s to set %u\n", m_level.c_str (), fname.c_str (), m_id);
     if (m_size == m_block_set.size ()) {
         evict ();
     }
@@ -45,7 +48,7 @@ void Set_LRU::load_and_access (const std::string& fname)
     m_seqno++;
 }
 
-void Set_LRU::access (id_iterator_t &it)
+void Set_LRU::access (id_iterator_t& it)
 {
     Simple_Block blk = *it;
     m_block_set.erase (it);
@@ -56,12 +59,15 @@ void Set_LRU::access (id_iterator_t &it)
 bool Set_LRU::access (const std::string& fname)
 {
     id_iterator_t it;
-    if (lookup (fname, it)) { // hit
-        DYAD_LOG_INFO (NULL, "    %s reuses %s from set %u\n", \
-                       m_level.c_str (), fname.c_str (), m_id);
+    if (lookup (fname, it)) {  // hit
+        DYAD_LOG_INFO (NULL,
+                       "    %s reuses %s from set %u\n",
+                       m_level.c_str (),
+                       fname.c_str (),
+                       m_id);
         access (it);
         return true;
-    } else { // miss
+    } else {  // miss
         load_and_access (fname);
         return false;
     }
@@ -72,10 +78,10 @@ unsigned int Set_LRU::get_priority ()
     return m_seqno;
 }
 
-std::ostream& Set_LRU::print (std::ostream &os) const
+std::ostream& Set_LRU::print (std::ostream& os) const
 {
     os << "size         : " << m_size << std::endl;
-    os << "num accesses : " << m_seqno<< std::endl;
+    os << "num accesses : " << m_seqno << std::endl;
     os << "num misses   : " << m_num_miss << std::endl;
     os << "blkId        : " << std::endl;
 
@@ -89,20 +95,25 @@ std::ostream& Set_LRU::print (std::ostream &os) const
     return os;
 }
 
-std::ostream& operator<<(std::ostream& os, const Set_LRU & cc)
+std::ostream& operator<< (std::ostream& os, const Set_LRU& cc)
 {
     return cc.print (os);
 }
 
 // -------------------------- MRU ------------------------
 void Set_MRU::evict (void)
-{ // MRU
-    if (m_block_set.size () == 0) return;
+{  // MRU
+    if (m_block_set.size () == 0)
+        return;
     priority_idx_t& index_priority = boost::multi_index::get<priority> (m_block_set);
     if (!index_priority.empty ()) {
-        auto it = index_priority.end (); --it;
-        DYAD_LOG_INFO (NULL, "    %s evicts %s from set %u\n", \
-                       m_level.c_str (), it->m_id.c_str (), m_id);
+        auto it = index_priority.end ();
+        --it;
+        DYAD_LOG_INFO (NULL,
+                       "    %s evicts %s from set %u\n",
+                       m_level.c_str (),
+                       it->m_id.c_str (),
+                       m_id);
         index_priority.erase (it);
     }
 }
@@ -112,15 +123,13 @@ bool Set_MRU::access (const std::string& fname)
     return Set_LRU::access (fname);
 }
 
-std::ostream& operator<<(std::ostream& os, const Set_MRU & cc)
+std::ostream& operator<< (std::ostream& os, const Set_MRU& cc)
 {
     return cc.print (os);
 }
 
-
-
 // -------------------------- Prioritied ------------------------
-bool Set_Prioritized::lookup (const std::string& fname, id_iterator_t &it)
+bool Set_Prioritized::lookup (const std::string& fname, id_iterator_t& it)
 {
     id_idx_t& index_id = boost::multi_index::get<id> (m_block_set);
     it = index_id.find (fname);
@@ -129,11 +138,15 @@ bool Set_Prioritized::lookup (const std::string& fname, id_iterator_t &it)
 
 void Set_Prioritized::evict (void)
 {
-    if (m_block_set.size () == 0) return;
+    if (m_block_set.size () == 0)
+        return;
     priority_idx_t& index_priority = boost::multi_index::get<priority> (m_block_set);
     priority_iterator_t it = index_priority.begin ();
-    DYAD_LOG_INFO (NULL, "    %s evicts %s from set %u\n", \
-                   m_level.c_str (), it->m_id.c_str (), m_id);
+    DYAD_LOG_INFO (NULL,
+                   "    %s evicts %s from set %u\n",
+                   m_level.c_str (),
+                   it->m_id.c_str (),
+                   m_id);
     index_priority.erase (it);
 }
 
@@ -141,8 +154,7 @@ void Set_Prioritized::load_and_access (const std::string& fname)
 {
     m_num_miss++;
 
-    DYAD_LOG_INFO (NULL, "    %s adds %s to set %u\n", \
-                   m_level.c_str (), fname.c_str (), m_id);
+    DYAD_LOG_INFO (NULL, "    %s adds %s to set %u\n", m_level.c_str (), fname.c_str (), m_id);
     if (m_size == m_block_set.size ()) {
         evict ();
     }
@@ -151,7 +163,7 @@ void Set_Prioritized::load_and_access (const std::string& fname)
     m_seqno++;
 }
 
-void Set_Prioritized::access (id_iterator_t &it)
+void Set_Prioritized::access (id_iterator_t& it)
 {
     Ranked_Block blk = *it;
     // reassigning the priority
@@ -164,12 +176,15 @@ void Set_Prioritized::access (id_iterator_t &it)
 bool Set_Prioritized::access (const std::string& fname)
 {
     id_iterator_t it;
-    if (lookup (fname, it)) { // hit
-        DYAD_LOG_INFO (NULL, "   %s reuses %s from set %u\n", \
-                       m_level.c_str (), fname.c_str (), m_id);
+    if (lookup (fname, it)) {  // hit
+        DYAD_LOG_INFO (NULL,
+                       "   %s reuses %s from set %u\n",
+                       m_level.c_str (),
+                       fname.c_str (),
+                       m_id);
         access (it);
         return true;
-    } else { // miss
+    } else {  // miss
         load_and_access (fname);
         return false;
     }
@@ -180,10 +195,10 @@ unsigned int Set_Prioritized::get_priority ()
     return m_seqno;
 }
 
-std::ostream& Set_Prioritized::print (std::ostream &os) const
+std::ostream& Set_Prioritized::print (std::ostream& os) const
 {
     os << "size         : " << m_size << std::endl;
-    os << "num accesses : " << m_seqno<< std::endl;
+    os << "num accesses : " << m_seqno << std::endl;
     os << "num misses   : " << m_num_miss << std::endl;
     os << "priority blkId:" << std::endl;
 
@@ -197,9 +212,9 @@ std::ostream& Set_Prioritized::print (std::ostream &os) const
     return os;
 }
 
-std::ostream& operator<<(std::ostream& os, const Set_Prioritized& cc)
+std::ostream& operator<< (std::ostream& os, const Set_Prioritized& cc)
 {
     return cc.print (os);
 }
 
-} // end of namespace dyad_residency
+}  // end of namespace dyad_residency
