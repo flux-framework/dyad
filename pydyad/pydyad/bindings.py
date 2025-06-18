@@ -101,7 +101,6 @@ class DTLCommMode(enum.IntEnum):
 
 
 class Dyad:
-    @dft_log.log_init
     def __init__(self):
         self.initialized = False
         self.dyad_client_lib = None
@@ -216,7 +215,6 @@ class Dyad:
         self.prod_path = None
         self.log_inst = None
 
-    @dft_log.log
     def init(
         self,
         debug=False,
@@ -285,8 +283,10 @@ class Dyad:
             )
         self.initialized = True
 
-    @dft_log.log
     def init_env(self, dtl_comm_mode=DTLCommMode.DYAD_COMM_RECV, flux_handle=None):
+        self.log_inst = dftracer.initialize_log(
+            logfile=None, data_dir=None, process_id=-1
+        )
         if self.dyad_init_env is None:
             warnings.warn(
                 "Trying to initialize DYAD when libdyad_ctx.so was not found",
