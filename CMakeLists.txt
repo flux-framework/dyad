@@ -409,32 +409,28 @@ endif ()
 string(APPEND _str "\n")
 
 string(APPEND _str
-  "  DYAD_PACKAGE_VERSION:        ${DYAD_PACKAGE_VERSION}\n")
+  "  DYAD_PACKAGE_VERSION:      ${DYAD_PACKAGE_VERSION}\n")
 string(APPEND _str
-  "  DYAD_GIT_VERSION:            ${DYAD_GIT_VERSION}\n")
-# Comment out since they'll be printed again below
-# string(APPEND _str
-#   "  DYAD_ENABLE_UCX_DATA:        ${DYAD_ENABLE_UCX_DATA}\n")
-# string(APPEND _str
-#   "  DYAD_ENABLE_UCX_DATA_RMA:    ${DYAD_ENABLE_UCX_DATA_RMA}\n")
+  "  DYAD_GIT_VERSION:          ${DYAD_GIT_VERSION}\n")
 string(APPEND _str
-        "  DYAD_ENABLE_TESTS:    ${DYAD_ENABLE_TESTS}\n")
+  "  DYAD_ENABLE_TESTS:         ${DYAD_ENABLE_TESTS}\n")
 string(APPEND _str
-  "  DYAD_PROFILER:               ${DYAD_PROFILER}\n")
+  "  DYAD_PROFILER:             ${DYAD_PROFILER}\n")
 string(APPEND _str
-  "  DYAD_LOGGER:                 ${DYAD_LOGGER}\n")
+  "  DYAD_LOGGER:               ${DYAD_LOGGER}\n")
 string(APPEND _str
-  "  DYAD_LOGGER_LEVEL:           ${DYAD_LOGGER_LEVEL}\n")
+  "  DYAD_LOGGER_LEVEL:         ${DYAD_LOGGER_LEVEL}\n")
 string(APPEND _str
-  "  FluxCore_ROOT_DIR:           ${FluxCore_ROOT_DIR}\n")
+  "  FluxCore_ROOT_DIR:         ${FluxCore_ROOT_DIR}\n")
 string(APPEND _str
-  "  JANSSON_INCLUDE_DIR:         ${JANSSON_INCLUDE_DIR}\n")
+  "  JANSSON_INCLUDE_DIR:       ${JANSSON_INCLUDE_DIR}\n")
 string(APPEND _str
-  "  GLIBC_VERSION:               ${GLIBC_VERSION}\n")
+  "  GLIBC_VERSION:             ${GLIBC_VERSION}\n")
 
 #Print the true/false variables
 append_str_tf(_str
   DYAD_GNU_LINUX
+  DYAD_ENABLE_MARGO_DATA
   DYAD_ENABLE_UCX_DATA
   DYAD_ENABLE_UCX_DATA_RMA
   DYAD_ENABLE_MARGO_DATA
