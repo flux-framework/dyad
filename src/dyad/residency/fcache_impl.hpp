@@ -11,7 +11,8 @@ namespace dyad_residency
 //=============================================================================
 
 template <typename Set>
-Cache<Set>::Cache (unsigned int sz, unsigned int w) : m_size (sz), m_ways (w), m_seed (104729u)
+Cache<Set>::Cache (unsigned int sz, unsigned int w, const dyad_ctx_t* ctx)
+    : m_size (sz), m_ways (w), m_seed (104729u), m_ctx (ctx)
 {
     if (m_ways == 0) {  // fully associative
         m_num_sets = 1;
@@ -24,7 +25,7 @@ Cache<Set>::Cache (unsigned int sz, unsigned int w) : m_size (sz), m_ways (w), m
 
     m_set.reserve (m_num_sets);
     for (unsigned int i = 0u; i < m_num_sets; i++) {
-        m_set.emplace_back (Set (m_ways, m_num_sets, i));
+        m_set.emplace_back (Set (m_ways, m_num_sets, i, ctx));
     }
 }
 
@@ -59,6 +60,9 @@ void Cache<Set>::reset_cnts (void)
 template <typename Set>
 unsigned int Cache<Set>::get_cache_set_id (const std::string& fname) const
 {
+#if 0
+    return std::stoi (fname) % m_num_sets;
+#else
     uint32_t hash[4] = {0u};  // Output for the hash
 
     if (fname.empty ()) {
@@ -66,17 +70,26 @@ unsigned int Cache<Set>::get_cache_set_id (const std::string& fname) const
         return 0u;
     }
     const char* str = fname.c_str ();
+    size_t str_len = fname.size();
+    char buf[256] = {'\0'};
+
+    if (str_len < 128ul) {
+        memcpy (buf, str, str_len);
+        memset (buf + str_len, '@', 128ul - str_len);
+        buf[128u] = '\0';
+        str_len = 128ul;
+        str = buf;
+    }
 
     MurmurHash3_x64_128 (str, strlen (str), m_seed, hash);
     return (hash[0] ^ hash[1] ^ hash[2] ^ hash[3]) % m_num_sets;
+#endif
 }
 
 template <typename Set>
 bool Cache<Set>::access (const std::string& fname)
 {
-    // const unsigned int set_id  = 0u;
-    const unsigned int set_id = std::stoi (fname) % m_num_sets;
-    // const unsigned int set_id = get_cache_set_id (fname);
+    const unsigned int set_id = get_cache_set_id (fname);
 
     return m_set[set_id].access (fname);
 }

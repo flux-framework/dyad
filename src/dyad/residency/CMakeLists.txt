@@ -1,8 +1,12 @@
 set(DYAD_FCACHE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/fcache.cpp)
 set(DYAD_FCACHE_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/../utils/murmur3.h
+                                ${CMAKE_CURRENT_SOURCE_DIR}/../utils/utils.h
+                                ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dyad/common/dyad_rc.h
                                 ${CMAKE_CURRENT_SOURCE_DIR}/../common/dyad_logging.h)
 set(DYAD_FCACHE_PUBLIC_HEADERS  ${CMAKE_CURRENT_SOURCE_DIR}/fcache.hpp
-                                ${CMAKE_CURRENT_SOURCE_DIR}/fcache_impl.hpp)
+                                ${CMAKE_CURRENT_SOURCE_DIR}/fcache_impl.hpp
+                                ${CMAKE_CURRENT_SOURCE_DIR}/dyad_cache.hpp
+                                ${CMAKE_CURRENT_SOURCE_DIR}/../../../include/dyad/common/dyad_structures.h)
 
 
 add_library(${PROJECT_NAME}_fcache SHARED ${DYAD_FCACHE_SRC}
@@ -26,6 +30,7 @@ target_include_directories(${PROJECT_NAME}_fcache PUBLIC
 add_executable(test_fcache test_fcache.cpp)
 target_compile_definitions(test_fcache PUBLIC DYAD_HAS_CONFIG)
 target_link_libraries(test_fcache PUBLIC ${PROJECT_NAME}_fcache)
+target_link_libraries(test_fcache PRIVATE ${PROJECT_NAME}_utils)
 target_link_libraries(test_fcache PRIVATE ${PROJECT_NAME}_murmur3)
 
 if(DYAD_LOGGER STREQUAL "CPP_LOGGER")

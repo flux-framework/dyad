@@ -3,9 +3,54 @@
 
 #define DYAD_UTIL_LOGGER
 #include <dyad/common/dyad_logging.h>
+#include <dyad/common/dyad_profiler.h>
+#include <dyad/common/dyad_rc.h>
+#include <dyad/utils/utils.h>
+#include <fcntl.h>   // AT_FDCWD
+#include <unistd.h>  // unlink
+#include <cerrno>
 
 namespace dyad_residency
 {
+
+int Set_LRU::remove (const char* fname) const
+{
+    dyad_rc_t rc = DYAD_RC_OK;
+    int lock_fd = -1;
+    struct flock exclusive_lock;
+
+    if (fname == nullptr) {
+        return DYAD_RC_BADFIO;
+    }
+
+    lock_fd = open (fname, O_RDWR);
+    // DYAD_C_FUNCTION_UPDATE_INT ("lock_fd", lock_fd);
+    if (lock_fd == -1) {
+        DYAD_LOG_ERROR (m_ctx, "Cannot evict file (%s) that does not exist or that with no permission for!", fname);
+        return DYAD_RC_BADFIO;
+    }
+
+    rc = dyad_excl_flock (m_ctx, lock_fd, &exclusive_lock);
+    if (DYAD_IS_ERROR (rc)) {
+        goto failed_rm;
+    }
+
+    if (unlink (fname) != 0) {
+        DYAD_LOG_INFO (m_ctx, "Error deleting file %s : %s", fname, strerror(errno));
+        goto failed_rm;
+    }
+
+    dyad_release_flock (m_ctx, lock_fd, &exclusive_lock);
+    close (lock_fd);
+
+    return DYAD_RC_OK;
+
+failed_rm:;
+    dyad_release_flock (m_ctx, lock_fd, &exclusive_lock);
+    close (lock_fd);
+
+    return DYAD_RC_BADFIO;
+}
 
 //=============================================================================
 //                          Associative Cache Set
@@ -26,11 +71,10 @@ void Set_LRU::evict (void)
     priority_idx_t& index_priority = boost::multi_index::get<priority> (m_block_set);
     if (!index_priority.empty ()) {
         priority_iterator_t it = index_priority.begin ();
-        DYAD_LOG_INFO (NULL,
-                       "    %s evicts %s from set %u\n",
-                       m_level.c_str (),
-                       it->m_id.c_str (),
-                       m_id);
+        const char* fname = it->m_id.c_str ();
+        DYAD_LOG_INFO (NULL, "    %s evicts %s from set %u\n", m_level.c_str (), fname, m_id);
+        // Physically remove the file
+        remove (fname);
         index_priority.erase (it);
     }
 }
@@ -109,11 +153,10 @@ void Set_MRU::evict (void)
     if (!index_priority.empty ()) {
         auto it = index_priority.end ();
         --it;
-        DYAD_LOG_INFO (NULL,
-                       "    %s evicts %s from set %u\n",
-                       m_level.c_str (),
-                       it->m_id.c_str (),
-                       m_id);
+        const char* fname = it->m_id.c_str ();
+        DYAD_LOG_INFO (NULL, "    %s evicts %s from set %u\n", m_level.c_str (), fname, m_id);
+        // Physically remove the file
+        remove (fname);
         index_priority.erase (it);
     }
 }
@@ -141,13 +184,14 @@ void Set_Prioritized::evict (void)
     if (m_block_set.size () == 0)
         return;
     priority_idx_t& index_priority = boost::multi_index::get<priority> (m_block_set);
-    priority_iterator_t it = index_priority.begin ();
-    DYAD_LOG_INFO (NULL,
-                   "    %s evicts %s from set %u\n",
-                   m_level.c_str (),
-                   it->m_id.c_str (),
-                   m_id);
-    index_priority.erase (it);
+    if (!index_priority.empty ()) {
+        priority_iterator_t it = index_priority.begin ();
+        const char* fname = it->m_id.c_str ();
+        DYAD_LOG_INFO (NULL, "    %s evicts %s from set %u\n", m_level.c_str (), fname, m_id);
+        // Physically remove the file
+        remove (fname);
+        index_priority.erase (it);
+    }
 }
 
 void Set_Prioritized::load_and_access (const std::string& fname)

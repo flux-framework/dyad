@@ -1,4 +1,5 @@
 #include <cstdlib>
+#include <dyad/residency/dyad_cache.hpp>
 #include <dyad/residency/fcache.hpp>
 #include <iostream>
 #include <memory>
@@ -9,22 +10,6 @@ namespace dyad_residency
 {
 
 enum Set_Type { Set_LRU_, Set_MRU_, Set_Prio_, Set_End_ };
-
-template <Set_Type V>
-using st = std::integral_constant<Set_Type, V>;
-
-std::unique_ptr<Cache<Set_LRU>> make_cache (st<Set_LRU_>, unsigned size, unsigned ways)
-{
-    return std::unique_ptr<Cache<Set_LRU>> (new Cache<Set_LRU> (size, ways));
-}
-std::unique_ptr<Cache<Set_MRU>> make_cache (st<Set_MRU_>, unsigned size, unsigned ways)
-{
-    return std::unique_ptr<Cache<Set_MRU>> (new Cache<Set_MRU> (size, ways));
-}
-std::unique_ptr<Cache<Set_Prioritized>> make_cache (st<Set_Prio_>, unsigned size, unsigned ways)
-{
-    return std::unique_ptr<Cache<Set_Prioritized>> (new Cache<Set_Prioritized> (size, ways));
-}
 
 template <template <typename S> typename C, typename S>
 int run_cache (int seed,
@@ -86,28 +71,103 @@ int run_cache (int seed,
     return EXIT_SUCCESS;
 }
 
+template <template <typename S> typename C, typename S>
+int run_dyad_cache (int seed,
+                    std::unique_ptr<C<S>>& cache,
+                    const std::vector<std::string>& acc,
+                    const std::vector<std::string>& owned)
+{
+    if (!cache) {
+        std::cerr << "Cannot allocate cache." << std::endl;
+        return EXIT_FAILURE;
+    }
+    cache->set_seed (seed + 104677u);
+    cache->set_level ("Node-local SSD");
+    cache->init (owned);
+
+    std::cout << "DYAD Cache size set to " << cache->size () << " files" << std::endl;
+
+    std::cout << "accessing files 1, 4, 2, and 3 in order" << std::endl;
+    for (unsigned int i = 0; (i < cache->size ()) && (i < acc.size ()); i++) {
+        cache->access (acc[i]);
+    }
+
+    std::cout << "-----------------------------------------------------" << std::endl;
+    std::cout << *cache << std::endl;
+    std::cout << "-------------------------------------------------------" << std::endl;
+
+    std::cout << "accessing file 5" << std::endl;
+    cache->access (acc[4]);
+
+    std::cout << "-----------------------------------------------------" << std::endl;
+    std::cout << *cache << std::endl;
+    std::cout << "-------------------------------------------------------" << std::endl;
+
+    std::cout << "accessing files 1, 4, 2, 3, 5, 5, and 3 in order" << std::endl;
+    for (unsigned int i = 0; i < acc.size (); i++) {
+        cache->access (acc[i]);
+    }
+
+    std::cout << "-----------------------------------------------------" << std::endl;
+    std::cout << *cache << std::endl;
+    std::cout << "-------------------------------------------------------" << std::endl;
+
+    std::cout << "accessing files 10, 11, and 12 in order" << std::endl;
+    for (unsigned int i = 0; i < owned.size (); i++) {
+        cache->access (owned[i]);
+    }
+
+    std::cout << "-----------------------------------------------------" << std::endl;
+    std::cout << *cache << std::endl;
+    std::cout << "-------------------------------------------------------" << std::endl;
+
+    return EXIT_SUCCESS;
+}
+
 int cache_demo (const Set_Type st,
                 int seed,
                 unsigned sizeL1,
                 unsigned waysL1,
                 unsigned sizeL2,
                 unsigned waysL2,
-                const std::vector<std::string>& acc)
+                const std::vector<std::string>& acc,
+                const dyad_ctx_t* ctx)
 {
     if (st == Set_LRU_) {
-        auto cacheL1 = std::unique_ptr<Cache<Set_LRU>> (new Cache<Set_LRU> (sizeL1, waysL1));
-        auto cacheL2 = std::unique_ptr<Cache<Set_LRU>> (new Cache<Set_LRU> (sizeL2, waysL2));
+        auto cacheL1 = std::unique_ptr<Cache<Set_LRU>> (new Cache<Set_LRU> (sizeL1, waysL1, ctx));
+        auto cacheL2 = std::unique_ptr<Cache<Set_LRU>> (new Cache<Set_LRU> (sizeL2, waysL2, ctx));
         return run_cache (seed, cacheL1, cacheL2, acc);
     } else if (st == Set_MRU_) {
-        auto cacheL1 = std::unique_ptr<Cache<Set_MRU>> (new Cache<Set_MRU> (sizeL1, waysL1));
-        auto cacheL2 = std::unique_ptr<Cache<Set_MRU>> (new Cache<Set_MRU> (sizeL2, waysL2));
+        auto cacheL1 = std::unique_ptr<Cache<Set_MRU>> (new Cache<Set_MRU> (sizeL1, waysL1, ctx));
+        auto cacheL2 = std::unique_ptr<Cache<Set_MRU>> (new Cache<Set_MRU> (sizeL2, waysL2, ctx));
         return run_cache (seed, cacheL1, cacheL2, acc);
     } else if (st == Set_Prio_) {
-        auto cacheL1 =
-            std::unique_ptr<Cache<Set_Prioritized>> (new Cache<Set_Prioritized> (sizeL1, waysL1));
-        auto cacheL2 =
-            std::unique_ptr<Cache<Set_Prioritized>> (new Cache<Set_Prioritized> (sizeL2, waysL2));
+        auto cacheL1 = std::unique_ptr<Cache<Set_Prioritized>> (
+            new Cache<Set_Prioritized> (sizeL1, waysL1, ctx));
+        auto cacheL2 = std::unique_ptr<Cache<Set_Prioritized>> (
+            new Cache<Set_Prioritized> (sizeL2, waysL2, ctx));
         return run_cache (seed, cacheL1, cacheL2, acc);
+    }
+    return EXIT_FAILURE;
+}
+
+int dyad_cache_demo (const Set_Type st,
+                     int seed,
+                     unsigned size,
+                     const std::vector<std::string>& acc,
+                     const std::vector<std::string>& owned,
+                     const dyad_ctx_t* ctx)
+{
+    if (st == Set_LRU_) {
+        auto cache = std::unique_ptr<DYAD_Cache<Set_LRU>> (new DYAD_Cache<Set_LRU> (size, ctx));
+        return run_dyad_cache (seed, cache, acc, owned);
+    } else if (st == Set_MRU_) {
+        auto cache = std::unique_ptr<DYAD_Cache<Set_MRU>> (new DYAD_Cache<Set_MRU> (size, ctx));
+        return run_dyad_cache (seed, cache, acc, owned);
+    } else if (st == Set_Prio_) {
+        auto cache = std::unique_ptr<DYAD_Cache<Set_Prioritized>> (
+            new DYAD_Cache<Set_Prioritized> (size, ctx));
+        return run_dyad_cache (seed, cache, acc, owned);
     }
     return EXIT_FAILURE;
 }
@@ -132,6 +192,11 @@ int main (int argc, char** argv)
         set_type = static_cast<Set_Type> (st % Set_End_);
     }
 
+    dyad_ctx_t* ctx = (dyad_ctx_t*)malloc (sizeof (struct dyad_ctx));
+    if (!ctx) {
+        return EXIT_FAILURE;
+    }
+
     typedef std::vector<std::string> access;
     access acc;  // access pattern in terms of the block index
     acc.push_back ("1");
@@ -142,5 +207,18 @@ int main (int argc, char** argv)
     acc.push_back ("5");
     acc.push_back ("3");
 
-    return cache_demo (set_type, seed, 4, 2, 8, 2, acc);
+    cache_demo (set_type, seed, 4, 2, 8, 2, acc, ctx);
+
+    std::cout << std::endl
+              << std::endl
+              << "################################" << std::endl
+              << std::endl;
+
+    access owned;  // files that are locally produced
+    owned.push_back ("10");
+    owned.push_back ("11");
+    owned.push_back ("12");
+    dyad_cache_demo (set_type, seed, 4, acc, owned, ctx);
+
+    return EXIT_SUCCESS;
 }

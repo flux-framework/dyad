@@ -7,6 +7,8 @@
 #error "no config"
 #endif
 
+#include <dyad/common/dyad_structures_int.h>
+
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/member.hpp>
 #include <boost/multi_index/ordered_index.hpp>
@@ -89,6 +91,7 @@ class Set_LRU
     unsigned int m_num_miss;
     /// Level info of this cache. e,g., L1, or L2. This does not affect operation
     std::string m_level;
+    const dyad_ctx_t* m_ctx;  ///< DYAD context
 
     LRU_Blocks m_block_set;
 
@@ -97,10 +100,17 @@ class Set_LRU
     virtual void access (id_iterator_t& it);
     virtual void load_and_access (const std::string& fname);
     virtual unsigned int get_priority ();
+    int remove (const char* fname) const;
 
    public:
-    Set_LRU (unsigned int sz, unsigned int n_sets, unsigned int id)
-        : m_size (sz), m_num_sets (n_sets), m_id (id), m_seqno (0u), m_seqno0 (0u), m_num_miss (0u)
+    Set_LRU (unsigned int sz, unsigned int n_sets, unsigned int id, const dyad_ctx_t* ctx)
+        : m_size (sz),
+          m_num_sets (n_sets),
+          m_id (id),
+          m_seqno (0u),
+          m_seqno0 (0u),
+          m_num_miss (0u),
+          m_ctx (ctx)
     {
     }
     virtual ~Set_LRU ()
@@ -160,11 +170,14 @@ class Set_MRU : public Set_LRU
     using Set_LRU::get_priority;
     using Set_LRU::load_and_access;
     using Set_LRU::lookup;
+    using Set_LRU::m_ctx;
+    using Set_LRU::remove;
 
     virtual void evict (void) override;
 
    public:
-    Set_MRU (unsigned int sz, unsigned int n_sets, unsigned int id) : Set_LRU (sz, n_sets, id)
+    Set_MRU (unsigned int sz, unsigned int n_sets, unsigned int id, const dyad_ctx_t* ctx)
+        : Set_LRU (sz, n_sets, id, ctx)
     {
     }
     virtual ~Set_MRU () override
@@ -205,6 +218,9 @@ class Set_Prioritized : public Set_LRU
     typedef boost::multi_index::index<Prio_Blocks, priority>::type::const_iterator
         priority_citerator_t;
 
+    using Set_LRU::m_ctx;
+    using Set_LRU::remove;
+
    private:
     using Set_LRU::access;
     using Set_LRU::lookup;
@@ -219,8 +235,8 @@ class Set_Prioritized : public Set_LRU
     virtual unsigned int get_priority () override;
 
    public:
-    Set_Prioritized (unsigned int sz, unsigned int n_sets, unsigned int id)
-        : Set_LRU (sz, n_sets, id)
+    Set_Prioritized (unsigned int sz, unsigned int n_sets, unsigned int id, const dyad_ctx_t* ctx)
+        : Set_LRU (sz, n_sets, id, ctx)
     {
     }
     virtual ~Set_Prioritized () override
@@ -249,17 +265,25 @@ class Cache
     unsigned int m_num_sets;  ///< Number of sets
     unsigned int m_seed;      ///< Seed used to compute hash in determining cache set
     std::string m_level;      ///< Level of this cache. e,g., L2.
+    const dyad_ctx_t* m_ctx;  ///< DYAD context
 
     Sets m_set;
 
-    unsigned int get_cache_set_id (const std::string& fname) const;
+    virtual unsigned int get_cache_set_id (const std::string& fname) const;
 
    public:
-    Cache (unsigned int sz, unsigned int w);
+    Cache (unsigned int sz, unsigned int w, const dyad_ctx_t* ctx);
     virtual ~Cache ()
     {
     }
 
+    virtual bool init ()
+    {
+        if (m_ctx == nullptr) {
+            return false;
+        }
+        return true;
+    }
     unsigned int size (void) const
     {
         return m_size;
@@ -289,7 +313,7 @@ class Cache
     /// Returns true if hit. Otherwise false.
     virtual bool access (const std::string& fname);
 
-    std::ostream& print (std::ostream& os) const;
+    virtual std::ostream& print (std::ostream& os) const;
 };
 
 template <typename Set>
