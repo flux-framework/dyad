@@ -6,7 +6,7 @@
 #include <dyad/common/dyad_profiler.h>
 #include <dyad/common/dyad_rc.h>
 #include <dyad/utils/utils.h>
-#include <fcntl.h>   // AT_FDCWD
+#include <fcntl.h>
 #include <unistd.h>  // unlink
 #include <cerrno>
 

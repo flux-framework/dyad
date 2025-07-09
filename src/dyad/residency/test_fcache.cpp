@@ -15,7 +15,7 @@ template <template <typename S> typename C, typename S>
 int run_cache (int seed,
                std::unique_ptr<C<S>>& cacheL1,
                std::unique_ptr<C<S>>& cacheL2,
-               const std::vector<std::string>& acc)
+               std::vector<std::string>& acc)
 {
     bool hitL1 = false;
 
@@ -74,8 +74,8 @@ int run_cache (int seed,
 template <template <typename S> typename C, typename S>
 int run_dyad_cache (int seed,
                     std::unique_ptr<C<S>>& cache,
-                    const std::vector<std::string>& acc,
-                    const std::vector<std::string>& owned)
+                    std::vector<std::string>& acc,
+                    std::vector<std::string>& owned)
 {
     if (!cache) {
         std::cerr << "Cannot allocate cache." << std::endl;
@@ -112,6 +112,7 @@ int run_dyad_cache (int seed,
     std::cout << *cache << std::endl;
     std::cout << "-------------------------------------------------------" << std::endl;
 
+    cache->add_perm ("12");
     std::cout << "accessing files 10, 11, and 12 in order" << std::endl;
     for (unsigned int i = 0; i < owned.size (); i++) {
         cache->access (owned[i]);
@@ -130,7 +131,7 @@ int cache_demo (const Set_Type st,
                 unsigned waysL1,
                 unsigned sizeL2,
                 unsigned waysL2,
-                const std::vector<std::string>& acc,
+                std::vector<std::string>& acc,
                 const dyad_ctx_t* ctx)
 {
     if (st == Set_LRU_) {
@@ -154,8 +155,8 @@ int cache_demo (const Set_Type st,
 int dyad_cache_demo (const Set_Type st,
                      int seed,
                      unsigned size,
-                     const std::vector<std::string>& acc,
-                     const std::vector<std::string>& owned,
+                     std::vector<std::string>& acc,
+                     std::vector<std::string>& owned,
                      const dyad_ctx_t* ctx)
 {
     if (st == Set_LRU_) {
@@ -217,7 +218,6 @@ int main (int argc, char** argv)
     access owned;  // files that are locally produced
     owned.push_back ("10");
     owned.push_back ("11");
-    owned.push_back ("12");
     dyad_cache_demo (set_type, seed, 4, acc, owned, ctx);
 
     return EXIT_SUCCESS;

@@ -44,6 +44,7 @@ class DYAD_Cache : public Cache<Set>
     {
     }
 
+    /// Initialize with a set of permant resident file names
     virtual bool init (const std::vector<std::string>& files)
     {
         m_perm.clear ();
@@ -53,11 +54,27 @@ class DYAD_Cache : public Cache<Set>
         return Cache<Set>::init ();
     }
 
+    /// Allow adding a permant resident file
+    virtual bool add_perm (const std::string& f)
+    {
+        auto res = m_perm.emplace (f);
+        return res.second;
+    }
+
+    /// Allow removing a permant resident file
+    virtual bool del_perm (const std::string& f)
+    {
+        return (m_perm.erase (f) > 0ul);
+    }
+
     virtual bool access (const std::string& fname) override;
 
     virtual std::ostream& print (std::ostream& os) const override;
 };
 
+/**
+ * Hard-coded to use only one set that is fully-associative.
+ */
 template <typename Set>
 unsigned int DYAD_Cache<Set>::get_cache_set_id (const std::string& fname) const
 {

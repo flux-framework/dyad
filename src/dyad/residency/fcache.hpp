@@ -29,8 +29,9 @@ namespace dyad_residency
 
 struct Simple_Block {
     std::string m_id;  // unique id, file name
+    size_t m_size;     // byte size of block or file
 
-    Simple_Block (const std::string& id) : m_id (id)
+    Simple_Block (const std::string& id, size_t sz = 0ul) : m_id (id), m_size (sz)
     {
     }
 };
@@ -38,8 +39,10 @@ struct Simple_Block {
 struct Ranked_Block {
     std::string m_id;         // unique id, file name
     unsigned int m_priority;  // priority
+    size_t m_size;            // byte size of block or file
 
-    Ranked_Block (const std::string& id, unsigned int priority) : m_id (id), m_priority (priority)
+    Ranked_Block (const std::string& id, unsigned int priority, size_t sz = 0ul)
+        : m_id (id), m_priority (priority), m_size (sz)
     {
     }
 };
@@ -93,13 +96,20 @@ class Set_LRU
     std::string m_level;
     const dyad_ctx_t* m_ctx;  ///< DYAD context
 
+    /// Cache set that can be looked up via the id or the priority of an item
     LRU_Blocks m_block_set;
 
+    /// See if a block or item is present in this set
     virtual bool lookup (const std::string& fname, id_iterator_t& it);
+    /// Evict a block or item out of the set
     virtual void evict (void);
+    /// Update the priority of the block or item being accessed
     virtual void access (id_iterator_t& it);
+    /// Add a new block or item into the set
     virtual void load_and_access (const std::string& fname);
+    /// Obtain the priority value to assign to a new block or item being added
     virtual unsigned int get_priority ();
+    /// Physically remove a file that is being evicted
     int remove (const char* fname) const;
 
    public:
@@ -117,27 +127,33 @@ class Set_LRU
     {
     }
 
+    /// Report the number of cache blocks/items in this set
     unsigned int size (void) const
     {
         return m_size;
     }
+    /// Report the number of cache accesses since the last reset or beginning
     unsigned int get_num_access (void) const
     {
         return m_seqno - m_seqno0;
     }
+    /// Report the number of cache misses since the last reset or beginning
     unsigned int get_num_miss (void) const
     {
         return m_num_miss;
     }
+    /// Reset the cache miss counter
     void reset_cnts (void)
     {
-        m_seqno0 = m_seqno;
-        m_num_miss = 0u;
+        m_seqno0 = m_seqno;  // Keep a record of when the miss counter is reset
+        m_num_miss = 0u;     // Reset the miss counter
     }
+    /// Report the level, which is simply a meta info that does not affect the operation
     std::string get_level (void) const
     {
         return m_level;
     }
+    /// Set the level, which is simply a meta info that does not affect the operation
     void set_level (const std::string& level)
     {
         m_level = level;
@@ -269,6 +285,10 @@ class Cache
 
     Sets m_set;
 
+    /**
+     *  Choose the set to search for the item. It is based on the modulo operation on
+     *  the hashing value of filename to search.
+     */
     virtual unsigned int get_cache_set_id (const std::string& fname) const;
 
    public:
@@ -277,6 +297,7 @@ class Cache
     {
     }
 
+    /// Initialize. Currently only checks if the dyad context pointer is valid.
     virtual bool init ()
     {
         if (m_ctx == nullptr) {
