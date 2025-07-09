@@ -26,7 +26,10 @@ int Set_LRU::remove (const char* fname) const
     lock_fd = open (fname, O_RDWR);
     // DYAD_C_FUNCTION_UPDATE_INT ("lock_fd", lock_fd);
     if (lock_fd == -1) {
-        DYAD_LOG_ERROR (m_ctx, "Cannot evict file (%s) that does not exist or that with no permission for!", fname);
+        DYAD_LOG_ERROR (m_ctx,
+                        "Cannot evict file (%s) that does not exist or that with no permission "
+                        "for!",
+                        fname);
         return DYAD_RC_BADFIO;
     }
 
@@ -36,7 +39,7 @@ int Set_LRU::remove (const char* fname) const
     }
 
     if (unlink (fname) != 0) {
-        DYAD_LOG_INFO (m_ctx, "Error deleting file %s : %s", fname, strerror(errno));
+        DYAD_LOG_INFO (m_ctx, "Error deleting file %s : %s", fname, strerror (errno));
         goto failed_rm;
     }
 

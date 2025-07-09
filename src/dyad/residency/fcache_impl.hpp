@@ -70,7 +70,7 @@ unsigned int Cache<Set>::get_cache_set_id (const std::string& fname) const
         return 0u;
     }
     const char* str = fname.c_str ();
-    size_t str_len = fname.size();
+    size_t str_len = fname.size ();
     char buf[256] = {'\0'};
 
     if (str_len < 128ul) {
