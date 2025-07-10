@@ -87,14 +87,6 @@ unsigned int Cache<Set>::get_cache_set_id (const std::string& fname) const
 }
 
 template <typename Set>
-bool Cache<Set>::access (const std::string& fname)
-{
-    const unsigned int set_id = get_cache_set_id (fname);
-
-    return m_set[set_id].access (fname);
-}
-
-template <typename Set>
 void Cache<Set>::set_level (const std::string& level)
 {
     m_level = level;
@@ -104,10 +96,59 @@ void Cache<Set>::set_level (const std::string& level)
 }
 
 template <typename Set>
+bool Cache<Set>::set_space_max (const std::vector<size_t>& space_max)
+{
+    if (space_max.size () != m_num_sets) {
+        return false;
+    }
+    for (unsigned int i = 0; i < m_num_sets; i++) {
+        m_set[i].set_space_max (space_max[i]);
+    }
+    return true;
+}
+
+template <typename Set>
+std::vector<size_t> Cache<Set>::get_space_max () const
+{
+    std::vector<size_t> space_max (m_num_sets, 0ul);
+    for (unsigned int i = 0; i < m_num_sets; i++) {
+        space_max[i] = m_set[i].get_space_max ();
+    }
+    return space_max;
+}
+
+template <typename Set>
+std::vector<size_t> Cache<Set>::get_space_used () const
+{
+    std::vector<size_t> space_used (m_num_sets, 0ul);
+    for (unsigned int i = 0; i < m_num_sets; i++) {
+        space_used[i] = m_set[i].get_space_used ();
+    }
+    return space_used;
+}
+
+template <typename Set>
+bool Cache<Set>::access (const std::string& fname, size_t fsize)
+{
+    const unsigned int set_id = get_cache_set_id (fname);
+
+    return m_set[set_id].access (fname, fsize);
+}
+
+template <typename Set>
 std::ostream& Cache<Set>::print (std::ostream& os) const
 {
+    const auto space_max = get_space_max ();
+    const auto space_used = get_space_used ();
+
     os << "==========================================" << std::endl;
     os << "size:  " << m_size << std::endl;
+    os << "space: ";
+    for (unsigned int i = 0; i < m_num_sets; ++i) {
+        os << std::string ("[") + std::to_string (space_used[i]) + '/'
+                  + std::to_string (space_max[i]) + "], ";
+    }
+    os << std::endl;
     os << "nAcc:  " << get_num_access () << std::endl;
     os << "nMiss: " << get_num_miss () << std::endl;
 

@@ -20,6 +20,7 @@ class DYAD_Cache : public Cache<Set>
    public:
     using Cache<Set>::Sets;
     using Cache<Set>::size;
+    using Cache<Set>::get_num_ways;
     using Cache<Set>::get_num_sets;
     using Cache<Set>::get_num_access;
     using Cache<Set>::get_num_miss;
@@ -27,10 +28,14 @@ class DYAD_Cache : public Cache<Set>
     using Cache<Set>::set_seed;
     using Cache<Set>::get_level;
     using Cache<Set>::set_level;
-    using Cache<Set>::m_ctx;
+    using Cache<Set>::set_space_max;
+    using Cache<Set>::get_space_max;
+    using Cache<Set>::get_space_used;
     using PermSet = typename std::unordered_set<std::string>;
 
    protected:
+    using Cache<Set>::m_ctx;
+    using Cache<Set>::m_set;
     PermSet m_perm;  ///< Permanent resident set
 
     virtual unsigned int get_cache_set_id (const std::string& fname) const override;
@@ -64,10 +69,11 @@ class DYAD_Cache : public Cache<Set>
     /// Allow removing a permant resident file
     virtual bool del_perm (const std::string& f)
     {
+        remove (f.c_str (), m_ctx);
         return (m_perm.erase (f) > 0ul);
     }
 
-    virtual bool access (const std::string& fname) override;
+    virtual bool access (const std::string& fname, size_t fsize = 0ul) override;
 
     virtual std::ostream& print (std::ostream& os) const override;
 };
@@ -82,12 +88,12 @@ unsigned int DYAD_Cache<Set>::get_cache_set_id (const std::string& fname) const
 }
 
 template <typename Set>
-bool DYAD_Cache<Set>::access (const std::string& fname)
+bool DYAD_Cache<Set>::access (const std::string& fname, size_t fsize)
 {
     if (m_perm.count (fname) > 0u) {
         return true;
     }
-    return Cache<Set>::access (fname);
+    return Cache<Set>::access (fname, fsize);
 }
 
 template <typename Set>

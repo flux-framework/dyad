@@ -94,23 +94,28 @@ class Set_LRU
     unsigned int m_num_miss;
     /// Level info of this cache. e,g., L1, or L2. This does not affect operation
     std::string m_level;
-    const dyad_ctx_t* m_ctx;  ///< DYAD context
 
+    /// Total amount of space being used in terms of bytes of data in the files cached
+    size_t m_space_used;
+    /// Max amount of space in terms of bytes that can be used to cache data files
+    size_t m_space_max;
+    /// DYAD context, used in DYAD APIs for locking, logging, profiling etc.
+    const dyad_ctx_t* m_ctx;
     /// Cache set that can be looked up via the id or the priority of an item
     LRU_Blocks m_block_set;
 
-    /// See if a block or item is present in this set
+    /// See if a block or item (e.g., filename) is present in this set
     virtual bool lookup (const std::string& fname, id_iterator_t& it);
+    /// Check if the cache space is full. e.g., by the number of items or by the space used
+    virtual bool is_full (size_t size_to_add) const;
     /// Evict a block or item out of the set
     virtual void evict (void);
-    /// Update the priority of the block or item being accessed
-    virtual void access (id_iterator_t& it);
-    /// Add a new block or item into the set
-    virtual void load_and_access (const std::string& fname);
     /// Obtain the priority value to assign to a new block or item being added
     virtual unsigned int get_priority ();
-    /// Physically remove a file that is being evicted
-    int remove (const char* fname) const;
+    /// Add a new block or item into the set
+    virtual void load_and_access (const std::string& fname, size_t fsize);
+    /// Update the priority of the block or item being accessed
+    virtual void access (id_iterator_t& it);
 
    public:
     Set_LRU (unsigned int sz, unsigned int n_sets, unsigned int id, const dyad_ctx_t* ctx)
@@ -120,6 +125,8 @@ class Set_LRU
           m_seqno (0u),
           m_seqno0 (0u),
           m_num_miss (0u),
+          m_space_used (0ul),
+          m_space_max (0ul),
           m_ctx (ctx)
     {
     }
@@ -132,6 +139,13 @@ class Set_LRU
     {
         return m_size;
     }
+    /// Set the max space in bytes that can host file caches
+    void set_space_max (size_t max_space);
+    /// Report the max space in bytes that can host file caches
+    size_t get_space_max () const;
+    /// Report the space in bytes currently used by file caches
+    size_t get_space_used () const;
+
     /// Report the number of cache accesses since the last reset or beginning
     unsigned int get_num_access (void) const
     {
@@ -161,7 +175,7 @@ class Set_LRU
 
     /** Access by a block index, and returns true if hit. Otherwise false.
      *  And there must be a following access at the lower cache layer. */
-    virtual bool access (const std::string& fname);
+    virtual bool access (const std::string& fname, size_t fsize);
 
     virtual std::ostream& print (std::ostream& os) const;
 };
@@ -172,26 +186,39 @@ class Set_MRU : public Set_LRU
 {
    protected:
     using Set_LRU::id;
+    using Set_LRU::LRU_Blocks;
+    using Set_LRU::priority;
+
     using Set_LRU::id_citerator_t;
     using Set_LRU::id_idx_t;
     using Set_LRU::id_iterator_t;
-    using Set_LRU::LRU_Blocks;
-    using Set_LRU::m_block_set;
-    using Set_LRU::priority;
     using Set_LRU::priority_citerator_t;
     using Set_LRU::priority_idx_t;
     using Set_LRU::priority_iterator_t;
 
+    using Set_LRU::m_block_set;
+    using Set_LRU::m_ctx;
+
     using Set_LRU::access;
     using Set_LRU::get_priority;
+    using Set_LRU::is_full;
     using Set_LRU::load_and_access;
     using Set_LRU::lookup;
-    using Set_LRU::m_ctx;
-    using Set_LRU::remove;
 
     virtual void evict (void) override;
 
    public:
+    using Set_LRU::get_level;
+    using Set_LRU::get_num_access;
+    using Set_LRU::get_num_miss;
+    using Set_LRU::get_space_max;
+    using Set_LRU::get_space_used;
+    using Set_LRU::print;
+    using Set_LRU::reset_cnts;
+    using Set_LRU::set_level;
+    using Set_LRU::set_space_max;
+    using Set_LRU::size;
+
     Set_MRU (unsigned int sz, unsigned int n_sets, unsigned int id, const dyad_ctx_t* ctx)
         : Set_LRU (sz, n_sets, id, ctx)
     {
@@ -199,9 +226,7 @@ class Set_MRU : public Set_LRU
     virtual ~Set_MRU () override
     {
     }
-    virtual bool access (const std::string& fname) override;
-
-    using Set_LRU::print;
+    virtual bool access (const std::string& fname, size_t fsize) override;
 };
 
 std::ostream& operator<< (std::ostream& os, const Set_MRU& sm);
@@ -234,8 +259,8 @@ class Set_Prioritized : public Set_LRU
     typedef boost::multi_index::index<Prio_Blocks, priority>::type::const_iterator
         priority_citerator_t;
 
+    using Set_LRU::is_full;
     using Set_LRU::m_ctx;
-    using Set_LRU::remove;
 
    private:
     using Set_LRU::access;
@@ -246,11 +271,22 @@ class Set_Prioritized : public Set_LRU
 
     virtual bool lookup (const std::string& fname, id_iterator_t& it);
     virtual void evict (void) override;
-    virtual void access (id_iterator_t& it);
-    virtual void load_and_access (const std::string& fname) override;
     virtual unsigned int get_priority () override;
+    virtual void load_and_access (const std::string& fname, size_t fsize) override;
+    virtual void access (id_iterator_t& it);
 
    public:
+    using Set_LRU::get_level;
+    using Set_LRU::get_num_access;
+    using Set_LRU::get_num_miss;
+    using Set_LRU::get_space_max;
+    using Set_LRU::get_space_used;
+    using Set_LRU::print;
+    using Set_LRU::reset_cnts;
+    using Set_LRU::set_level;
+    using Set_LRU::set_space_max;
+    using Set_LRU::size;
+
     Set_Prioritized (unsigned int sz, unsigned int n_sets, unsigned int id, const dyad_ctx_t* ctx)
         : Set_LRU (sz, n_sets, id, ctx)
     {
@@ -258,7 +294,7 @@ class Set_Prioritized : public Set_LRU
     virtual ~Set_Prioritized () override
     {
     }
-    virtual bool access (const std::string& fname) override;
+    virtual bool access (const std::string& fname, size_t fsize) override;
     virtual std::ostream& print (std::ostream& os) const override;
 };
 
@@ -331,14 +367,24 @@ class Cache
     }
     void set_level (const std::string& level);
 
+    /// Specify the max cache space for each set
+    virtual bool set_space_max (const std::vector<size_t>& space_max);
+    /// Report the max cache space defined for each set
+    std::vector<size_t> get_space_max () const;
+    /// Report the current cache space used by each set
+    std::vector<size_t> get_space_used () const;
+
     /// Returns true if hit. Otherwise false.
-    virtual bool access (const std::string& fname);
+    virtual bool access (const std::string& fname, size_t fsize = 0ul);
 
     virtual std::ostream& print (std::ostream& os) const;
 };
 
 template <typename Set>
 std::ostream& operator<< (std::ostream& os, const Cache<Set>& cc);
+
+/// Physically remove a file
+int remove (const char* fname, const dyad_ctx_t* ctx);
 
 }  // end of namespace dyad_residency
 
