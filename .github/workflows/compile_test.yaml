@@ -300,6 +300,7 @@ jobs:
           spack load flux-core
           export PATH=${PATH}:${DYAD_INSTALL_PREFIX}/bin:${DYAD_INSTALL_PREFIX}/sbin
           export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${DYAD_INSTALL_PREFIX}/lib
+          export PYTHONPATH=${GITHUB_WORKSPACE}/pydyad:${PYTHONPATH}
           echo "Starting flux brokers"
           flux start --test-size=2 /bin/bash ${GITHUB_WORKSPACE}/.github/prod-cons/dyad_prod_cons_test.sh "python"
       #- name: Test DYAD with DLIO benchmark
