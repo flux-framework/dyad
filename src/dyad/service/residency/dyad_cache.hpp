@@ -7,7 +7,7 @@
 #error "no config"
 #endif
 
-#include <dyad/residency/fcache.hpp>
+#include <dyad/service/residency/fcache.hpp>
 
 #include <unordered_set>
 

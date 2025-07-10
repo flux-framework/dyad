@@ -388,6 +388,6 @@ int remove (const char* fname, const dyad_ctx_t* ctx);
 
 }  // end of namespace dyad_residency
 
-#include <dyad/residency/fcache_impl.hpp>
+#include <dyad/service/residency/fcache_impl.hpp>
 
 #endif  // DYAD_RESIDENCY_FCACHE_H

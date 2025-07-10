@@ -1,5 +1,5 @@
 #include <dyad/utils/murmur3.h>
-#include <dyad/residency/fcache.hpp>
+#include <dyad/service/residency/fcache.hpp>
 
 #define DYAD_UTIL_LOGGER
 #include <dyad/common/dyad_logging.h>

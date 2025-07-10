@@ -1,7 +1,7 @@
 #ifndef DYAD_RESIDENCY_FCACHE_IMPL_H
 #define DYAD_RESIDENCY_FCACHE_IMPL_H
 #include <dyad/utils/murmur3.h>
-#include <dyad/residency/fcache.hpp>
+#include <dyad/service/residency/fcache.hpp>
 
 namespace dyad_residency
 {

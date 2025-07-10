@@ -1,6 +1,6 @@
 #include <cstdlib>
-#include <dyad/residency/dyad_cache.hpp>
-#include <dyad/residency/fcache.hpp>
+#include <dyad/service/residency/dyad_cache.hpp>
+#include <dyad/service/residency/fcache.hpp>
 #include <iostream>
 #include <memory>
 #include <string>
