@@ -16,6 +16,7 @@ static int gen_path_key (const char* restrict str,
 
     uint32_t seed = 57u;
     uint32_t hash[4] = {0u};  // Output for the hash
+    char buf[256] = {'\0'};
     size_t cx = 0ul;
     int n = 0;
     size_t str_len = strlen (str);
@@ -29,7 +30,6 @@ static int gen_path_key (const char* restrict str,
 #if 1
     // Just append the string so that it can be as large as 128 bytes.
     if (str_len < 128ul) {
-        char buf[256] = {'\0'};
         memcpy (buf, str, str_len);
         memset (buf + str_len, '@', 128ul - str_len);
         buf[128u] = '\0';
