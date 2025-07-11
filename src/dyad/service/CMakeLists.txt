@@ -1,4 +1,5 @@
 add_subdirectory(flux_module)
+add_subdirectory(residency)
 
 set(DYAD_EXE "dyad_exe")
 set(DYAD_EXE_SRC ${CMAKE_CURRENT_SOURCE_DIR}/dyad_exe.c)
