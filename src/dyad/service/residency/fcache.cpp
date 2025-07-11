@@ -72,17 +72,25 @@ bool Set_LRU::is_full (size_t size_to_add) const
     return (m_size == m_block_set.size ()) || (m_space_used + size_to_add > m_space_max);
 }
 
-void Set_LRU::evict (void)
+bool Set_LRU::evict (void)
 {  // LRU
     if (m_block_set.size () == 0)
-        return;
+        return false;
     priority_idx_t& index_priority = boost::multi_index::get<priority> (m_block_set);
     if (!index_priority.empty ()) {
         priority_iterator_t it = index_priority.begin ();
         const char* fname = it->m_id.c_str ();
         DYAD_LOG_INFO (m_ctx, "    %s evicts %s from set %u\n", m_level.c_str (), fname, m_id);
         // Physically remove the file
-        if (remove (fname, m_ctx) == DYAD_RC_OK) {
+        if (remove (fname, m_ctx) != DYAD_RC_OK) {
+            // NOTE: The subtraction of the file size below is to enable testing without actual file
+            // I/O. Otherwise, load_and_access () should actually load the file into the cache
+            // storage where it added the file size. Here, removal failed as there is no actual
+            // file.
+            m_space_used -= it->m_size;
+            index_priority.erase (it);
+            return false;
+        } else {
             if (m_space_used < it->m_size) {
                 DYAD_LOG_ERROR (m_ctx,
                                 "space_used (%ll)) is less than space being released (%lu)",
@@ -90,13 +98,10 @@ void Set_LRU::evict (void)
                                 it->m_size);
             }
             m_space_used -= it->m_size;
-        } else {
-            // TODO: This is to enable testing without actual file I/O.
-            // Otherwise, load_and_access () should actually load the file in to the cache storage.
-            m_space_used -= it->m_size;
         }
         index_priority.erase (it);
     }
+    return true;
 }
 
 unsigned int Set_LRU::get_priority ()
@@ -109,8 +114,7 @@ void Set_LRU::load_and_access (const std::string& fname, size_t fsize)
     m_num_miss++;
 
     DYAD_LOG_INFO (m_ctx, "    %s adds %s to set %u\n", m_level.c_str (), fname.c_str (), m_id);
-    while (is_full (fsize)) {
-        evict ();
+    while (is_full (fsize) && evict ()) {
     }
 
     m_space_used += fsize;
@@ -183,10 +187,10 @@ std::ostream& operator<< (std::ostream& os, const Set_LRU& cc)
 }
 
 // -------------------------- MRU ------------------------
-void Set_MRU::evict (void)
+bool Set_MRU::evict (void)
 {  // MRU
     if (m_block_set.size () == 0)
-        return;
+        return false;
     priority_idx_t& index_priority = boost::multi_index::get<priority> (m_block_set);
     if (!index_priority.empty ()) {
         auto it = index_priority.end ();
@@ -194,7 +198,11 @@ void Set_MRU::evict (void)
         const char* fname = it->m_id.c_str ();
         DYAD_LOG_INFO (m_ctx, "    %s evicts %s from set %u\n", m_level.c_str (), fname, m_id);
         // Physically remove the file
-        if (remove (fname, m_ctx) == DYAD_RC_OK) {
+        if (remove (fname, m_ctx) != DYAD_RC_OK) {
+            m_space_used -= it->m_size;
+            index_priority.erase (it);
+            return false;
+        } else {
             if (m_space_used < it->m_size) {
                 DYAD_LOG_ERROR (m_ctx,
                                 "space_used (%ll)) is less than space being released (%lu)",
@@ -205,6 +213,7 @@ void Set_MRU::evict (void)
         }
         index_priority.erase (it);
     }
+    return true;
 }
 
 bool Set_MRU::access (const std::string& fname, size_t fsize)
@@ -225,17 +234,21 @@ bool Set_Prioritized::lookup (const std::string& fname, id_iterator_t& it)
     return (it != index_id.end ());
 }
 
-void Set_Prioritized::evict (void)
+bool Set_Prioritized::evict (void)
 {
     if (m_block_set.size () == 0)
-        return;
+        return false;
     priority_idx_t& index_priority = boost::multi_index::get<priority> (m_block_set);
     if (!index_priority.empty ()) {
         priority_iterator_t it = index_priority.begin ();
         const char* fname = it->m_id.c_str ();
         DYAD_LOG_INFO (m_ctx, "    %s evicts %s from set %u\n", m_level.c_str (), fname, m_id);
         // Physically remove the file
-        if (remove (fname, m_ctx) == DYAD_RC_OK) {
+        if (remove (fname, m_ctx) != DYAD_RC_OK) {
+            m_space_used -= it->m_size;
+            index_priority.erase (it);
+            return false;
+        } else {
             if (m_space_used < it->m_size) {
                 DYAD_LOG_ERROR (m_ctx,
                                 "space_used (%ll)) is less than space being released (%lu)",
@@ -246,6 +259,7 @@ void Set_Prioritized::evict (void)
         }
         index_priority.erase (it);
     }
+    return true;
 }
 
 unsigned int Set_Prioritized::get_priority ()
@@ -258,8 +272,7 @@ void Set_Prioritized::load_and_access (const std::string& fname, size_t fsize)
     m_num_miss++;
 
     DYAD_LOG_INFO (m_ctx, "    %s adds %s to set %u\n", m_level.c_str (), fname.c_str (), m_id);
-    while (is_full (fsize)) {
-        evict ();
+    while (is_full (fsize) && evict ()) {
     }
 
     m_space_used += fsize;

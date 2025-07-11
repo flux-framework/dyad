@@ -109,7 +109,7 @@ class Set_LRU
     /// Check if the cache space is full. e.g., by the number of items or by the space used
     virtual bool is_full (size_t size_to_add) const;
     /// Evict a block or item out of the set
-    virtual void evict (void);
+    virtual bool evict (void);
     /// Obtain the priority value to assign to a new block or item being added
     virtual unsigned int get_priority ();
     /// Add a new block or item into the set
@@ -205,7 +205,7 @@ class Set_MRU : public Set_LRU
     using Set_LRU::load_and_access;
     using Set_LRU::lookup;
 
-    virtual void evict (void) override;
+    virtual bool evict (void) override;
 
    public:
     using Set_LRU::get_level;
@@ -270,7 +270,7 @@ class Set_Prioritized : public Set_LRU
     Prio_Blocks m_block_set;
 
     virtual bool lookup (const std::string& fname, id_iterator_t& it);
-    virtual void evict (void) override;
+    virtual bool evict (void) override;
     virtual unsigned int get_priority () override;
     virtual void load_and_access (const std::string& fname, size_t fsize) override;
     virtual void access (id_iterator_t& it);
