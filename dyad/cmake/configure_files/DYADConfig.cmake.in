@@ -1,0 +1,64 @@
+# This will create IMPORTED targets for DYAD. The executables will be
+# DYAD::<exe-name>-bin (e.g., DYAD::dyad-bin) and the library will
+# be DYAD::dyad.
+
+include("${CMAKE_CURRENT_LIST_DIR}/DYADConfigVersion.cmake")
+
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/modules")
+list(APPEND CMAKE_MODULE_PATH "@EXTRA_CMAKE_MODULE_DIR@")
+
+# None of these are currently needed
+# include(GNUInstallDirs)
+# include(ExternalProject)
+# include(DYADCMakeUtilities)
+# include(CMakePackageConfigHelpers)
+
+
+set(DYAD_VERSION ${PACKAGE_VERSION})
+
+# Record compiler information
+set(DYAD_C_COMPILER "@CMAKE_C_COMPILER@")
+set(DYAD_CXX_COMPILER "@CMAKE_CXX_COMPILER@")
+
+set(DYAD_C_FLAGS "@CMAKE_C_FLAGS@")
+set(DYAD_CXX_FLAGS "@CMAKE_CXX_FLAGS@")
+
+set(DYAD_C_STANDARD "@CMAKE_C_STANDARD@")
+set(DYAD_CXX_STANDARD "@CMAKE_CXX_STANDARD@")
+
+# Using DYAD-specific versions of these variables so that we don't risk
+# polluting user CMake scripts
+set(DYAD_C_STANDARD_REQUIRED TRUE)
+set(DYAD_CXX_STANDARD_REQUIRED TRUE)
+
+# Record the various flags and switches accumlated in DYAD
+set(DYAD_GNU_LINUX @DYAD_GNU_LINUX@)
+set(DYAD_HAS_STD_FILESYSTEM @DYAD_HAS_STD_FILESYSTEM@)
+set(DYAD_HAS_STD_FSTREAM_FD @DYAD_HAS_STD_FSTREAM_FD@)
+
+# Setup dependencies
+
+
+@PACKAGE_INIT@
+
+# Now actually import the DYAD target
+set(_TMP_INCLUDE_DIRS "@PACKAGE_INCLUDE_INSTALL_DIRS@")
+foreach (_DIR ${_TMP_INCLUDE_DIRS})
+  set_and_check(_INCLUDE_DIR "${_DIR}")
+  list(APPEND DYAD_INCLUDE_DIRS "${_INCLUDE_DIR}")
+endforeach (_DIR "${_TMP_INCLUDE_DIRS}")
+
+set(_TMP_LIBRARY_DIRS "@PACKAGE_LIB_INSTALL_DIR@")
+foreach (_DIR ${_TMP_LIBRARY_DIRS})
+  set_and_check(_LIBRARY_DIR "${_DIR}")
+  list(APPEND DYAD_LIBRARY_DIRS "${_LIBRARY_DIR}")
+endforeach (_DIR ${_TMP_LIBRARY_DIRS})
+
+if (NOT TARGET DYAD::dyad)
+  include(${CMAKE_CURRENT_LIST_DIR}/DYADTargets.cmake)
+endif (NOT TARGET DYAD::dyad)
+
+check_required_components(DYAD)
+
+set(DYAD_LIBRARIES DYAD::dyad)
