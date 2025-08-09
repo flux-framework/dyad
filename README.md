@@ -1,5 +1,7 @@
 DYAD: DYnamic and Asynchronous Data Streamliner
 
+*Note: This fork includes significant enhancements created for a movie project, including comprehensive documentation and AI integration features.*
+
 DYAD aims to help sharing data files between producer and consumer job elements,
 especially within an ensemble or between co-scheduled ensembles.
 DYAD provides the service by two components: a FLUX module and a I/O wraper set.
@@ -23,6 +25,33 @@ The DYAD App includes integration with Ollama for running local AI models:
 - CLI interface (`ollama_cli.py`) for command-line interaction with models
 - GUI interface (`ollama_gui.py`) for graphical interaction with models
 - Support for models like `phi3`, `llama3.2`, `deepseek-coder`, and `codellama`
+
+## Movie Project Enhancements
+
+This fork includes significant enhancements created for a movie project:
+
+1. **Comprehensive Documentation** - Added detailed `DOCUMENTATION.md` with information about:
+   - Project overview
+   - Key components
+   - Core C API functions
+   - Python bindings and usage
+   - AI integration with Ollama
+   - Dependencies and licensing information
+
+2. **AI Integration Features** - Added Ollama integration with both CLI and GUI interfaces:
+   - `pydyad/ollama_cli.py`: Command-line interface for interacting with Ollama models
+   - `pydyad/ollama_gui.py`: Graphical interface for interacting with Ollama models
+   - `pydyad/pydyad/ollama_integration.py`: Core integration functions for running Ollama models
+   - C extension for calling Ollama models (`pydyad/pydyad/dyad_ollama.c`)
+
+3. **Examples and Tests** - Added example scripts and comprehensive tests:
+   - `example_usage.py`: Example script demonstrating how to use the DYAD Python bindings
+   - `test_cext_simple.py`: Simple test for basic C extension functionality
+   - `test_cext_comprehensive.py`: More comprehensive test for C extension functionality
+
+4. **Setup Updates** - Updated setup files to include the new modules and C extension:
+   - `pydyad/setup.py`: Updated to include the new modules and C extension
+   - `pydyad/pydyad/__init__.py`: Updated to export the new modules
 
 For detailed documentation, please see [DOCUMENTATION.md](DOCUMENTATION.md).
 
