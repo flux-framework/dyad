@@ -7,6 +7,15 @@ DYAD transparently synchronizes file I/O between producer and consumer, and
 transfers data from the producer location to the consumer location managed by the service.
 Users only need to use the file path that is under the directory managed by the service.
 
+## Python Components
+
+DYAD includes Python bindings that provide a high-level interface to the C API:
+
+- `pydyad`: The main Python package providing access to DYAD functionality
+- `bindings.py`: Direct ctypes bindings to the C library
+
+For detailed documentation, please see [DOCUMENTATION.md](DOCUMENTATION.md).
+
 ### License
 
 SPDX-License-Identifier: LGPL-3.0
