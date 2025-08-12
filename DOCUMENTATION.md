@@ -11,7 +11,6 @@ Users only need to use file paths that are under the directory managed by the se
 1. **FLUX Module**: The core component that manages the data streaming service.
 2. **I/O Wrapper Set**: Components that wrap file I/O operations to integrate with the DYAD service.
 3. **Python Bindings**: Python interface to the C API, allowing Python applications to use DYAD functionality.
-4. **AI Integration**: Integration with Ollama for running local AI models, with both CLI and GUI interfaces.
 
 ## Core C API
 
@@ -68,28 +67,10 @@ dyad.consume("/path/to/consumer/data/file.txt")
 dyad.finalize()
 ```
 
-## AI Integration
-
-The DYAD App includes integration with Ollama for running local AI models:
-
-### CLI Interface
-The `ollama_cli.py` script provides a command-line interface for interacting with Ollama models:
-- Supports models like `phi3`, `llama3.2`, `deepseek-coder`, and `codellama`
-- Allows users to select a model and enter a prompt
-- Displays the model's response
-
-### GUI Interface
-The `ollama_gui.py` script provides a graphical interface for interacting with Ollama models:
-- Tkinter-based GUI with model selection dropdown
-- Prompt entry field
-- Output text area for model responses
-- Asynchronous model execution to keep the UI responsive
-
 ## Dependencies
 
 - FLUX framework
 - Python 3.x
-- Ollama (for AI model integration)
 - Various C libraries for the core components
 
 ## License

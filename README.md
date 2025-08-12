@@ -13,16 +13,6 @@ DYAD includes Python bindings that provide a high-level interface to the C API:
 
 - `pydyad`: The main Python package providing access to DYAD functionality
 - `bindings.py`: Direct ctypes bindings to the C library
-- `ollama_integration.py`: Integration with Ollama for AI model interactions
-- CLI and GUI tools for interacting with Ollama models
-
-## AI Integration
-
-The DYAD App includes integration with Ollama for running local AI models:
-
-- CLI interface (`ollama_cli.py`) for command-line interaction with models
-- GUI interface (`ollama_gui.py`) for graphical interaction with models
-- Support for models like `phi3`, `llama3.2`, `deepseek-coder`, and `codellama`
 
 For detailed documentation, please see [DOCUMENTATION.md](DOCUMENTATION.md).
 

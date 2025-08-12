@@ -1,1 +1,0 @@
-flux run --ntasks=1 ${DSPACES_ROOT}/bin/terminator

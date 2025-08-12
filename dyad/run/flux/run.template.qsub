@@ -1,9 +1,0 @@
-#!/bin/bash
-#MSUB -l @JOB_NODES@
-#MSUB -l walltime=0:30:00
-#MSUB -lgres=ignore
-#MSUB -q pbatch
-#MSUB -V
-#MSUB -N dyad-flux
-
-./launch_flux.sh ./loop.sh
