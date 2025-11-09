@@ -82,7 +82,7 @@ jobs:
           sudo chmod 777 /usr -R
       - name: Install Spack
         run: |
-          git clone https://github.com/spack/spack.git ${SPACK_DIR}
+          git clone --depth=2  https://github.com/spack/spack.git ${SPACK_DIR}
       - name: Load existing dependencies
         run: |
           . ${SPACK_DIR}/share/spack/setup-env.sh
@@ -98,21 +98,6 @@ jobs:
               buildable: False
               externals:
                 - spec: "python@3.12.3"
-                  prefix: /usr
-            py-cffi:
-              buildable: False
-              externals:
-                - spec: "py-cffi@1.17.1"
-                  prefix: /usr
-            py-jsonschema:
-              buildable: False
-              externals:
-                - spec: "py-jsonschema@4.10.3"
-                  prefix: /usr
-            py-ply:
-              buildable: False
-              externals:
-                - spec: "py-ply@3.11"
                   prefix: /usr
             czmq:
               buildable: False

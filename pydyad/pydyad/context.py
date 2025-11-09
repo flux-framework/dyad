@@ -4,7 +4,7 @@ from contextlib import contextmanager
 import io
 from pathlib import Path
 
-from dftracer.logger import dft_fn 
+from dftracer.python import dft_fn 
 dft_log = dft_fn("DYAD_PY")
 DYAD_IO = None
 

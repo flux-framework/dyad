@@ -3,7 +3,7 @@ from ctypes.util import find_library
 import enum
 from pathlib import Path
 import warnings
-from dftracer.logger import dftracer, dft_fn
+from dftracer.python import dftracer, dft_fn
 
 dft_log = dft_fn("DYAD_PY")
 
