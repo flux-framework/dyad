@@ -27,7 +27,7 @@ from dlio_benchmark.data_loader.base_data_loader import BaseDataLoader
 from dlio_benchmark.reader.reader_factory import ReaderFactory
 from dlio_benchmark.utils.utility import utcnow, DLIOMPI
 from dlio_benchmark.utils.config import ConfigArguments
-from dftracer.logger import dft_fn as Profile
+from dftracer.python import dft_fn as Profile
 
 from pydyad import Dyad, dyad_open
 from pydyad.bindings import DTLMode, DTLCommMode
