@@ -20,14 +20,6 @@ target_include_directories(${PROJECT_NAME}_wrapper SYSTEM PRIVATE ${FluxCore_INC
 
 dyad_add_werror_if_needed(${PROJECT_NAME}_wrapper)
 
-set(FLUX_BARRIER_SRC ${CMAKE_CURRENT_SOURCE_DIR}/flux_barrier.c)
-set(FLUX_BARRIER_PRIVATE_HEADERS)
-set(FLUX_BARRIER_PUBLIC_HEADERS)
-
-add_executable(${PROJECT_NAME}_flux_barrier ${FLUX_BARRIER_SRC})
-target_link_libraries(${PROJECT_NAME}_flux_barrier PRIVATE flux::core)
-target_include_directories(${PROJECT_NAME}_flux_barrier SYSTEM PRIVATE ${FluxCore_INCLUDE_DIRS})
-
 install(
         TARGETS ${PROJECT_NAME}_wrapper
         EXPORT ${DYAD_EXPORTED_TARGETS}
@@ -38,16 +30,4 @@ install(
 
 if(NOT "${DYAD_WRAPPER_PUBLIC_HEADERS}" STREQUAL "")
     dyad_install_headers("${DYAD_WRAPPER_PUBLIC_HEADERS}" ${CMAKE_CURRENT_SOURCE_DIR})
-endif()
-
-install(
-        TARGETS ${PROJECT_NAME}_flux_barrier
-        EXPORT ${DYAD_EXPORTED_TARGETS}
-        LIBRARY DESTINATION ${DYAD_INSTALL_LIBDIR}
-        ARCHIVE DESTINATION ${DYAD_INSTALL_LIBDIR}
-        RUNTIME DESTINATION ${DYAD_INSTALL_BINDIR}
-)
-
-if(NOT "${FLUX_BARRIER_PUBLIC_HEADERS}" STREQUAL "")
-    dyad_install_headers("${FLUX_BARRIER_PUBLIC_HEADERS}" ${CMAKE_CURRENT_SOURCE_DIR})
 endif()
