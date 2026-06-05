@@ -332,7 +332,7 @@ dyad_rc_t dyad_dtl_margo_init (const dyad_ctx_t *ctx,
                                                                             : "ofi+tcp";
 
     /* Validate before committing to margo_init() */
-    dyad_rc_t rc = validate_margo_protocol (ctx, margo_na_protocol);
+    rc = validate_margo_protocol (ctx, margo_na_protocol);
     if (rc != DYAD_RC_OK) {
         goto error;
     }
@@ -613,8 +613,8 @@ dyad_rc_t dyad_dtl_margo_send (const dyad_ctx_t *ctx, void *buf, size_t buflen)
     }
     if (resp.ret != 0) {
         DYAD_LOG_ERROR (ctx, "[MARGO DTL] RPC handler returned error: %d", resp.ret);
-        margo_free_output (h, &resp);
-        margo_destroy (h);
+        margo_free_output (mh, &resp);
+        margo_destroy (mh);
         DYAD_C_FUNCTION_END ();
         goto margo_error;
     }
