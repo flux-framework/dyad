@@ -586,6 +586,7 @@ dyad_rc_t dyad_dtl_margo_send (const dyad_ctx_t *ctx, void *buf, size_t buflen)
         return DYAD_RC_BADBUF;
     }
 
+    margo_rpc_in_t args;
     args.n = buflen;
     args.bulk = margo_handle->bulk_handle;
 
