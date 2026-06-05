@@ -141,7 +141,10 @@ void dyad_mod_fini (void)
 static void freectx (void *arg)
 {
     dyad_mod_ctx_t *mod_ctx = (dyad_mod_ctx_t *)arg;
-    flux_msg_handler_delvec (mod_ctx->handlers);
+    if (mod_ctx->handlers != NULL) {
+        flux_msg_handler_delvec (mod_ctx->handlers);
+        mod_ctx->handlers = NULL;
+    }
     if (mod_ctx->ctx) {
         dyad_ctx_fini ();
         mod_ctx->ctx = NULL;
