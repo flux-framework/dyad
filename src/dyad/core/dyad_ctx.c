@@ -103,11 +103,11 @@ DYAD_DLL_EXPORTED void dyad_ctx_fini (void)
     // pydyad closes dyad by calling dyad_finalize ()
     DYAD_C_FUNCTION_START ();
     if (ctx == NULL) {
-        goto dyad_wrapper_fini_done;
+        DYAD_C_FUNCTION_END ();
+        return;
     }
     DYAD_C_FUNCTION_END ();
     dyad_finalize ();
-dyad_wrapper_fini_done:;
 }
 
 dyad_rc_t dyad_clear (void);
