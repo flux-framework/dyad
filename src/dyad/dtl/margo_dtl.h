@@ -9,6 +9,7 @@
 
 #include <dyad/dtl/dyad_dtl_api.h>
 #include <margo.h>
+#include <stdatomic.h>
 #include <stdlib.h>
 
 struct dyad_dtl_margo {
@@ -18,9 +19,12 @@ struct dyad_dtl_margo {
     hg_addr_t local_addr;     // margo local server address
     hg_addr_t remote_addr;    // margo remote server address
     hg_id_t sendrecv_rpc_id;  // margo rpc id for send/recv
-    bool recv_ready;
+    atomic_bool recv_ready;
     size_t recv_len;
     void *recv_buffer;
+    void *bulk_buffer;
+    size_t bulk_buffer_size;
+    hg_bulk_t bulk_handle;
 };
 
 typedef struct dyad_dtl_margo dyad_dtl_margo_t;

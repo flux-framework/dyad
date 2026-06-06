@@ -23,6 +23,10 @@
 #include <mercury.h>
 #include <mercury_macros.h>
 
+// clang-format off
+#define MARGO_MAX_TRANSFER_SIZE (@DYAD_DTL_MAX_TRANSFER_SIZE@)
+// clang-format on
+
 /**
  * @brief Mercury/Margo RPC input structure for a data transfer request.
  *
@@ -95,13 +99,11 @@ static void data_ready_rpc (hg_handle_t h)
     hg_return_t ret;
     margo_rpc_in_t in;
     margo_rpc_out_t out;
-    hg_bulk_t local_bulk;
     // clang-format off
     (void) ret;
     // clang-format on
 
     margo_instance_id mid = margo_hg_handle_get_instance (h);
-    margo_set_log_level (mid, MARGO_LOG_INFO);
 
     const struct hg_info *info = margo_get_info (h);
     hg_addr_t producer_addr = info->addr;
@@ -112,15 +114,14 @@ static void data_ready_rpc (hg_handle_t h)
     assert (ret == HG_SUCCESS);
 
     margo_handle->recv_len = (size_t)in.n;
-    margo_handle->recv_buffer = malloc (margo_handle->recv_len);
 
-    ret = margo_bulk_create (mid,
-                             1,
-                             (void **)&margo_handle->recv_buffer,
-                             &margo_handle->recv_len,
-                             HG_BULK_WRITE_ONLY,
-                             &local_bulk);
-    assert (ret == HG_SUCCESS);
+    if (margo_handle->recv_len > margo_handle->bulk_buffer_size) {
+        out.ret = -1;
+        margo_respond (h, &out);
+        margo_free_input (h, &in);
+        margo_destroy (h);
+        return;
+    }
 
     // RDMA pull from the producer (which for now is the flux borker)
     ret = margo_bulk_transfer (mid,
@@ -128,10 +129,17 @@ static void data_ready_rpc (hg_handle_t h)
                                producer_addr,
                                in.bulk,
                                0,
-                               local_bulk,
+                               margo_handle->bulk_handle,
                                0,
                                margo_handle->recv_len);
-    assert (ret == HG_SUCCESS);
+    if (ret != HG_SUCCESS) {
+        out.ret = -1;
+        margo_respond (h, &out);
+        margo_free_input (h, &in);
+        margo_destroy (h);
+        return;
+    }
+    margo_handle->recv_buffer = margo_handle->bulk_buffer;
 
     // DYAD_LOG_DEBUG(ctx, "[MARGO DTL] RDMA pulled from the producer.");
 
@@ -145,7 +153,7 @@ static void data_ready_rpc (hg_handle_t h)
 
     // set the ready flag so the client (should be in the busy-while
     // loop) can proceed with the pulled data.
-    margo_handle->recv_ready = 1;
+    atomic_store_explicit (&margo_handle->recv_ready, true, memory_order_release);
 }
 DEFINE_MARGO_RPC_HANDLER (data_ready_rpc)
 
@@ -154,21 +162,19 @@ dyad_rc_t dyad_dtl_margo_get_buffer (const dyad_ctx_t *ctx, size_t data_size, vo
     DYAD_C_FUNCTION_START ();
     dyad_rc_t rc = DYAD_RC_OK;
 
-    if (data_buf == NULL || *data_buf != NULL) {
+    dyad_dtl_margo_t *margo_handle = ctx->dtl_handle->private_dtl.margo_dtl_handle;
+
+    if (data_size > margo_handle->bulk_buffer_size) {
+        DYAD_LOG_ERROR (ctx,
+                        "[MARGO DTL] Requested data size (%zu) exceeds "
+                        "pre-allocated bulk buffer size (%zu)",
+                        data_size,
+                        margo_handle->bulk_buffer_size);
         rc = DYAD_RC_BADBUF;
         goto margo_get_buf_done;
     }
-#if 1
-    *data_buf = malloc (data_size);
-    if (*data_buf == NULL) {
-        rc = DYAD_RC_SYSFAIL;
-    }
-#else
-    rc = posix_memalign (data_buf, sysconf (_SC_PAGESIZE), data_size);
-    if (rc != 0 || *data_buf == NULL) {
-        rc = DYAD_RC_SYSFAIL;
-    }
-#endif
+    *data_buf = margo_handle->bulk_buffer;
+    rc = DYAD_RC_OK;
 
 margo_get_buf_done:
     DYAD_C_FUNCTION_END ();
@@ -179,11 +185,11 @@ dyad_rc_t dyad_dtl_margo_return_buffer (const dyad_ctx_t *ctx, void **data_buf)
 {
     DYAD_C_FUNCTION_START ();
     dyad_rc_t rc = DYAD_RC_OK;
-    if (data_buf == NULL || *data_buf == NULL) {
+    if (data_buf == NULL) {
         rc = DYAD_RC_BADBUF;
         goto margo_ret_buf_done;
     }
-    free (*data_buf);
+    // Do NOT free — bulk_buffer is owned by the handle and freed in finalize
     *data_buf = NULL;
     rc = DYAD_RC_OK;
 
@@ -281,6 +287,9 @@ dyad_rc_t dyad_dtl_margo_init (const dyad_ctx_t *ctx,
 
     // dyad_rc_t rc = DYAD_RC_OK;
     dyad_dtl_margo_t *margo_handle = NULL;
+    dyad_rc_t rc = 0;
+    hg_return_t hret = HG_SUCCESS;
+    uint8_t bulk_access_mode = HG_BULK_READWRITE;
 
     ctx->dtl_handle->private_dtl.margo_dtl_handle = malloc (sizeof (struct dyad_dtl_margo));
     if (ctx->dtl_handle->private_dtl.margo_dtl_handle == NULL) {
@@ -293,6 +302,9 @@ dyad_rc_t dyad_dtl_margo_init (const dyad_ctx_t *ctx,
     margo_handle->h = (flux_t *)ctx->h;  // flux handle
     margo_handle->debug = debug;
     margo_handle->recv_ready = 0;
+    margo_handle->bulk_buffer = NULL;
+    margo_handle->bulk_handle = HG_BULK_NULL;
+    margo_handle->bulk_buffer_size = MARGO_MAX_TRANSFER_SIZE;
 
     // Determine the Mercury network abstraction (NA) protocol (communication fabric) to use.
     //
@@ -320,7 +332,7 @@ dyad_rc_t dyad_dtl_margo_init (const dyad_ctx_t *ctx,
                                                                             : "ofi+tcp";
 
     /* Validate before committing to margo_init() */
-    dyad_rc_t rc = validate_margo_protocol (ctx, margo_na_protocol);
+    rc = validate_margo_protocol (ctx, margo_na_protocol);
     if (rc != DYAD_RC_OK) {
         goto error;
     }
@@ -339,6 +351,7 @@ dyad_rc_t dyad_dtl_margo_init (const dyad_ctx_t *ctx,
                                                         margo_rpc_in_t,
                                                         margo_rpc_out_t,
                                                         NULL);
+        bulk_access_mode = HG_BULK_READ_ONLY;
     } else if (comm_mode == DYAD_COMM_RECV) {
         // Consumer (dyad client c wrapper), essentially the Margo server
         // The third argument indicates whether an Argobots execution stream (ES)
@@ -365,6 +378,22 @@ dyad_rc_t dyad_dtl_margo_init (const dyad_ctx_t *ctx,
                                                         margo_rpc_out_t,
                                                         data_ready_rpc);
         margo_register_data (margo_handle->mid, margo_handle->sendrecv_rpc_id, margo_handle, NULL);
+        bulk_access_mode = HG_BULK_WRITE_ONLY;
+    }
+    margo_handle->bulk_buffer = malloc (margo_handle->bulk_buffer_size);
+    if (margo_handle->bulk_buffer == NULL) {
+        DYAD_LOG_ERROR (ctx, "[MARGO DTL] Failed to allocate persistent bulk buffer");
+        goto error;
+    }
+    hret = margo_bulk_create (margo_handle->mid,
+                              1,
+                              &(margo_handle->bulk_buffer),
+                              &(margo_handle->bulk_buffer_size),
+                              bulk_access_mode,
+                              &(margo_handle->bulk_handle));
+    if (hret != HG_SUCCESS) {
+        DYAD_LOG_ERROR (ctx, "[MARGO DTL] Failed to register persistent bulk buffer: %d", hret);
+        goto error;
     }
 
     // both margo client and server
@@ -408,13 +437,41 @@ dyad_rc_t dyad_dtl_margo_rpc_pack (const dyad_ctx_t *ctx,
 {
     DYAD_C_FUNCTION_START ();
     dyad_rc_t rc = DYAD_RC_OK;
+    hg_return_t hg_rc;
+    char *addr_str = NULL;
 
     dyad_dtl_margo_t *margo_handle = ctx->dtl_handle->private_dtl.margo_dtl_handle;
 
     // send my address (me as consumer and margo server)
-    char addr_str[128];
-    size_t addr_str_size = 128;
-    margo_addr_to_string (margo_handle->mid, addr_str, &addr_str_size, margo_handle->local_addr);
+    // We call margo_addr_to_string multiple times because there's no guarantee that addresses fit
+    // in a statically sized buffer.
+    // The first call to margo_addr_to_string is used to get the address size in bytes.
+    // Then, the second call is used to actually get the valid address.
+    //
+    // Notably, this is necessary on Slingshot networks since Slingshot addresses are essentially
+    // guaranteed to be greater than 128 bytes.
+    size_t addr_str_size = 0;
+    hg_rc =
+        margo_addr_to_string (margo_handle->mid, NULL, &addr_str_size, margo_handle->local_addr);
+    if (hg_rc != HG_SUCCESS) {
+        DYAD_LOG_ERROR (ctx, "[MARGO DTL] margo_addr_to_string size query failed!");
+        rc = DYAD_RC_SYSFAIL;
+        goto dtl_margo_rpc_pack_region_finish;
+    }
+    addr_str = malloc (addr_str_size);
+    if (addr_str == NULL) {
+        rc = DYAD_RC_SYSFAIL;
+        goto dtl_margo_rpc_pack_region_finish;
+    }
+    hg_rc = margo_addr_to_string (margo_handle->mid,
+                                  addr_str,
+                                  &addr_str_size,
+                                  margo_handle->local_addr);
+    if (hg_rc != HG_SUCCESS) {
+        DYAD_LOG_ERROR (ctx, "[MARGO DTL] margo_addr_to_string failed!");
+        rc = DYAD_RC_SYSFAIL;
+        goto dtl_margo_rpc_pack_region_finish;
+    }
 
     *packed_obj = json_pack ("{s:s, s:i, s:i, s:s%}",
                              "upath",  // s:s
@@ -439,6 +496,9 @@ dyad_rc_t dyad_dtl_margo_rpc_pack (const dyad_ctx_t *ctx,
                     addr_str_size);
 
 dtl_margo_rpc_pack_region_finish:;
+    if (addr_str != NULL) {
+        free (addr_str);
+    }
     DYAD_C_FUNCTION_END ();
     return rc;
 }
@@ -517,30 +577,21 @@ dyad_rc_t dyad_dtl_margo_send (const dyad_ctx_t *ctx, void *buf, size_t buflen)
     DYAD_LOG_DEBUG (ctx, "[MARGO DTL] margo_send is called, buflen: %ld.", buflen);
     dyad_dtl_margo_t *margo_handle = ctx->dtl_handle->private_dtl.margo_dtl_handle;
 
-    hg_size_t segment_sizes[1] = {buflen};
-    void *segment_ptrs[1] = {buf};
-    hg_bulk_t local_bulk;
-    margo_rpc_in_t args;
-    hg_handle_t mh;
-    margo_rpc_out_t resp;
-
-    // Register my local data
-    // which will be pulled by the consumer
-    ret = margo_bulk_create (margo_handle->mid,
-                             1,
-                             segment_ptrs,
-                             segment_sizes,
-                             HG_BULK_READ_ONLY,
-                             &local_bulk);
-    if (ret != HG_SUCCESS) {
-        DYAD_LOG_ERROR (ctx, "margo_bulk_create failed: %d", (int)ret);
-        goto margo_error_bulk;
+    if (buflen > margo_handle->bulk_buffer_size) {
+        DYAD_LOG_ERROR (ctx,
+                        "[MARGO DTL] Send data (%zu bytes) exceeds bulk buffer size (%zu bytes)",
+                        buflen,
+                        margo_handle->bulk_buffer_size);
+        DYAD_C_FUNCTION_END ();
+        return DYAD_RC_BADBUF;
     }
 
+    margo_rpc_in_t args;
     args.n = buflen;
-    args.bulk = local_bulk;
+    args.bulk = margo_handle->bulk_handle;
 
     // send a message to the consumer, notifying it that my data is ready
+    hg_handle_t mh;
     ret = margo_create (margo_handle->mid,
                         margo_handle->remote_addr,
                         margo_handle->sendrecv_rpc_id,
@@ -555,9 +606,17 @@ dyad_rc_t dyad_dtl_margo_send (const dyad_ctx_t *ctx, void *buf, size_t buflen)
         goto margo_error;
     }
 
+    margo_rpc_out_t resp;
     ret = margo_get_output (mh, &resp);
     if (ret != HG_SUCCESS) {
         DYAD_LOG_ERROR (ctx, "margo_get_output failed: %d", (int)ret);
+        goto margo_error;
+    }
+    if (resp.ret != 0) {
+        DYAD_LOG_ERROR (ctx, "[MARGO DTL] RPC handler returned error: %d", resp.ret);
+        margo_free_output (mh, &resp);
+        margo_destroy (mh);
+        DYAD_C_FUNCTION_END ();
         goto margo_error;
     }
     margo_free_output (mh, &resp);
@@ -573,11 +632,6 @@ margo_error:;
         margo_destroy (mh);
     }
 
-margo_error_bulk:;
-    if (local_bulk != HG_BULK_NULL) {
-        margo_bulk_free (local_bulk);
-    }
-
     return DYAD_RC_MARGOINIT_FAIL;
 }
 
@@ -589,7 +643,7 @@ dyad_rc_t dyad_dtl_margo_recv (const dyad_ctx_t *ctx, void **buf, size_t *buflen
 
     dyad_dtl_margo_t *margo_handle = ctx->dtl_handle->private_dtl.margo_dtl_handle;
 
-    while (!margo_handle->recv_ready) {
+    while (!atomic_load_explicit (&margo_handle->recv_ready, memory_order_acquire)) {
         usleep (100);
     }
 
@@ -598,14 +652,21 @@ dyad_rc_t dyad_dtl_margo_recv (const dyad_ctx_t *ctx, void **buf, size_t *buflen
     // recv message handled, reset it to 0
     *buflen = margo_handle->recv_len;
     *buf = malloc (*buflen);
+    if (*buf == NULL) {
+        rc = DYAD_RC_SYSFAIL;
+        goto recv_done;
+    }
     memcpy (*buf, margo_handle->recv_buffer, margo_handle->recv_len);
 
-    // margo_handle->recv_buffer is allocated in data_ready_rpc()
-    free (margo_handle->recv_buffer);
+    // margo_handle->recv_buffer is never actually allocated itself when in RECV mode.
+    // Instead, data_ready_rpc() will set it to point to the margo_handle->bulk_buffer, which is
+    // reused between different receive operations. So, we just need to set recv_buffer back to
+    // NULL to "release" it.
     margo_handle->recv_buffer = NULL;
     margo_handle->recv_len = 0;
-    margo_handle->recv_ready = 0;
+    atomic_store_explicit (&margo_handle->recv_ready, false, memory_order_relaxed);
 
+recv_done:;
     DYAD_C_FUNCTION_END ();
     return rc;
 }
@@ -634,12 +695,23 @@ dyad_rc_t dyad_dtl_margo_finalize (const dyad_ctx_t *ctx)
 
     margo_handle = ctx->dtl_handle->private_dtl.margo_dtl_handle;
 
+    if (margo_handle->bulk_handle != HG_BULK_NULL) {
+        margo_bulk_free (margo_handle->bulk_handle);
+        margo_handle->bulk_handle = HG_BULK_NULL;
+    }
+
     if (margo_handle->mid != MARGO_INSTANCE_NULL) {
         margo_addr_free (margo_handle->mid, margo_handle->local_addr);
         if (margo_handle->remote_addr != NULL)
             margo_addr_free (margo_handle->mid, margo_handle->remote_addr);
         margo_finalize (margo_handle->mid);
     }
+
+    if (margo_handle->bulk_buffer != NULL) {
+        free (margo_handle->bulk_buffer);
+        margo_handle->bulk_buffer = NULL;
+    }
+
     free (margo_handle);
     ctx->dtl_handle->private_dtl.margo_dtl_handle = NULL;
 

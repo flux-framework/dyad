@@ -31,7 +31,9 @@ extern const base64_maps_t base64_maps_rfc4648;
  * UCX tag send/receive operations are limited to 4 GiB per transfer.
  * Files larger than this limit must be split into multiple transfers.
  */
-#define UCX_MAX_TRANSFER_SIZE (4 * 1024L * 1024L * 1024L)
+// clang-format off
+#define UCX_MAX_TRANSFER_SIZE (@DYAD_DTL_MAX_TRANSFER_SIZE@)
+// clang-format on
 
 /**
  * @brief Tag mask used for UCX tag send/receive operations.

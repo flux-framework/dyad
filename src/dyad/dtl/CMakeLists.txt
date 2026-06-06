@@ -12,12 +12,12 @@ set(FLUX_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/flux_dtl.h)
 set(FLUX_PUBLIC_HEADERS)
 
 # UCX implementation for DTL
-set(UCX_DTL_SRC ${CMAKE_CURRENT_SOURCE_DIR}/ucx_dtl.c ${CMAKE_CURRENT_SOURCE_DIR}/ucx_ep_cache.cpp)
+set(UCX_DTL_SRC ${CMAKE_CURRENT_BINARY_DIR}/ucx_dtl.c ${CMAKE_CURRENT_SOURCE_DIR}/ucx_ep_cache.cpp)
 set(UCX_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/ucx_dtl.h ${CMAKE_CURRENT_SOURCE_DIR}/ucx_ep_cache.h)
 set(UCX_PUBLIC_HEADERS)
 
 # Margo implementation for DTL
-set(MARGO_DTL_SRC ${CMAKE_CURRENT_SOURCE_DIR}/margo_dtl.c)
+set(MARGO_DTL_SRC ${CMAKE_CURRENT_BINARY_DIR}/margo_dtl.c)
 set(MARGO_PRIVATE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/margo_dtl.h)
 set(MARGO_PUBLIC_HEADERS)
 
@@ -28,6 +28,12 @@ list(APPEND DTL_PUBLIC_HEADERS ${FLUX_PUBLIC_HEADERS})
 
 # UCX: compile-time selection
 if(DYAD_ENABLE_UCX_DTL)
+    # Use configure_file to set UCX_MAX_TRANSFER_SIZE
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/ucx_dtl.c
+        ${CMAKE_CURRENT_BINARY_DIR}/ucx_dtl.c
+        @ONLY
+    )
     list(APPEND DTL_SRC ${UCX_DTL_SRC})
     list(APPEND DTL_PRIVATE_HEADERS ${UCX_PRIVATE_HEADERS})
     list(APPEND DTL_PUBLIC_HEADERS ${UCX_PUBLIC_HEADERS})
@@ -35,6 +41,12 @@ endif()
 
 # Margo: compile-time selection
 if(DYAD_ENABLE_MARGO_DTL)
+    # Use configure_file to set MARGO_MAX_TRANSFER_SIZE
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/margo_dtl.c
+        ${CMAKE_CURRENT_BINARY_DIR}/margo_dtl.c
+        @ONLY
+    )
     list(APPEND DTL_SRC ${MARGO_DTL_SRC})
     list(APPEND DTL_PRIVATE_HEADERS ${MARGO_PRIVATE_HEADERS})
     list(APPEND DTL_PUBLIC_HEADERS ${MARGO_PUBLIC_HEADERS})
