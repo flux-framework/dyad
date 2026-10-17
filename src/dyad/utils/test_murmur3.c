@@ -61,9 +61,14 @@ static int gen_path_key (const char *restrict str,
     size_t cx = 0ul;
     int n = 0;
     const char *str_long = str;
-    size_t str_len = strlen (str);
+    size_t str_len = 0ul;
 
-    if (str == NULL || path_key == NULL || len == 0ul || str_len == 0ul) {
+    if (str == NULL || path_key == NULL || len == 0ul) {
+        return -1;
+    }
+
+    str_len = strlen (str);
+    if (str_len == 0ul) {
         return -1;
     }
 
