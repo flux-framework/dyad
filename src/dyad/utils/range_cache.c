@@ -56,6 +56,16 @@
 // range_cache_fetch_span() below).
 static pthread_mutex_t g_range_cache_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+/**
+ * @brief Builds the path of a range-cache bitmap sidecar file.
+ *
+ * @param[in]  local_path   Path of the locally cached data file.
+ * @param[out] out          Buffer that receives the sidecar path.
+ * @param[in]  out_capacity Capacity of @p out in bytes.
+ *
+ * @return @c DYAD_RC_OK on success, or @c DYAD_RC_BADBUF if @p out is too
+ *         small for the path and suffix.
+ */
 static dyad_rc_t range_cache_bitmap_path (const char *local_path, char *out, size_t out_capacity)
 {
     if (snprintf (out, out_capacity, "%s%s", local_path, DYAD_RANGE_CACHE_SUFFIX)
@@ -65,16 +75,40 @@ static dyad_rc_t range_cache_bitmap_path (const char *local_path, char *out, siz
     return DYAD_RC_OK;
 }
 
+/**
+ * @brief Calculates the number of cache blocks needed for a file.
+ *
+ * @param[in] file_size Size of the file in bytes.
+ *
+ * @return Number of @c DYAD_RANGE_CACHE_BLOCK_SIZE blocks that cover
+ *         @p file_size bytes.
+ */
 static inline size_t range_cache_num_blocks (size_t file_size)
 {
     return (file_size + DYAD_RANGE_CACHE_BLOCK_SIZE - 1ul) / DYAD_RANGE_CACHE_BLOCK_SIZE;
 }
 
+/**
+ * @brief Calculates the bitmap size needed to track a number of blocks.
+ *
+ * @param[in] num_blocks Number of blocks to track.
+ *
+ * @return Number of bytes required for one bit per block.
+ */
 static inline size_t range_cache_bitmap_bytes (size_t num_blocks)
 {
     return (num_blocks + 7ul) / 8ul;
 }
 
+/**
+ * @brief Checks whether every block in an inclusive range is cached.
+ *
+ * @param[in] bitmap      Bitmap with one bit per cache block.
+ * @param[in] block_start First block in the inclusive range.
+ * @param[in] block_end   Last block in the inclusive range.
+ *
+ * @return @c true if all blocks in the range are set; otherwise @c false.
+ */
 static bool range_cache_blocks_set (const uint8_t *bitmap, size_t block_start, size_t block_end)
 {
     size_t b = 0ul;
@@ -86,6 +120,15 @@ static bool range_cache_blocks_set (const uint8_t *bitmap, size_t block_start, s
     return true;
 }
 
+/**
+ * @brief Marks every block in an inclusive range as cached.
+ *
+ * @param[in,out] bitmap      Bitmap with one bit per cache block.
+ * @param[in]     block_start First block in the inclusive range.
+ * @param[in]     block_end   Last block in the inclusive range.
+ *
+ * @return None.
+ */
 static void range_cache_set_blocks (uint8_t *bitmap, size_t block_start, size_t block_end)
 {
     size_t b = 0ul;
@@ -94,10 +137,24 @@ static void range_cache_set_blocks (uint8_t *bitmap, size_t block_start, size_t 
     }
 }
 
-// Reads the block-aligned span [block_start, block_end] from origin_path and
-// writes it into local_path at the same offset. Called with no bitmap lock
-// held -- see the "no lock held" comment in dyad_range_cache_ensure() for
-// why concurrent callers racing on an overlapping span is safe.
+/**
+ * @brief Copies an inclusive block range from the origin to the local cache.
+ *
+ * The copy is performed with no bitmap lock held. Concurrent callers may
+ * duplicate an overlapping copy, but write identical bytes at identical
+ * offsets and therefore do not corrupt the local cache.
+ *
+ * @param[in] ctx         DYAD context used for logging.
+ * @param[in] local_path  Destination path of the local cache file.
+ * @param[in] origin_path Source path of the authoritative file.
+ * @param[in] block_start First block in the inclusive range to copy.
+ * @param[in] block_end   Last block in the inclusive range to copy.
+ * @param[in] origin_size Size of the source file in bytes; caps the final
+ *                        copied block at end of file.
+ *
+ * @return @c DYAD_RC_OK on success, @c DYAD_RC_BADFIO for an I/O failure, or
+ *         @c DYAD_RC_SYSFAIL if allocation of the transfer buffer fails.
+ */
 static dyad_rc_t range_cache_fetch_span (const dyad_ctx_t *ctx,
                                          const char *local_path,
                                          const char *origin_path,
@@ -180,6 +237,7 @@ dyad_rc_t dyad_range_cache_ensure (const dyad_ctx_t *ctx,
     size_t block_start = 0ul;
     size_t block_end = 0ul;
     size_t origin_size = 0ul;
+    size_t request_end = 0ul;
     bool already_cached = false;
 
     if (origin_path == NULL || length == 0ul) {
@@ -192,8 +250,13 @@ dyad_rc_t dyad_range_cache_ensure (const dyad_ctx_t *ctx,
         return rc;
     }
 
+    if (offset > SIZE_MAX - length) {
+        DYAD_LOG_ERROR (ctx, "DYAD RANGE_CACHE: range overflows for origin file '%s'", origin_path);
+        return DYAD_RC_BADFIO;
+    }
     block_start = offset / DYAD_RANGE_CACHE_BLOCK_SIZE;
-    block_end = (offset + length - 1ul) / DYAD_RANGE_CACHE_BLOCK_SIZE;
+    request_end = offset + length;
+    block_end = (request_end - 1ul) / DYAD_RANGE_CACHE_BLOCK_SIZE;
 
     bitmap_fd = open (bitmap_path, O_RDWR | O_CREAT, 0644);
     if (bitmap_fd == -1) {
@@ -258,6 +321,17 @@ dyad_rc_t dyad_range_cache_ensure (const dyad_ctx_t *ctx,
         return DYAD_RC_BADFIO;
     }
     origin_size = (size_t)origin_st.st_size;
+    if (offset >= origin_size) {
+        DYAD_LOG_ERROR (ctx, "DYAD RANGE_CACHE: invalid range for origin file '%s'", origin_path);
+        dyad_release_flock (ctx, bitmap_fd, &lock);
+        pthread_mutex_unlock (&g_range_cache_mutex);
+        close (bitmap_fd);
+        return DYAD_RC_BADFIO;
+    }
+    if (request_end > origin_size) {
+        request_end = origin_size;
+    }
+    block_end = (request_end - 1ul) / DYAD_RANGE_CACHE_BLOCK_SIZE;
     num_blocks = range_cache_num_blocks (origin_size);
     bitmap_bytes = range_cache_bitmap_bytes (num_blocks);
 

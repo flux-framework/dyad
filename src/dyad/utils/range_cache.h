@@ -86,6 +86,9 @@ extern "C" {
  * @param[in] length       Length, in bytes, of the requested range. If 0,
  *                         this function is a no-op that returns
  *                         @c DYAD_RC_OK immediately.
+ *                         If the range extends past the end of
+ *                         @p origin_path, only the portion within the
+ *                         source file is cached.
  *
  * @return @c dyad_rc_t    Return code indicating the outcome:
  * @retval DYAD_RC_OK      @p origin_path is @c NULL, @p length is 0, or
@@ -95,7 +98,8 @@ extern "C" {
  *                         @p origin_path).
  * @retval DYAD_RC_BADFIO  A filesystem operation (open/stat/read/write)
  *                         on @p local_path, its bitmap file, or
- *                         @p origin_path failed.
+ *                         @p origin_path failed; or @p offset is outside
+ *                         the source file or the requested range overflows.
  * @retval DYAD_RC_SYSFAIL A memory allocation failed.
  * @retval DYAD_RC_BADBUF  @p local_path is too long to build the bitmap
  *                         file's path.

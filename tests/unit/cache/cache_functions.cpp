@@ -1,6 +1,7 @@
 #include <dyad/cache/dyad_cache_api.h>
 #include <dyad/cache/dyad_cache_int.h>
 #include <dyad/common/dyad_structures_int.h>
+#include <dyad/utils/range_cache.h>
 #include <dyad/utils/utils.h>
 
 #include <fcntl.h>
@@ -14,7 +15,8 @@
 #include <cstring>
 #include <string>
 
-namespace {
+namespace
+{
 
 // Zero-initialized dyad_ctx_t with just enough set to exercise the cache
 // module directly, without needing Flux/MPI (pure-function test tier).
@@ -125,7 +127,8 @@ TEST_CASE ("dyad_cache_scan_dir", "[module=dyad_cache][method=scan]")
     struct dyad_cache_entry *entries = nullptr;
     size_t n_entries = 0;
     uint64_t total_size = 0;
-    REQUIRE (dyad_cache_scan_dir (&ctx, dir.c_str (), &entries, &n_entries, &total_size) == DYAD_RC_OK);
+    REQUIRE (dyad_cache_scan_dir (&ctx, dir.c_str (), &entries, &n_entries, &total_size)
+             == DYAD_RC_OK);
     REQUIRE (n_entries == 2);
     REQUIRE (total_size == 300);
 
@@ -134,8 +137,7 @@ TEST_CASE ("dyad_cache_scan_dir", "[module=dyad_cache][method=scan]")
     remove_dir_recursive (dir);
 }
 
-TEST_CASE ("dyad_cache_maybe_evict_noop_when_disabled",
-          "[module=dyad_cache][method=maybe_evict]")
+TEST_CASE ("dyad_cache_maybe_evict_noop_when_disabled", "[module=dyad_cache][method=maybe_evict]")
 {
     struct dyad_ctx ctx = make_test_ctx ();
     ctx.cache_capacity_bytes = 0;  // disabled (the default)
@@ -151,15 +153,14 @@ TEST_CASE ("dyad_cache_maybe_evict_noop_when_disabled",
     remove_dir_recursive (dir);
 }
 
-TEST_CASE ("dyad_cache_maybe_evict_selects_oldest_first",
-          "[module=dyad_cache][method=maybe_evict]")
+TEST_CASE ("dyad_cache_maybe_evict_selects_oldest_first", "[module=dyad_cache][method=maybe_evict]")
 {
     struct dyad_ctx ctx = make_test_ctx ();
     REQUIRE (dyad_cache_policy_init (&ctx, DYAD_CACHE_LRU) == DYAD_RC_OK);
     ctx.cache_policy_mode = DYAD_CACHE_LRU;
-    ctx.cache_capacity_bytes = 2048;  // 2 KiB cap
+    ctx.cache_capacity_bytes = 2048;     // 2 KiB cap
     ctx.cache_low_watermark_frac = 0.5;  // evict down to 1 KiB
-    ctx.cache_grace_period_sec = 0;  // don't skip anything based on recency
+    ctx.cache_grace_period_sec = 0;      // don't skip anything based on recency
 
     std::string dir = make_temp_dir ();
     write_file (dir + "/oldest.bin", 1024);
@@ -180,7 +181,7 @@ TEST_CASE ("dyad_cache_maybe_evict_selects_oldest_first",
 }
 
 TEST_CASE ("dyad_cache_maybe_evict_skips_locked_candidate",
-          "[module=dyad_cache][method=maybe_evict]")
+           "[module=dyad_cache][method=maybe_evict]")
 {
     struct dyad_ctx ctx = make_test_ctx ();
     REQUIRE (dyad_cache_policy_init (&ctx, DYAD_CACHE_LRU) == DYAD_RC_OK);
@@ -231,5 +232,28 @@ TEST_CASE ("dyad_cache_maybe_evict_skips_locked_candidate",
     waitpid (child, &status, 0);
 
     dyad_cache_policy_finalize (&ctx);
+    remove_dir_recursive (dir);
+}
+
+TEST_CASE ("dyad_range_cache_clamps_request_to_origin_size",
+           "[module=dyad_cache][method=range_cache]")
+{
+    struct dyad_ctx ctx = make_test_ctx ();
+    const size_t origin_size = 2ul * DYAD_RANGE_CACHE_BLOCK_SIZE;
+    std::string dir = make_temp_dir ();
+    std::string origin_path = dir + "/origin.bin";
+    std::string local_path = dir + "/local.bin";
+    struct stat local_st;
+
+    write_file (origin_path, origin_size);
+    REQUIRE (dyad_range_cache_ensure (&ctx,
+                                      local_path.c_str (),
+                                      origin_path.c_str (),
+                                      origin_size - 10ul,
+                                      10ul * DYAD_RANGE_CACHE_BLOCK_SIZE)
+             == DYAD_RC_OK);
+    REQUIRE (stat (local_path.c_str (), &local_st) == 0);
+    REQUIRE ((size_t)local_st.st_size == origin_size);
+
     remove_dir_recursive (dir);
 }
