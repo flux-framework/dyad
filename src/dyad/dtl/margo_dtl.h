@@ -589,8 +589,7 @@ dyad_rc_t dyad_dtl_margo_recv (const dyad_ctx_t *ctx, void **buf, size_t *buflen
  *       teardown depending on @c comm_mode (producer vs consumer).
  *       This was never implemented and the code was commented out.
  *       Revisit whether comm_mode-specific teardown is needed, for
- *       example to free @c margo_handle->remote_addr on the producer
- *       side via @c margo_addr_free().
+ *       example to release producer-side connection state.
  */
 dyad_rc_t dyad_dtl_margo_close_connection (const dyad_ctx_t *ctx);
 
@@ -692,18 +691,13 @@ dyad_rc_t dyad_dtl_margo_abort_detached (const dyad_ctx_t *ctx, void *req_state)
  *
  *  1. If @c margo_handle->mid is a valid Margo instance, frees the
  *     local Margo address via @c margo_addr_free().
- *  2. If @c margo_handle->remote_addr is non-@c NULL, frees the remote
- *     address (the consumer's resolved Margo server address) via
- *     @c margo_addr_free(). In practice this is normally @c NULL, since
- *     @c dyad_dtl_margo_detach_request() clears it after every request --
- *     this is a safety net for the non-worker-pool (UCX-style synchronous)
- *     path, which doesn't go through detach/cache at all.
- *  3. Frees every entry in the address cache (see
+ *  2. Frees every entry in the address cache (see
  *     @c struct dyad_dtl_margo_addr_cache_entry) via @c margo_addr_free()
- *     and frees the cache array itself.
- *  4. Finalizes the Margo instance via @c margo_finalize(), which shuts
+ *     and frees the cache array. @c remote_addr is a borrowed pointer to an
+ *     entry in this cache and is never freed separately.
+ *  3. Finalizes the Margo instance via @c margo_finalize(), which shuts
  *     down the Mercury progress loop and any associated Argobots ESs.
- *  5. Frees the @c dyad_dtl_margo struct and sets the handle pointer
+ *  4. Frees the @c dyad_dtl_margo struct and sets the handle pointer
  *     to @c NULL.
  *
  * If @c ctx->dtl_handle is @c NULL or

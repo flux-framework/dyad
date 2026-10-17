@@ -842,10 +842,8 @@ dyad_rc_t dyad_dtl_margo_detach_request (const dyad_ctx_t *ctx, void **req_state
     state->mid = margo_handle->mid;
     state->sendrecv_rpc_id = margo_handle->sendrecv_rpc_id;
     state->remote_addr = margo_handle->remote_addr;
-    // Transfer ownership out of the shared field so a later request's
-    // margo_addr_lookup() can't be mistaken for this one, and so this
-    // address gets freed exactly once (by send_detached()) instead of
-    // being silently overwritten/leaked as today's serial code does.
+    // Move the borrowed cache pointer out of the shared field so a later
+    // request's margo_addr_lookup() cannot be mistaken for this one.
     margo_handle->remote_addr = NULL;
     *req_state = state;
 
@@ -940,8 +938,6 @@ dyad_rc_t dyad_dtl_margo_finalize (const dyad_ctx_t *ctx)
 
     if (margo_handle->mid != MARGO_INSTANCE_NULL) {
         margo_addr_free (margo_handle->mid, margo_handle->local_addr);
-        if (margo_handle->remote_addr != NULL)
-            margo_addr_free (margo_handle->mid, margo_handle->remote_addr);
         for (size_t i = 0; i < margo_handle->addr_cache_len; i++) {
             margo_addr_free (margo_handle->mid, margo_handle->addr_cache[i].addr);
             free (margo_handle->addr_cache[i].addr_str);
