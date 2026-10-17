@@ -964,7 +964,11 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_cons_store (const dyad_ctx_t *restrict ctx,
     char file_path[PATH_MAX + 1] = {'\0'};
     char file_path_copy[PATH_MAX + 1] = {'\0'};
     mode_t m = (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH | S_ISGID);
-    size_t written_len = 0;
+    size_t total_bytes_written = 0ul;
+    const size_t granularity = (size_t)DYAD_POSIX_TRANSFER_GRANULARITY;
+    size_t write_chunk_size = 0ul;
+    ssize_t write_result = 0;
+    int write_errno = 0;
     memset (file_path, 0, PATH_MAX + 1);
     memset (file_path_copy, 0, PATH_MAX + 1);
 
@@ -987,50 +991,56 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_cons_store (const dyad_ctx_t *restrict ctx,
     }
 
     // Write the file contents to the location specified by the user
-    if (data_len < DYAD_POSIX_TRANSFER_GRANULARITY) {
-        written_len = write (fd, file_data, data_len);
+    if (data_len < granularity) {
+        write_result = write (fd, file_data, data_len);
+        if (write_result <= 0) {
+            write_errno = errno;
+            goto write_failed;
+        }
+        total_bytes_written = (size_t)write_result;
     } else {
-        ssize_t written_data = 0;
-        ssize_t granularity = DYAD_POSIX_TRANSFER_GRANULARITY;
         DYAD_LOG_DEBUG (ctx,
-                        " writing file %s with bytes %zd is big. Writing in granularity %zd",
+                        " writing file %s with bytes %zu is big. Writing in granularity %zu",
                         file_path,
                         data_len,
                         granularity);
-        while (written_data < (ssize_t)data_len) {
-            ssize_t written_size = (ssize_t)(data_len - written_data) > granularity
-                                       ? granularity
-                                       : (ssize_t)(data_len - written_data);
-            written_len = write (fd, file_data + written_data, written_size);
-            DYAD_LOG_DEBUG (ctx,
-                            " writing file %s with bytes %zd of %zd",
-                            file_path,
-                            written_size,
-                            written_len);
-            if (written_len <= 0) {
-                DYAD_LOG_ERROR (ctx,
-                                "DYAD CLIENT: Failed to write file \"%s\" only read %zd of %zd of "
-                                "%zd. with "
-                                "code %d:%s.",
-                                file_path,
-                                written_len,
-                                written_size,
-                                data_len,
-                                errno,
-                                strerror (errno));
-                goto pull_done;
+        while (total_bytes_written < data_len) {
+            write_chunk_size = ((data_len - total_bytes_written) > granularity)
+                                   ? granularity
+                                   : (data_len - total_bytes_written);
+            write_result = write (fd, file_data + total_bytes_written, write_chunk_size);
+            if (write_result <= 0) {
+                write_errno = errno;
+                goto write_failed;
             }
-            written_data += written_len;
+            DYAD_LOG_DEBUG (ctx,
+                            " writing file %s with bytes %zu of %zd",
+                            file_path,
+                            write_chunk_size,
+                            write_result);
+            total_bytes_written += (size_t)write_result;
         }
-        written_len = written_data;
     }
-    if (written_len != data_len) {
+    if (total_bytes_written != data_len) {
         DYAD_LOG_ERROR (ctx, "DYAD CLIENT: cons store write of pulled file failed!\n");
         rc = DYAD_RC_BADFIO;
         goto pull_done;
     }
     DYAD_C_FUNCTION_UPDATE_INT ("data_len", data_len);
     rc = DYAD_RC_OK;
+    goto pull_done;
+
+write_failed:
+    rc = DYAD_RC_BADFIO;
+    if (write_result < 0) {
+        DYAD_LOG_ERROR (ctx,
+                        "DYAD CLIENT: Failed to write file \"%s\" with code %d:%s.",
+                        file_path,
+                        write_errno,
+                        strerror (write_errno));
+    } else {
+        DYAD_LOG_ERROR (ctx, "DYAD CLIENT: Write made no progress for file \"%s\".", file_path);
+    }
 
 pull_done:;
     // If "check" is set and the operation was successful, set the
