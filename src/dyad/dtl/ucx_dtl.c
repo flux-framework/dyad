@@ -1009,13 +1009,13 @@ dyad_rc_t dyad_dtl_ucx_rpc_unpack (const dyad_ctx_t *ctx, const flux_msg_t *msg,
                                    "rkey",
                                    &enc_rkey,
                                    &enc_rkey_len);
-    tag_val = atoll (tag_value_str);
-    DYAD_LOG_INFO (ctx, "Reading Json object %lu", tag_val);
     if (errcode < 0) {
         DYAD_LOG_ERROR (ctx, "Could not unpack Flux message from consumer!\n");
         rc = DYAD_RC_BADUNPACK;
         goto dtl_ucx_rpc_unpack_region_finish;
     }
+    tag_val = atoll (tag_value_str);
+    DYAD_LOG_INFO (ctx, "Reading Json object %lu", tag_val);
     dtl_handle->cons_buf_ptr = tag_val;
     DYAD_C_FUNCTION_UPDATE_INT ("pid", pid);
     DYAD_C_FUNCTION_UPDATE_INT ("tag_cons", tag_cons);
