@@ -642,7 +642,16 @@ dyad_rc_t dyad_release_flock (const dyad_ctx_t *__restrict__ ctx,
         rc = DYAD_RC_BADFIO;
         goto release_flock_end;
     }
+    // Always unlock the whole file, matching how dyad_excl_flock() /
+    // dyad_shared_flock() acquire it.  Callers on the close()/fclose()
+    // wrapper paths pass a struct flock that was never used to acquire a
+    // lock, so its l_whence/l_start/l_len would otherwise be uninitialised
+    // when handed to fcntl().
     lock->l_type = F_UNLCK;
+    lock->l_whence = SEEK_SET;
+    lock->l_start = 0;
+    lock->l_len = 0;
+    lock->l_pid = ctx->pid;
     if (fcntl (fd, F_SETLKW, lock) == -1) {  // will just unlock
         DYAD_LOG_ERROR (ctx, "DYAD UTIL: Cannot release lock on fd %d.", fd);
         rc = DYAD_RC_BADFIO;
