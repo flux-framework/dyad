@@ -1,0 +1,4 @@
+# MPICH 4.1 on Ubuntu 24.04 retains hwloc topology allocations after
+# MPI_Finalize(). This suppression is intentionally limited to that stack;
+# it does not suppress DYAD allocations.
+leak:MPII_hwtopo_init
