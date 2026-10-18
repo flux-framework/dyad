@@ -9,6 +9,7 @@
 
 #include <dyad/dtl/dyad_dtl_api.h>
 #include <margo.h>
+#include <stdatomic.h>
 #include <stdlib.h>
 
 /**
@@ -38,7 +39,8 @@ struct dyad_dtl_margo {
     hg_addr_t local_addr;     // margo local server address
     hg_addr_t remote_addr;    // margo remote server address
     hg_id_t sendrecv_rpc_id;  // margo rpc id for send/recv
-    bool recv_ready;
+    atomic_bool recv_ready;
+    atomic_bool recv_failed;
     size_t recv_len;
     void *recv_buffer;
     // Address cache -- see struct dyad_dtl_margo_addr_cache_entry. Only ever
@@ -109,7 +111,7 @@ struct dyad_dtl_margo_req_state {
  * @note  RPC handlers run in the same Argobots Execution Stream (ES) as the
  *        Mercury progress loop (@c rpc_thread_count=-1), meaning no additional
  *        ES is created for handler execution. This is safe because the consumer
- *        blocks in a busy-wait loop on @c margo_handle->recv_ready until
+ *        blocks in a busy-wait loop on the atomic @c margo_handle->recv_ready until
  *        @c data_ready_rpc() signals completion — there is no concurrent work
  *        that could be starved by sharing the progress loop ES with the handler.
  *
@@ -523,10 +525,18 @@ dyad_rc_t dyad_dtl_margo_establish_connection (const dyad_ctx_t *ctx);
 dyad_rc_t dyad_dtl_margo_send (const dyad_ctx_t *ctx, void *buf, size_t buflen);
 
 /**
+ * @brief Sends a Margo failure-control RPC with @c n set to -1.
+ *
+ * @param[in] ctx Producer-side Margo DTL context for the accepted request.
+ * @return @c DYAD_RC_OK when the consumer acknowledged the marker; a Margo
+ *         error otherwise.
+ */
+
+/**
  * @brief Receives file data from the producer via the Margo DTL.
  *
  * @details
- * Busy-waits on @c margo_handle->recv_ready, sleeping 100 microseconds
+ * Busy-waits on atomic @c margo_handle->recv_ready, sleeping 100 microseconds
  * between checks, until @c data_ready_rpc() sets it to 1 after
  * completing the RDMA pull from the producer. Once the data is ready,
  * allocates a new buffer, copies the received data from
@@ -536,7 +546,9 @@ dyad_rc_t dyad_dtl_margo_send (const dyad_ctx_t *ctx, void *buf, size_t buflen);
  * After copying, the Margo handle state is reset for the next transfer:
  * - @c recv_buffer is freed and set to @c NULL.
  * - @c recv_len is reset to 0.
- * - @c recv_ready is reset to 0.
+ * - @c recv_ready is reset to false. A producer failure notification
+ *   (@c n == -1) instead resets the receive state and returns
+ *   @c DYAD_RC_BADFIO without allocating or copying a buffer.
  *
  * @note The data flow for Margo receive is inverted compared to the
  *       Flux RPC backend. In the Flux RPC backend the producer pushes
@@ -563,8 +575,8 @@ dyad_rc_t dyad_dtl_margo_send (const dyad_ctx_t *ctx, void *buf, size_t buflen);
  *                    this buffer via @c ctx->dtl_handle->return_buffer().
  * @param[out] buflen Set to the number of bytes received.
  *
- * @return Always returns @c DYAD_RC_OK. Error handling for allocation
- *         failure and copy errors is not yet implemented (see TODO).
+ * @return @c DYAD_RC_OK after copying data, @c DYAD_RC_BADFIO when the
+ *         producer sent its @c n == -1 failure marker.
  *
  * @todo Add error checking for @c malloc() failure.
  */
@@ -662,6 +674,15 @@ dyad_rc_t dyad_dtl_margo_send_detached (const dyad_ctx_t *ctx,
                                         void *req_state,
                                         void *buf,
                                         size_t buflen);
+
+/**
+ * @brief Sends a Margo @c n == -1 failure-control RPC using detached state.
+ *
+ * @param[in] ctx Producer-side Margo DTL context.
+ * @param[in] req_state Detached request state consumed by this call.
+ * @return @c DYAD_RC_OK when the consumer acknowledged the marker; a Margo
+ *         error otherwise.
+ */
 
 /**
  * @brief Frees a detached request's state without sending data, for use on

@@ -350,6 +350,7 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
     ssize_t file_size = 0l;
     dyad_rc_t rc = 0;
     struct flock shared_lock;
+    bool request_unpacked = false;
     if (!flux_msg_is_streaming (msg)) {
         errno = EPROTO;
         goto fetch_error_wo_flock;
@@ -367,6 +368,7 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
         errno = EPROTO;
         goto fetch_error_wo_flock;
     }
+    request_unpacked = true;
     DYAD_C_FUNCTION_UPDATE_STR ("upath", upath);
     DYAD_LOG_DEBUG (mod_ctx->ctx, "DYAD_MOD: requested user_path: %s", upath);
     DYAD_LOG_DEBUG (mod_ctx->ctx, "DYAD_MOD: sending initial response to consumer");
@@ -411,6 +413,11 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
 #endif
     // clang-format on
     rc = mod_ctx->ctx->dtl_handle->get_buffer (mod_ctx->ctx, file_size, (void **)&inbuf);
+    if (DYAD_IS_ERROR (rc)) {
+        DYAD_LOG_ERROR (mod_ctx->ctx, "DYAD_MOD: Could not allocate DTL buffer for fetch");
+        errno = ENOMEM;
+        goto fetch_error;
+    }
 #ifdef DYAD_ENABLE_UCX_DTL
     memcpy (inbuf, &file_size, sizeof (file_size));
 #endif
@@ -498,6 +505,11 @@ fetch_error:;
     close (fd);
 
 fetch_error_wo_flock:;
+    if (request_unpacked && mod_ctx->ctx->dtl_handle->mode != DYAD_DTL_FLUX_RPC
+        && !DYAD_IS_ERROR (mod_ctx->ctx->dtl_handle->establish_connection (mod_ctx->ctx))) {
+        mod_ctx->ctx->dtl_handle->send (mod_ctx->ctx, NULL, DYAD_DTL_SEND_ERROR);
+        mod_ctx->ctx->dtl_handle->close_connection (mod_ctx->ctx);
+    }
     DYAD_LOG_ERROR (mod_ctx->ctx,
                     "DYAD_MOD: Close RPC message stream with an error (errno = %d)\n",
                     errno);
@@ -599,7 +611,11 @@ static void dyad_fetch_completion_watcher_cb (flux_reactor_t *r,
             }
         } else {
             if (item->req_state != NULL) {
-                ctx->dtl_handle->rpc_abort_detached (ctx, item->req_state);
+                ctx->dtl_handle->rpc_send_detached (ctx,
+                                                    item->req_state,
+                                                    NULL,
+                                                    DYAD_DTL_SEND_ERROR);
+                item->req_state = NULL;
             }
             if (flux_respond_error (ctx->h, item->msg, item->saved_errno, NULL) < 0) {
                 DYAD_LOG_ERROR (ctx, "DYAD_MOD: %s: flux_respond_error", __func__);
@@ -905,6 +921,8 @@ dyad_fetch_range_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t 
     ssize_t range_len = 0l;
     dyad_rc_t rc = 0;
     struct flock shared_lock;
+    bool request_unpacked = false;
+    bool request_detached = false;
     if (!flux_msg_is_streaming (msg)) {
         errno = EPROTO;
         goto fetch_range_error_wo_flock;
@@ -922,6 +940,7 @@ dyad_fetch_range_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t 
         errno = EPROTO;
         goto fetch_range_error_wo_flock;
     }
+    request_unpacked = true;
     DYAD_C_FUNCTION_UPDATE_STR ("upath", upath);
     DYAD_LOG_DEBUG (mod_ctx->ctx,
                     "DYAD_MOD: requested user_path: %s, offset: %zu, length: %zu",
@@ -977,6 +996,7 @@ dyad_fetch_range_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t 
             errno = EPROTO;
             goto fetch_range_error_wo_flock;
         }
+        request_detached = true;
         // Sized to the client-requested length as an upper bound -- the
         // true clamped range_len isn't known until the worker opens the
         // file, functionally identical to the fallback path below, just
@@ -985,7 +1005,10 @@ dyad_fetch_range_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t 
         if (DYAD_IS_ERROR (rc)) {
             DYAD_LOG_ERROR (mod_ctx->ctx,
                             "DYAD_MOD: Could not allocate DTL buffer for ranged fetch");
-            mod_ctx->ctx->dtl_handle->rpc_abort_detached (mod_ctx->ctx, item->req_state);
+            mod_ctx->ctx->dtl_handle->rpc_send_detached (mod_ctx->ctx,
+                                                          item->req_state,
+                                                          NULL,
+                                                          DYAD_DTL_SEND_ERROR);
             flux_msg_decref (item->msg);
             free (item);
             errno = ENOMEM;
@@ -1141,6 +1164,11 @@ fetch_range_error:;
     close (fd);
 
 fetch_range_error_wo_flock:;
+    if (request_unpacked && !request_detached && mod_ctx->ctx->dtl_handle->mode != DYAD_DTL_FLUX_RPC
+        && !DYAD_IS_ERROR (mod_ctx->ctx->dtl_handle->establish_connection (mod_ctx->ctx))) {
+        mod_ctx->ctx->dtl_handle->send (mod_ctx->ctx, NULL, DYAD_DTL_SEND_ERROR);
+        mod_ctx->ctx->dtl_handle->close_connection (mod_ctx->ctx);
+    }
     DYAD_LOG_ERROR (mod_ctx->ctx,
                     "DYAD_MOD: Close RPC message stream with an error (errno = %d)\n",
                     errno);

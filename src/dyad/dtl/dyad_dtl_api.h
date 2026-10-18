@@ -26,6 +26,9 @@
 #include <dyad/common/dyad_rc.h>
 #include <dyad/common/dyad_structures.h>
 
+/** Internal @c send() length denoting a producer-side transfer failure. */
+#define DYAD_DTL_SEND_ERROR SIZE_MAX
+
 #ifdef __cplusplus
 extern "C" {
 #endif

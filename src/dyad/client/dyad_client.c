@@ -784,7 +784,7 @@ get_done:;
 #ifdef DYAD_ENABLE_UCX_DTL
     // For UCX RMA, file_size was prepended to the buffer by the server; extract it
     // here to get the true data length and advance past the prefix.
-    if (ctx->dtl_handle->mode == DYAD_DTL_UCX) {
+    if (rc == DYAD_RC_OK && ctx->dtl_handle->mode == DYAD_DTL_UCX) {
         ctx->dtl_handle->get_buffer (ctx, 0, (void **)file_data);
         ssize_t read_len = 0l;
         memcpy (&read_len, *file_data, sizeof (read_len));

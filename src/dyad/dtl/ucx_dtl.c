@@ -558,8 +558,7 @@ ucx_send_no_wait_done:;
  * @param[out] buflen   Unused by this function. Populated by the caller
  *                      after return.
  *
- * @return Always returns @c NULL. The actual data is read directly from
- *         @c dtl_handle->net_buf by the caller.
+ * @return @c DYAD_RC_OK when the prefix arrives.
  *
  * @todo Replace the busy-poll with a more efficient notification
  *       mechanism. The current approach wastes CPU cycles and adds
@@ -567,13 +566,13 @@ ucx_send_no_wait_done:;
  *       or a lightweight atomic flag could provide lower-latency
  *       completion notification.
  */
-static inline ucs_status_ptr_t ucx_recv_no_wait (const dyad_ctx_t *ctx,
-                                                 bool is_warmup,
-                                                 void **buf,
-                                                 size_t *buflen)
+static inline dyad_rc_t ucx_recv_no_wait (const dyad_ctx_t *ctx,
+                                          bool is_warmup,
+                                          void **buf,
+                                          size_t *buflen)
 {
     DYAD_C_FUNCTION_START ();
-    ucs_status_ptr_t stat_ptr = NULL;
+    dyad_rc_t rc = DYAD_RC_OK;
     dyad_dtl_ucx_t *dtl_handle = ctx->dtl_handle->private_dtl.ucx_dtl_handle;
     ssize_t temp = 0l;
     int is_first = 1;
@@ -588,7 +587,7 @@ static inline ucs_status_ptr_t ucx_recv_no_wait (const dyad_ctx_t *ctx,
     } while (temp == 0l);
     DYAD_LOG_DEBUG (ctx, "Consumer finsihed all work");
     DYAD_C_FUNCTION_END ();
-    return stat_ptr;
+    return rc;
 }
 
 /**
@@ -1196,7 +1195,12 @@ dyad_rc_t dyad_dtl_ucx_send (const dyad_ctx_t *ctx, void *buf, size_t buflen)
     dyad_rc_t rc = DYAD_RC_OK;
     ucs_status_ptr_t stat_ptr;
     ucs_status_t status = UCS_OK;
-    stat_ptr = ucx_send_no_wait (ctx, false, buf, buflen);
+    const ssize_t failed_len = -1;
+    if (buflen == DYAD_DTL_SEND_ERROR) {
+        buf = (void *)&failed_len;
+        buflen = sizeof (failed_len);
+    }
+    stat_ptr = ucx_send_no_wait (ctx, false, buf, (size_t)buflen);
     DYAD_LOG_INFO (ctx, "Processing UCP send request\n");
     status = dyad_ucx_request_wait (ctx, stat_ptr);
     if (status != UCS_OK) {
@@ -1216,10 +1220,12 @@ dyad_rc_t dyad_dtl_ucx_recv (const dyad_ctx_t *ctx, void **buf, size_t *buflen)
     DYAD_C_FUNCTION_START ();
     dyad_rc_t rc = DYAD_RC_OK;
 
-    ucs_status_ptr_t stat_ptr = NULL;
-    // Wait on the recv operation to complete
-    stat_ptr = ucx_recv_no_wait (ctx, false, buf, buflen);
-    (void)stat_ptr;
+    // Wait on the recv operation to complete.
+    rc = ucx_recv_no_wait (ctx, false, buf, buflen);
+    if (DYAD_IS_ERROR (rc)) {
+        DYAD_C_FUNCTION_END ();
+        return rc;
+    }
 
     DYAD_LOG_INFO (ctx, "Data receive using UCX is successful\n");
     DYAD_LOG_INFO (ctx, "Received %lu bytes from producer\n", *buflen);

@@ -488,6 +488,13 @@ dyad_rc_t dyad_dtl_ucx_establish_connection (const dyad_ctx_t *ctx);
 dyad_rc_t dyad_dtl_ucx_send (const dyad_ctx_t *ctx, void *buf, size_t buflen);
 
 /**
+ * @brief Writes the signed @c -1 failure prefix into the consumer's UCX buffer.
+ *
+ * @param[in] ctx Producer-side UCX DTL context for the accepted request.
+ * @return @c DYAD_RC_OK when the marker was delivered; a UCX error otherwise.
+ */
+
+/**
  * @brief Receives file data from the producer via UCX RDMA push.
  *
  * @details
@@ -500,10 +507,6 @@ dyad_rc_t dyad_dtl_ucx_send (const dyad_ctx_t *ctx, void *buf, size_t buflen);
  * the caller from the pre-allocated buffer via
  * @c dyad_dtl_ucx_get_buffer().
  *
- * @note The return value of @c ucx_recv_no_wait() is intentionally
- *       discarded (@c (void)stat_ptr) since it always returns @c NULL
- *       for the UCX backend — the actual completion is signalled by
- *       the buffer sentinel, not by a UCX request handle.
  *
  * @note Unlike the Flux RPC backend where @p buf and @p buflen are
  *       populated with a newly allocated copy of the received data,
@@ -516,11 +519,9 @@ dyad_rc_t dyad_dtl_ucx_send (const dyad_ctx_t *ctx, void *buf, size_t buflen);
  *                    is in @c dtl_handle->net_buf.
  * @param[out] buflen Not populated by this function.
  *
- * @return Always returns @c DYAD_RC_OK.
+ * @return Always returns @c DYAD_RC_OK after the prefix arrives.
  *
- * @todo Add error handling for cases where the RDMA push fails or
- *       times out. The current implementation spins indefinitely if
- *       the sentinel never becomes non-zero.
+ * @todo Add a timeout for the case where the prefix never arrives.
  */
 dyad_rc_t dyad_dtl_ucx_recv (const dyad_ctx_t *ctx, void **buf, size_t *buflen);
 
