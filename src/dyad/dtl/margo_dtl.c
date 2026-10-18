@@ -726,6 +726,8 @@ dyad_rc_t dyad_dtl_margo_rpc_unpack_range (const dyad_ctx_t *ctx,
         rc = DYAD_RC_BADUNPACK;
         goto dtl_margo_rpc_unpack_range_region_finish;
     }
+    /* Normal DYAD clients originate these fields as size_t. A negative
+     * value can only arrive through a malformed or incompatible RPC. */
     *offset = (size_t)offset_val;
     *length = (size_t)length_val;
 

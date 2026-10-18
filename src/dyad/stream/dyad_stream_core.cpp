@@ -110,6 +110,10 @@ void dyad_stream_core::init (const bool reinit)
     }
     DYAD_CPP_FUNCTION ();
 
+    if (m_ctx == NULL || m_ctx->h == NULL) {
+        abort ();
+    }
+
     if (m_ctx != NULL) {
         if ((e = getenv (DYAD_PATH_CONSUMER_ENV))) {
             m_is_cons = (strlen (e) != 0);
@@ -153,6 +157,10 @@ void dyad_stream_core::init (const dyad_params &p)
                               p.m_origin_path.empty () ? nullptr : p.m_origin_path.c_str ());
     DYAD_CPP_FUNCTION ();
     m_ctx = m_ctx_mutable = dyad_ctx_get ();
+    if (DYAD_IS_ERROR (rc) || m_ctx == NULL || m_ctx->h == NULL) {
+        abort ();
+    }
+
     if (!DYAD_IS_ERROR (rc) && m_ctx != NULL) {
         m_is_prod = !p.m_prod_managed_path.empty ();
         m_is_cons = !p.m_cons_managed_path.empty ();
