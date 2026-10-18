@@ -597,42 +597,25 @@ static inline dyad_rc_t ucx_recv_no_wait (const dyad_ctx_t *ctx,
 }
 
 /**
- * @brief Performs a UCX connection warmup by sending a 1-byte message
- *        to self.
+ * @brief Performs a UCX RDMA loopback warmup.
  *
  * @details
- * Warms up the UCX RDMA connection by performing a loopback send from
- * the local worker to itself. This primes the UCX connection machinery
- * — endpoint creation, remote key exchange, and RDMA registration —
- * so that the first real data transfer does not pay the full connection
- * establishment cost.
+ * Creates an endpoint from the local worker to itself and performs a
+ * one-byte RDMA put into a separately registered local buffer. It packs a
+ * temporary key for that buffer and never exposes the key outside this
+ * function, so no consumer is required during initialization and the normal
+ * producer buffer remains local-read-only.
  *
  * The warmup sequence is:
- *  1. Allocates a 1-byte UCX-registered send buffer via
- *     @c dyad_dtl_ucx_get_buffer() and a plain 1-byte receive buffer
- *     via @c malloc().
- *  2. Connects to the local worker's own address via @c ucx_connect(),
+ *  1. Connects to the local worker's own address via @c ucx_connect(),
  *     creating a loopback endpoint.
- *  3. Initiates a non-blocking 1-byte RDMA put to self via
- *     @c ucx_send_no_wait() with @c is_warmup=true.
- *  4. Waits for the send to complete via @c dyad_ucx_request_wait().
- *  5. Disconnects from self via @c ucx_disconnect() and frees both
- *     buffers.
+ *  2. Allocates and registers a one-byte warmup buffer with local-read and
+ *     remote-write access, then packs and unpacks a temporary self key.
+ *  3. Issues and waits for a one-byte RDMA put to that warmup buffer.
+ *  4. Releases the temporary key material and disconnects on every exit.
  *
- * On any failure, both buffers are freed and the appropriate error
- * code is returned before cleanup.
- *
- * @note The receive buffer is allocated with @c malloc() rather than
- *       @c dyad_dtl_ucx_get_buffer() because the warmup receive is not
- *       a real RDMA operation — the loopback send writes into the
- *       UCX-registered send buffer itself, and the plain receive buffer
- *       is only allocated to mirror the real transfer path without
- *       being used.
- *
- * @note The warmup is only performed on the producer side during
- *       @c dyad_dtl_ucx_init(). The consumer side does not need a
- *       warmup because it waits passively for the producer to initiate
- *       the connection.
+ * This is independent of consumer state and is therefore valid for either
+ * communication direction.
  *
  * @param[in] ctx DYAD context. The UCX worker, local address, and
  *                endpoint are read from and written to the UCX DTL
@@ -640,74 +623,102 @@ static inline dyad_rc_t ucx_recv_no_wait (const dyad_ctx_t *ctx,
  *
  * @return @c dyad_rc_t return code:
  * @retval DYAD_RC_OK            Warmup completed successfully.
- * @retval DYAD_RC_SYSFAIL       Failed to allocate the plain receive
- *                               buffer via @c malloc().
- * @retval DYAD_RC_UCXCOMM_FAIL  The warmup send operation failed.
+ * @retval DYAD_RC_UCXMMAP_FAIL  Warmup-buffer mapping or address query failed.
+ * @retval DYAD_RC_UCXRKEY_PACK_FAILED Packing the temporary self key failed.
+ * @retval DYAD_RC_UCXCOMM_FAIL  Key unpacking or the RDMA put failed.
  * @retval other                 Any error code returned by
- *                               @c dyad_dtl_ucx_get_buffer() or
  *                               @c ucx_connect().
  */
 static dyad_rc_t ucx_warmup (const dyad_ctx_t *ctx)
 {
     DYAD_C_FUNCTION_START ();
     dyad_rc_t rc = DYAD_RC_OK;
-    void *send_buf = NULL;
-    void *recv_buf = NULL;
-    ucs_status_ptr_t send_stat_ptr = NULL;
-    ucs_status_t send_status = UCS_OK;
-    ucs_status_t recv_status = UCS_OK;
-    (void)recv_status;
+    void *packed_rkey = NULL;
+    size_t packed_rkey_size = 0ul;
+    ucp_rkey_h warmup_rkey = NULL;
+    ucp_mem_h warmup_mem = NULL;
+    void *warmup_buf = NULL;
+    ucp_mem_map_params_t mmap_params = {0};
+    ucp_mem_attr_t mem_attr = {0};
+    ucp_request_param_t request_params = {0};
+    ucs_status_ptr_t request = NULL;
+    ucs_status_t status = UCS_OK;
+    dyad_dtl_ucx_t *dtl_handle = ctx->dtl_handle->private_dtl.ucx_dtl_handle;
     DYAD_LOG_INFO (ctx, "Starting warmup for UCX DTL");
-    DYAD_LOG_INFO (ctx, "Getting buffers for sending and receiving");
-    rc = dyad_dtl_ucx_get_buffer (ctx, 1, &send_buf);
-    if (DYAD_IS_ERROR (rc)) {
-        DYAD_LOG_ERROR (ctx, "Failed to get UCX-allocated buffer");
-        goto warmup_region_done;
-    }
-    recv_buf = malloc (1);
-    if (recv_buf == NULL) {
-        dyad_dtl_ucx_return_buffer (ctx, &send_buf);
-        rc = DYAD_RC_SYSFAIL;
-        DYAD_LOG_ERROR (ctx, "Failed to allocate receive buffer for warmup");
-        goto warmup_region_done;
-    }
     DYAD_LOG_INFO (ctx, "Establishing connection with self");
-    rc = ucx_connect (ctx,
-                      ctx->dtl_handle->private_dtl.ucx_dtl_handle->ucx_worker,
-                      ctx->dtl_handle->private_dtl.ucx_dtl_handle->local_address,
-                      &(ctx->dtl_handle->private_dtl.ucx_dtl_handle->ep));
+    rc = ucx_connect (ctx, dtl_handle->ucx_worker, dtl_handle->local_address, &dtl_handle->ep);
     if (DYAD_IS_ERROR (rc)) {
-        free (recv_buf);
-        dyad_dtl_ucx_return_buffer (ctx, &send_buf);
         DYAD_LOG_ERROR (ctx, "Failed to establish connection with self");
         goto warmup_region_done;
     }
-    DYAD_LOG_INFO (ctx, "Starting non-blocking send for warmup");
-    send_stat_ptr = ucx_send_no_wait (ctx, true, send_buf, 1);
-    if ((uintptr_t)send_stat_ptr == (uintptr_t)UCS_ERR_NOT_CONNECTED) {
-        DYAD_LOG_ERROR (ctx, "Send failed because there's no endpoint");
-        free (recv_buf);
-        dyad_dtl_ucx_return_buffer (ctx, &send_buf);
+    mmap_params.field_mask = UCP_MEM_MAP_PARAM_FIELD_ADDRESS | UCP_MEM_MAP_PARAM_FIELD_LENGTH
+                             | UCP_MEM_MAP_PARAM_FIELD_FLAGS | UCP_MEM_MAP_PARAM_FIELD_MEMORY_TYPE
+                             | UCP_MEM_MAP_PARAM_FIELD_PROT;
+    mmap_params.memory_type = UCS_MEMORY_TYPE_HOST;
+    mmap_params.length = 1ul;
+    mmap_params.flags = UCP_MEM_MAP_ALLOCATE;
+    mmap_params.prot = UCP_MEM_MAP_PROT_LOCAL_READ | UCP_MEM_MAP_PROT_REMOTE_WRITE;
+    status = ucp_mem_map (dtl_handle->ucx_ctx, &mmap_params, &warmup_mem);
+    if (UCX_STATUS_FAIL (status)) {
+        rc = DYAD_RC_UCXMMAP_FAIL;
+        DYAD_LOG_ERROR (ctx, "Failed to allocate UCX warmup buffer");
         goto warmup_region_done;
     }
-    DYAD_LOG_INFO (ctx, "Waiting on warmup send to finish");
-    send_status = dyad_ucx_request_wait (ctx, send_stat_ptr);
-    DYAD_LOG_INFO (ctx, "Disconnecting from self");
-    ucx_disconnect (ctx,
-                    ctx->dtl_handle->private_dtl.ucx_dtl_handle->ucx_worker,
-                    ctx->dtl_handle->private_dtl.ucx_dtl_handle->ep);
-    dyad_dtl_ucx_return_buffer (ctx, &send_buf);
-    if (UCX_STATUS_FAIL (send_status)) {
+    mem_attr.field_mask = UCP_MEM_ATTR_FIELD_ADDRESS;
+    status = ucp_mem_query (warmup_mem, &mem_attr);
+    if (UCX_STATUS_FAIL (status)) {
+        rc = DYAD_RC_UCXMMAP_FAIL;
+        DYAD_LOG_ERROR (ctx, "Failed to query UCX warmup buffer");
+        goto warmup_region_done;
+    }
+    warmup_buf = mem_attr.address;
+    *(unsigned char *)warmup_buf = 1u;
+    status = ucp_rkey_pack (dtl_handle->ucx_ctx, warmup_mem, &packed_rkey, &packed_rkey_size);
+    if (UCX_STATUS_FAIL (status)) {
+        rc = DYAD_RC_UCXRKEY_PACK_FAILED;
+        DYAD_LOG_ERROR (ctx, "Failed to pack UCX warmup key");
+        goto warmup_region_done;
+    }
+    status = ucp_ep_rkey_unpack (dtl_handle->ep, packed_rkey, &warmup_rkey);
+    ucp_rkey_buffer_release (packed_rkey);
+    packed_rkey = NULL;
+    if (UCX_STATUS_FAIL (status)) {
         rc = DYAD_RC_UCXCOMM_FAIL;
-        DYAD_LOG_ERROR (ctx, "Warmup communication failed in UCX!");
+        DYAD_LOG_ERROR (ctx, "Failed to unpack UCX warmup key");
         goto warmup_region_done;
     }
-    DYAD_LOG_INFO (ctx, "Communication succeeded (according to UCX)");
-    DYAD_LOG_INFO (ctx, "Correct amount of data received in warmup");
-    free (recv_buf);
-    rc = DYAD_RC_OK;
+    request = ucp_put_nbx (dtl_handle->ep,
+                           warmup_buf,
+                           1ul,
+                           (uint64_t)warmup_buf,
+                           warmup_rkey,
+                           &request_params);
+    status = dyad_ucx_request_wait (ctx, request);
+    if (UCX_STATUS_FAIL (status)) {
+        rc = DYAD_RC_UCXCOMM_FAIL;
+        DYAD_LOG_ERROR (ctx, "UCX warmup RDMA put failed");
+    }
 
 warmup_region_done:;
+    if (warmup_rkey != NULL) {
+        ucp_rkey_destroy (warmup_rkey);
+    }
+    if (packed_rkey != NULL) {
+        ucp_rkey_buffer_release (packed_rkey);
+    }
+    if (warmup_mem != NULL) {
+        ucp_mem_unmap (dtl_handle->ucx_ctx, warmup_mem);
+    }
+    if (dtl_handle->ep != NULL) {
+        dyad_rc_t disconnect_rc = ucx_disconnect (ctx, dtl_handle->ucx_worker, dtl_handle->ep);
+        dtl_handle->ep = NULL;
+        if (DYAD_IS_ERROR (disconnect_rc)) {
+            /* A force-close may report an error when no loopback transport
+             * connection was established. UCX has retired the endpoint, and
+             * the warmup has no consumer-visible connection to preserve. */
+            DYAD_LOG_INFO (ctx, "UCX self-endpoint close reported %d", (int)disconnect_rc);
+        }
+    }
     DYAD_C_FUNCTION_END ();
     return rc;
 }
