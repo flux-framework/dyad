@@ -1054,17 +1054,17 @@ pull_done:;
 dyad_rc_t dyad_produce (dyad_ctx_t *restrict ctx, const char *restrict fname)
 {
     DYAD_C_FUNCTION_START ();
-    ctx->fname = fname;
-    DYAD_C_FUNCTION_UPDATE_STR ("fname", ctx->fname);
-    DYAD_LOG_DEBUG (ctx, "DYAD CLIENT: Executing dyad_produce");
     dyad_rc_t rc = DYAD_RC_OK;
     // If the context is not defined, then it is not valid.
     // So, return DYAD_NOCTX
     if (!ctx || !ctx->h) {
-        DYAD_LOG_ERROR (ctx, "DYAD CLIENT: No CTX found in dyad_produce");
+        DYAD_LOG_STDERR ("DYAD CLIENT: No CTX found in dyad_produce\n");
         rc = DYAD_RC_NOCTX;
         goto produce_done;
     }
+    ctx->fname = fname;
+    DYAD_C_FUNCTION_UPDATE_STR ("fname", ctx->fname);
+    DYAD_LOG_DEBUG (ctx, "DYAD CLIENT: Executing dyad_produce");
     // If the producer-managed path is NULL or empty, then the context is not
     // valid for a producer operation. So, return DYAD_BADMANAGEDPATH
     if (ctx->prod_managed_path == NULL) {
@@ -1393,7 +1393,8 @@ consume_done:;
     }
     // Set reenter to true to allow additional intercepting
 consume_close:;
-    ctx->reenter = true;
+    if (ctx != NULL)
+        ctx->reenter = true;
     DYAD_C_FUNCTION_END ();
     return rc;
 }
@@ -1526,7 +1527,8 @@ consume_done:;
     }
 consume_close:;
     // Set reenter to true to allow additional intercepting
-    ctx->reenter = true;
+    if (ctx != NULL)
+        ctx->reenter = true;
     DYAD_C_FUNCTION_END ();
     return rc;
 }
@@ -1650,7 +1652,8 @@ consume_range_done:;
         dyad_free_metadata (&mdata);
     }
 consume_range_close:;
-    ctx->reenter = true;
+    if (ctx != NULL)
+        ctx->reenter = true;
     DYAD_C_FUNCTION_END ();
     return rc;
 }
@@ -1707,9 +1710,10 @@ int dyad_sync_directory (dyad_ctx_t *restrict ctx, const char *restrict path)
     strncpy (path_copy, path, PATH_MAX);
     odir = dirname (path_copy);
 
-    reenter = ctx->reenter;  // backup ctx->reenter
-    if (ctx != NULL)
+    if (ctx != NULL) {
+        reenter = ctx->reenter;  // backup ctx->reenter
         ctx->reenter = false;
+    }
 
     if ((odir_fd = open (odir, O_RDONLY)) < 0) {
         IPRINTF (ctx, "Cannot open the directory \"%s\"\n", odir);
