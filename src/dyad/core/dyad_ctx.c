@@ -37,6 +37,7 @@ static __thread dyad_ctx_t *ctx = NULL;
 const struct dyad_ctx dyad_ctx_default = {
     // Internal
     NULL,   ///< h
+    false,  ///< owns_flux_handle
     NULL,   ///< dtl_handle
     NULL,   ///< fname
     false,  ///< use_fs_locks
@@ -222,8 +223,10 @@ dyad_rc_t dyad_init (bool debug,
 
     if (flux_handle != NULL) {
         ctx->h = (flux_t *)flux_handle;
+        ctx->owns_flux_handle = false;
     } else {
         ctx->h = flux_open (NULL, 0);
+        ctx->owns_flux_handle = (ctx->h != NULL);
     }
     if (ctx->h == NULL) {
         fprintf (stderr, "Could not open Flux handle!\n");
@@ -892,10 +895,11 @@ DYAD_DLL_EXPORTED dyad_rc_t dyad_clear (void)
     }
     dyad_dtl_finalize (ctx);
     dyad_cache_policy_finalize (ctx);
-    if (ctx->h != NULL) {
+    if (ctx->h != NULL && ctx->owns_flux_handle) {
         flux_close (ctx->h);
-        ctx->h = NULL;
     }
+    ctx->h = NULL;
+    ctx->owns_flux_handle = false;
     if (ctx->kvs_namespace != NULL) {
         free (ctx->kvs_namespace);
         ctx->kvs_namespace = NULL;

@@ -27,6 +27,7 @@ extern "C" {
 struct dyad_ctx {
     // Internal
     void *h;                      ///< the Flux handle for DYAD
+    bool owns_flux_handle;        ///< true when DYAD opened @c h itself
     struct dyad_dtl *dtl_handle;  ///< Opaque handle to DTL info
     const char *fname;            ///< Used to track which file is getting processed.
     bool use_fs_locks;            ///< Used to track if fs locks should be used.
