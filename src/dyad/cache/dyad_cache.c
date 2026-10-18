@@ -18,6 +18,21 @@
 #include <dyad/utils/utils.h>
 // clang-format on
 
+/**
+ * @brief Returns whether a directory entry is a range-cache bitmap sidecar.
+ *
+ * @param[in] name Directory-entry name, not a full path.
+ *
+ * @return @c true when @p name ends in @c .dyad_cached; otherwise @c false.
+ */
+static bool dyad_cache_is_range_bitmap (const char *name)
+{
+    static const char suffix[] = ".dyad_cached";
+    const size_t name_len = strlen (name);
+    const size_t suffix_len = sizeof (suffix) - 1ul;
+    return name_len > suffix_len && strcmp (name + name_len - suffix_len, suffix) == 0;
+}
+
 dyad_rc_t dyad_cache_scan_dir (const dyad_ctx_t *ctx,
                                const char *managed_path,
                                struct dyad_cache_entry **out_entries,
@@ -50,7 +65,8 @@ dyad_rc_t dyad_cache_scan_dir (const dyad_ctx_t *ctx,
         int64_t recency_key = 0;
 
         if (strcmp (dent->d_name, ".") == 0 || strcmp (dent->d_name, "..") == 0
-            || strcmp (dent->d_name, DYAD_CACHE_LOCK_FILENAME) == 0) {
+            || strcmp (dent->d_name, DYAD_CACHE_LOCK_FILENAME) == 0
+            || dyad_cache_is_range_bitmap (dent->d_name)) {
             continue;
         }
         snprintf (path, sizeof (path), "%s/%s", managed_path, dent->d_name);
@@ -192,6 +208,14 @@ dyad_rc_t dyad_cache_maybe_evict (dyad_ctx_t *ctx, const char *managed_path)
             continue;
         }
         if (unlink (entries[i].path) == 0) {
+            char bitmap_path[PATH_MAX + 1];
+
+            // A range-cache bitmap describes only this data file.  Remove it
+            // with the victim so a later cache miss cannot trust stale bits.
+            if (snprintf (bitmap_path, sizeof (bitmap_path), "%s.dyad_cached", entries[i].path)
+                < (int)sizeof (bitmap_path)) {
+                unlink (bitmap_path);
+            }
             total_size -= (uint64_t)entries[i].size;
             bytes_freed += (uint64_t)entries[i].size;
             n_evicted++;

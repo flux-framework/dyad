@@ -165,6 +165,8 @@ static dyad_rc_t range_cache_fetch_span (const dyad_ctx_t *ctx,
     dyad_rc_t rc = DYAD_RC_OK;
     int origin_fd = -1;
     int local_fd = -1;
+    struct flock local_lock;
+    bool local_locked = false;
     void *span_buf = NULL;
     size_t span_off = block_start * DYAD_RANGE_CACHE_BLOCK_SIZE;
     size_t span_end = (block_end + 1ul) * DYAD_RANGE_CACHE_BLOCK_SIZE;
@@ -195,8 +197,13 @@ static dyad_rc_t range_cache_fetch_span (const dyad_ctx_t *ctx,
     }
 
     local_fd = open (local_path, O_WRONLY);
-    if (local_fd == -1
-        || pwrite (local_fd, span_buf, span_len, (off_t)span_off) != (ssize_t)span_len) {
+    if (local_fd == -1 || DYAD_IS_ERROR (dyad_excl_flock (ctx, local_fd, &local_lock))) {
+        DYAD_WORKER_LOG_ERROR ("DYAD RANGE_CACHE: cannot lock local '%s'", local_path);
+        rc = DYAD_RC_BADFIO;
+        goto fetch_span_done;
+    }
+    local_locked = true;
+    if (pwrite (local_fd, span_buf, span_len, (off_t)span_off) != (ssize_t)span_len) {
         DYAD_WORKER_LOG_ERROR (
             "DYAD RANGE_CACHE: cannot write span [%zu, %zu) into local '%s'",
             span_off,
@@ -212,6 +219,9 @@ fetch_span_done:;
         close (origin_fd);
     }
     if (local_fd != -1) {
+        if (local_locked) {
+            dyad_release_flock (ctx, local_fd, &local_lock);
+        }
         close (local_fd);
     }
     free (span_buf);

@@ -528,7 +528,7 @@ dyad_rc_t dyad_excl_flock (const dyad_ctx_t *__restrict__ ctx,
     dyad_rc_t rc = DYAD_RC_OK;
     DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
-    DYAD_LOG_DEBUG (ctx,
+    DYAD_WORKER_LOG_DEBUG (
                     "DYAD UTIL: [node %u rank %u pid %d] Applies an exclusive lock on fd %d.",
                     ctx->node_idx,
                     ctx->rank,
@@ -544,7 +544,7 @@ dyad_rc_t dyad_excl_flock (const dyad_ctx_t *__restrict__ ctx,
     lock->l_len = 0;
     lock->l_pid = ctx->pid;                  // getpid();
     if (fcntl (fd, F_SETLKW, lock) == -1) {  // will wait until able to lock
-        DYAD_LOG_ERROR (ctx, "DYAD UTIL: Cannot apply exclusive lock on fd %d.", fd);
+        DYAD_WORKER_LOG_ERROR ("DYAD UTIL: Cannot apply exclusive lock on fd %d.", fd);
         rc = DYAD_RC_BADFIO;
         goto excl_flock_end;
     }
