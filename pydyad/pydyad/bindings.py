@@ -369,6 +369,7 @@ class Dyad:
                 .expanduser()
                 .resolve()
             )
+        self.initialized = True
 
     def __del__(self):
         self.finalize()
