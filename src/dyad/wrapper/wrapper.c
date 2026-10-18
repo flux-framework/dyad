@@ -205,7 +205,8 @@ static __attribute__ ((destructor)) void dyad_wrapper_fini (void)
  * On the consumer side, if the context is valid and the re-entrancy guard is
  * not active, calls @c dyad_consume() which ensures the file is ready,
  * potentially triggering a data transfer from the producer if the file is
- * not yet locally available.
+ * not yet locally available. After the real read-only open succeeds, takes a
+ * shared OFD lock. Closing the descriptor releases that lock.
  *
  * On the producer side, after a successful @c open() in write or append mode
  * on a file under the producer-managed path, acquires an exclusive lock to
@@ -245,6 +246,8 @@ static int dyad_open_wrapper (const char *path, int oflag, ...)
     open_ptr_t func_ptr = NULL;
     int mode = 0;
     const int access_mode = oflag & O_ACCMODE;
+    bool is_managed = false;
+    dyad_rc_t consume_rc = DYAD_RC_OK;
     char upath[PATH_MAX + 1] = {'\0'};
 
     if (oflag & O_CREAT) {
@@ -273,14 +276,24 @@ static int dyad_open_wrapper (const char *path, int oflag, ...)
     }
 
     IPRINTF (ctx, "DYAD_SYNC: enters open sync (\"%s\").", path);
-    if (DYAD_IS_ERROR (dyad_consume (ctx_mutable, path))) {
+    consume_rc = dyad_consume (ctx_mutable, path, &is_managed);
+    if (DYAD_IS_ERROR (consume_rc)) {
         DPRINTF (ctx, "DYAD_SYNC: failed open sync (\"%s\").", path);
+        is_managed = false;
         goto real_call;
     }
     IPRINTF (ctx, "DYAD_SYNC: exits open sync (\"%s\").", path);
 
 real_call:;
     int ret = (func_ptr (path, oflag, mode));
+
+    if (ret >= 0 && is_managed) {
+        struct flock shared_lock;
+        dyad_rc_t rc = dyad_ofd_shared_flock (ctx, ret, &shared_lock);
+        if (DYAD_IS_ERROR (rc)) {
+            dyad_ofd_release_flock (ctx, ret, &shared_lock);
+        }
+    }
 
     // This lock is to prevent consumers that has direct access to the file
     // from reading the file being produced by a producer. For example,
@@ -307,7 +320,8 @@ real_call:;
  *
  * @details
  * Functionally equivalent to @c dyad_open_wrapper() but intercepts
- * @c fopen() instead of @c open().
+ * @c fopen() instead of @c open(). A successful managed @c "r" open takes a
+ * shared OFD lock, which @c fclose() releases with the descriptor.
  *
  * @see dyad_open_wrapper()
  */
@@ -317,6 +331,8 @@ static FILE *dyad_fopen_wrapper (const char *path, const char *mode)
     DYAD_C_FUNCTION_UPDATE_STR ("path", "path");
     typedef FILE *(*fopen_ptr_t) (const char *, const char *);
     fopen_ptr_t func_ptr = NULL;
+    bool is_managed = false;
+    dyad_rc_t consume_rc = DYAD_RC_OK;
     char upath[PATH_MAX + 1] = {'\0'};
 
     func_ptr = __extension__ (fopen_ptr_t) gotcha_get_wrappee (wrappee_fopen_handle);
@@ -338,14 +354,25 @@ static FILE *dyad_fopen_wrapper (const char *path, const char *mode)
     }
 
     IPRINTF (ctx, "DYAD_SYNC: enters fopen sync (\"%s\").\n", path);
-    if (DYAD_IS_ERROR (dyad_consume (ctx_mutable, path))) {
+    consume_rc = dyad_consume (ctx_mutable, path, &is_managed);
+    if (DYAD_IS_ERROR (consume_rc)) {
         DPRINTF (ctx, "DYAD_SYNC: failed fopen sync (\"%s\").\n", path);
+        is_managed = false;
         goto real_call;
     }
     IPRINTF (ctx, "DYAD_SYNC: exits fopen sync (\"%s\").\n", path);
 
 real_call:;
     FILE *fh = (func_ptr (path, mode));
+
+    if (fh != NULL && is_managed) {
+        const int fd = fileno (fh);
+        struct flock shared_lock;
+        dyad_rc_t rc = dyad_ofd_shared_flock (ctx, fd, &shared_lock);
+        if (DYAD_IS_ERROR (rc)) {
+            dyad_ofd_release_flock (ctx, fd, &shared_lock);
+        }
+    }
 
     // This lock is to prevent consumers that has direct access to the file
     // from reading the file being produced by a producer. For example,
@@ -600,6 +627,8 @@ static int dyad_open64_wrapper (const char *path, int oflag, ...)
     open64_ptr_t func_ptr = NULL;
     int mode = 0;
     const int access_mode = oflag & O_ACCMODE;
+    bool is_managed = false;
+    dyad_rc_t consume_rc = DYAD_RC_OK;
     char upath[PATH_MAX + 1] = {'\0'};
 
     if (oflag & O_CREAT) {
@@ -628,14 +657,24 @@ static int dyad_open64_wrapper (const char *path, int oflag, ...)
     }
 
     IPRINTF (ctx, "DYAD_SYNC: enters open64 sync (\"%s\").", path);
-    if (DYAD_IS_ERROR (dyad_consume (ctx_mutable, path))) {
+    consume_rc = dyad_consume (ctx_mutable, path, &is_managed);
+    if (DYAD_IS_ERROR (consume_rc)) {
         DPRINTF (ctx, "DYAD_SYNC: failed open64 sync (\"%s\").", path);
+        is_managed = false;
         goto real_call;
     }
     IPRINTF (ctx, "DYAD_SYNC: exits open64 sync (\"%s\").", path);
 
 real_call:;
     int ret = (func_ptr (path, oflag, mode));
+
+    if (ret >= 0 && is_managed) {
+        struct flock shared_lock;
+        dyad_rc_t rc = dyad_ofd_shared_flock (ctx, ret, &shared_lock);
+        if (DYAD_IS_ERROR (rc)) {
+            dyad_ofd_release_flock (ctx, ret, &shared_lock);
+        }
+    }
 
     // This lock is to prevent consumers that has direct access to the file
     // from reading the file being produced by a producer. For example,
@@ -673,6 +712,8 @@ static FILE *dyad_fopen64_wrapper (const char *path, const char *mode)
     DYAD_C_FUNCTION_UPDATE_STR ("path", "path");
     typedef FILE *(*fopen64_ptr_t) (const char *, const char *);
     fopen64_ptr_t func_ptr = NULL;
+    bool is_managed = false;
+    dyad_rc_t consume_rc = DYAD_RC_OK;
     char upath[PATH_MAX + 1] = {'\0'};
 
     func_ptr = __extension__ (fopen64_ptr_t) gotcha_get_wrappee (wrappee_fopen64_handle);
@@ -694,14 +735,25 @@ static FILE *dyad_fopen64_wrapper (const char *path, const char *mode)
     }
 
     IPRINTF (ctx, "DYAD_SYNC: enters fopen64 sync (\"%s\").\n", path);
-    if (DYAD_IS_ERROR (dyad_consume (ctx_mutable, path))) {
+    consume_rc = dyad_consume (ctx_mutable, path, &is_managed);
+    if (DYAD_IS_ERROR (consume_rc)) {
         DPRINTF (ctx, "DYAD_SYNC: failed fopen64 sync (\"%s\").\n", path);
+        is_managed = false;
         goto real_call;
     }
     IPRINTF (ctx, "DYAD_SYNC: exits fopen64 sync (\"%s\").\n", path);
 
 real_call:;
     FILE *fh = (func_ptr (path, mode));
+
+    if (fh != NULL && is_managed) {
+        const int fd = fileno (fh);
+        struct flock shared_lock;
+        dyad_rc_t rc = dyad_ofd_shared_flock (ctx, fd, &shared_lock);
+        if (DYAD_IS_ERROR (rc)) {
+            dyad_ofd_release_flock (ctx, fd, &shared_lock);
+        }
+    }
 
     // This lock is to prevent consumers that has direct access to the file
     // from reading the file being produced by a producer. For example,

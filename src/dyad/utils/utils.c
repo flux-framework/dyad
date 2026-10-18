@@ -533,11 +533,11 @@ dyad_rc_t dyad_excl_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
     DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
     DYAD_WORKER_LOG_DEBUG (
-                    "DYAD UTIL: [node %u rank %u pid %d] Applies an exclusive lock on fd %d.",
-                    ctx->node_idx,
-                    ctx->rank,
-                    ctx->pid,
-                    fd);
+        "DYAD UTIL: [node %u rank %u pid %d] Applies an exclusive lock on fd %d.",
+        ctx->node_idx,
+        ctx->rank,
+        ctx->pid,
+        fd);
     if (!lock) {
         rc = DYAD_RC_BADFIO;
         goto excl_flock_end;
@@ -603,12 +603,11 @@ dyad_rc_t dyad_shared_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
     DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
     dyad_rc_t rc = DYAD_RC_OK;
-    DYAD_WORKER_LOG_DEBUG (
-        "DYAD UTIL: [node %u rank %u pid %d] Applies a shared lock on fd %d.",
-        ctx->node_idx,
-        ctx->rank,
-        ctx->pid,
-        fd);
+    DYAD_WORKER_LOG_DEBUG ("DYAD UTIL: [node %u rank %u pid %d] Applies a shared lock on fd %d.",
+                           ctx->node_idx,
+                           ctx->rank,
+                           ctx->pid,
+                           fd);
     if (!lock) {
         rc = DYAD_RC_BADFIO;
         goto shared_flock_end;
@@ -667,7 +666,7 @@ release_flock_end:;
 }
 
 /**
- * @brief Applies or releases a whole-file cache OFD lock.
+ * @brief Applies or releases a whole-file OFD lock.
  *
  * @param[in]     ctx         DYAD context used for logging.
  * @param[in]     fd          Descriptor whose open file description owns the lock.
@@ -680,12 +679,12 @@ release_flock_end:;
  * @retval DYAD_RC_BUSY   A nonblocking acquisition found a conflicting lock.
  * @retval DYAD_RC_BADFIO @p lock was NULL or @c fcntl() failed.
  */
-static dyad_rc_t dyad_cache_ofd_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
-                                       int fd,
-                                       struct flock *DYAD_RESTRICT lock,
-                                       short lock_type,
-                                       int command,
-                                       bool nonblocking)
+static dyad_rc_t dyad_ofd_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                 int fd,
+                                 struct flock *DYAD_RESTRICT lock,
+                                 short lock_type,
+                                 int command,
+                                 bool nonblocking)
 {
     if (lock == NULL) {
         return DYAD_RC_BADFIO;
@@ -702,7 +701,7 @@ static dyad_rc_t dyad_cache_ofd_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
     if (nonblocking && (errno == EAGAIN || errno == EACCES)) {
         return DYAD_RC_BUSY;
     }
-    DYAD_WORKER_LOG_ERROR ("DYAD CACHE: Cannot update OFD lock on fd %d.", fd);
+    DYAD_WORKER_LOG_ERROR ("DYAD UTIL: Cannot update OFD lock on fd %d.", fd);
     return DYAD_RC_BADFIO;
 }
 
@@ -710,28 +709,49 @@ dyad_rc_t dyad_cache_excl_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
                                  int fd,
                                  struct flock *DYAD_RESTRICT lock)
 {
-    return dyad_cache_ofd_flock (ctx, fd, lock, F_WRLCK, F_OFD_SETLKW, false);
+    return dyad_ofd_flock (ctx, fd, lock, F_WRLCK, F_OFD_SETLKW, false);
 }
 
 dyad_rc_t dyad_cache_try_excl_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
                                      int fd,
                                      struct flock *DYAD_RESTRICT lock)
 {
-    return dyad_cache_ofd_flock (ctx, fd, lock, F_WRLCK, F_OFD_SETLK, true);
+    return dyad_ofd_flock (ctx, fd, lock, F_WRLCK, F_OFD_SETLK, true);
 }
 
 dyad_rc_t dyad_cache_shared_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
                                    int fd,
                                    struct flock *DYAD_RESTRICT lock)
 {
-    return dyad_cache_ofd_flock (ctx, fd, lock, F_RDLCK, F_OFD_SETLKW, false);
+    return dyad_ofd_flock (ctx, fd, lock, F_RDLCK, F_OFD_SETLKW, false);
 }
 
 dyad_rc_t dyad_cache_release_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
                                     int fd,
                                     struct flock *DYAD_RESTRICT lock)
 {
-    return dyad_cache_ofd_flock (ctx, fd, lock, F_UNLCK, F_OFD_SETLK, false);
+    return dyad_ofd_flock (ctx, fd, lock, F_UNLCK, F_OFD_SETLK, false);
+}
+
+dyad_rc_t dyad_ofd_excl_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                               int fd,
+                               struct flock *DYAD_RESTRICT lock)
+{
+    return dyad_ofd_flock (ctx, fd, lock, F_WRLCK, F_OFD_SETLKW, false);
+}
+
+dyad_rc_t dyad_ofd_shared_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                 int fd,
+                                 struct flock *DYAD_RESTRICT lock)
+{
+    return dyad_ofd_flock (ctx, fd, lock, F_RDLCK, F_OFD_SETLKW, false);
+}
+
+dyad_rc_t dyad_ofd_release_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                  int fd,
+                                  struct flock *DYAD_RESTRICT lock)
+{
+    return dyad_ofd_flock (ctx, fd, lock, F_UNLCK, F_OFD_SETLK, false);
 }
 
 #if DYAD_SYNC_DIR

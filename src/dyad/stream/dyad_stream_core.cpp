@@ -231,7 +231,9 @@ bool dyad_stream_core::open_sync (const char *path)
         return true;
     }
 
-    dyad_rc_t rc = dyad_consume (m_ctx_mutable, path);
+    bool is_managed = false;
+    dyad_rc_t rc = dyad_consume (m_ctx_mutable, path, &is_managed);
+    (void)is_managed;
 
     if (DYAD_IS_ERROR (rc)) {
         DPRINTF (m_ctx, "DYAD_SYNC OPEN: failed sync (\"%s\").", path);
@@ -303,6 +305,19 @@ int dyad_stream_core::file_lock_shared (int fd) const
 
     if (DYAD_IS_ERROR (rc)) {
         dyad_release_flock (m_ctx, fd, &shared_flock);
+    }
+
+    return rc;
+}
+
+int dyad_stream_core::file_lock_shared_ofd (int fd) const
+{
+    struct flock shared_flock;
+
+    dyad_rc_t rc = dyad_ofd_shared_flock (m_ctx, fd, &shared_flock);
+
+    if (DYAD_IS_ERROR (rc)) {
+        dyad_ofd_release_flock (m_ctx, fd, &shared_flock);
     }
 
     return rc;

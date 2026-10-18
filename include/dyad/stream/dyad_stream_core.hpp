@@ -180,6 +180,13 @@ class dyad_stream_core
     int file_lock_shared (int fd) const;
 
     /**
+     * @brief Acquires a shared OFD lock on an open file descriptor.
+     * @param[in] fd  File descriptor whose open file description to lock.
+     * @return @c dyad_rc_t return code from @c dyad_ofd_shared_flock().
+     */
+    int file_lock_shared_ofd (int fd) const;
+
+    /**
      * @brief Releases a lock on an open file descriptor.
      * @param[in] fd  File descriptor to unlock.
      * @return @c dyad_rc_t return code from @c dyad_release_flock().

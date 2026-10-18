@@ -228,7 +228,7 @@ void lock_exclusive_fstream (std::basic_fstream<_CharT, _Traits> &os, const dyad
  *
  * @details
  * Extracts the file descriptor via a local @c my_filebuf subclass and calls
- * @c core.file_lock_shared() on it, allowing multiple concurrent readers.
+ * @c core.file_lock_shared_ofd() on it, allowing multiple concurrent readers.
  * Has no effect if the stream is not open.
  *
  * @tparam _CharT   Character type of the stream.
@@ -253,7 +253,7 @@ void lock_shared_ifstream (std::basic_ifstream<_CharT, _Traits> &is, const dyad_
 
     if (is.is_open ()) {
         int fd = static_cast<my_filebuf &> (*is.rdbuf ()).handle ();
-        core.file_lock_shared (fd);
+        core.file_lock_shared_ofd (fd);
     }
 }
 /**
@@ -484,7 +484,9 @@ class basic_ifstream_dyad
      * @details
      * Initializes the core from environment variables, calls @c open_sync() to
      * ensure the file is ready via @c dyad_consume(), then opens the underlying
-     * stream. @c m_filename is set only if the stream opened successfully.
+     * stream. After a successful open, acquires a shared OFD lock when
+     * filesystem locking is available. @c m_filename is set only if the stream
+     * opened successfully.
      *
      * @param[in] filename  Path to the file to open.
      * @param[in] mode      Open mode. Defaults to @c ios_base::in.
@@ -505,9 +507,10 @@ class basic_ifstream_dyad
      * @brief Opens the file, triggering consumer synchronization.
      *
      * @details
-     * Acquires a shared lock via @c DYAD_SHARED_LOCK_CPP_IFSTREAM, calls
-     * @c open_sync() to ensure the file is ready via @c dyad_consume(), then
-     * opens the underlying stream. If the stream pointer is @c nullptr, returns
+     * Calls @c open_sync() to ensure the file is ready via @c dyad_consume(),
+     * then opens the underlying stream. After a successful open, acquires a
+     * shared OFD lock via @c DYAD_SHARED_LOCK_CPP_IFSTREAM when filesystem
+     * locking is available. If the stream pointer is @c nullptr, returns
      * without action. @c m_filename is set only if the stream opened
      * successfully.
      *
@@ -563,10 +566,10 @@ class basic_ifstream_dyad
 #endif
 
     /**
-     * @brief Closes the stream and releases the file lock.
+     * @brief Closes the stream and releases its shared OFD lock.
      *
      * @details
-     * Releases the shared lock before closing the underlying stream.
+     * Closing the underlying descriptor releases its OFD lock.
      * Has no effect if the stream pointer is @c nullptr.
      */
     void close ();
@@ -639,6 +642,7 @@ basic_ifstream_dyad<_CharT, _Traits>::basic_ifstream_dyad (const char *filename,
     m_core.open_sync (filename);
     m_stream = new basic_ifstream (filename, mode);
     if ((m_stream != nullptr) && (*m_stream)) {
+        DYAD_SHARED_LOCK_CPP_IFSTREAM (*m_stream, m_core);
         m_filename = std::string{filename};
     }
 }
@@ -671,6 +675,7 @@ basic_ifstream_dyad<_CharT, _Traits>::basic_ifstream_dyad (const char *filename,
     m_core.open_sync (filename);
     m_stream = std::unique_ptr<basic_ifstream> (new basic_ifstream (filename, mode));
     if ((m_stream != nullptr) && (*m_stream)) {
+        DYAD_SHARED_LOCK_CPP_IFSTREAM (*m_stream, m_core);
         m_filename = std::string{filename};
     }
 }
@@ -683,6 +688,7 @@ basic_ifstream_dyad<_CharT, _Traits>::basic_ifstream_dyad (const string &filenam
     m_core.open_sync (filename.c_str ());
     m_stream = std::unique_ptr<basic_ifstream> (new basic_ifstream (filename, mode));
     if ((m_stream != nullptr) && (*m_stream)) {
+        DYAD_SHARED_LOCK_CPP_IFSTREAM (*m_stream, m_core);
         m_filename = filename;
     }
 }
@@ -703,6 +709,7 @@ basic_ifstream_dyad<_CharT, _Traits>::basic_ifstream_dyad (const _Path &filepath
     m_core.open_sync (filepath.c_str ());
     m_stream = std::unique_ptr<basic_ifstream> (new basic_ifstream (filepath.c_str (), mode));
     if ((m_stream != nullptr) && (*m_stream)) {
+        DYAD_SHARED_LOCK_CPP_IFSTREAM (*m_stream, m_core);
         m_filename = std::string{filepath.c_str ()};
     }
 }
@@ -762,10 +769,10 @@ void basic_ifstream_dyad<_CharT, _Traits>::open (const char *filename, std::ios_
         // TODO: set fail bit if nullptr
         return;
     }
-    DYAD_SHARED_LOCK_CPP_IFSTREAM (*m_stream, m_core);
     m_core.open_sync (filename);
     m_stream->open (filename, mode);
     if ((m_stream != nullptr) && (*m_stream)) {
+        DYAD_SHARED_LOCK_CPP_IFSTREAM (*m_stream, m_core);
         m_filename = std::string{filename};
     }
 }
@@ -776,7 +783,6 @@ void basic_ifstream_dyad<_CharT, _Traits>::close ()
     if (m_stream == nullptr) {
         return;
     }
-    DYAD_UNLOCK_CPP_IFSTREAM (*m_stream, m_core);
     m_stream->close ();
 }
 

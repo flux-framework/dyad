@@ -599,6 +599,48 @@ dyad_rc_t dyad_cache_release_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
                                     int fd,
                                     struct flock *DYAD_RESTRICT lock);
 
+/**
+ * @brief Acquires an exclusive Linux open-file-description lock.
+ *
+ * @param[in]  ctx  DYAD context used for logging.
+ * @param[in]  fd   Descriptor whose open file description owns the lock.
+ * @param[out] lock Lock description populated for a later release.
+ *
+ * @retval DYAD_RC_OK     The lock was acquired.
+ * @retval DYAD_RC_BADFIO The lock request failed.
+ */
+dyad_rc_t dyad_ofd_excl_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                               int fd,
+                               struct flock *DYAD_RESTRICT lock);
+
+/**
+ * @brief Acquires a shared Linux open-file-description lock.
+ *
+ * @param[in]  ctx  DYAD context used for logging.
+ * @param[in]  fd   Descriptor whose open file description owns the lock.
+ * @param[out] lock Lock description populated for a later release.
+ *
+ * @retval DYAD_RC_OK     The lock was acquired.
+ * @retval DYAD_RC_BADFIO The lock request failed.
+ */
+dyad_rc_t dyad_ofd_shared_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                 int fd,
+                                 struct flock *DYAD_RESTRICT lock);
+
+/**
+ * @brief Releases a Linux open-file-description lock.
+ *
+ * @param[in]     ctx  DYAD context used for logging.
+ * @param[in]     fd   Descriptor whose open file description owns the lock.
+ * @param[in,out] lock Lock description populated by an OFD lock helper.
+ *
+ * @retval DYAD_RC_OK     The lock was released.
+ * @retval DYAD_RC_BADFIO The unlock request failed.
+ */
+dyad_rc_t dyad_ofd_release_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                  int fd,
+                                  struct flock *DYAD_RESTRICT lock);
+
 #if DYAD_SYNC_DIR
 /**
  * Run fsync for the containing directory of the given path.

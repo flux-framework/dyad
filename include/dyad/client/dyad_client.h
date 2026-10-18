@@ -169,8 +169,8 @@ DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_free_metadata (dyad_metadata_
  *   the file data is retrieved from the remote producer's Flux broker via
  *   @c dyad_get_data(), written to local disk, and the lock is released.
  *
- *  * An exclusive lock is acquired to serve two purposes. First, the producer
- * acquires the lock in @c dyad_open_wrapper() to prevent consumers with
+ *  * An exclusive OFD lock is acquired to serve two purposes. First, the producer
+ * acquires its conflicting POSIX lock in @c dyad_open_wrapper() to prevent consumers with
  * direct file visibility (e.g. via shared storage or co-location on the
  * same node) from reading a partially written file, and releases it in
  * @c dyad_close_wrapper() once the file is fully written. Second, the
@@ -184,6 +184,9 @@ DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_free_metadata (dyad_metadata_
  * @param[in]     fname  Path to the file to be checked and made ready. May be an
  *                       absolute path or, if @c ctx->relative_to_managed_path is
  *                       set, a path relative to @c ctx->cons_managed_path.
+ * @param[out]    is_managed  Set to @c true when @p fname is under the
+ *                             consumer-managed path; otherwise set to @c false.
+ *                             Must not be @c NULL.
  *
  * @return @c dyad_rc_t return code indicating the outcome:
  * @retval DYAD_RC_OK              The file is ready to read, was already available,
@@ -200,7 +203,9 @@ DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_free_metadata (dyad_metadata_
  *
  * @warning The caller must ensure @p ctx remains valid for the duration of this call.
  */
-DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_consume (dyad_ctx_t *ctx, const char *fname);
+DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_consume (dyad_ctx_t *ctx,
+                                                            const char *fname,
+                                                            bool *is_managed);
 
 /**
  * @brief Ensures a file is ready to be read using caller-supplied metadata.
@@ -219,7 +224,7 @@ DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_consume (dyad_ctx_t *ctx, con
  * local disk via @c dyad_cons_store().
  *
  * As with @c dyad_consume(), an exclusive lock is acquired for consumer-to-consumer
- * synchronization. Because POSIX @c fcntl locks are cooperative, the producer —
+ * synchronization. Because OFD and POSIX @c fcntl locks are cooperative, the producer —
  * which does not acquire any lock — is unaffected and may write the file
  * regardless of any consumer lock held.
  *

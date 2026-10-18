@@ -1207,7 +1207,9 @@ dyad_rc_t dyad_free_metadata (dyad_metadata_t **mdata)
     return DYAD_RC_OK;
 }
 
-dyad_rc_t dyad_consume (dyad_ctx_t *DYAD_RESTRICT ctx, const char *DYAD_RESTRICT fname)
+dyad_rc_t dyad_consume (dyad_ctx_t *DYAD_RESTRICT ctx,
+                        const char *DYAD_RESTRICT fname,
+                        bool *DYAD_RESTRICT is_managed)
 {
     DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", fname);
@@ -1221,6 +1223,12 @@ dyad_rc_t dyad_consume (dyad_ctx_t *DYAD_RESTRICT ctx, const char *DYAD_RESTRICT
     dyad_metadata_t *mdata = NULL;
     struct flock exclusive_lock;
     char upath[PATH_MAX + 1] = {'\0'};
+
+    if (is_managed == NULL) {
+        rc = DYAD_RC_BADFIO;
+        goto consume_close;
+    }
+    *is_managed = false;
 
     // If the context is not defined, then it is not valid.
     // So, return DYAD_NOCTX
@@ -1249,6 +1257,7 @@ dyad_rc_t dyad_consume (dyad_ctx_t *DYAD_RESTRICT ctx, const char *DYAD_RESTRICT
         rc = DYAD_RC_OK;
         goto consume_close;
     }
+    *is_managed = true;
     ctx->reenter = false;
 
     lock_fd = open (fname, O_RDWR | O_CREAT, 0666);
@@ -1258,16 +1267,16 @@ dyad_rc_t dyad_consume (dyad_ctx_t *DYAD_RESTRICT ctx, const char *DYAD_RESTRICT
         rc = DYAD_RC_BADFIO;
         goto consume_close;
     }
-    rc = dyad_excl_flock (ctx, lock_fd, &exclusive_lock);
+    rc = dyad_ofd_excl_flock (ctx, lock_fd, &exclusive_lock);
     if (DYAD_IS_ERROR (rc)) {
-        dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+        dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
         goto consume_done;
     }
     file_size = get_file_size (lock_fd);
     if (file_size > 0) {
         rc = dyad_range_cache_is_complete (ctx, fname, &has_range_cache, &range_cache_complete);
         if (DYAD_IS_ERROR (rc)) {
-            dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+            dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
             goto consume_done;
         }
         if (has_range_cache && !range_cache_complete) {
@@ -1278,7 +1287,7 @@ dyad_rc_t dyad_consume (dyad_ctx_t *DYAD_RESTRICT ctx, const char *DYAD_RESTRICT
         }
     }
     if (ctx->shared_storage) {
-        dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+        dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
         if (!ctx->use_fs_locks || file_size <= 0) {
             // As file size being zero means that consumer won the lock first. So has to
             // wait for kvs. or we cannot use file lock based synchronization as it
@@ -1313,7 +1322,7 @@ dyad_rc_t dyad_consume (dyad_ctx_t *DYAD_RESTRICT ctx, const char *DYAD_RESTRICT
             // and return the corresponding DYAD return code
             if (DYAD_IS_ERROR (rc)) {
                 DYAD_LOG_ERROR (ctx, "dyad_fetch_metadata failed!\n");
-                dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+                dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
                 goto consume_done;
             }
             // If dyad_fetch_metadata was successful, but mdata is still NULL,
@@ -1323,7 +1332,7 @@ dyad_rc_t dyad_consume (dyad_ctx_t *DYAD_RESTRICT ctx, const char *DYAD_RESTRICT
             if (mdata == NULL) {
                 DYAD_LOG_INFO (ctx, "File '%s' is local!\n", fname);
                 rc = DYAD_RC_OK;
-                dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+                dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
                 goto consume_done;
             }
 
@@ -1332,7 +1341,7 @@ dyad_rc_t dyad_consume (dyad_ctx_t *DYAD_RESTRICT ctx, const char *DYAD_RESTRICT
             rc = dyad_get_data (ctx, mdata, &file_data, &data_len);
             if (DYAD_IS_ERROR (rc)) {
                 DYAD_LOG_ERROR (ctx, "dyad_get_data failed!\n");
-                dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+                dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
                 goto consume_done;
             }
             DYAD_C_FUNCTION_UPDATE_INT ("data_len", data_len);
@@ -1343,7 +1352,7 @@ dyad_rc_t dyad_consume (dyad_ctx_t *DYAD_RESTRICT ctx, const char *DYAD_RESTRICT
                                 "Cannot open file (%s) in write mode for dyad_consume!\n",
                                 fname);
                 rc = DYAD_RC_BADFIO;
-                dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+                dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
                 goto consume_done;
             }
             // Call dyad_pull to fetch the data from the producer's
@@ -1356,25 +1365,25 @@ dyad_rc_t dyad_consume (dyad_ctx_t *DYAD_RESTRICT ctx, const char *DYAD_RESTRICT
             }
             if (close (io_fd) != 0) {
                 rc = DYAD_RC_BADFIO;
-                dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+                dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
                 goto consume_done;
             }
             // If an error occured in dyad_pull, log it
             // and return the corresponding DYAD return code
             if (DYAD_IS_ERROR (rc)) {
                 DYAD_LOG_ERROR (ctx, "dyad_cons_store failed!\n");
-                dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+                dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
                 goto consume_done;
             }
             if (has_range_cache) {
                 rc = dyad_range_cache_mark_complete (ctx, fname);
                 if (DYAD_IS_ERROR (rc)) {
-                    dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+                    dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
                     goto consume_done;
                 }
             }
         }
-        dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+        dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
         // Best-effort: eviction failures must never turn a successful
         // consume into a reported error. No-ops if eviction is disabled.
         // Reached whether the file was already local or freshly fetched;
@@ -1443,16 +1452,16 @@ dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t *DYAD_RESTRICT ctx,
         rc = DYAD_RC_BADFIO;
         goto consume_close;
     }
-    rc = dyad_excl_flock (ctx, lock_fd, &exclusive_lock);
+    rc = dyad_ofd_excl_flock (ctx, lock_fd, &exclusive_lock);
     if (DYAD_IS_ERROR (rc)) {
-        dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+        dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
         goto consume_done;
     }
     file_size = get_file_size (lock_fd);
     if (file_size > 0) {
         rc = dyad_range_cache_is_complete (ctx, fname, &has_range_cache, &range_cache_complete);
         if (DYAD_IS_ERROR (rc)) {
-            dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+            dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
             goto consume_done;
         }
         if (has_range_cache && !range_cache_complete) {
@@ -1474,7 +1483,7 @@ dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t *DYAD_RESTRICT ctx,
         rc = dyad_get_data (ctx, mdata, &file_data, &data_len);
         if (DYAD_IS_ERROR (rc)) {
             DYAD_LOG_ERROR (ctx, "dyad_get_data failed!\n");
-            dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+            dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
             goto consume_done;
         }
         DYAD_C_FUNCTION_UPDATE_INT ("data_len", data_len);
@@ -1483,7 +1492,7 @@ dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t *DYAD_RESTRICT ctx,
         if (io_fd == -1) {
             DYAD_LOG_ERROR (ctx, "Cannot open file (%s) in write mode for dyad_consume!\n", fname);
             rc = DYAD_RC_BADFIO;
-            dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+            dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
             goto consume_done;
         }
         // Call dyad_pull to fetch the data from the producer's
@@ -1492,25 +1501,25 @@ dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t *DYAD_RESTRICT ctx,
 
         if (close (io_fd) != 0) {
             rc = DYAD_RC_BADFIO;
-            dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+            dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
             goto consume_done;
         }
         // If an error occured in dyad_pull, log it
         // and return the corresponding DYAD return code
         if (DYAD_IS_ERROR (rc)) {
             DYAD_LOG_ERROR (ctx, "dyad_cons_store failed!\n");
-            dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+            dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
             goto consume_done;
         }
         if (has_range_cache) {
             rc = dyad_range_cache_mark_complete (ctx, fname);
             if (DYAD_IS_ERROR (rc)) {
-                dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+                dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
                 goto consume_done;
             }
         }
     }
-    dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+    dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
     // Best-effort: eviction failures must never turn a successful consume
     // into a reported error. No-ops if eviction is disabled. Reached
     // whether the file was already local or freshly fetched;
