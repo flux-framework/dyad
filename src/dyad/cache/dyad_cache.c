@@ -37,43 +37,66 @@ static bool dyad_cache_is_range_bitmap (const char *name)
     return name_len > suffix_len && strcmp (name + name_len - suffix_len, suffix) == 0;
 }
 
-dyad_rc_t dyad_cache_scan_dir (const dyad_ctx_t *ctx,
-                               const char *managed_path,
-                               struct dyad_cache_entry **out_entries,
-                               size_t *out_n_entries,
-                               uint64_t *out_total_size)
+/**
+ * @brief Appends regular files in one managed-directory subtree to an eviction list.
+ *
+ * @param[in]     ctx         DYAD context containing the active cache policy.
+ * @param[in]     directory   Directory to scan recursively.
+ * @param[in,out] entries     Candidate array, reallocated as needed.
+ * @param[in,out] n_entries   Number of populated entries in @p entries.
+ * @param[in,out] capacity    Allocated entry capacity.
+ * @param[in,out] total_size  Sum of allocated bytes of all appended entries.
+ *
+ * @retval DYAD_RC_OK      All entries in @p directory were scanned.
+ * @retval DYAD_RC_BADFIO The directory could not be opened.
+ * @retval DYAD_RC_SYSFAIL Candidate-array allocation failed.
+ */
+static dyad_rc_t dyad_cache_scan_subtree (const dyad_ctx_t *restrict ctx,
+                                          const char *restrict directory,
+                                          struct dyad_cache_entry **restrict entries,
+                                          size_t *restrict n_entries,
+                                          size_t *restrict capacity,
+                                          uint64_t *restrict total_size)
 {
     dyad_rc_t rc = DYAD_RC_OK;
     DIR *dirp = NULL;
     struct dirent *dent = NULL;
-    struct dyad_cache_entry *entries = NULL;
-    size_t n_entries = 0;
-    size_t capacity = 0;
-    uint64_t total_size = 0;
 
-    *out_entries = NULL;
-    *out_n_entries = 0;
-    *out_total_size = 0;
-
-    dirp = opendir (managed_path);
+    dirp = opendir (directory);
     if (dirp == NULL) {
         DYAD_LOG_ERROR (ctx,
                         "DYAD CACHE: Cannot open managed directory %s for scanning",
-                        managed_path);
+                        directory);
         return DYAD_RC_BADFIO;
     }
 
     while ((dent = readdir (dirp)) != NULL) {
         char path[PATH_MAX + 1];
+        struct stat lst;
         struct stat st;
         int64_t recency_key = 0;
+        int path_len = 0;
 
         if (strcmp (dent->d_name, ".") == 0 || strcmp (dent->d_name, "..") == 0
             || strcmp (dent->d_name, DYAD_CACHE_LOCK_FILENAME) == 0
             || dyad_cache_is_range_bitmap (dent->d_name)) {
             continue;
         }
-        snprintf (path, sizeof (path), "%s/%s", managed_path, dent->d_name);
+        path_len = snprintf (path, sizeof (path), "%s/%s", directory, dent->d_name);
+        if (path_len < 0 || (size_t)path_len >= sizeof (path)) {
+            continue;
+        }
+        if (lstat (path, &lst) != 0) {
+            continue;
+        }
+        if (S_ISDIR (lst.st_mode)) {
+            rc = dyad_cache_scan_subtree (ctx, path, entries, n_entries, capacity, total_size);
+            if (DYAD_IS_ERROR (rc)) {
+                closedir (dirp);
+                return rc;
+            }
+            continue;
+        }
         if (stat (path, &st) != 0 || !S_ISREG (st.st_mode)) {
             continue;
         }
@@ -83,37 +106,56 @@ dyad_rc_t dyad_cache_scan_dir (const dyad_ctx_t *ctx,
             continue;
         }
 
-        if (n_entries == capacity) {
-            size_t new_capacity = (capacity == 0) ? 16 : capacity * 2;
+        if (*n_entries == *capacity) {
+            size_t new_capacity = (*capacity == 0) ? 16 : *capacity * 2;
             struct dyad_cache_entry *new_entries =
-                realloc (entries, new_capacity * sizeof (struct dyad_cache_entry));
+                realloc (*entries, new_capacity * sizeof (struct dyad_cache_entry));
             if (new_entries == NULL) {
                 DYAD_LOG_ERROR (ctx,
                                 "DYAD CACHE: Cannot allocate memory while scanning %s",
-                                managed_path);
-                free (entries);
+                                directory);
                 closedir (dirp);
                 return DYAD_RC_SYSFAIL;
             }
-            entries = new_entries;
-            capacity = new_capacity;
+            *entries = new_entries;
+            *capacity = new_capacity;
         }
 
-        strncpy (entries[n_entries].path, path, PATH_MAX);
-        entries[n_entries].path[PATH_MAX] = '\0';
+        memcpy ((*entries)[*n_entries].path, path, (size_t)path_len + 1ul);
         // st_size is a sparse file's logical length. Cache capacity is disk
         // capacity, so account for only filesystem blocks actually allocated.
-        entries[n_entries].size = (off_t)((uint64_t)st.st_blocks * DYAD_STAT_BLOCK_BYTES);
-        entries[n_entries].atime = st.st_atime;
-        entries[n_entries].recency_key = recency_key;
-        total_size += (uint64_t)entries[n_entries].size;
-        n_entries++;
+        (*entries)[*n_entries].size = (off_t)((uint64_t)st.st_blocks * DYAD_STAT_BLOCK_BYTES);
+        (*entries)[*n_entries].atime = st.st_atime;
+        (*entries)[*n_entries].recency_key = recency_key;
+        *total_size += (uint64_t)(*entries)[*n_entries].size;
+        (*n_entries)++;
     }
     closedir (dirp);
 
-    *out_entries = entries;
-    *out_n_entries = n_entries;
-    *out_total_size = total_size;
+    return rc;
+}
+
+dyad_rc_t dyad_cache_scan_dir (const dyad_ctx_t *ctx,
+                               const char *managed_path,
+                               struct dyad_cache_entry **out_entries,
+                               size_t *out_n_entries,
+                               uint64_t *out_total_size)
+{
+    size_t capacity = 0;
+    dyad_rc_t rc = DYAD_RC_OK;
+
+    *out_entries = NULL;
+    *out_n_entries = 0;
+    *out_total_size = 0;
+
+    rc = dyad_cache_scan_subtree (
+        ctx, managed_path, out_entries, out_n_entries, &capacity, out_total_size);
+    if (DYAD_IS_ERROR (rc)) {
+        free (*out_entries);
+        *out_entries = NULL;
+        *out_n_entries = 0;
+        *out_total_size = 0;
+    }
     return rc;
 }
 

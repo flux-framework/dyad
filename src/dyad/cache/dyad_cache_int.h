@@ -50,8 +50,9 @@ struct dyad_cache_entry {
  * @brief Scans a managed directory for eviction candidates.
  *
  * @details
- * Lists every regular file in @p managed_path except the cache lock file
- * itself (@c DYAD_CACHE_LOCK_FILENAME), @c stat()s each one, and
+ * Recursively lists every regular file in @p managed_path and its
+ * subdirectories except cache lock files (@c DYAD_CACHE_LOCK_FILENAME) and
+ * range-cache bitmap sidecars, @c stat()s each data file, and
  * populates @p out_entries (caller-owned, must be released with
  * @c free()) with one @c dyad_cache_entry per file, ranked via
  * @c ctx->cache_policy->get_recency_key(). Also reports the total size

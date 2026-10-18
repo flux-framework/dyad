@@ -130,19 +130,25 @@ TEST_CASE ("dyad_cache_scan_dir", "[module=dyad_cache][method=scan]")
 
     write_file (dir + "/a.bin", 100);
     write_file (dir + "/b.bin", 200);
+    std::string nested_dir = dir + "/nested";
+    REQUIRE (mkdir (nested_dir.c_str (), 0700) == 0);
+    write_file (nested_dir + "/c.bin", 300);
     // The lock file must be excluded from scan results even though it lives
     // in the same managed directory.
     write_file (dir + "/" + DYAD_CACHE_LOCK_FILENAME, 999);
+    // Range-cache bitmap sidecars are metadata, not separately evictable data.
+    write_file (nested_dir + "/c.bin.dyad_cached", 999);
 
     struct dyad_cache_entry *entries = nullptr;
     size_t n_entries = 0;
     uint64_t total_size = 0;
     REQUIRE (dyad_cache_scan_dir (&ctx, dir.c_str (), &entries, &n_entries, &total_size)
              == DYAD_RC_OK);
-    REQUIRE (n_entries == 2);
+    REQUIRE (n_entries == 3);
     REQUIRE (total_size == allocated_file_size (dir + "/a.bin")
-                           + allocated_file_size (dir + "/b.bin"));
-    REQUIRE (total_size > 300);
+                           + allocated_file_size (dir + "/b.bin")
+                           + allocated_file_size (nested_dir + "/c.bin"));
+    REQUIRE (total_size > 600);
 
     free (entries);
     dyad_cache_policy_finalize (&ctx);
