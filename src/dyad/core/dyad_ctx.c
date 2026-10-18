@@ -228,7 +228,7 @@ dyad_rc_t dyad_init (bool debug,
     if (ctx->h == NULL) {
         fprintf (stderr, "Could not open Flux handle!\n");
         rc = DYAD_RC_FLUXFAIL;
-        goto init_region_finish;
+        goto init_region_failed;
     }
 
     // Get the rank of the Flux broker corresponding
@@ -236,7 +236,7 @@ dyad_rc_t dyad_init (bool debug,
     if (flux_get_rank (ctx->h, &(ctx->rank)) < 0) {
         DYAD_LOG_INFO (ctx, "Could not get Flux rank!\n");
         rc = DYAD_RC_FLUXFAIL;
-        goto init_region_finish;
+        goto init_region_failed;
     }
     my_rank = ctx->rank;
     DYAD_LOG_DEBUG (ctx, "DYAD_CORE: Flux rank %d", my_rank);
@@ -355,11 +355,9 @@ init_region_failed:;
     dyad_clear ();
     // Set the initial contents of the dyad_ctx_t object to dyad_ctx_default.
     *ctx = dyad_ctx_default;
-    if (rc == DYAD_RC_NOCTX) {
-        ctx->initialized = false;
-        ctx->reenter = false;
-    }
-    return DYAD_RC_NOCTX;
+    ctx->initialized = false;
+    ctx->reenter = false;
+    return rc;
 
 init_region_finish:;
     ctx->reenter = true;
