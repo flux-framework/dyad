@@ -1377,7 +1377,7 @@ class basic_fstream_dyad
      * @details
      * If the instance is a producer, optionally calls @c fsync_fstream() if
      * @c ctx->fsync_write is enabled, releases the exclusive lock via
-     * @c DYAD_UNLOCK_CPP_OFSTREAM, closes the underlying stream, then calls
+     * @c DYAD_UNLOCK_CPP_FSTREAM, closes the underlying stream, then calls
      * @c close_sync() to publish the file via @c dyad_produce(). Has no
      * effect if the stream pointer is @c nullptr.
      */
@@ -1454,7 +1454,7 @@ basic_fstream_dyad<_CharT, _Traits>::basic_fstream_dyad (const char *filename,
             && m_core.cmp_canonical_path_prefix (true, filename)
 #endif  // DYAD_HAS_STD_FSTREAM_FD
         ) {
-            DYAD_EXCLUSIVE_LOCK_CPP_OFSTREAM (*m_stream, m_core);
+            DYAD_EXCLUSIVE_LOCK_CPP_FSTREAM (*m_stream, m_core);
         }
         m_filename = std::string{filename};
     }
@@ -1489,7 +1489,7 @@ basic_fstream_dyad<_CharT, _Traits>::basic_fstream_dyad (const char *filename,
     m_stream = std::unique_ptr<basic_fstream> (new basic_fstream (filename, mode));
     if ((m_stream != nullptr) && (*m_stream)) {
         if (m_core.is_dyad_producer ()) {
-            DYAD_EXCLUSIVE_LOCK_CPP_OFSTREAM (*m_stream, m_core);
+            DYAD_EXCLUSIVE_LOCK_CPP_FSTREAM (*m_stream, m_core);
         }
         m_filename = std::string{filename};
     }
@@ -1504,7 +1504,7 @@ basic_fstream_dyad<_CharT, _Traits>::basic_fstream_dyad (const string &filename,
     m_stream = std::unique_ptr<basic_fstream> (new basic_fstream (filename, mode));
     if ((m_stream != nullptr) && (*m_stream)) {
         if (m_core.is_dyad_producer ()) {
-            DYAD_EXCLUSIVE_LOCK_CPP_OFSTREAM (*m_stream, m_core);
+            DYAD_EXCLUSIVE_LOCK_CPP_FSTREAM (*m_stream, m_core);
         }
         m_filename = filename;
     }
@@ -1527,7 +1527,7 @@ basic_fstream_dyad<_CharT, _Traits>::basic_fstream_dyad (const _Path &filepath,
     m_stream = std::unique_ptr<basic_fstream> (new basic_fstream (filepath.c_str (), mode));
     if ((m_stream != nullptr) && (*m_stream)) {
         if (m_core.is_dyad_producer ()) {
-            DYAD_EXCLUSIVE_LOCK_CPP_OFSTREAM (*m_stream, m_core);
+            DYAD_EXCLUSIVE_LOCK_CPP_FSTREAM (*m_stream, m_core);
         }
         m_filename = std::string{filepath.c_str ()};
     }
@@ -1554,7 +1554,7 @@ basic_fstream_dyad<_CharT, _Traits>::~basic_fstream_dyad ()
             if (m_core.chk_fsync_write ()) {
                 fsync_fstream (*m_stream);
             }
-            DYAD_UNLOCK_CPP_OFSTREAM (*m_stream, m_core);
+            DYAD_UNLOCK_CPP_FSTREAM (*m_stream, m_core);
         }
 #if __cplusplus < 201103L
         delete m_stream;
@@ -1612,7 +1612,7 @@ void basic_fstream_dyad<_CharT, _Traits>::open (const char *filename, std::ios_b
             && m_core.cmp_canonical_path_prefix (true, filename)
 #endif  // DYAD_HAS_STD_FSTREAM_FD
         ) {
-            DYAD_EXCLUSIVE_LOCK_CPP_OFSTREAM (*m_stream, m_core);
+            DYAD_EXCLUSIVE_LOCK_CPP_FSTREAM (*m_stream, m_core);
         }
         m_filename = std::string{filename};
     }
@@ -1628,7 +1628,7 @@ void basic_fstream_dyad<_CharT, _Traits>::close ()
         if (m_core.chk_fsync_write ()) {
             fsync_fstream (*m_stream);
         }
-        DYAD_UNLOCK_CPP_OFSTREAM (*m_stream, m_core);
+        DYAD_UNLOCK_CPP_FSTREAM (*m_stream, m_core);
     }
     m_stream->close ();
     m_core.close_sync (m_filename.c_str ());
