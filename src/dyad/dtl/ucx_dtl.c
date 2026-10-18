@@ -859,9 +859,9 @@ error:;
 }
 
 dyad_rc_t dyad_dtl_ucx_rpc_pack (const dyad_ctx_t *ctx,
-                                 const char *restrict upath,
+                                 const char *DYAD_RESTRICT upath,
                                  uint32_t producer_rank,
-                                 json_t **restrict packed_obj)
+                                 json_t **DYAD_RESTRICT packed_obj)
 {
     DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("upath", upath);

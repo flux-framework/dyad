@@ -112,9 +112,9 @@ uint32_t hash_path_prefix (const char *str, const uint32_t seed, const size_t le
     return (hash[0] ^ hash[1] ^ hash[2] ^ hash[3]) + 1;
 }
 
-char *concat_str (char *__restrict__ str,
-                  const char *__restrict__ to_append,
-                  const char *__restrict__ connector,
+char *concat_str (char *DYAD_RESTRICT str,
+                  const char *DYAD_RESTRICT to_append,
+                  const char *DYAD_RESTRICT connector,
                   size_t str_capacity)
 {
     const size_t str_len_org = strlen (str);
@@ -160,10 +160,10 @@ char *concat_str (char *__restrict__ str,
     return str;
 }
 
-bool extract_user_path (const char *__restrict__ prefix,
-                        const char *__restrict__ full,
-                        const char *__restrict__ delim,
-                        char *__restrict__ upath,
+bool extract_user_path (const char *DYAD_RESTRICT prefix,
+                        const char *DYAD_RESTRICT full,
+                        const char *DYAD_RESTRICT delim,
+                        char *DYAD_RESTRICT upath,
                         const size_t upath_capacity)
 {
     size_t prefix_len = strlen (prefix);
@@ -226,10 +226,10 @@ bool extract_user_path (const char *__restrict__ prefix,
     return true;
 }
 
-bool cmp_canonical_path_prefix (const dyad_ctx_t *__restrict__ ctx,
+bool cmp_canonical_path_prefix (const dyad_ctx_t *DYAD_RESTRICT ctx,
                                 const bool is_prod,
-                                const char *__restrict__ path,
-                                char *__restrict__ upath,
+                                const char *DYAD_RESTRICT path,
+                                char *DYAD_RESTRICT upath,
                                 const size_t upath_capacity)
 {
     // Only works when there are no multiple absolute paths via hardlinks
@@ -525,9 +525,9 @@ ssize_t get_file_size (int fd)
 }
 #endif
 
-dyad_rc_t dyad_excl_flock (const dyad_ctx_t *__restrict__ ctx,
+dyad_rc_t dyad_excl_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
                            int fd,
-                           struct flock *__restrict__ lock)
+                           struct flock *DYAD_RESTRICT lock)
 {
     dyad_rc_t rc = DYAD_RC_OK;
     DYAD_C_FUNCTION_START ();
@@ -558,9 +558,9 @@ excl_flock_end:;
     return rc;
 }
 
-dyad_rc_t dyad_try_excl_flock (const dyad_ctx_t *__restrict__ ctx,
+dyad_rc_t dyad_try_excl_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
                                int fd,
-                               struct flock *__restrict__ lock)
+                               struct flock *DYAD_RESTRICT lock)
 {
     dyad_rc_t rc = DYAD_RC_OK;
     DYAD_C_FUNCTION_START ();
@@ -596,9 +596,9 @@ try_excl_flock_end:;
     return rc;
 }
 
-dyad_rc_t dyad_shared_flock (const dyad_ctx_t *__restrict__ ctx,
+dyad_rc_t dyad_shared_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
                              int fd,
-                             struct flock *__restrict__ lock)
+                             struct flock *DYAD_RESTRICT lock)
 {
     DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
@@ -629,9 +629,9 @@ shared_flock_end:;
     return rc;
 }
 
-dyad_rc_t dyad_release_flock (const dyad_ctx_t *__restrict__ ctx,
+dyad_rc_t dyad_release_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
                               int fd,
-                              struct flock *__restrict__ lock)
+                              struct flock *DYAD_RESTRICT lock)
 {
     DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);

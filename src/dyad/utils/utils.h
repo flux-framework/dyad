@@ -141,9 +141,9 @@ uint32_t hash_path_prefix (const char *str, const uint32_t seed, const size_t le
  * @note This function allocates a temporary heap buffer internally for the
  *       concatenation and frees it before returning.
  */
-char *concat_str (char *__restrict__ str,
-                  const char *__restrict__ to_append,
-                  const char *__restrict__ connector,
+char *concat_str (char *DYAD_RESTRICT str,
+                  const char *DYAD_RESTRICT to_append,
+                  const char *DYAD_RESTRICT connector,
                   size_t str_capacity);
 
 /**
@@ -202,10 +202,10 @@ char *concat_str (char *__restrict__ str,
  *       should zero-initialize the buffer before calling to ensure the result
  *       is null-terminated.
  */
-bool extract_user_path (const char *__restrict__ prefix,
-                        const char *__restrict__ full,
-                        const char *__restrict__ delim,
-                        char *__restrict__ upath,
+bool extract_user_path (const char *DYAD_RESTRICT prefix,
+                        const char *DYAD_RESTRICT full,
+                        const char *DYAD_RESTRICT delim,
+                        char *DYAD_RESTRICT upath,
                         const size_t upath_capacity);
 
 /**
@@ -271,10 +271,10 @@ bool extract_user_path (const char *__restrict__ prefix,
  * @note This function only works correctly when there are no multiple absolute
  *       paths to the same file via hard links.
  */
-bool cmp_canonical_path_prefix (const dyad_ctx_t *__restrict__ ctx,
+bool cmp_canonical_path_prefix (const dyad_ctx_t *DYAD_RESTRICT ctx,
                                 const bool is_prod,
-                                const char *__restrict__ path,
-                                char *__restrict__ upath,
+                                const char *DYAD_RESTRICT path,
+                                char *DYAD_RESTRICT upath,
                                 const size_t upath_capacity);
 
 /**
@@ -455,9 +455,9 @@ ssize_t get_file_size (int fd);
  * @retval DYAD_RC_OK      The lock was successfully acquired.
  * @retval DYAD_RC_BADFIO  The @c fcntl() call failed to acquire the lock.
  */
-dyad_rc_t dyad_excl_flock (const dyad_ctx_t *__restrict__ ctx,
+dyad_rc_t dyad_excl_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
                            int fd,
-                           struct flock *__restrict__ lock);
+                           struct flock *DYAD_RESTRICT lock);
 /**
  * @brief Attempts to acquire an exclusive (write) lock without blocking.
  *
@@ -482,9 +482,9 @@ dyad_rc_t dyad_excl_flock (const dyad_ctx_t *__restrict__ ctx,
  * @retval DYAD_RC_BADFIO  The @c fcntl() call failed for a reason other than
  *                        the lock being held (e.g. bad file descriptor).
  */
-dyad_rc_t dyad_try_excl_flock (const dyad_ctx_t *__restrict__ ctx,
+dyad_rc_t dyad_try_excl_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
                                int fd,
-                               struct flock *__restrict__ lock);
+                               struct flock *DYAD_RESTRICT lock);
 /**
  * @brief Acquires a shared (read) lock on an open file descriptor.
  *
@@ -506,9 +506,9 @@ dyad_rc_t dyad_try_excl_flock (const dyad_ctx_t *__restrict__ ctx,
  * @retval DYAD_RC_OK      The shared lock was successfully acquired.
  * @retval DYAD_RC_BADFIO  The @c fcntl() call failed to acquire the lock.
  */
-dyad_rc_t dyad_shared_flock (const dyad_ctx_t *__restrict__ ctx,
+dyad_rc_t dyad_shared_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
                              int fd,
-                             struct flock *__restrict__ lock);
+                             struct flock *DYAD_RESTRICT lock);
 /**
  * @brief Releases a lock previously acquired on an open file descriptor.
  *
@@ -531,9 +531,9 @@ dyad_rc_t dyad_shared_flock (const dyad_ctx_t *__restrict__ ctx,
  * @retval DYAD_RC_OK      The shared lock was successfully acquired.
  * @retval DYAD_RC_BADFIO  The @c fcntl() call failed to acquire the lock.
  */
-dyad_rc_t dyad_release_flock (const dyad_ctx_t *__restrict__ ctx,
+dyad_rc_t dyad_release_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
                               int fd,
-                              struct flock *__restrict__ lock);
+                              struct flock *DYAD_RESTRICT lock);
 
 #if DYAD_SYNC_DIR
 /**

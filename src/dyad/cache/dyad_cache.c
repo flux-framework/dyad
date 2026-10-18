@@ -51,12 +51,12 @@ static bool dyad_cache_is_range_bitmap (const char *name)
  * @retval DYAD_RC_BADFIO The directory could not be opened.
  * @retval DYAD_RC_SYSFAIL Candidate-array allocation failed.
  */
-static dyad_rc_t dyad_cache_scan_subtree (const dyad_ctx_t *restrict ctx,
-                                          const char *restrict directory,
-                                          struct dyad_cache_entry **restrict entries,
-                                          size_t *restrict n_entries,
-                                          size_t *restrict capacity,
-                                          uint64_t *restrict total_size)
+static dyad_rc_t dyad_cache_scan_subtree (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                          const char *DYAD_RESTRICT directory,
+                                          struct dyad_cache_entry **DYAD_RESTRICT entries,
+                                          size_t *DYAD_RESTRICT n_entries,
+                                          size_t *DYAD_RESTRICT capacity,
+                                          uint64_t *DYAD_RESTRICT total_size)
 {
     dyad_rc_t rc = DYAD_RC_OK;
     DIR *dirp = NULL;

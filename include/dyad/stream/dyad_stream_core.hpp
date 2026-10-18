@@ -157,7 +157,7 @@ class dyad_stream_core
      * @param[in] path     Path to check.
      * @return @c true if @p path is under the managed directory.
      */
-    bool cmp_canonical_path_prefix (bool is_prod, const char *const __restrict__ path);
+    bool cmp_canonical_path_prefix (bool is_prod, const char *const DYAD_RESTRICT path);
 
     /**
      * @brief Returns the relative path extracted by the last

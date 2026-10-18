@@ -73,8 +73,8 @@
  * @retval -1  @p str, @p path_key, or @p len is invalid, @p str is empty, or
  *             the generated key exceeded @p len.
  */
-DYAD_DLL_EXPORTED int gen_path_key (const char *restrict str,
-                                    char *restrict path_key,
+DYAD_DLL_EXPORTED int gen_path_key (const char *DYAD_RESTRICT str,
+                                    char *DYAD_RESTRICT path_key,
                                     const size_t len,
                                     const uint32_t depth,
                                     const uint32_t width)
@@ -195,8 +195,8 @@ static void future_cleanup_cb (flux_future_t *f, void *arg)
  *       The commit may still complete, but the future may not be properly
  *       cleaned up.
  */
-DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_commit (const dyad_ctx_t *restrict ctx,
-                                               flux_kvs_txn_t *restrict txn)
+DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_commit (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                               flux_kvs_txn_t *DYAD_RESTRICT txn)
 {
     DYAD_C_FUNCTION_START ();
     flux_future_t *f = NULL;
@@ -263,8 +263,8 @@ kvs_commit_region_finish:;
  * @retval DYAD_RC_FLUXFAIL  The Flux KVS transaction could not be created or packed.
  * @retval DYAD_RC_*         Any error code propagated from @c dyad_kvs_commit().
  */
-DYAD_CORE_FUNC_MODS dyad_rc_t publish_via_flux (const dyad_ctx_t *restrict ctx,
-                                                const char *restrict upath)
+DYAD_CORE_FUNC_MODS dyad_rc_t publish_via_flux (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                                const char *DYAD_RESTRICT upath)
 {
     DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", ctx->fname);
@@ -347,7 +347,8 @@ publish_done:;
  * @note If @c ctx->check is set and the operation succeeds, the environment
  *       variable @c DYAD_CHECK_ENV is set to @c "ok".
  */
-DYAD_DLL_EXPORTED dyad_rc_t dyad_commit (dyad_ctx_t *restrict ctx, const char *restrict fname)
+DYAD_DLL_EXPORTED dyad_rc_t dyad_commit (dyad_ctx_t *DYAD_RESTRICT ctx,
+                                         const char *DYAD_RESTRICT fname)
 {
     DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", ctx->fname);
@@ -396,7 +397,8 @@ commit_done:;
     return rc;
 }
 
-static void print_mdata (const dyad_ctx_t *restrict ctx, const dyad_metadata_t *restrict mdata)
+static void print_mdata (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                         const dyad_metadata_t *DYAD_RESTRICT mdata)
 {
     if (mdata == NULL) {
         DYAD_LOG_INFO (ctx, "Cannot print a NULL metadata object!");
@@ -456,11 +458,11 @@ static void print_mdata (const dyad_ctx_t *restrict ctx, const dyad_metadata_t *
  * @retval DYAD_RC_BADMETADATA  The KVS response could not be unpacked to extract
  *                              the producer's broker rank.
  */
-DYAD_DLL_EXPORTED dyad_rc_t dyad_kvs_read (const dyad_ctx_t *restrict ctx,
-                                           const char *restrict topic,
-                                           const char *restrict upath,
+DYAD_DLL_EXPORTED dyad_rc_t dyad_kvs_read (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                           const char *DYAD_RESTRICT topic,
+                                           const char *DYAD_RESTRICT upath,
                                            bool should_wait,
-                                           dyad_metadata_t **restrict mdata)
+                                           dyad_metadata_t **DYAD_RESTRICT mdata)
 {
     DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("upath", upath);
@@ -577,10 +579,10 @@ kvs_read_end:;
  * @note The @c service_mux field in @p ctx controls how many Flux broker ranks
  *       map to a single node, and is used to determine node-level locality.
  */
-DYAD_CORE_FUNC_MODS dyad_rc_t dyad_fetch_metadata (const dyad_ctx_t *restrict ctx,
-                                                   const char *restrict fname,
-                                                   const char *restrict upath,
-                                                   dyad_metadata_t **restrict mdata)
+DYAD_CORE_FUNC_MODS dyad_rc_t dyad_fetch_metadata (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                                   const char *DYAD_RESTRICT fname,
+                                                   const char *DYAD_RESTRICT upath,
+                                                   dyad_metadata_t **DYAD_RESTRICT mdata)
 {
     DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", fname);
@@ -700,10 +702,10 @@ fetch_done:;
  *                              @c dtl_handle->establish_connection(), or
  *                              @c dtl_handle->recv().
  */
-DYAD_DLL_EXPORTED dyad_rc_t dyad_get_data (const dyad_ctx_t *restrict ctx,
-                                           const dyad_metadata_t *restrict mdata,
-                                           char **restrict file_data,
-                                           size_t *restrict file_len)
+DYAD_DLL_EXPORTED dyad_rc_t dyad_get_data (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                           const dyad_metadata_t *DYAD_RESTRICT mdata,
+                                           char **DYAD_RESTRICT file_data,
+                                           size_t *DYAD_RESTRICT file_len)
 {
     DYAD_C_FUNCTION_START ();
     dyad_rc_t rc = DYAD_RC_OK;
@@ -833,12 +835,12 @@ get_done:;
  *
  * @return @c dyad_rc_t return code, same conventions as @c dyad_get_data().
  */
-DYAD_DLL_EXPORTED dyad_rc_t dyad_get_data_range (const dyad_ctx_t *restrict ctx,
-                                                 const dyad_metadata_t *restrict mdata,
+DYAD_DLL_EXPORTED dyad_rc_t dyad_get_data_range (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                                 const dyad_metadata_t *DYAD_RESTRICT mdata,
                                                  size_t offset,
                                                  size_t length,
-                                                 char **restrict file_data,
-                                                 size_t *restrict file_len)
+                                                 char **DYAD_RESTRICT file_data,
+                                                 size_t *DYAD_RESTRICT file_len)
 {
     DYAD_C_FUNCTION_START ();
     dyad_rc_t rc = DYAD_RC_OK;
@@ -951,11 +953,11 @@ get_range_done:;
  * @note If the operation succeeds and @c ctx->check is set, the environment
  *       variable @c DYAD_CHECK_ENV is set to @c "ok".
  */
-DYAD_CORE_FUNC_MODS dyad_rc_t dyad_cons_store (const dyad_ctx_t *restrict ctx,
-                                               const dyad_metadata_t *restrict mdata,
+DYAD_CORE_FUNC_MODS dyad_rc_t dyad_cons_store (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                               const dyad_metadata_t *DYAD_RESTRICT mdata,
                                                int fd,
                                                const size_t data_len,
-                                               char *restrict file_data)
+                                               char *DYAD_RESTRICT file_data)
 {
     DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
@@ -1051,7 +1053,7 @@ pull_done:;
     return rc;
 }
 
-dyad_rc_t dyad_produce (dyad_ctx_t *restrict ctx, const char *restrict fname)
+dyad_rc_t dyad_produce (dyad_ctx_t *DYAD_RESTRICT ctx, const char *DYAD_RESTRICT fname)
 {
     DYAD_C_FUNCTION_START ();
     dyad_rc_t rc = DYAD_RC_OK;
@@ -1088,10 +1090,10 @@ produce_done:;
 /** This function is coupled with Python API. This populates `mdata' which
  * is used by `dyad_consume_w_metadata ()'
  */
-dyad_rc_t dyad_get_metadata (dyad_ctx_t *restrict ctx,
-                             const char *restrict fname,
+dyad_rc_t dyad_get_metadata (dyad_ctx_t *DYAD_RESTRICT ctx,
+                             const char *DYAD_RESTRICT fname,
                              bool should_wait,
-                             dyad_metadata_t **restrict mdata)
+                             dyad_metadata_t **DYAD_RESTRICT mdata)
 {
     DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", fname);
@@ -1205,7 +1207,7 @@ dyad_rc_t dyad_free_metadata (dyad_metadata_t **mdata)
     return DYAD_RC_OK;
 }
 
-dyad_rc_t dyad_consume (dyad_ctx_t *restrict ctx, const char *restrict fname)
+dyad_rc_t dyad_consume (dyad_ctx_t *DYAD_RESTRICT ctx, const char *DYAD_RESTRICT fname)
 {
     DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", fname);
@@ -1399,9 +1401,9 @@ consume_close:;
     return rc;
 }
 
-dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t *restrict ctx,
+dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t *DYAD_RESTRICT ctx,
                                    const char *fname,
-                                   const dyad_metadata_t *restrict mdata)
+                                   const dyad_metadata_t *DYAD_RESTRICT mdata)
 {
     DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", fname);
@@ -1539,12 +1541,12 @@ consume_close:;
     return rc;
 }
 
-dyad_rc_t dyad_consume_range (dyad_ctx_t *restrict ctx,
-                              const char *restrict fname,
+dyad_rc_t dyad_consume_range (dyad_ctx_t *DYAD_RESTRICT ctx,
+                              const char *DYAD_RESTRICT fname,
                               size_t offset,
                               size_t length,
-                              void **restrict data,
-                              size_t *restrict data_len)
+                              void **DYAD_RESTRICT data,
+                              size_t *DYAD_RESTRICT data_len)
 {
     DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", fname);
@@ -1701,7 +1703,7 @@ consume_range_close:;
  *       fails — the return code reflects whether any of them failed, but does
  *       not distinguish which one.
  */
-int dyad_sync_directory (dyad_ctx_t *restrict ctx, const char *restrict path)
+int dyad_sync_directory (dyad_ctx_t *DYAD_RESTRICT ctx, const char *DYAD_RESTRICT path)
 {
     DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("path", path);

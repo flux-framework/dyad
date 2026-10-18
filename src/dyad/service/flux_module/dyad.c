@@ -1311,10 +1311,10 @@ typedef struct opt_parse_out opt_parse_out_t;
  * @retval DYAD_RC_OK      Parsing succeeded.
  * @retval DYAD_RC_SYSFAIL An unrecognized option was encountered.
  */
-int opt_parse (opt_parse_out_t *restrict opt,
+int opt_parse (opt_parse_out_t *DYAD_RESTRICT opt,
                const unsigned broker_rank,
                int argc,
-               char **restrict argv)
+               char **DYAD_RESTRICT argv)
 {
 #ifndef DYAD_LOGGER_NO_LOG
     char log_file_name[PATH_MAX + 1] = {'\0'};

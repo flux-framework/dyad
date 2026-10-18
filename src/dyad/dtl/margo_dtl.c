@@ -514,9 +514,9 @@ dyad_rc_t dyad_dtl_margo_addr_cache_lookup (const dyad_ctx_t *ctx,
 }
 
 dyad_rc_t dyad_dtl_margo_rpc_pack (const dyad_ctx_t *ctx,
-                                   const char *restrict upath,
+                                   const char *DYAD_RESTRICT upath,
                                    uint32_t producer_rank,
-                                   json_t **restrict packed_obj)
+                                   json_t **DYAD_RESTRICT packed_obj)
 {
     DYAD_C_FUNCTION_START ();
     dyad_rc_t rc = DYAD_RC_OK;
