@@ -18,6 +18,10 @@
 #include <dyad/utils/utils.h>
 // clang-format on
 
+// POSIX specifies st_blocks in units of 512 bytes, independent of the
+// filesystem's allocation-block size.
+#define DYAD_STAT_BLOCK_BYTES 512ULL
+
 /**
  * @brief Returns whether a directory entry is a range-cache bitmap sidecar.
  *
@@ -97,10 +101,12 @@ dyad_rc_t dyad_cache_scan_dir (const dyad_ctx_t *ctx,
 
         strncpy (entries[n_entries].path, path, PATH_MAX);
         entries[n_entries].path[PATH_MAX] = '\0';
-        entries[n_entries].size = st.st_size;
+        // st_size is a sparse file's logical length. Cache capacity is disk
+        // capacity, so account for only filesystem blocks actually allocated.
+        entries[n_entries].size = (off_t)((uint64_t)st.st_blocks * DYAD_STAT_BLOCK_BYTES);
         entries[n_entries].atime = st.st_atime;
         entries[n_entries].recency_key = recency_key;
-        total_size += (uint64_t)st.st_size;
+        total_size += (uint64_t)entries[n_entries].size;
         n_entries++;
     }
     closedir (dirp);

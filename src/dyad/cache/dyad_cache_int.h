@@ -40,7 +40,7 @@ extern "C" {
  */
 struct dyad_cache_entry {
     char path[PATH_MAX + 1];  ///< Full path to the candidate file.
-    off_t size;               ///< Size in bytes, from stat().
+    off_t size;               ///< Allocated size in bytes, from @c st_blocks.
     time_t atime;             ///< Last-access time, from stat() -- used for the grace-period
                               ///< check regardless of which policy is active.
     int64_t recency_key;      ///< Ranking key from the active policy; smaller = evict first.
