@@ -393,6 +393,7 @@ int mkdir_as_needed (const char *path, const mode_t m)
         if (stat (path, &sb) == 0) {          // already exist
             if (S_ISDIR (sb.st_mode) == 0) {  // not a directory
                 DYAD_LOG_DEBUG (NULL, "DYAD UTIL: \"%s\" already exists not as a directory.", path);
+                umask (old_mask);
                 return -4;
             } else if ((sb.st_mode & RWX_UGO) ^ (m & RWX_UGO)) {
                 DYAD_LOG_DEBUG (NULL,
@@ -402,8 +403,10 @@ int mkdir_as_needed (const char *path, const mode_t m)
                                 path,
                                 (sb.st_mode & RWX_UGO),
                                 (m & RWX_UGO));
+                umask (old_mask);
                 return 5;  // already exists but with different mode
             }
+            umask (old_mask);
             return 1;  // already exists
         }
         DYAD_LOG_DEBUG (NULL,
@@ -411,6 +414,7 @@ int mkdir_as_needed (const char *path, const mode_t m)
                         path,
                         strerror (errno));
         perror ("mkdir_as_needed() ");
+        umask (old_mask);
         return -1;
     }
     umask (old_mask);
