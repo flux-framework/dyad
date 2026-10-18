@@ -1444,14 +1444,14 @@ dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t *restrict ctx,
     rc = dyad_excl_flock (ctx, lock_fd, &exclusive_lock);
     if (DYAD_IS_ERROR (rc)) {
         dyad_release_flock (ctx, lock_fd, &exclusive_lock);
-        goto consume_close;
+        goto consume_done;
     }
     file_size = get_file_size (lock_fd);
     if (file_size > 0) {
         rc = dyad_range_cache_is_complete (ctx, fname, &has_range_cache, &range_cache_complete);
         if (DYAD_IS_ERROR (rc)) {
             dyad_release_flock (ctx, lock_fd, &exclusive_lock);
-            goto consume_close;
+            goto consume_done;
         }
         if (has_range_cache && !range_cache_complete) {
             file_size = 0;
@@ -1481,7 +1481,8 @@ dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t *restrict ctx,
         if (io_fd == -1) {
             DYAD_LOG_ERROR (ctx, "Cannot open file (%s) in write mode for dyad_consume!\n", fname);
             rc = DYAD_RC_BADFIO;
-            goto consume_close;
+            dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+            goto consume_done;
         }
         // Call dyad_pull to fetch the data from the producer's
         // Flux broker
@@ -1496,7 +1497,7 @@ dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t *restrict ctx,
         // and return the corresponding DYAD return code
         if (DYAD_IS_ERROR (rc)) {
             DYAD_LOG_ERROR (ctx, "dyad_cons_store failed!\n");
-            dyad_release_flock (ctx, io_fd, &exclusive_lock);
+            dyad_release_flock (ctx, lock_fd, &exclusive_lock);
             goto consume_done;
         }
         if (has_range_cache) {
@@ -1517,11 +1518,16 @@ dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t *restrict ctx,
     DYAD_C_FUNCTION_UPDATE_INT ("file_size", file_size);
 
     if (close (lock_fd) != 0) {
+        lock_fd = -1;
         rc = DYAD_RC_BADFIO;
         goto consume_done;
     }
+    lock_fd = -1;
     rc = DYAD_RC_OK;
 consume_done:;
+    if (lock_fd != -1) {
+        close (lock_fd);
+    }
     if (file_data != NULL) {
         ctx->dtl_handle->return_buffer (ctx, (void **)&file_data);
     }
