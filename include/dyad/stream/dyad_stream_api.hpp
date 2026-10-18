@@ -1099,7 +1099,7 @@ basic_ofstream_dyad<_CharT, _Traits>::basic_ofstream_dyad (const _Path &filepath
 
     if ((m_stream != nullptr) && (*m_stream)
 #if DYAD_HAS_STD_FSTREAM_FD
-        && m_core.cmp_canonical_path_prefix (true, filename.c_str ())
+        && m_core.cmp_canonical_path_prefix (true, filepath.c_str ())
 #endif  // DYAD_HAS_STD_FSTREAM_FD
     ) {
         DYAD_EXCLUSIVE_LOCK_CPP_OFSTREAM (*m_stream, m_core);
