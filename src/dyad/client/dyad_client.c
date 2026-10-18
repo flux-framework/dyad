@@ -1233,7 +1233,7 @@ dyad_rc_t dyad_consume (dyad_ctx_t *restrict ctx, const char *restrict fname)
         goto consume_close;
     }
 
-    if (ctx->relative_to_managed_path && (strlen (fname) > 0ul)
+    if (ctx->relative_to_managed_path && fname[0] != '\0'
         && (strncmp (fname, DYAD_PATH_DELIM, ctx->delim_len)
             != 0)) {  // fname is a relative path that is relative to the
                       // cons_managed_path
@@ -1573,7 +1573,7 @@ dyad_rc_t dyad_consume_range (dyad_ctx_t *restrict ctx,
         goto consume_range_close;
     }
 
-    if (ctx->relative_to_managed_path && (strlen (fname) > 0ul)
+    if (ctx->relative_to_managed_path && fname[0] != '\0'
         && (strncmp (fname, DYAD_PATH_DELIM, ctx->delim_len) != 0)) {
         memcpy (upath, fname, strlen (fname));
     } else if (!cmp_canonical_path_prefix (ctx, false, fname, upath, PATH_MAX)) {
