@@ -60,12 +60,12 @@ extern "C" {
  * process sharing @p local_path, local or remote) hit the cache instead
  * of re-reading the origin.
  *
- * Coordination across concurrent callers uses @c dyad_shared_flock() /
- * @c dyad_excl_flock() on the bitmap file (not on @p local_path itself,
- * so large reads/writes to the data file are never serialized by the
- * bookkeeping lock): a shared lock is used to check for a full hit, and
- * only escalates to an exclusive lock (with a re-check, since another
- * process may have filled the span while this one waited) on a miss.
+ * Coordination across concurrent callers uses cache-specific Linux
+ * open-file-description locks on both the bitmap and data files. A shared
+ * bitmap lock checks for a full hit; on a miss it escalates to an exclusive
+ * bitmap lock and re-checks, since another caller may have filled the span
+ * while this one waited. The data-file OFD lock prevents eviction while a
+ * fetched span is written, without serializing the slow origin read.
  *
  * This function does not read data into a caller-supplied buffer itself
  * -- once it returns @c DYAD_RC_OK, the caller is expected to read the

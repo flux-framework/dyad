@@ -171,6 +171,38 @@ TEST_CASE ("dyad_cache_maybe_evict_noop_when_disabled", "[module=dyad_cache][met
     remove_dir_recursive (dir);
 }
 
+TEST_CASE ("dyad_cache_ofd_locks_exclude_same_process_descriptors",
+           "[module=dyad_cache][method=ofd_lock]")
+{
+    struct dyad_ctx ctx = make_test_ctx ();
+    std::string dir = make_temp_dir ();
+    std::string path = dir + "/cached.bin";
+    struct flock lock;
+    struct flock second_lock;
+    int first_fd = -1;
+    int second_fd = -1;
+
+    write_file (path, 1);
+    first_fd = open (path.c_str (), O_RDWR);
+    second_fd = open (path.c_str (), O_RDWR);
+    REQUIRE (first_fd >= 0);
+    REQUIRE (second_fd >= 0);
+
+    REQUIRE (dyad_cache_excl_flock (&ctx, first_fd, &lock) == DYAD_RC_OK);
+    REQUIRE (dyad_cache_try_excl_flock (&ctx, second_fd, &second_lock) == DYAD_RC_BUSY);
+    REQUIRE (dyad_cache_release_flock (&ctx, first_fd, &lock) == DYAD_RC_OK);
+
+    // Cache OFD locks must also respect the established producer/consumer
+    // POSIX locks, so eviction cannot remove a normally locked file.
+    REQUIRE (dyad_excl_flock (&ctx, first_fd, &lock) == DYAD_RC_OK);
+    REQUIRE (dyad_cache_try_excl_flock (&ctx, second_fd, &second_lock) == DYAD_RC_BUSY);
+    REQUIRE (dyad_release_flock (&ctx, first_fd, &lock) == DYAD_RC_OK);
+
+    close (second_fd);
+    close (first_fd);
+    remove_dir_recursive (dir);
+}
+
 TEST_CASE ("dyad_cache_maybe_evict_selects_oldest_first", "[module=dyad_cache][method=maybe_evict]")
 {
     struct dyad_ctx ctx = make_test_ctx ();

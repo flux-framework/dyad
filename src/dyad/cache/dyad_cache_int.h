@@ -87,13 +87,13 @@ dyad_rc_t dyad_cache_scan_dir (const dyad_ctx_t *ctx,
  *    is already at or below capacity, returns immediately without
  *    taking any lock.
  * 2. Acquires an exclusive lock on
- *    @c managed_path/DYAD_CACHE_LOCK_FILENAME (reusing @c dyad_excl_flock()),
+ *    @c managed_path/DYAD_CACHE_LOCK_FILENAME with a cache OFD lock,
  *    then re-scans and re-checks usage in case another process already
  *    evicted enough while this one was waiting for the lock.
  * 3. Sorts candidates by recency key ascending (oldest/least-recently
  *    used first per the active policy) and @c unlink()s them, skipping
  *    any candidate that is currently locked by another process (via
- *    @c dyad_try_excl_flock()) or was accessed within
+ *    @c dyad_cache_try_excl_flock()) or was accessed within
  *    @c ctx->cache_grace_period_sec, until usage drops to
  *    @c ctx->cache_low_watermark_frac * ctx->cache_capacity_bytes.
  * 4. Releases the directory lock.

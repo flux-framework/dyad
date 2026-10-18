@@ -205,15 +205,15 @@ dyad_rc_t dyad_cache_maybe_evict (dyad_ctx_t *ctx, const char *managed_path)
 
     // Over capacity: serialize the scan-and-evict decision across
     // processes sharing this managed directory via a dedicated lock file,
-    // reusing the same dyad_excl_flock() primitive used for per-file
-    // coordination elsewhere in DYAD.
+    // using cache-specific OFD locks so concurrent worker threads in this
+    // process are serialized as well.
     snprintf (lock_path, sizeof (lock_path), "%s/%s", managed_path, DYAD_CACHE_LOCK_FILENAME);
     lock_fd = open (lock_path, O_RDWR | O_CREAT, 0666);
     if (lock_fd == -1) {
         DYAD_LOG_ERROR (ctx, "DYAD CACHE: Cannot open cache lock file %s", lock_path);
         return DYAD_RC_OK;
     }
-    if (DYAD_IS_ERROR (dyad_excl_flock (ctx, lock_fd, &dir_lock))) {
+    if (DYAD_IS_ERROR (dyad_cache_excl_flock (ctx, lock_fd, &dir_lock))) {
         close (lock_fd);
         return DYAD_RC_OK;
     }
@@ -221,13 +221,13 @@ dyad_rc_t dyad_cache_maybe_evict (dyad_ctx_t *ctx, const char *managed_path)
     // Re-check: another process may have already evicted while we waited.
     if (DYAD_IS_ERROR (
             dyad_cache_scan_dir (ctx, managed_path, &entries, &n_entries, &total_size))) {
-        dyad_release_flock (ctx, lock_fd, &dir_lock);
+        dyad_cache_release_flock (ctx, lock_fd, &dir_lock);
         close (lock_fd);
         return DYAD_RC_OK;
     }
     if (total_size <= ctx->cache_capacity_bytes) {
         free (entries);
-        dyad_release_flock (ctx, lock_fd, &dir_lock);
+        dyad_cache_release_flock (ctx, lock_fd, &dir_lock);
         close (lock_fd);
         return DYAD_RC_OK;
     }
@@ -250,7 +250,7 @@ dyad_rc_t dyad_cache_maybe_evict (dyad_ctx_t *ctx, const char *managed_path)
             // Already gone (e.g. raced with another evictor or the owner).
             continue;
         }
-        if (dyad_try_excl_flock (ctx, victim_fd, &victim_lock) != DYAD_RC_OK) {
+        if (dyad_cache_try_excl_flock (ctx, victim_fd, &victim_lock) != DYAD_RC_OK) {
             // Locked by an in-flight dyad_produce()/dyad_consume() elsewhere. Skip.
             close (victim_fd);
             continue;
@@ -268,12 +268,12 @@ dyad_rc_t dyad_cache_maybe_evict (dyad_ctx_t *ctx, const char *managed_path)
             bytes_freed += (uint64_t)entries[i].size;
             n_evicted++;
         }
-        dyad_release_flock (ctx, victim_fd, &victim_lock);
+        dyad_cache_release_flock (ctx, victim_fd, &victim_lock);
         close (victim_fd);
     }
 
     free (entries);
-    dyad_release_flock (ctx, lock_fd, &dir_lock);
+    dyad_cache_release_flock (ctx, lock_fd, &dir_lock);
     close (lock_fd);
 
     DYAD_LOG_INFO (ctx,

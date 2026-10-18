@@ -535,6 +535,70 @@ dyad_rc_t dyad_release_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
                               int fd,
                               struct flock *DYAD_RESTRICT lock);
 
+/**
+ * @brief Acquires an exclusive Linux open-file-description lock for cache I/O.
+ *
+ * @details
+ * Uses @c F_OFD_SETLKW rather than DYAD's traditional process-owned POSIX
+ * record locks. The lock belongs to @p fd's open file description, so cache
+ * worker threads in one process exclude each other and closing another
+ * descriptor for the same inode does not release this lock. OFD locks still
+ * conflict with traditional POSIX record locks held by other DYAD paths.
+ *
+ * @param[in]  ctx  DYAD context used for logging.
+ * @param[in]  fd   File descriptor of the open cache file to lock.
+ * @param[out] lock Lock description populated for a later release.
+ *
+ * @retval DYAD_RC_OK     The lock was acquired.
+ * @retval DYAD_RC_BADFIO The lock request failed.
+ */
+dyad_rc_t dyad_cache_excl_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                 int fd,
+                                 struct flock *DYAD_RESTRICT lock);
+
+/**
+ * @brief Attempts to acquire an exclusive cache OFD lock without waiting.
+ *
+ * @param[in]  ctx  DYAD context used for logging.
+ * @param[in]  fd   File descriptor of the open cache file to lock.
+ * @param[out] lock Lock description populated when acquisition succeeds.
+ *
+ * @retval DYAD_RC_OK     The lock was acquired.
+ * @retval DYAD_RC_BUSY   A conflicting lock is held.
+ * @retval DYAD_RC_BADFIO The lock request failed.
+ */
+dyad_rc_t dyad_cache_try_excl_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                     int fd,
+                                     struct flock *DYAD_RESTRICT lock);
+
+/**
+ * @brief Acquires a shared Linux open-file-description lock for cache I/O.
+ *
+ * @param[in]  ctx  DYAD context used for logging.
+ * @param[in]  fd   File descriptor of the open cache file to lock.
+ * @param[out] lock Lock description populated for a later release.
+ *
+ * @retval DYAD_RC_OK     The lock was acquired.
+ * @retval DYAD_RC_BADFIO The lock request failed.
+ */
+dyad_rc_t dyad_cache_shared_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                   int fd,
+                                   struct flock *DYAD_RESTRICT lock);
+
+/**
+ * @brief Releases a cache OFD lock acquired through the same descriptor.
+ *
+ * @param[in]     ctx  DYAD context used for logging.
+ * @param[in]     fd   Descriptor that acquired the cache OFD lock.
+ * @param[in,out] lock Lock description populated by a cache lock helper.
+ *
+ * @retval DYAD_RC_OK     The lock was released.
+ * @retval DYAD_RC_BADFIO The unlock request failed.
+ */
+dyad_rc_t dyad_cache_release_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                    int fd,
+                                    struct flock *DYAD_RESTRICT lock);
+
 #if DYAD_SYNC_DIR
 /**
  * Run fsync for the containing directory of the given path.

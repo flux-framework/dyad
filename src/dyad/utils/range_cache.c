@@ -38,15 +38,11 @@
 
 #define DYAD_RANGE_CACHE_SUFFIX ".dyad_cached"
 
-// fcntl()-based advisory locks (dyad_shared_flock()/dyad_excl_flock(), used
-// below) only provide mutual exclusion between *processes*, not between
-// threads of the same process -- two threads in one process can both hold
-// a conflicting fcntl() lock simultaneously. That's fine for this range
-// cache's original use (one thread per process), but now that a single
-// DYAD broker module process can service multiple fetch requests
-// concurrently via a worker-thread pool, two of its own worker threads can
-// race on the same bitmap file's read-modify-write without this mutex.
-// Held *in addition to*, not instead of, the fcntl() locks below, which
+// Cache OFD locks (dyad_cache_shared_flock()/dyad_cache_excl_flock()) are
+// associated with each descriptor, so they exclude both threads and
+// processes. This mutex additionally protects this process's bitmap
+// read-modify-write sequence without holding a kernel lock across the slow
+// origin fetch. It is held in addition to the OFD locks, which
 // remain necessary for the cross-process case (e.g. this module's worker
 // threads racing a local consumer process reading the same shard directly,
 // see dyad_client.c's dyad_consume_range()). A single global mutex is fine
@@ -197,7 +193,7 @@ static dyad_rc_t range_cache_fetch_span (const dyad_ctx_t *ctx,
     }
 
     local_fd = open (local_path, O_WRONLY);
-    if (local_fd == -1 || DYAD_IS_ERROR (dyad_excl_flock (ctx, local_fd, &local_lock))) {
+    if (local_fd == -1 || DYAD_IS_ERROR (dyad_cache_excl_flock (ctx, local_fd, &local_lock))) {
         DYAD_WORKER_LOG_ERROR ("DYAD RANGE_CACHE: cannot lock local '%s'", local_path);
         rc = DYAD_RC_BADFIO;
         goto fetch_span_done;
@@ -220,7 +216,7 @@ fetch_span_done:;
     }
     if (local_fd != -1) {
         if (local_locked) {
-            dyad_release_flock (ctx, local_fd, &local_lock);
+            dyad_cache_release_flock (ctx, local_fd, &local_lock);
         }
         close (local_fd);
     }
@@ -285,7 +281,7 @@ dyad_rc_t dyad_range_cache_ensure (const dyad_ctx_t *ctx,
 
     // Fast path: under a shared lock, check whether the requested span is
     // already fully cached.
-    rc = dyad_shared_flock (ctx, bitmap_fd, &lock);
+    rc = dyad_cache_shared_flock (ctx, bitmap_fd, &lock);
     if (DYAD_IS_ERROR (rc)) {
         pthread_mutex_unlock (&g_range_cache_mutex);
         close (bitmap_fd);
@@ -297,7 +293,7 @@ dyad_rc_t dyad_range_cache_ensure (const dyad_ctx_t *ctx,
         if (bitmap != NULL && pread (bitmap_fd, bitmap, bitmap_bytes, 0) == (ssize_t)bitmap_bytes
             && range_cache_blocks_set (bitmap, block_start, block_end)) {
             free (bitmap);
-            dyad_release_flock (ctx, bitmap_fd, &lock);
+            dyad_cache_release_flock (ctx, bitmap_fd, &lock);
             pthread_mutex_unlock (&g_range_cache_mutex);
             close (bitmap_fd);
             return DYAD_RC_OK;
@@ -305,7 +301,7 @@ dyad_rc_t dyad_range_cache_ensure (const dyad_ctx_t *ctx,
         free (bitmap);
         bitmap = NULL;
     }
-    dyad_release_flock (ctx, bitmap_fd, &lock);
+    dyad_cache_release_flock (ctx, bitmap_fd, &lock);
 
     // Miss (or bitmap not yet sized): escalate to an exclusive lock just
     // long enough to do the cheap metadata work (stat/ftruncate/re-check),
@@ -315,7 +311,7 @@ dyad_rc_t dyad_range_cache_ensure (const dyad_ctx_t *ctx,
     // first, which is exactly what turned occasional slow PFS reads into
     // multi-second-to-tens-of-seconds stalls for every other consumer of
     // the same shard queued behind the lock.
-    rc = dyad_excl_flock (ctx, bitmap_fd, &lock);
+    rc = dyad_cache_excl_flock (ctx, bitmap_fd, &lock);
     if (DYAD_IS_ERROR (rc)) {
         pthread_mutex_unlock (&g_range_cache_mutex);
         close (bitmap_fd);
@@ -324,7 +320,7 @@ dyad_rc_t dyad_range_cache_ensure (const dyad_ctx_t *ctx,
 
     if (stat (origin_path, &origin_st) != 0 || origin_st.st_size <= 0) {
         DYAD_WORKER_LOG_ERROR ("DYAD RANGE_CACHE: cannot stat origin file '%s'", origin_path);
-        dyad_release_flock (ctx, bitmap_fd, &lock);
+        dyad_cache_release_flock (ctx, bitmap_fd, &lock);
         pthread_mutex_unlock (&g_range_cache_mutex);
         close (bitmap_fd);
         return DYAD_RC_BADFIO;
@@ -332,7 +328,7 @@ dyad_rc_t dyad_range_cache_ensure (const dyad_ctx_t *ctx,
     origin_size = (size_t)origin_st.st_size;
     if (offset >= origin_size) {
         DYAD_WORKER_LOG_ERROR ("DYAD RANGE_CACHE: invalid range for origin file '%s'", origin_path);
-        dyad_release_flock (ctx, bitmap_fd, &lock);
+        dyad_cache_release_flock (ctx, bitmap_fd, &lock);
         pthread_mutex_unlock (&g_range_cache_mutex);
         close (bitmap_fd);
         return DYAD_RC_BADFIO;
@@ -355,7 +351,7 @@ dyad_rc_t dyad_range_cache_ensure (const dyad_ctx_t *ctx,
             if (size_fd != -1) {
                 close (size_fd);
             }
-            dyad_release_flock (ctx, bitmap_fd, &lock);
+            dyad_cache_release_flock (ctx, bitmap_fd, &lock);
             pthread_mutex_unlock (&g_range_cache_mutex);
             close (bitmap_fd);
             return DYAD_RC_BADFIO;
@@ -365,7 +361,7 @@ dyad_rc_t dyad_range_cache_ensure (const dyad_ctx_t *ctx,
 
     bitmap = (uint8_t *)calloc (1ul, bitmap_bytes);
     if (bitmap == NULL) {
-        dyad_release_flock (ctx, bitmap_fd, &lock);
+        dyad_cache_release_flock (ctx, bitmap_fd, &lock);
         pthread_mutex_unlock (&g_range_cache_mutex);
         close (bitmap_fd);
         return DYAD_RC_SYSFAIL;
@@ -377,7 +373,7 @@ dyad_rc_t dyad_range_cache_ensure (const dyad_ctx_t *ctx,
     already_cached = range_cache_blocks_set (bitmap, block_start, block_end);
     free (bitmap);
     bitmap = NULL;
-    dyad_release_flock (ctx, bitmap_fd, &lock);
+    dyad_cache_release_flock (ctx, bitmap_fd, &lock);
     pthread_mutex_unlock (&g_range_cache_mutex);
 
     if (already_cached) {
@@ -404,7 +400,7 @@ dyad_rc_t dyad_range_cache_ensure (const dyad_ctx_t *ctx,
     // now cached, merging with whatever bits any concurrent racers have
     // set.
     pthread_mutex_lock (&g_range_cache_mutex);
-    rc = dyad_excl_flock (ctx, bitmap_fd, &lock);
+    rc = dyad_cache_excl_flock (ctx, bitmap_fd, &lock);
     if (DYAD_IS_ERROR (rc)) {
         pthread_mutex_unlock (&g_range_cache_mutex);
         close (bitmap_fd);
@@ -412,7 +408,7 @@ dyad_rc_t dyad_range_cache_ensure (const dyad_ctx_t *ctx,
     }
     bitmap = (uint8_t *)calloc (1ul, bitmap_bytes);
     if (bitmap == NULL) {
-        dyad_release_flock (ctx, bitmap_fd, &lock);
+        dyad_cache_release_flock (ctx, bitmap_fd, &lock);
         pthread_mutex_unlock (&g_range_cache_mutex);
         close (bitmap_fd);
         return DYAD_RC_SYSFAIL;
@@ -424,7 +420,7 @@ dyad_rc_t dyad_range_cache_ensure (const dyad_ctx_t *ctx,
         rc = DYAD_RC_BADFIO;
     }
     free (bitmap);
-    dyad_release_flock (ctx, bitmap_fd, &lock);
+    dyad_cache_release_flock (ctx, bitmap_fd, &lock);
     pthread_mutex_unlock (&g_range_cache_mutex);
     close (bitmap_fd);
     return rc;
@@ -471,7 +467,7 @@ dyad_rc_t dyad_range_cache_is_complete (const dyad_ctx_t *ctx,
         return DYAD_RC_SYSFAIL;
     }
     pthread_mutex_lock (&g_range_cache_mutex);
-    rc = dyad_shared_flock (ctx, bitmap_fd, &lock);
+    rc = dyad_cache_shared_flock (ctx, bitmap_fd, &lock);
     if (!DYAD_IS_ERROR (rc)
         && (get_file_size (bitmap_fd) < (ssize_t)bitmap_bytes
             || pread (bitmap_fd, bitmap, bitmap_bytes, 0) != (ssize_t)bitmap_bytes
@@ -479,7 +475,7 @@ dyad_rc_t dyad_range_cache_is_complete (const dyad_ctx_t *ctx,
         *complete = false;
     }
     if (!DYAD_IS_ERROR (rc)) {
-        dyad_release_flock (ctx, bitmap_fd, &lock);
+        dyad_cache_release_flock (ctx, bitmap_fd, &lock);
     }
     pthread_mutex_unlock (&g_range_cache_mutex);
     free (bitmap);
@@ -520,7 +516,7 @@ dyad_rc_t dyad_range_cache_mark_complete (const dyad_ctx_t *ctx, const char *loc
     }
     memset (bitmap, 0xff, bitmap_bytes);
     pthread_mutex_lock (&g_range_cache_mutex);
-    rc = dyad_excl_flock (ctx, bitmap_fd, &lock);
+    rc = dyad_cache_excl_flock (ctx, bitmap_fd, &lock);
     locked = !DYAD_IS_ERROR (rc);
     if (!DYAD_IS_ERROR (rc)
         && (ftruncate (bitmap_fd, (off_t)bitmap_bytes) != 0
@@ -528,7 +524,7 @@ dyad_rc_t dyad_range_cache_mark_complete (const dyad_ctx_t *ctx, const char *loc
         rc = DYAD_RC_BADFIO;
     }
     if (locked) {
-        dyad_release_flock (ctx, bitmap_fd, &lock);
+        dyad_cache_release_flock (ctx, bitmap_fd, &lock);
     }
     pthread_mutex_unlock (&g_range_cache_mutex);
     free (bitmap);

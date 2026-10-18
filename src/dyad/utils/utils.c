@@ -666,6 +666,74 @@ release_flock_end:;
     return rc;
 }
 
+/**
+ * @brief Applies or releases a whole-file cache OFD lock.
+ *
+ * @param[in]     ctx         DYAD context used for logging.
+ * @param[in]     fd          Descriptor whose open file description owns the lock.
+ * @param[in,out] lock        Lock description to populate and submit to @c fcntl().
+ * @param[in]     lock_type   Requested lock type.
+ * @param[in]     command     OFD @c fcntl() command.
+ * @param[in]     nonblocking Whether a conflicting lock returns @c DYAD_RC_BUSY.
+ *
+ * @retval DYAD_RC_OK     The operation succeeded.
+ * @retval DYAD_RC_BUSY   A nonblocking acquisition found a conflicting lock.
+ * @retval DYAD_RC_BADFIO @p lock was NULL or @c fcntl() failed.
+ */
+static dyad_rc_t dyad_cache_ofd_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                       int fd,
+                                       struct flock *DYAD_RESTRICT lock,
+                                       short lock_type,
+                                       int command,
+                                       bool nonblocking)
+{
+    if (lock == NULL) {
+        return DYAD_RC_BADFIO;
+    }
+    lock->l_type = lock_type;
+    lock->l_whence = SEEK_SET;
+    lock->l_start = 0;
+    lock->l_len = 0;
+    // Linux requires l_pid to be zero for F_OFD_* lock operations.
+    lock->l_pid = 0;
+    if (fcntl (fd, command, lock) == 0) {
+        return DYAD_RC_OK;
+    }
+    if (nonblocking && (errno == EAGAIN || errno == EACCES)) {
+        return DYAD_RC_BUSY;
+    }
+    DYAD_WORKER_LOG_ERROR ("DYAD CACHE: Cannot update OFD lock on fd %d.", fd);
+    return DYAD_RC_BADFIO;
+}
+
+dyad_rc_t dyad_cache_excl_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                 int fd,
+                                 struct flock *DYAD_RESTRICT lock)
+{
+    return dyad_cache_ofd_flock (ctx, fd, lock, F_WRLCK, F_OFD_SETLKW, false);
+}
+
+dyad_rc_t dyad_cache_try_excl_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                     int fd,
+                                     struct flock *DYAD_RESTRICT lock)
+{
+    return dyad_cache_ofd_flock (ctx, fd, lock, F_WRLCK, F_OFD_SETLK, true);
+}
+
+dyad_rc_t dyad_cache_shared_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                   int fd,
+                                   struct flock *DYAD_RESTRICT lock)
+{
+    return dyad_cache_ofd_flock (ctx, fd, lock, F_RDLCK, F_OFD_SETLKW, false);
+}
+
+dyad_rc_t dyad_cache_release_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                    int fd,
+                                    struct flock *DYAD_RESTRICT lock)
+{
+    return dyad_cache_ofd_flock (ctx, fd, lock, F_UNLCK, F_OFD_SETLK, false);
+}
+
 #if DYAD_SYNC_DIR
 int sync_containing_dir (const char *path)
 {
