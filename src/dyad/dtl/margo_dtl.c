@@ -317,10 +317,19 @@ dyad_rc_t dyad_dtl_margo_init (const dyad_ctx_t *ctx,
     }
 
     margo_handle = ctx->dtl_handle->private_dtl.margo_dtl_handle;
+    /* Initialization below acquires Margo resources in stages. Any failed
+     * stage deliberately enters the shared cleanup path, so every resource
+     * field must have a safe invalid value before the first fallible call. */
     margo_handle->h = (flux_t *)ctx->h;  // flux handle
     margo_handle->debug = debug;
+    margo_handle->mid = MARGO_INSTANCE_NULL;
+    margo_handle->local_addr = HG_ADDR_NULL;
+    margo_handle->remote_addr = HG_ADDR_NULL;
+    margo_handle->sendrecv_rpc_id = 0;
     atomic_init (&margo_handle->recv_ready, false);
     atomic_init (&margo_handle->recv_failed, false);
+    margo_handle->recv_len = 0;
+    margo_handle->recv_buffer = NULL;
     margo_handle->addr_cache = NULL;
     margo_handle->addr_cache_len = 0;
     margo_handle->addr_cache_cap = 0;
@@ -406,8 +415,6 @@ dyad_rc_t dyad_dtl_margo_init (const dyad_ctx_t *ctx,
             goto error;
         }
     }
-    margo_handle->remote_addr = NULL;
-
     ctx->dtl_handle->rpc_pack = dyad_dtl_margo_rpc_pack;
     ctx->dtl_handle->rpc_unpack = dyad_dtl_margo_rpc_unpack;
     ctx->dtl_handle->rpc_pack_range = dyad_dtl_margo_rpc_pack_range;
@@ -1025,7 +1032,9 @@ dyad_rc_t dyad_dtl_margo_finalize (const dyad_ctx_t *ctx)
     margo_handle = ctx->dtl_handle->private_dtl.margo_dtl_handle;
 
     if (margo_handle->mid != MARGO_INSTANCE_NULL) {
-        margo_addr_free (margo_handle->mid, margo_handle->local_addr);
+        if (margo_handle->local_addr != HG_ADDR_NULL) {
+            margo_addr_free (margo_handle->mid, margo_handle->local_addr);
+        }
         for (size_t i = 0; i < margo_handle->addr_cache_len; i++) {
             margo_addr_free (margo_handle->mid, margo_handle->addr_cache[i].addr);
             free (margo_handle->addr_cache[i].addr_str);
