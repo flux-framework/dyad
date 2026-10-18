@@ -244,6 +244,7 @@ static int dyad_open_wrapper (const char *path, int oflag, ...)
     typedef int (*open_ptr_t) (const char *, int, mode_t, ...);
     open_ptr_t func_ptr = NULL;
     int mode = 0;
+    const int access_mode = oflag & O_ACCMODE;
     char upath[PATH_MAX + 1] = {'\0'};
 
     if (oflag & O_CREAT) {
@@ -261,7 +262,7 @@ static int dyad_open_wrapper (const char *path, int oflag, ...)
         return -1;
     }
 
-    if ((mode != O_RDONLY) || is_path_dir (path)) {
+    if (access_mode != O_RDONLY || is_path_dir (path)) {
         // TODO: make sure if the directory mode is consistent
         goto real_call;
     }
@@ -285,7 +286,7 @@ real_call:;
     // from reading the file being produced by a producer. For example,
     // either the file is on a shared storage or the consumer is on
     // the same node as where the producer is.
-    if ((ret > 0) && (mode == O_WRONLY || mode == O_APPEND) && !is_path_dir (path)) {
+    if (ret > 0 && access_mode != O_RDONLY && !is_path_dir (path)) {
         if ((ctx->relative_to_managed_path
              && (strncmp (path, DYAD_PATH_DELIM, ctx->delim_len) != 0))
             || cmp_canonical_path_prefix (ctx, true, path, upath, PATH_MAX)) {
@@ -598,6 +599,7 @@ static int dyad_open64_wrapper (const char *path, int oflag, ...)
     typedef int (*open64_ptr_t) (const char *, int, mode_t, ...);
     open64_ptr_t func_ptr = NULL;
     int mode = 0;
+    const int access_mode = oflag & O_ACCMODE;
     char upath[PATH_MAX + 1] = {'\0'};
 
     if (oflag & O_CREAT) {
@@ -615,7 +617,7 @@ static int dyad_open64_wrapper (const char *path, int oflag, ...)
         return -1;
     }
 
-    if ((mode != O_RDONLY) || is_path_dir (path)) {
+    if (access_mode != O_RDONLY || is_path_dir (path)) {
         // TODO: make sure if the directory mode is consistent
         goto real_call;
     }
@@ -639,7 +641,7 @@ real_call:;
     // from reading the file being produced by a producer. For example,
     // either the file is on a shared storage or the consumer is on
     // the same node as where the producer is.
-    if ((ret > 0) && (mode == O_WRONLY || mode == O_APPEND) && !is_path_dir (path)) {
+    if (ret > 0 && access_mode != O_RDONLY && !is_path_dir (path)) {
         if ((ctx->relative_to_managed_path
              && (strncmp (path, DYAD_PATH_DELIM, ctx->delim_len) != 0))
             || cmp_canonical_path_prefix (ctx, true, path, upath, PATH_MAX)) {
