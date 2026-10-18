@@ -20,6 +20,7 @@
 #if defined(__cplusplus)
 #include <cstddef>
 #else
+#include <stdbool.h>
 #include <stddef.h>
 #endif  // defined(__cplusplus)
 
@@ -109,6 +110,40 @@ dyad_rc_t dyad_range_cache_ensure (const dyad_ctx_t *ctx,
                                    const char *origin_path,
                                    size_t offset,
                                    size_t length);
+
+/**
+ * @brief Reports whether a range-cache bitmap marks the complete local file
+ *        as present.
+ *
+ * @param[in]  ctx              DYAD context used for synchronization.
+ * @param[in]  local_path       Path of the local data file.
+ * @param[out] has_range_cache  True when @p local_path has a range-cache
+ *                               bitmap; false for an ordinary local file.
+ * @param[out] complete         True when every block of a range-cached file
+ *                               is marked present. True for an ordinary
+ *                               local file.
+ *
+ * @return @c DYAD_RC_OK on success, @c DYAD_RC_BADBUF if the bitmap path is
+ *         too long, @c DYAD_RC_BADFIO for a filesystem failure, or
+ *         @c DYAD_RC_SYSFAIL if allocation fails.
+ */
+dyad_rc_t dyad_range_cache_is_complete (const dyad_ctx_t *ctx,
+                                        const char *local_path,
+                                        bool *has_range_cache,
+                                        bool *complete);
+
+/**
+ * @brief Marks every block in an existing range-cache bitmap as present.
+ *
+ * @param[in] ctx        DYAD context used for synchronization.
+ * @param[in] local_path Path of a fully populated local data file.
+ *
+ * @return @c DYAD_RC_OK on success or when no bitmap exists,
+ *         @c DYAD_RC_BADBUF if the bitmap path is too long,
+ *         @c DYAD_RC_BADFIO for a filesystem failure, or @c DYAD_RC_SYSFAIL
+ *         if allocation fails.
+ */
+dyad_rc_t dyad_range_cache_mark_complete (const dyad_ctx_t *ctx, const char *local_path);
 
 #if defined(__cplusplus)
 }

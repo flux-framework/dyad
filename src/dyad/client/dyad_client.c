@@ -1214,6 +1214,8 @@ dyad_rc_t dyad_consume (dyad_ctx_t *restrict ctx, const char *restrict fname)
     ssize_t file_size = -1;
     char *file_data = NULL;
     size_t data_len = 0ul;
+    bool range_cache_complete = true;
+    bool has_range_cache = false;
     dyad_metadata_t *mdata = NULL;
     struct flock exclusive_lock;
     char upath[PATH_MAX + 1] = {'\0'};
@@ -1260,6 +1262,19 @@ dyad_rc_t dyad_consume (dyad_ctx_t *restrict ctx, const char *restrict fname)
         goto consume_done;
     }
     file_size = get_file_size (lock_fd);
+    if (file_size > 0) {
+        rc = dyad_range_cache_is_complete (ctx, fname, &has_range_cache, &range_cache_complete);
+        if (DYAD_IS_ERROR (rc)) {
+            dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+            goto consume_done;
+        }
+        if (has_range_cache && !range_cache_complete) {
+            // A sparse range cache has the origin's logical size even while
+            // some blocks are holes.  Fetch the whole file instead of
+            // treating those holes as valid local data.
+            file_size = 0;
+        }
+    }
     if (ctx->shared_storage) {
         dyad_release_flock (ctx, lock_fd, &exclusive_lock);
         if (!ctx->use_fs_locks || file_size <= 0) {
@@ -1347,7 +1362,14 @@ dyad_rc_t dyad_consume (dyad_ctx_t *restrict ctx, const char *restrict fname)
                 DYAD_LOG_ERROR (ctx, "dyad_cons_store failed!\n");
                 dyad_release_flock (ctx, lock_fd, &exclusive_lock);
                 goto consume_done;
-            };
+            }
+            if (has_range_cache) {
+                rc = dyad_range_cache_mark_complete (ctx, fname);
+                if (DYAD_IS_ERROR (rc)) {
+                    dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+                    goto consume_done;
+                }
+            }
         }
         dyad_release_flock (ctx, lock_fd, &exclusive_lock);
         // Best-effort: eviction failures must never turn a successful
@@ -1383,6 +1405,8 @@ dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t *restrict ctx,
     ssize_t file_size = -1;
     char *file_data = NULL;
     size_t data_len = 0ul;
+    bool range_cache_complete = true;
+    bool has_range_cache = false;
     struct flock exclusive_lock;
     // If the context is not defined, then it is not valid.
     // So, return DYAD_NOCTX
@@ -1417,7 +1441,18 @@ dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t *restrict ctx,
         dyad_release_flock (ctx, lock_fd, &exclusive_lock);
         goto consume_close;
     }
-    if ((file_size = get_file_size (lock_fd)) <= 0) {
+    file_size = get_file_size (lock_fd);
+    if (file_size > 0) {
+        rc = dyad_range_cache_is_complete (ctx, fname, &has_range_cache, &range_cache_complete);
+        if (DYAD_IS_ERROR (rc)) {
+            dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+            goto consume_close;
+        }
+        if (has_range_cache && !range_cache_complete) {
+            file_size = 0;
+        }
+    }
+    if (file_size <= 0) {
         DYAD_LOG_INFO (ctx,
                        "DYAD CLIENT: [node %u rank %u pid %d] File (%s with fd %d) is not fetched "
                        "yet",
@@ -1458,7 +1493,14 @@ dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t *restrict ctx,
             DYAD_LOG_ERROR (ctx, "dyad_cons_store failed!\n");
             dyad_release_flock (ctx, io_fd, &exclusive_lock);
             goto consume_done;
-        };
+        }
+        if (has_range_cache) {
+            rc = dyad_range_cache_mark_complete (ctx, fname);
+            if (DYAD_IS_ERROR (rc)) {
+                dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+                goto consume_done;
+            }
+        }
     }
     dyad_release_flock (ctx, lock_fd, &exclusive_lock);
     // Best-effort: eviction failures must never turn a successful consume

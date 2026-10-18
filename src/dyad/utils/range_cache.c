@@ -419,3 +419,109 @@ dyad_rc_t dyad_range_cache_ensure (const dyad_ctx_t *ctx,
     close (bitmap_fd);
     return rc;
 }
+
+dyad_rc_t dyad_range_cache_is_complete (const dyad_ctx_t *ctx,
+                                        const char *local_path,
+                                        bool *has_range_cache,
+                                        bool *complete)
+{
+    char bitmap_path[PATH_MAX + 1] = {'\0'};
+    struct stat data_st;
+    struct flock lock;
+    uint8_t *bitmap = NULL;
+    size_t num_blocks = 0ul;
+    size_t bitmap_bytes = 0ul;
+    int bitmap_fd = -1;
+    dyad_rc_t rc = DYAD_RC_OK;
+
+    if (has_range_cache == NULL || complete == NULL) {
+        return DYAD_RC_BADBUF;
+    }
+    *has_range_cache = false;
+    *complete = true;
+    rc = range_cache_bitmap_path (local_path, bitmap_path, sizeof (bitmap_path));
+    if (DYAD_IS_ERROR (rc)) {
+        return rc;
+    }
+    bitmap_fd = open (bitmap_path, O_RDONLY);
+    if (bitmap_fd < 0) {
+        return errno == ENOENT ? DYAD_RC_OK : DYAD_RC_BADFIO;
+    }
+    *has_range_cache = true;
+    if (stat (local_path, &data_st) != 0 || data_st.st_size <= 0) {
+        *complete = false;
+        close (bitmap_fd);
+        return DYAD_RC_OK;
+    }
+    num_blocks = range_cache_num_blocks ((size_t)data_st.st_size);
+    bitmap_bytes = range_cache_bitmap_bytes (num_blocks);
+    bitmap = malloc (bitmap_bytes);
+    if (bitmap == NULL) {
+        close (bitmap_fd);
+        return DYAD_RC_SYSFAIL;
+    }
+    pthread_mutex_lock (&g_range_cache_mutex);
+    rc = dyad_shared_flock (ctx, bitmap_fd, &lock);
+    if (!DYAD_IS_ERROR (rc)
+        && (get_file_size (bitmap_fd) < (ssize_t)bitmap_bytes
+            || pread (bitmap_fd, bitmap, bitmap_bytes, 0) != (ssize_t)bitmap_bytes
+            || !range_cache_blocks_set (bitmap, 0ul, num_blocks - 1ul))) {
+        *complete = false;
+    }
+    if (!DYAD_IS_ERROR (rc)) {
+        dyad_release_flock (ctx, bitmap_fd, &lock);
+    }
+    pthread_mutex_unlock (&g_range_cache_mutex);
+    free (bitmap);
+    close (bitmap_fd);
+    return rc;
+}
+
+dyad_rc_t dyad_range_cache_mark_complete (const dyad_ctx_t *ctx, const char *local_path)
+{
+    char bitmap_path[PATH_MAX + 1] = {'\0'};
+    struct stat data_st;
+    struct flock lock;
+    uint8_t *bitmap = NULL;
+    size_t num_blocks = 0ul;
+    size_t bitmap_bytes = 0ul;
+    int bitmap_fd = -1;
+    dyad_rc_t rc = DYAD_RC_OK;
+    bool locked = false;
+
+    rc = range_cache_bitmap_path (local_path, bitmap_path, sizeof (bitmap_path));
+    if (DYAD_IS_ERROR (rc)) {
+        return rc;
+    }
+    bitmap_fd = open (bitmap_path, O_RDWR);
+    if (bitmap_fd < 0) {
+        return errno == ENOENT ? DYAD_RC_OK : DYAD_RC_BADFIO;
+    }
+    if (stat (local_path, &data_st) != 0 || data_st.st_size <= 0) {
+        close (bitmap_fd);
+        return DYAD_RC_BADFIO;
+    }
+    num_blocks = range_cache_num_blocks ((size_t)data_st.st_size);
+    bitmap_bytes = range_cache_bitmap_bytes (num_blocks);
+    bitmap = malloc (bitmap_bytes);
+    if (bitmap == NULL) {
+        close (bitmap_fd);
+        return DYAD_RC_SYSFAIL;
+    }
+    memset (bitmap, 0xff, bitmap_bytes);
+    pthread_mutex_lock (&g_range_cache_mutex);
+    rc = dyad_excl_flock (ctx, bitmap_fd, &lock);
+    locked = !DYAD_IS_ERROR (rc);
+    if (!DYAD_IS_ERROR (rc)
+        && (ftruncate (bitmap_fd, (off_t)bitmap_bytes) != 0
+            || pwrite (bitmap_fd, bitmap, bitmap_bytes, 0) != (ssize_t)bitmap_bytes)) {
+        rc = DYAD_RC_BADFIO;
+    }
+    if (locked) {
+        dyad_release_flock (ctx, bitmap_fd, &lock);
+    }
+    pthread_mutex_unlock (&g_range_cache_mutex);
+    free (bitmap);
+    close (bitmap_fd);
+    return rc;
+}

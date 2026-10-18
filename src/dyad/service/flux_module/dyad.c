@@ -391,6 +391,39 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
 #endif  // DYAD_SPIN_WAIT
 
     DYAD_LOG_DEBUG (mod_ctx->ctx, "DYAD_MOD: Reading file %s for transfer", fullpath);
+    {
+        bool has_range_cache = false;
+        bool range_cache_complete = true;
+
+        rc = dyad_range_cache_is_complete (mod_ctx->ctx,
+                                           fullpath,
+                                           &has_range_cache,
+                                           &range_cache_complete);
+        if (DYAD_IS_ERROR (rc)) {
+            errno = EIO;
+            goto fetch_error_wo_flock;
+        }
+        if (has_range_cache && !range_cache_complete) {
+            char origin_fullpath[PATH_MAX + 1] = {'\0'};
+            struct stat origin_st;
+
+            if (mod_ctx->ctx->origin_path == NULL) {
+                errno = ENODATA;
+                goto fetch_error_wo_flock;
+            }
+            strncpy (origin_fullpath, mod_ctx->ctx->origin_path, PATH_MAX - 1);
+            concat_str (origin_fullpath, upath, "/", PATH_MAX);
+            if (stat (origin_fullpath, &origin_st) != 0 || origin_st.st_size <= 0
+                || DYAD_IS_ERROR (dyad_range_cache_ensure (mod_ctx->ctx,
+                                                            fullpath,
+                                                            origin_fullpath,
+                                                            0ul,
+                                                            (size_t)origin_st.st_size))) {
+                errno = EIO;
+                goto fetch_error_wo_flock;
+            }
+        }
+    }
     fd = open (fullpath, O_RDONLY);
 
     if (fd < 0) {

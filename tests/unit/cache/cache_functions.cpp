@@ -257,3 +257,38 @@ TEST_CASE ("dyad_range_cache_clamps_request_to_origin_size",
 
     remove_dir_recursive (dir);
 }
+
+TEST_CASE ("dyad_range_cache_distinguishes_partial_and_complete_files",
+           "[module=dyad_cache][method=range_cache]")
+{
+    struct dyad_ctx ctx = make_test_ctx ();
+    const size_t origin_size = 2ul * DYAD_RANGE_CACHE_BLOCK_SIZE;
+    std::string dir = make_temp_dir ();
+    std::string origin_path = dir + "/origin.bin";
+    std::string local_path = dir + "/local.bin";
+    bool has_range_cache = false;
+    bool complete = true;
+
+    write_file (origin_path, origin_size);
+    REQUIRE (dyad_range_cache_ensure (
+                 &ctx, local_path.c_str (), origin_path.c_str (), 0ul, DYAD_RANGE_CACHE_BLOCK_SIZE)
+             == DYAD_RC_OK);
+    REQUIRE (dyad_range_cache_is_complete (&ctx,
+                                           local_path.c_str (),
+                                           &has_range_cache,
+                                           &complete)
+             == DYAD_RC_OK);
+    REQUIRE (has_range_cache);
+    REQUIRE_FALSE (complete);
+
+    REQUIRE (dyad_range_cache_mark_complete (&ctx, local_path.c_str ()) == DYAD_RC_OK);
+    REQUIRE (dyad_range_cache_is_complete (&ctx,
+                                           local_path.c_str (),
+                                           &has_range_cache,
+                                           &complete)
+             == DYAD_RC_OK);
+    REQUIRE (has_range_cache);
+    REQUIRE (complete);
+
+    remove_dir_recursive (dir);
+}
