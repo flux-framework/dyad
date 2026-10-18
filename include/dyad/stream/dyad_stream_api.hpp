@@ -1083,7 +1083,9 @@ basic_ofstream_dyad<_CharT, _Traits>::basic_ofstream_dyad (const string &filenam
 
 template <typename _CharT, typename _Traits>
 basic_ofstream_dyad<_CharT, _Traits>::basic_ofstream_dyad (basic_ofstream_dyad &&rhs)
-    : m_stream (std::move (rhs.m_stream)), m_core (std::move (rhs.m_core))
+    : m_stream (std::move (rhs.m_stream)),
+      m_core (std::move (rhs.m_core)),
+      m_filename (std::move (rhs.m_filename))
 {
 }
 
@@ -1114,6 +1116,7 @@ basic_ofstream_dyad<_CharT, _Traits> &basic_ofstream_dyad<_CharT, _Traits>::oper
 {
     m_stream = std::move (rhs.m_stream);
     m_core = std::move (rhs.m_core);
+    m_filename = std::move (rhs.m_filename);
     return (*this);
 }
 
@@ -1512,7 +1515,9 @@ basic_fstream_dyad<_CharT, _Traits>::basic_fstream_dyad (const string &filename,
 
 template <typename _CharT, typename _Traits>
 basic_fstream_dyad<_CharT, _Traits>::basic_fstream_dyad (basic_fstream_dyad &&rhs)
-    : m_stream (std::move (rhs.m_stream)), m_core (std::move (rhs.m_core))
+    : m_stream (std::move (rhs.m_stream)),
+      m_core (std::move (rhs.m_core)),
+      m_filename (std::move (rhs.m_filename))
 {
 }
 
@@ -1540,6 +1545,7 @@ basic_fstream_dyad<_CharT, _Traits> &basic_fstream_dyad<_CharT, _Traits>::operat
 {
     m_stream = std::move (rhs.m_stream);
     m_core = std::move (rhs.m_core);
+    m_filename = std::move (rhs.m_filename);
     return (*this);
 }
 
