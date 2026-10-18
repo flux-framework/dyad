@@ -1341,7 +1341,8 @@ dyad_rc_t dyad_consume (dyad_ctx_t *restrict ctx, const char *restrict fname)
                                 "Cannot open file (%s) in write mode for dyad_consume!\n",
                                 fname);
                 rc = DYAD_RC_BADFIO;
-                goto consume_close;
+                dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+                goto consume_done;
             }
             // Call dyad_pull to fetch the data from the producer's
             // Flux broker
@@ -1381,6 +1382,9 @@ dyad_rc_t dyad_consume (dyad_ctx_t *restrict ctx, const char *restrict fname)
     }
     DYAD_C_FUNCTION_UPDATE_INT ("file_size", file_size);
 consume_done:;
+    if (mdata != NULL) {
+        dyad_free_metadata (&mdata);
+    }
     if (close (lock_fd) != 0) {
         rc = DYAD_RC_BADFIO;
     }
