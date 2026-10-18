@@ -186,11 +186,10 @@ static dyad_rc_t range_cache_fetch_span (const dyad_ctx_t *ctx,
     origin_fd = open (origin_path, O_RDONLY);
     if (origin_fd == -1
         || pread (origin_fd, span_buf, span_len, (off_t)span_off) != (ssize_t)span_len) {
-        DYAD_LOG_ERROR (ctx,
-                        "DYAD RANGE_CACHE: cannot read span [%zu, %zu) from origin '%s'",
-                        span_off,
-                        span_end,
-                        origin_path);
+        DYAD_WORKER_LOG_ERROR ("DYAD RANGE_CACHE: cannot read span [%zu, %zu) from origin '%s'",
+                               span_off,
+                               span_end,
+                               origin_path);
         rc = DYAD_RC_BADFIO;
         goto fetch_span_done;
     }
@@ -198,11 +197,11 @@ static dyad_rc_t range_cache_fetch_span (const dyad_ctx_t *ctx,
     local_fd = open (local_path, O_WRONLY);
     if (local_fd == -1
         || pwrite (local_fd, span_buf, span_len, (off_t)span_off) != (ssize_t)span_len) {
-        DYAD_LOG_ERROR (ctx,
-                        "DYAD RANGE_CACHE: cannot write span [%zu, %zu) into local '%s'",
-                        span_off,
-                        span_end,
-                        local_path);
+        DYAD_WORKER_LOG_ERROR (
+            "DYAD RANGE_CACHE: cannot write span [%zu, %zu) into local '%s'",
+            span_off,
+            span_end,
+            local_path);
         rc = DYAD_RC_BADFIO;
         goto fetch_span_done;
     }
@@ -246,12 +245,12 @@ dyad_rc_t dyad_range_cache_ensure (const dyad_ctx_t *ctx,
 
     rc = range_cache_bitmap_path (local_path, bitmap_path, sizeof (bitmap_path));
     if (DYAD_IS_ERROR (rc)) {
-        DYAD_LOG_ERROR (ctx, "DYAD RANGE_CACHE: local path '%s' is too long", local_path);
+        DYAD_WORKER_LOG_ERROR ("DYAD RANGE_CACHE: local path '%s' is too long", local_path);
         return rc;
     }
 
     if (offset > SIZE_MAX - length) {
-        DYAD_LOG_ERROR (ctx, "DYAD RANGE_CACHE: range overflows for origin file '%s'", origin_path);
+        DYAD_WORKER_LOG_ERROR ("DYAD RANGE_CACHE: range overflows for origin file '%s'", origin_path);
         return DYAD_RC_BADFIO;
     }
     block_start = offset / DYAD_RANGE_CACHE_BLOCK_SIZE;
@@ -260,7 +259,7 @@ dyad_rc_t dyad_range_cache_ensure (const dyad_ctx_t *ctx,
 
     bitmap_fd = open (bitmap_path, O_RDWR | O_CREAT, 0644);
     if (bitmap_fd == -1) {
-        DYAD_LOG_ERROR (ctx, "DYAD RANGE_CACHE: cannot open bitmap file '%s'", bitmap_path);
+        DYAD_WORKER_LOG_ERROR ("DYAD RANGE_CACHE: cannot open bitmap file '%s'", bitmap_path);
         return DYAD_RC_BADFIO;
     }
 
@@ -314,7 +313,7 @@ dyad_rc_t dyad_range_cache_ensure (const dyad_ctx_t *ctx,
     }
 
     if (stat (origin_path, &origin_st) != 0 || origin_st.st_size <= 0) {
-        DYAD_LOG_ERROR (ctx, "DYAD RANGE_CACHE: cannot stat origin file '%s'", origin_path);
+        DYAD_WORKER_LOG_ERROR ("DYAD RANGE_CACHE: cannot stat origin file '%s'", origin_path);
         dyad_release_flock (ctx, bitmap_fd, &lock);
         pthread_mutex_unlock (&g_range_cache_mutex);
         close (bitmap_fd);
@@ -322,7 +321,7 @@ dyad_rc_t dyad_range_cache_ensure (const dyad_ctx_t *ctx,
     }
     origin_size = (size_t)origin_st.st_size;
     if (offset >= origin_size) {
-        DYAD_LOG_ERROR (ctx, "DYAD RANGE_CACHE: invalid range for origin file '%s'", origin_path);
+        DYAD_WORKER_LOG_ERROR ("DYAD RANGE_CACHE: invalid range for origin file '%s'", origin_path);
         dyad_release_flock (ctx, bitmap_fd, &lock);
         pthread_mutex_unlock (&g_range_cache_mutex);
         close (bitmap_fd);
@@ -341,9 +340,8 @@ dyad_rc_t dyad_range_cache_ensure (const dyad_ctx_t *ctx,
         size_fd = open (local_path, O_WRONLY | O_CREAT, 0644);
         if (size_fd == -1 || ftruncate (size_fd, (off_t)origin_size) != 0
             || ftruncate (bitmap_fd, (off_t)bitmap_bytes) != 0) {
-            DYAD_LOG_ERROR (ctx,
-                            "DYAD RANGE_CACHE: cannot size local file/bitmap for '%s'",
-                            local_path);
+            DYAD_WORKER_LOG_ERROR ("DYAD RANGE_CACHE: cannot size local file/bitmap for '%s'",
+                                   local_path);
             if (size_fd != -1) {
                 close (size_fd);
             }
@@ -412,7 +410,7 @@ dyad_rc_t dyad_range_cache_ensure (const dyad_ctx_t *ctx,
     pread (bitmap_fd, bitmap, bitmap_bytes, 0);
     range_cache_set_blocks (bitmap, block_start, block_end);
     if (pwrite (bitmap_fd, bitmap, bitmap_bytes, 0) != (ssize_t)bitmap_bytes) {
-        DYAD_LOG_ERROR (ctx, "DYAD RANGE_CACHE: cannot update bitmap file '%s'", bitmap_path);
+        DYAD_WORKER_LOG_ERROR ("DYAD RANGE_CACHE: cannot update bitmap file '%s'", bitmap_path);
         rc = DYAD_RC_BADFIO;
     }
     free (bitmap);

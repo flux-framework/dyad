@@ -599,12 +599,12 @@ dyad_rc_t dyad_shared_flock (const dyad_ctx_t *__restrict__ ctx,
     DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
     dyad_rc_t rc = DYAD_RC_OK;
-    DYAD_LOG_DEBUG (ctx,
-                    "DYAD UTIL: [node %u rank %u pid %d] Applies a shared lock on fd %d.",
-                    ctx->node_idx,
-                    ctx->rank,
-                    ctx->pid,
-                    fd);
+    DYAD_WORKER_LOG_DEBUG (
+        "DYAD UTIL: [node %u rank %u pid %d] Applies a shared lock on fd %d.",
+        ctx->node_idx,
+        ctx->rank,
+        ctx->pid,
+        fd);
     if (!lock) {
         rc = DYAD_RC_BADFIO;
         goto shared_flock_end;
@@ -615,7 +615,7 @@ dyad_rc_t dyad_shared_flock (const dyad_ctx_t *__restrict__ ctx,
     lock->l_len = 0;
     lock->l_pid = ctx->pid;                  // getpid();
     if (fcntl (fd, F_SETLKW, lock) == -1) {  // will wait until able to lock
-        DYAD_LOG_ERROR (ctx, "DYAD UTIL: Cannot apply shared lock on fd %d.", fd);
+        DYAD_WORKER_LOG_ERROR ("DYAD UTIL: Cannot apply shared lock on fd %d.", fd);
         rc = DYAD_RC_BADFIO;
         goto shared_flock_end;
     }
@@ -632,12 +632,11 @@ dyad_rc_t dyad_release_flock (const dyad_ctx_t *__restrict__ ctx,
     DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
     dyad_rc_t rc = DYAD_RC_OK;
-    DYAD_LOG_DEBUG (ctx,
-                    "DYAD UTIL: [node %u rank %u pid %d] Releases a lock on fd %d.",
-                    ctx->node_idx,
-                    ctx->rank,
-                    ctx->pid,
-                    fd);
+    DYAD_WORKER_LOG_DEBUG ("DYAD UTIL: [node %u rank %u pid %d] Releases a lock on fd %d.",
+                           ctx->node_idx,
+                           ctx->rank,
+                           ctx->pid,
+                           fd);
     if (!lock) {
         rc = DYAD_RC_BADFIO;
         goto release_flock_end;
@@ -653,7 +652,7 @@ dyad_rc_t dyad_release_flock (const dyad_ctx_t *__restrict__ ctx,
     lock->l_len = 0;
     lock->l_pid = ctx->pid;
     if (fcntl (fd, F_SETLKW, lock) == -1) {  // will just unlock
-        DYAD_LOG_ERROR (ctx, "DYAD UTIL: Cannot release lock on fd %d.", fd);
+        DYAD_WORKER_LOG_ERROR ("DYAD UTIL: Cannot release lock on fd %d.", fd);
         rc = DYAD_RC_BADFIO;
         goto release_flock_end;
     }
