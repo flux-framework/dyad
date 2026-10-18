@@ -45,6 +45,16 @@ void write_file (const std::string &path, size_t size_bytes)
     fclose (f);
 }
 
+uint64_t allocated_file_size (const std::string &path)
+{
+    // POSIX specifies st_blocks in 512-byte units, regardless of the
+    // filesystem's preferred I/O block size (st_blksize).
+    constexpr uint64_t stat_block_bytes = 512;
+    struct stat st;
+    REQUIRE (stat (path.c_str (), &st) == 0);
+    return (uint64_t)st.st_blocks * stat_block_bytes;
+}
+
 // utimensat() lets us set deterministic atime/mtime instead of relying on
 // sleeps between writes (which would be both slow and flaky under coarse
 // filesystem timestamp granularity).
@@ -130,7 +140,9 @@ TEST_CASE ("dyad_cache_scan_dir", "[module=dyad_cache][method=scan]")
     REQUIRE (dyad_cache_scan_dir (&ctx, dir.c_str (), &entries, &n_entries, &total_size)
              == DYAD_RC_OK);
     REQUIRE (n_entries == 2);
-    REQUIRE (total_size == 300);
+    REQUIRE (total_size == allocated_file_size (dir + "/a.bin")
+                           + allocated_file_size (dir + "/b.bin"));
+    REQUIRE (total_size > 300);
 
     free (entries);
     dyad_cache_policy_finalize (&ctx);
@@ -158,14 +170,15 @@ TEST_CASE ("dyad_cache_maybe_evict_selects_oldest_first", "[module=dyad_cache][m
     struct dyad_ctx ctx = make_test_ctx ();
     REQUIRE (dyad_cache_policy_init (&ctx, DYAD_CACHE_LRU) == DYAD_RC_OK);
     ctx.cache_policy_mode = DYAD_CACHE_LRU;
-    ctx.cache_capacity_bytes = 2048;     // 2 KiB cap
-    ctx.cache_low_watermark_frac = 0.5;  // evict down to 1 KiB
+    ctx.cache_low_watermark_frac = 0.5;
     ctx.cache_grace_period_sec = 0;      // don't skip anything based on recency
 
     std::string dir = make_temp_dir ();
     write_file (dir + "/oldest.bin", 1024);
     write_file (dir + "/middle.bin", 1024);
     write_file (dir + "/newest.bin", 1024);
+    ctx.cache_capacity_bytes = allocated_file_size (dir + "/oldest.bin")
+                               + allocated_file_size (dir + "/middle.bin");
     // Deterministic ages: oldest.bin < middle.bin < newest.bin
     set_times (dir + "/oldest.bin", 100, 100);
     set_times (dir + "/middle.bin", 200, 200);
@@ -186,7 +199,6 @@ TEST_CASE ("dyad_cache_maybe_evict_skips_locked_candidate",
     struct dyad_ctx ctx = make_test_ctx ();
     REQUIRE (dyad_cache_policy_init (&ctx, DYAD_CACHE_LRU) == DYAD_RC_OK);
     ctx.cache_policy_mode = DYAD_CACHE_LRU;
-    ctx.cache_capacity_bytes = 1024;  // 1 KiB cap
     ctx.cache_low_watermark_frac = 0.5;
     ctx.cache_grace_period_sec = 0;
 
@@ -195,6 +207,7 @@ TEST_CASE ("dyad_cache_maybe_evict_skips_locked_candidate",
     std::string free_path = dir + "/free_newest.bin";
     write_file (locked_path, 1024);
     write_file (free_path, 1024);
+    ctx.cache_capacity_bytes = allocated_file_size (locked_path);
     set_times (locked_path, 100, 100);  // oldest -- would normally be evicted first
     set_times (free_path, 200, 200);
 
@@ -216,6 +229,7 @@ TEST_CASE ("dyad_cache_maybe_evict_skips_locked_candidate",
             _exit (1);
         }
         // Hold the lock until the parent signals it's done checking.
+        signal (SIGTERM, SIG_DFL);
         pause ();
         _exit (0);
     }
