@@ -224,7 +224,9 @@ dtl_ucx_request_wait_region_finish:;
  * region since no peer performs RDMA into the producer's buffer.
  *
  * On any failure after a successful @c ucp_mem_map(), the memory is
- * unmapped via @c ucp_mem_unmap() before returning.
+ * unmapped via @c ucp_mem_unmap() before returning. The associated
+ * @c mem_handle, @c net_buf, and @c cons_buf_ptr fields are then cleared,
+ * so finalization cannot unmap the same memory a second time.
  *
  * @param[in]     ctx        DYAD context. Used for logging.
  * @param[in,out] dtl_handle UCX DTL internal state. On success,
@@ -290,10 +292,9 @@ static dyad_rc_t ucx_allocate_buffer (const dyad_ctx_t *ctx,
     attr.field_mask = UCP_MEM_ATTR_FIELD_ADDRESS;
     status = ucp_mem_query (dtl_handle->mem_handle, &attr);
     if (UCX_STATUS_FAIL (status)) {
-        ucp_mem_unmap (dtl_handle->ucx_ctx, dtl_handle->mem_handle);
         rc = DYAD_RC_UCXMMAP_FAIL;
         DYAD_LOG_ERROR (ctx, "Failed to get address to UCX allocated buffer");
-        goto ucx_allocate_done;
+        goto ucx_allocate_unmap;
     }
     dtl_handle->net_buf = attr.address;
     /* On the producer side this is a placeholder that will be overwritten
@@ -308,14 +309,19 @@ static dyad_rc_t ucx_allocate_buffer (const dyad_ctx_t *ctx,
                                 &(dtl_handle->rkey_buf),
                                 &(dtl_handle->rkey_size));
         if (UCX_STATUS_FAIL (status)) {
-            ucp_mem_unmap (dtl_handle->ucx_ctx, dtl_handle->mem_handle);
             rc = DYAD_RC_UCXRKEY_PACK_FAILED;
             DYAD_LOG_ERROR (ctx, "ucp_rkey_pack failed errno %d", status);
-            goto ucx_allocate_done;
+            goto ucx_allocate_unmap;
         }
     }
     rc = DYAD_RC_OK;
+    goto ucx_allocate_done;
 
+ucx_allocate_unmap:
+    ucp_mem_unmap (dtl_handle->ucx_ctx, dtl_handle->mem_handle);
+    dtl_handle->mem_handle = NULL;
+    dtl_handle->net_buf = NULL;
+    dtl_handle->cons_buf_ptr = 0ul;
 ucx_allocate_done:;
     DYAD_C_FUNCTION_END ();
     return rc;
@@ -810,7 +816,11 @@ dyad_rc_t dyad_dtl_ucx_init (const dyad_ctx_t *ctx,
     }
 
     // Allocate a buffer of max transfer size using UCX
-    ucx_allocate_buffer (ctx, dtl_handle, comm_mode);
+    rc = ucx_allocate_buffer (ctx, dtl_handle, comm_mode);
+    if (DYAD_IS_ERROR (rc)) {
+        DYAD_LOG_ERROR (ctx, "Cannot allocate UCX transfer buffer (err code = %d)", (int)rc);
+        goto error;
+    }
 
     ctx->dtl_handle->rpc_pack = dyad_dtl_ucx_rpc_pack;
     ctx->dtl_handle->rpc_unpack = dyad_dtl_ucx_rpc_unpack;

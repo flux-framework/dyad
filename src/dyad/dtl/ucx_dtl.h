@@ -158,6 +158,9 @@ typedef struct dyad_dtl_ucx dyad_dtl_ucx_t;
  *     performs RDMA into the producer's buffer; it will be populated per
  *     transfer in @c dyad_dtl_ucx_rpc_unpack() with the consumer's
  *     packed key decoded from the RPC payload.
+ *     If this allocation or key packing fails, initialization stops and
+ *     finalization receives cleared buffer state, preventing a second
+ *     unmap of memory already released by the failed allocation.
  *  8. Wires all DTL function pointers.
  *  9. Performs a loopback connection warmup via @c ucx_warmup() to
  *     prime the UCX connection machinery before the first real transfer.
