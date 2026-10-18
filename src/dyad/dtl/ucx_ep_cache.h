@@ -130,7 +130,7 @@ dyad_rc_t ucx_disconnect (const dyad_ctx_t *ctx, ucp_worker_h worker, ucp_ep_h e
  * @brief Allocates and initializes the UCX endpoint cache.
  *
  * @details
- * Allocates a new @c cache_type (@c std::unordered_map<key_type, ucp_ep_h>)
+ * Allocates a new @c cache_type (@c std::unordered_map<key_type, cache_entry>)
  * using @c new(std::nothrow) and stores a @c reinterpret_cast pointer
  * to it in @p *cache as an opaque @c ucx_ep_cache_h handle. Using
  * @c std::nothrow ensures that allocation failure returns @c nullptr
@@ -221,9 +221,13 @@ dyad_rc_t dyad_ucx_ep_cache_find (const dyad_ctx_t *ctx,
  * calls @c dyad_ucx_ep_cache_find() and @c dyad_ucx_ep_cache_insert()
  * in sequence and the entry was inserted between the two calls.
  *
- * If no entry exists, creates a new @c ucp_ep_h to @p addr via
- * @c ucx_connect() and inserts it into the cache using
- * @c insert_or_assign(). The new endpoint is also stored directly in
+ * If no entry exists, creates a new @c ucp_ep_h to @p *addr via
+ * @c ucx_connect() and inserts it into the cache. On that successful
+ * insertion, the cache takes ownership of the @c malloc()-allocated
+ * address and sets @p *addr to @c NULL. The address remains valid until
+ * the cached endpoint has been disconnected; this is required because
+ * UCX endpoint creation is non-blocking and may still access it during
+ * connection wireup. The new endpoint is also stored directly in
  * @c ctx->dtl_handle->private_dtl.ucx_dtl_handle->ep for immediate
  * use by the caller.
  *
@@ -232,22 +236,20 @@ dyad_rc_t dyad_ucx_ep_cache_find (const dyad_ctx_t *ctx,
  *       calling code. Any exception is caught and returned as
  *       @c DYAD_RC_SYSFAIL.
  *
- * @note @c insert_or_assign() is used instead of @c insert() to handle
- *       the race condition where a concurrent insert could have occurred
- *       between the @c find() check and the insert. Since DYAD uses
- *       @c UCS_THREAD_MODE_SERIALIZED, true concurrency is not possible,
- *       but @c insert_or_assign() is safer and has no performance cost
- *       in the non-concurrent case.
+ * If an entry appears before insertion, the newly created endpoint is
+ * disconnected, the existing endpoint is returned through the DTL state,
+ * and @p *addr remains owned by the caller.
  *
  * @param[in] ctx       DYAD context. The @c consumer_conn_key and
  *                      @c ep fields of the UCX DTL internal state are
  *                      read and written.
  * @param[in] cache     Endpoint cache handle to insert into.
- * @param[in] addr      UCX address of the remote worker to connect to.
- *                      Passed to @c ucx_connect() if no cached entry
- *                      exists.
- * @param[in] addr_size Size of @p addr in bytes. Passed to
- *                      @c ucx_connect() for consistency.
+ * @param[in,out] addr  Address of the remote worker to connect to. Must
+ *                      point to a non-@c NULL @c malloc()-allocated
+ *                      address on entry. Set to @c NULL only when the
+ *                      cache successfully takes ownership.
+ * @param[in] addr_size Size of @p *addr in bytes. Retained for interface
+ *                      consistency; endpoint creation does not require it.
  * @param[in] worker    UCX worker used to create the new endpoint via
  *                      @c ucx_connect().
  *
@@ -261,7 +263,7 @@ dyad_rc_t dyad_ucx_ep_cache_find (const dyad_ctx_t *ctx,
  */
 dyad_rc_t dyad_ucx_ep_cache_insert (const dyad_ctx_t *ctx,
                                     ucx_ep_cache_h cache,
-                                    const ucp_address_t *addr,
+                                    ucp_address_t **addr,
                                     const size_t addr_size,
                                     ucp_worker_h worker);
 

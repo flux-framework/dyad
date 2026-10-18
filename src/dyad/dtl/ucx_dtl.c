@@ -1024,6 +1024,12 @@ dyad_rc_t dyad_dtl_ucx_rpc_unpack (const dyad_ctx_t *ctx, const flux_msg_t *msg,
     DYAD_LOG_INFO (ctx, "Obtained upath from RPC payload: %s\n", *upath);
     DYAD_LOG_INFO (ctx, "Obtained UCP tag from RPC payload: %lu\n", dtl_handle->comm_tag);
     DYAD_LOG_INFO (ctx, "Decoding consumer UCP address using base64\n");
+    /* A failed prior request may have skipped close_connection(). */
+    if (dtl_handle->remote_address != NULL) {
+        free (dtl_handle->remote_address);
+        dtl_handle->remote_address = NULL;
+        dtl_handle->remote_addr_len = 0;
+    }
     dtl_handle->remote_addr_len = base64_decoded_length (enc_addr_len);
     dtl_handle->remote_address = (ucp_address_t *)malloc (dtl_handle->remote_addr_len);
     if (dtl_handle->remote_address == NULL) {
@@ -1164,12 +1170,15 @@ dyad_rc_t dyad_dtl_ucx_establish_connection (const dyad_ctx_t *ctx)
             DYAD_LOG_INFO (ctx, "Create a new UCP endpoint for communication with consumer\n");
             rc = dyad_ucx_ep_cache_insert (ctx,
                                            dtl_handle->ep_cache,
-                                           dtl_handle->remote_address,
+                                           &dtl_handle->remote_address,
                                            dtl_handle->remote_addr_len,
                                            dtl_handle->ucx_worker);
             if (DYAD_IS_ERROR (rc)) {
                 DYAD_LOG_ERROR (ctx, "Failed to create UCP endpoint");
                 goto dtl_ucx_establish_connection_region_finish;
+            }
+            if (dtl_handle->remote_address == NULL) {
+                dtl_handle->remote_addr_len = 0;
             }
         }
         if (dtl_handle->debug) {
@@ -1266,15 +1275,14 @@ dyad_rc_t dyad_dtl_ucx_close_connection (const dyad_ctx_t *ctx)
             /* ep is intentionally not destroyed here — it remains alive in
              * ep_cache for reuse across RPCs and is destroyed in finalize(). */
             dtl_handle->ep = NULL;
-            // Sender doesn't have a consumer address at this time
-            // So, free the consumer address when closing the connection
-            // NOTE: currently removing the deallocation of the remote address
-            //       because it is still in use by the endpoint cache
-            // if (dtl_handle->remote_address != NULL) {
-            //     free (dtl_handle->remote_address);
-            dtl_handle->remote_address = NULL;
+            /* On a cache miss, address ownership was transferred to the
+             * cache with the endpoint. On a hit or failed setup, this is
+             * still the per-RPC allocation and can be released here. */
+            if (dtl_handle->remote_address != NULL) {
+                free (dtl_handle->remote_address);
+                dtl_handle->remote_address = NULL;
+            }
             dtl_handle->remote_addr_len = 0;
-            // }
             dtl_handle->comm_tag = 0;
         }
         DYAD_LOG_INFO (ctx, "UCP endpoint close successful\n");

@@ -35,13 +35,21 @@ using key_type = uint64_t;
  * @brief UCX endpoint cache type.
  *
  * @details
- * An unordered map from @c key_type to @c ucp_ep_h, used to cache
+ * An unordered map from @c key_type to @c cache_entry, used to cache
  * UCX endpoints keyed by consumer connection key. Lookups and insertions
  * are O(1) on average. Cached endpoints are reused across transfers to
  * the same consumer to avoid the cost of repeated @c ucp_ep_create()
  * calls.
  */
-using cache_type = std::unordered_map<key_type, ucp_ep_h>;
+struct cache_entry {
+    ucp_ep_h ep;
+    /* ucp_ep_create() may retain params.address while endpoint wireup is
+     * in progress. Keep the decoded malloc() buffer alive until the endpoint
+     * has been closed. */
+    ucp_address_t *address;
+};
+
+using cache_type = std::unordered_map<key_type, cache_entry>;
 
 /**
  * @brief UCX endpoint error handler callback.
@@ -196,7 +204,7 @@ dyad_rc_t dyad_ucx_ep_cache_find (const dyad_ctx_t *ctx,
             *ep = nullptr;
             rc = DYAD_RC_NOTFOUND;
         } else {
-            *ep = cache_it->second;
+            *ep = cache_it->second.ep;
             rc = DYAD_RC_OK;
         }
     } catch (...) {
@@ -210,12 +218,17 @@ ucx_ep_cache_find_done:;
 
 dyad_rc_t dyad_ucx_ep_cache_insert (const dyad_ctx_t *ctx,
                                     ucx_ep_cache_h cache,
-                                    const ucp_address_t *addr,
+                                    ucp_address_t **addr,
                                     const size_t addr_size,
                                     ucp_worker_h worker)
 {
     DYAD_C_FUNCTION_START ();
     dyad_rc_t rc = DYAD_RC_OK;
+    ucp_ep_h new_ep = nullptr;
+    (void)addr_size;
+    if (addr == nullptr || *addr == nullptr) {
+        return DYAD_RC_BADBUF;
+    }
     try {
         cache_type *cpp_cache = reinterpret_cast<cache_type *> (cache);
         uint64_t key = ctx->dtl_handle->private_dtl.ucx_dtl_handle->consumer_conn_key;
@@ -223,18 +236,36 @@ dyad_rc_t dyad_ucx_ep_cache_insert (const dyad_ctx_t *ctx,
                                     ctx->dtl_handle->private_dtl.ucx_dtl_handle->consumer_conn_key)
         auto cache_it = cpp_cache->find (key);
         if (cache_it != cpp_cache->end ()) {
+            ctx->dtl_handle->private_dtl.ucx_dtl_handle->ep = cache_it->second.ep;
             rc = DYAD_RC_OK;
         } else {
             DYAD_LOG_INFO (ctx, "No cache entry found. Creating new connection");
-            rc = ucx_connect (ctx, worker, addr, &ctx->dtl_handle->private_dtl.ucx_dtl_handle->ep);
+            rc = ucx_connect (ctx, worker, *addr, &new_ep);
             if (!DYAD_IS_ERROR (rc)) {
-                cpp_cache->insert_or_assign (key, ctx->dtl_handle->private_dtl.ucx_dtl_handle->ep);
+                const auto insert_result = cpp_cache->emplace (key, cache_entry {new_ep, *addr});
+                if (!insert_result.second) {
+                    ucx_disconnect (ctx, worker, new_ep);
+                    ctx->dtl_handle->private_dtl.ucx_dtl_handle->ep = insert_result.first->second.ep;
+                    rc = DYAD_RC_OK;
+                    goto ucx_ep_cache_insert_done;
+                }
+                ctx->dtl_handle->private_dtl.ucx_dtl_handle->ep = new_ep;
+                *addr = nullptr;
                 rc = DYAD_RC_OK;
+            } else if (new_ep != nullptr) {
+                /* Do not leave a partially created endpoint alive when
+                 * ucp_ep_create() reports failure. */
+                ucx_disconnect (ctx, worker, new_ep);
+                new_ep = nullptr;
             }
         }
     } catch (...) {
+        if (new_ep != nullptr) {
+            ucx_disconnect (ctx, worker, new_ep);
+        }
         rc = DYAD_RC_SYSFAIL;
     }
+ucx_ep_cache_insert_done:;
     DYAD_C_FUNCTION_END ();
     return rc;
 }
@@ -253,13 +284,9 @@ dyad_rc_t dyad_ucx_ep_cache_insert (const dyad_ctx_t *ctx,
  * and @c dyad_ucx_ep_cache_finalize() to iterate over and remove all
  * entries.
  *
- * @note The comment in the source mentions that the UCP address was
- *       allocated with @c malloc() during RPC unpacking. However the
- *       current implementation does not free the address here — it was
- *       extracted from @c dtl_handle->remote_address and is cleared in
- *       @c dyad_dtl_ucx_close_connection(). See the TODO in
- *       @c dyad_dtl_ucx_close_connection() regarding ownership of
- *       @c remote_address.
+ * The cache entry owns the decoded address used to create its endpoint.
+ * It is freed only after @c ucx_disconnect() has completed, so UCX cannot
+ * access released address storage while endpoint wireup or teardown runs.
  *
  * @param[in] ctx    DYAD context. Used for logging in @c ucx_disconnect().
  * @param[in] cache  The cache from which to remove the entry.
@@ -278,10 +305,8 @@ static inline cache_type::iterator cache_remove_impl (const dyad_ctx_t *ctx,
 {
     DYAD_C_FUNCTION_START ();
     if (it != cache->end ()) {
-        ucx_disconnect (ctx, worker, it->second);
-        // The UCP address was allocated with 'malloc' while unpacking
-        // the RPC message. So, we extract it from the key and free
-        // it after erasing the iterator
+        ucx_disconnect (ctx, worker, it->second.ep);
+        free (it->second.address);
         auto next_it = cache->erase (it);
         DYAD_C_FUNCTION_END ();
         return next_it;
