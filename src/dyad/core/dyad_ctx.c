@@ -1,6 +1,7 @@
 #if defined(DYAD_HAS_CONFIG)
 #include <dyad/dyad_config.hpp>
 #else
+#include <errno.h>
 #error "no config"
 #endif
 
@@ -33,6 +34,23 @@
 // 1) The DYAD context (ctx below) must be static
 // 2) The DYAD context should be on the heap (done w/ malloc in dyad_init)
 static __thread dyad_ctx_t *ctx = NULL;
+
+/** @brief Parses a positive unsigned environment value.
+ * @param[in] value Environment string.
+ * @param[out] out Parsed value on success.
+ * @return @c true for a nonzero value representable as @c unsigned int.
+ */
+static bool dyad_parse_positive_uint (const char *value, unsigned int *out)
+{
+    char *end = NULL;
+    unsigned long parsed;
+    errno = 0;
+    parsed = strtoul (value, &end, 10);
+    if (errno != 0 || end == value || *end != '\0' || parsed == 0ul || parsed > UINT_MAX)
+        return false;
+    *out = (unsigned int)parsed;
+    return true;
+}
 
 const struct dyad_ctx dyad_ctx_default = {
     // Internal
@@ -434,14 +452,12 @@ DYAD_DLL_EXPORTED dyad_rc_t dyad_init_env (const dyad_dtl_comm_mode_t dtl_comm_m
         key_depth = 3;
     }
 
-    if ((e = getenv (DYAD_KEY_BINS_ENV))) {
-        key_bins = atoi (e);
+    if ((e = getenv (DYAD_KEY_BINS_ENV)) && dyad_parse_positive_uint (e, &key_bins)) {
     } else {
         key_bins = 1024;
     }
 
-    if ((e = getenv (DYAD_SERVICE_MUX_ENV))) {
-        service_mux = atoi (e);
+    if ((e = getenv (DYAD_SERVICE_MUX_ENV)) && dyad_parse_positive_uint (e, &service_mux)) {
     } else {
         service_mux = 1u;
     }
