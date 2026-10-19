@@ -148,8 +148,12 @@ dyad_rc_t dyad_cache_scan_dir (const dyad_ctx_t *ctx,
     *out_n_entries = 0;
     *out_total_size = 0;
 
-    rc = dyad_cache_scan_subtree (
-        ctx, managed_path, out_entries, out_n_entries, &capacity, out_total_size);
+    rc = dyad_cache_scan_subtree (ctx,
+                                  managed_path,
+                                  out_entries,
+                                  out_n_entries,
+                                  &capacity,
+                                  out_total_size);
     if (DYAD_IS_ERROR (rc)) {
         free (*out_entries);
         *out_entries = NULL;

@@ -200,11 +200,10 @@ static dyad_rc_t range_cache_fetch_span (const dyad_ctx_t *ctx,
     }
     local_locked = true;
     if (pwrite (local_fd, span_buf, span_len, (off_t)span_off) != (ssize_t)span_len) {
-        DYAD_WORKER_LOG_ERROR (
-            "DYAD RANGE_CACHE: cannot write span [%zu, %zu) into local '%s'",
-            span_off,
-            span_end,
-            local_path);
+        DYAD_WORKER_LOG_ERROR ("DYAD RANGE_CACHE: cannot write span [%zu, %zu) into local '%s'",
+                               span_off,
+                               span_end,
+                               local_path);
         rc = DYAD_RC_BADFIO;
         goto fetch_span_done;
     }
@@ -256,7 +255,8 @@ dyad_rc_t dyad_range_cache_ensure (const dyad_ctx_t *ctx,
     }
 
     if (offset > SIZE_MAX - length) {
-        DYAD_WORKER_LOG_ERROR ("DYAD RANGE_CACHE: range overflows for origin file '%s'", origin_path);
+        DYAD_WORKER_LOG_ERROR ("DYAD RANGE_CACHE: range overflows for origin file '%s'",
+                               origin_path);
         return DYAD_RC_BADFIO;
     }
     block_start = offset / DYAD_RANGE_CACHE_BLOCK_SIZE;

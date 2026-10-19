@@ -415,10 +415,10 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
             concat_str (origin_fullpath, upath, "/", PATH_MAX);
             if (stat (origin_fullpath, &origin_st) != 0 || origin_st.st_size <= 0
                 || DYAD_IS_ERROR (dyad_range_cache_ensure (mod_ctx->ctx,
-                                                            fullpath,
-                                                            origin_fullpath,
-                                                            0ul,
-                                                            (size_t)origin_st.st_size))) {
+                                                           fullpath,
+                                                           origin_fullpath,
+                                                           0ul,
+                                                           (size_t)origin_st.st_size))) {
                 errno = EIO;
                 goto fetch_error_wo_flock;
             }
@@ -1039,9 +1039,9 @@ dyad_fetch_range_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t 
             DYAD_LOG_ERROR (mod_ctx->ctx,
                             "DYAD_MOD: Could not allocate DTL buffer for ranged fetch");
             mod_ctx->ctx->dtl_handle->rpc_send_detached (mod_ctx->ctx,
-                                                          item->req_state,
-                                                          NULL,
-                                                          DYAD_DTL_SEND_ERROR);
+                                                         item->req_state,
+                                                         NULL,
+                                                         DYAD_DTL_SEND_ERROR);
             flux_msg_decref (item->msg);
             free (item);
             errno = ENOMEM;

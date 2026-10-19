@@ -242,10 +242,11 @@ dyad_rc_t dyad_ucx_ep_cache_insert (const dyad_ctx_t *ctx,
             DYAD_LOG_INFO (ctx, "No cache entry found. Creating new connection");
             rc = ucx_connect (ctx, worker, *addr, &new_ep);
             if (!DYAD_IS_ERROR (rc)) {
-                const auto insert_result = cpp_cache->emplace (key, cache_entry {new_ep, *addr});
+                const auto insert_result = cpp_cache->emplace (key, cache_entry{new_ep, *addr});
                 if (!insert_result.second) {
                     ucx_disconnect (ctx, worker, new_ep);
-                    ctx->dtl_handle->private_dtl.ucx_dtl_handle->ep = insert_result.first->second.ep;
+                    ctx->dtl_handle->private_dtl.ucx_dtl_handle->ep =
+                        insert_result.first->second.ep;
                     rc = DYAD_RC_OK;
                     goto ucx_ep_cache_insert_done;
                 }
