@@ -61,6 +61,16 @@ UCX backend
    consumer's pre-registered buffer. The consumer polls a size sentinel
    to detect arrival. Endpoints are cached across transfers.
 
+Failure signaling
+=================
+
+The producer must notify the consumer when it cannot serve a request; a
+consumer must not wait indefinitely for data that will never arrive. Flux RPC
+reports the failure on the streaming RPC. UCX writes an ``ssize_t`` prefix of
+``-1`` instead of a positive transfer length. Margo sends its
+``data_ready_rpc()`` notification with ``n = -1``. Each consumer backend
+converts its transport-specific marker into a DYAD error.
+
 DTL backend comparison
 ======================
 
@@ -94,8 +104,9 @@ the producer registers its file buffer as read-only, sends a Margo RPC
 (``data_ready_rpc``) to the consumer's Margo server, and the consumer's
 handler pulls the data directly from the producer's buffer via RDMA. The
 consumer's ``recv()`` busy-waits on ``margo_handle->recv_ready`` until
-``data_ready_rpc()`` sets it to 1. No endpoint caching is used since each
-transfer creates and destroys the RPC handle within ``send()``.
+``data_ready_rpc()`` publishes completion. The producer caches resolved consumer
+addresses by their Margo address string, while each transfer still creates and
+destroys its own Margo RPC handle within ``send()``.
 
 The **UCX backend** uses a push model with pre-registered RDMA memory.
 During ``dyad_dtl_ucx_init()``, both producer and consumer allocate a
@@ -106,8 +117,9 @@ into the Flux RPC request. The producer decodes these during ``rpc_unpack()``,
 unpacks the remote key via ``ucp_ep_rkey_unpack()``, and performs a
 one-sided RDMA push directly into the consumer's pre-registered memory
 via ``ucp_put_nbx()``. The consumer's ``recv()`` polls the first
-``sizeof(ssize_t)`` bytes of its buffer — the producer prepends the file
-size as a sentinel, and a non-zero value signals that the push has started.
+``sizeof(ssize_t)`` bytes of its buffer — the producer prepends the transfer
+length as a sentinel. A positive value announces data, while ``-1`` announces
+a producer-side failure.
 To avoid repeated endpoint creation, the UCX backend maintains an endpoint
 cache (``ucx_ep_cache_h``) keyed by consumer connection key. The
 ``return_buffer()`` call is a no-op for UCX — the pre-registered buffer

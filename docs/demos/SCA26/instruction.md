@@ -256,7 +256,7 @@ flux exec -r 0 ./c_cons.sh
 Where `c_cons.sh` contains the following:
 ```
 mkdir -m 775 -p ${DYAD_PATH_CONSUMER}/prod-cons
-LD_PRELOAD=${DYAD_INSTALL_PREFIX}/lib/libdyad_wrapper.so ../c_cons 10 ${DYAD_PATH_CONSUMERER}/proc-cons
+LD_PRELOAD=${DYAD_INSTALL_PREFIX}/lib/libdyad_wrapper.so ../c_cons 10 ${DYAD_PATH_CONSUMER}/prod-cons
 ```
 ./c_cons is the executable build out of [cons.c](../ecp_feb_2023/cons.c).
 The DYAD wrapper library `libdyad_wrapper.so` leverages the LD_PRELOAD mechanism

@@ -249,19 +249,16 @@ flux submit --nodes 1 --exclusive \
 ```cpp
 #include <dyad/stream/dyad_stream_api.hpp>
 
-dyad::DyadCppCore dyad_core;
-dyad_core.init_env();  // reads env vars
-
 // Producer: write a file — DYAD publishes metadata automatically on close
-dyad::ofstream out;
-out.open(filepath, dyad_core);
-out << data;
+dyad::ofstream_dyad out;
+out.open(filepath, std::ios::out | std::ios::binary);
+out.get_stream() << data;
 out.close();
 
 // Consumer: read a file — DYAD fetches data automatically on open
-dyad::ifstream in;
-in.open(filepath, dyad_core);
-in >> data;
+dyad::ifstream_dyad in;
+in.open(filepath, std::ios::in | std::ios::binary);
+in.get_stream() >> data;
 in.close();
 ```
 
