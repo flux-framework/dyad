@@ -436,6 +436,12 @@ dyad_fetch_request_cb (flux_t *h, flux_msg_handler_t *w, const flux_msg_t *msg, 
     }
     file_size = get_file_size (fd);
     DYAD_LOG_DEBUG (mod_ctx->ctx, "DYAD_MOD: file %s has size %zd", fullpath, file_size);
+    if (file_size <= 0l) {
+        if (file_size == 0l) {
+            errno = EIO;
+        }
+        goto fetch_error;
+    }
     // clang-format off
 #ifdef DYAD_ENABLE_UCX_DTL
     // For UCX RMA, prepend file_size so the consumer can find the data boundary
