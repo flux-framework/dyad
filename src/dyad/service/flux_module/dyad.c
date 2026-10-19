@@ -538,6 +538,11 @@ fetch_error:;
     close (fd);
 
 fetch_error_wo_flock:;
+    if (inbuf != NULL) {
+        const int error_errno = errno;
+        mod_ctx->ctx->dtl_handle->return_buffer (mod_ctx->ctx, (void **)&inbuf);
+        errno = error_errno;
+    }
     if (request_unpacked && mod_ctx->ctx->dtl_handle->mode != DYAD_DTL_FLUX_RPC
         && !DYAD_IS_ERROR (mod_ctx->ctx->dtl_handle->establish_connection (mod_ctx->ctx))) {
         mod_ctx->ctx->dtl_handle->send (mod_ctx->ctx, NULL, DYAD_DTL_SEND_ERROR);
@@ -1210,6 +1215,11 @@ fetch_range_error:;
     close (fd);
 
 fetch_range_error_wo_flock:;
+    if (inbuf != NULL) {
+        const int error_errno = errno;
+        mod_ctx->ctx->dtl_handle->return_buffer (mod_ctx->ctx, (void **)&inbuf);
+        errno = error_errno;
+    }
     if (request_unpacked && !request_detached && mod_ctx->ctx->dtl_handle->mode != DYAD_DTL_FLUX_RPC
         && !DYAD_IS_ERROR (mod_ctx->ctx->dtl_handle->establish_connection (mod_ctx->ctx))) {
         mod_ctx->ctx->dtl_handle->send (mod_ctx->ctx, NULL, DYAD_DTL_SEND_ERROR);
