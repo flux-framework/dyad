@@ -483,10 +483,10 @@ class basic_ifstream_dyad
      *
      * @details
      * Initializes the core from environment variables, calls @c open_sync() to
-     * ensure the file is ready via @c dyad_consume(), then opens the underlying
-     * stream. After a successful open, acquires a shared OFD lock when
-     * filesystem locking is available. @c m_filename is set only if the stream
-     * opened successfully.
+     * ensure the file is ready via @c dyad_consume(), receiving a temporary
+     * shared OFD guard when applicable, then opens the underlying stream.
+     * After a successful open, acquires a shared OFD lock before closing the
+     * guard. @c m_filename is set only if the stream opened successfully.
      *
      * @param[in] filename  Path to the file to open.
      * @param[in] mode      Open mode. Defaults to @c ios_base::in.
@@ -508,11 +508,11 @@ class basic_ifstream_dyad
      *
      * @details
      * Calls @c open_sync() to ensure the file is ready via @c dyad_consume(),
-     * then opens the underlying stream. After a successful open, acquires a
-     * shared OFD lock via @c DYAD_SHARED_LOCK_CPP_IFSTREAM when filesystem
-     * locking is available. If the stream pointer is @c nullptr, returns
-     * without action. @c m_filename is set only if the stream opened
-     * successfully.
+     * receiving a temporary shared OFD guard when applicable, then opens the
+     * underlying stream. After a successful open, acquires a shared OFD lock
+     * via @c DYAD_SHARED_LOCK_CPP_IFSTREAM before closing the guard. If the
+     * stream pointer is @c nullptr, returns without action. @c m_filename is
+     * set only if the stream opened successfully.
      *
      * @param[in] filename  Path to the file to open.
      * @param[in] mode      Open mode. Defaults to @c ios_base::in.

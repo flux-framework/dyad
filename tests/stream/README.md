@@ -93,6 +93,10 @@ DYAD_PATH_PRODUCER=${DYAD_PATH}/ DYAD_PATH_CONSUMER=${DYAD_PATH}/ \
   ./test_reader_lock ${DYAD_PATH}/reader_lock_open.txt
 ```
 
-It makes the same acquire-and-release checks for intercepted C `open()` and
-`fopen()` calls. The competing process bypasses interception deliberately so
-it measures the parent reader's lock rather than taking another reader lock.
+It verifies the guard handoff against the cache eviction lock: eviction is
+blocked while the transferred guard is held, remains blocked after the real
+reader descriptor replaces it, and succeeds after reader close. It also
+verifies failed intercepted `open()` cleanup, plus the ordinary acquire and
+release checks for intercepted C `open()` and `fopen()` calls. Competing opens
+bypass interception deliberately so they measure the parent locks rather than
+taking another reader lock.

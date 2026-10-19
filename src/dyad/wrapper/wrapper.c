@@ -221,8 +221,10 @@ static void dyad_close_consume_guard (int guard_fd)
  * On the consumer side, if the context is valid and the re-entrancy guard is
  * not active, calls @c dyad_consume() which ensures the file is ready,
  * potentially triggering a data transfer from the producer if the file is
- * not yet locally available. After the real read-only open succeeds, takes a
- * shared OFD lock. Closing the descriptor releases that lock.
+ * not yet locally available. On a successful consume, @c dyad_consume()
+ * transfers a short-lived shared OFD guard. The wrapper takes a shared OFD
+ * lock on the real read-only descriptor before closing that guard. Closing
+ * the descriptor releases its reader lock.
  *
  * On the producer side, after a successful @c open() in write or append mode
  * on a file under the producer-managed path, acquires an exclusive lock to
@@ -338,8 +340,9 @@ real_call:;
  *
  * @details
  * Functionally equivalent to @c dyad_open_wrapper() but intercepts
- * @c fopen() instead of @c open(). A successful managed @c "r" open takes a
- * shared OFD lock, which @c fclose() releases with the descriptor.
+ * @c fopen() instead of @c open(). A transferred shared OFD guard remains
+ * held through the real open until the stream descriptor has its shared OFD
+ * reader lock, which @c fclose() releases with the descriptor.
  *
  * @see dyad_open_wrapper()
  */

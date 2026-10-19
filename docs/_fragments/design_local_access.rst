@@ -18,9 +18,11 @@ mechanisms.
    wrappers operate independently. In both paths the producer holds an
    exclusive lock for the duration of the write to protect consumers with
    direct file visibility from reading premature files.
-   The consumer acquires an exclusive lock inside ``dyad_consume()`` to
-   coordinate with local producers as well as to serialize the fetch
-   among concurrent consumers.
+   The consumer acquires an exclusive OFD lock inside ``dyad_consume()`` to
+   coordinate with local producers and serialize concurrent fetches. On a
+   successful read path, it is downgraded to a shared guard. The guard remains
+   held through the real application open until a shared OFD lock is installed
+   on the application descriptor; the guard is then closed.
 
 .. figure:: _static/figs/dyad_consumer_race_fetch.svg
    :alt: Consumer race management — file fetched from remote producer
@@ -31,14 +33,17 @@ mechanisms.
    already present (size > 0) and skips the fetch entirely.
    The full sequence for consumer A is: fetch metadata ->
    data transfer (``dyad_get_data()``) -> write to disk (``dyad_cons_store()``)
-   -> release lock, with consumer B blocked throughout all three steps.
+   -> cache eviction -> downgrade to a shared guard -> real reader open. The
+   guard remains held until the real reader descriptor has its shared lock,
+   with consumer B blocked throughout the fetch and handoff.
 
 .. figure:: _static/figs/dyad_consumer_local_file.svg
    :alt: Consumer race management — file already local
 
    If the file is already present locally, there is no need for fetching
-   metadata or the file itself. In that case, the consumer releases the lock
-   immediately and continues to perform read-only access on the file.
+   metadata or the file itself. The consumer still downgrades its lock to the
+   shared guard before the real read-only open, preserving the same lock
+   handoff as a fetched file.
 
 
 .. _dyad_local-file-access_fallback:
