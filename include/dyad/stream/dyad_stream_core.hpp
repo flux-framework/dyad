@@ -118,10 +118,19 @@ class dyad_stream_core
      * initialized. Returns @c true if the file is ready or if no action is
      * needed (not a consumer, or not initialized).
      *
-     * @param[in] path  Path to the file being opened.
+     * @param[in]  path      Path to the file being opened.
+     * @param[out] guard_fd  Receives a short-lived shared OFD lock guard, or
+     *                       @c -1 when no guard is needed. May be @c NULL when
+     *                       the caller cannot perform an immediate reader open.
      * @return @c true on success or no-op, @c false if @c dyad_consume() failed.
      */
-    bool open_sync (const char *path);
+    bool open_sync (const char *path, int *guard_fd = NULL);
+
+    /**
+     * @brief Closes a transferred consumer lock guard.
+     * @param[in] guard_fd  Guard descriptor to close, or a negative value.
+     */
+    void close_consume_guard (int guard_fd) const;
 
     /**
      * @brief Publishes a file after a stream close.
@@ -157,7 +166,7 @@ class dyad_stream_core
      * @param[in] path     Path to check.
      * @return @c true if @p path is under the managed directory.
      */
-    bool cmp_canonical_path_prefix (bool is_prod, const char *const __restrict__ path);
+    bool cmp_canonical_path_prefix (bool is_prod, const char *const DYAD_RESTRICT path);
 
     /**
      * @brief Returns the relative path extracted by the last
@@ -178,6 +187,13 @@ class dyad_stream_core
      * @return @c dyad_rc_t return code from @c dyad_excl_flock().
      */
     int file_lock_shared (int fd) const;
+
+    /**
+     * @brief Acquires a shared OFD lock on an open file descriptor.
+     * @param[in] fd  File descriptor whose open file description to lock.
+     * @return @c dyad_rc_t return code from @c dyad_ofd_shared_flock().
+     */
+    int file_lock_shared_ofd (int fd) const;
 
     /**
      * @brief Releases a lock on an open file descriptor.

@@ -34,6 +34,13 @@ target_include_directories(unit_test PUBLIC
     $<INSTALL_INTERFACE:${DYAD_INSTALL_INCLUDEDIR}>)
 add_dependencies(unit_test dyad)
 
+# This establishes whether LeakSanitizer reports an MPI/hwloc teardown leak
+# without loading DYAD. It is useful when updating the CI image's MPI stack.
+add_executable(mpi_finalize_repro mpi_finalize_repro.cpp)
+target_link_libraries(mpi_finalize_repro PRIVATE MPI::MPI_CXX)
+add_test(NAME mpi_finalize_repro COMMAND mpi_finalize_repro)
+set_tests_properties(mpi_finalize_repro PROPERTIES LABELS "external;mpi")
+
 add_subdirectory(script)
 add_subdirectory(data_plane)
 add_subdirectory(mdm)

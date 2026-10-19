@@ -195,6 +195,22 @@ static __attribute__ ((destructor)) void dyad_wrapper_fini (void)
 }
 
 /**
+ * @brief Closes a short-lived consumer lock guard without publishing a file.
+ *
+ * @param[in] guard_fd  Transferred guard descriptor, or a negative value.
+ */
+static void dyad_close_consume_guard (int guard_fd)
+{
+    if (guard_fd < 0) {
+        return;
+    }
+    const bool reenter = ctx_mutable->reenter;
+    ctx_mutable->reenter = false;
+    (void)close (guard_fd);
+    ctx_mutable->reenter = reenter;
+}
+
+/**
  * @brief GOTCHA wrapper for @c open() that integrates DYAD synchronization
  *        and data transfer.
  *
@@ -205,7 +221,10 @@ static __attribute__ ((destructor)) void dyad_wrapper_fini (void)
  * On the consumer side, if the context is valid and the re-entrancy guard is
  * not active, calls @c dyad_consume() which ensures the file is ready,
  * potentially triggering a data transfer from the producer if the file is
- * not yet locally available.
+ * not yet locally available. On a successful consume, @c dyad_consume()
+ * transfers a short-lived shared OFD guard. The wrapper takes a shared OFD
+ * lock on the real read-only descriptor before closing that guard. Closing
+ * the descriptor releases its reader lock.
  *
  * On the producer side, after a successful @c open() in write or append mode
  * on a file under the producer-managed path, acquires an exclusive lock to
@@ -244,6 +263,10 @@ static int dyad_open_wrapper (const char *path, int oflag, ...)
     typedef int (*open_ptr_t) (const char *, int, mode_t, ...);
     open_ptr_t func_ptr = NULL;
     int mode = 0;
+    const int access_mode = oflag & O_ACCMODE;
+    bool is_managed = false;
+    int guard_fd = -1;
+    dyad_rc_t consume_rc = DYAD_RC_OK;
     char upath[PATH_MAX + 1] = {'\0'};
 
     if (oflag & O_CREAT) {
@@ -261,7 +284,7 @@ static int dyad_open_wrapper (const char *path, int oflag, ...)
         return -1;
     }
 
-    if ((mode != O_RDONLY) || is_path_dir (path)) {
+    if (access_mode != O_RDONLY || is_path_dir (path)) {
         // TODO: make sure if the directory mode is consistent
         goto real_call;
     }
@@ -272,8 +295,10 @@ static int dyad_open_wrapper (const char *path, int oflag, ...)
     }
 
     IPRINTF (ctx, "DYAD_SYNC: enters open sync (\"%s\").", path);
-    if (DYAD_IS_ERROR (dyad_consume (ctx_mutable, path))) {
+    consume_rc = dyad_consume (ctx_mutable, path, &is_managed, &guard_fd);
+    if (DYAD_IS_ERROR (consume_rc)) {
         DPRINTF (ctx, "DYAD_SYNC: failed open sync (\"%s\").", path);
+        is_managed = false;
         goto real_call;
     }
     IPRINTF (ctx, "DYAD_SYNC: exits open sync (\"%s\").", path);
@@ -281,11 +306,20 @@ static int dyad_open_wrapper (const char *path, int oflag, ...)
 real_call:;
     int ret = (func_ptr (path, oflag, mode));
 
+    if (ret >= 0 && is_managed) {
+        struct flock shared_lock;
+        dyad_rc_t rc = dyad_ofd_shared_flock (ctx, ret, &shared_lock);
+        if (DYAD_IS_ERROR (rc)) {
+            dyad_ofd_release_flock (ctx, ret, &shared_lock);
+        }
+    }
+    dyad_close_consume_guard (guard_fd);
+
     // This lock is to prevent consumers that has direct access to the file
     // from reading the file being produced by a producer. For example,
     // either the file is on a shared storage or the consumer is on
     // the same node as where the producer is.
-    if ((ret > 0) && (mode == O_WRONLY || mode == O_APPEND) && !is_path_dir (path)) {
+    if (ret > 0 && access_mode != O_RDONLY && !is_path_dir (path)) {
         if ((ctx->relative_to_managed_path
              && (strncmp (path, DYAD_PATH_DELIM, ctx->delim_len) != 0))
             || cmp_canonical_path_prefix (ctx, true, path, upath, PATH_MAX)) {
@@ -306,7 +340,15 @@ real_call:;
  *
  * @details
  * Functionally equivalent to @c dyad_open_wrapper() but intercepts
- * @c fopen() instead of @c open().
+ * @c fopen() instead of @c open(). A transferred shared OFD guard remains
+ * held through the real open until the stream descriptor has its shared OFD
+ * reader lock, which @c fclose() releases with the descriptor.
+ *
+ * @param[in] path Path passed to @c fopen().
+ * @param[in] mode C stream mode. DYAD synchronizes read-only @c r and
+ *                 @c rb modes and locks write-only @c w/@c wb/@c a/@c ab
+ *                 modes. Update modes containing @c + pass directly to libc.
+ * @return The stream returned by the real @c fopen(), or @c NULL on failure.
  *
  * @see dyad_open_wrapper()
  */
@@ -316,6 +358,9 @@ static FILE *dyad_fopen_wrapper (const char *path, const char *mode)
     DYAD_C_FUNCTION_UPDATE_STR ("path", "path");
     typedef FILE *(*fopen_ptr_t) (const char *, const char *);
     fopen_ptr_t func_ptr = NULL;
+    bool is_managed = false;
+    int guard_fd = -1;
+    dyad_rc_t consume_rc = DYAD_RC_OK;
     char upath[PATH_MAX + 1] = {'\0'};
 
     func_ptr = __extension__ (fopen_ptr_t) gotcha_get_wrappee (wrappee_fopen_handle);
@@ -326,7 +371,7 @@ static FILE *dyad_fopen_wrapper (const char *path, const char *mode)
         return NULL;
     }
 
-    if ((strcmp (mode, "r") != 0) || is_path_dir (path)) {
+    if (mode == NULL || mode[0] != 'r' || strchr (mode, '+') != NULL || is_path_dir (path)) {
         // TODO: make sure if the directory mode is consistent
         goto real_call;
     }
@@ -337,8 +382,10 @@ static FILE *dyad_fopen_wrapper (const char *path, const char *mode)
     }
 
     IPRINTF (ctx, "DYAD_SYNC: enters fopen sync (\"%s\").\n", path);
-    if (DYAD_IS_ERROR (dyad_consume (ctx_mutable, path))) {
+    consume_rc = dyad_consume (ctx_mutable, path, &is_managed, &guard_fd);
+    if (DYAD_IS_ERROR (consume_rc)) {
         DPRINTF (ctx, "DYAD_SYNC: failed fopen sync (\"%s\").\n", path);
+        is_managed = false;
         goto real_call;
     }
     IPRINTF (ctx, "DYAD_SYNC: exits fopen sync (\"%s\").\n", path);
@@ -346,12 +393,22 @@ static FILE *dyad_fopen_wrapper (const char *path, const char *mode)
 real_call:;
     FILE *fh = (func_ptr (path, mode));
 
+    if (fh != NULL && is_managed) {
+        const int fd = fileno (fh);
+        struct flock shared_lock;
+        dyad_rc_t rc = dyad_ofd_shared_flock (ctx, fd, &shared_lock);
+        if (DYAD_IS_ERROR (rc)) {
+            dyad_ofd_release_flock (ctx, fd, &shared_lock);
+        }
+    }
+    dyad_close_consume_guard (guard_fd);
+
     // This lock is to prevent consumers that has direct access to the file
     // from reading the file being produced by a producer. For example,
     // either the file is on a shared storage or the consumer is on
     // the same node as where the producer is.
-    if ((fh != NULL) && ((strcmp (mode, "w") == 0) || (strcmp (mode, "a") == 0))
-        && !is_path_dir (path)) {
+    if (fh != NULL && mode != NULL && (mode[0] == 'w' || mode[0] == 'a')
+        && strchr (mode, '+') == NULL && !is_path_dir (path)) {
         if ((ctx->relative_to_managed_path
              && (strncmp (path, DYAD_PATH_DELIM, ctx->delim_len) != 0))
             || cmp_canonical_path_prefix (ctx, true, path, upath, PATH_MAX)) {
@@ -598,6 +655,10 @@ static int dyad_open64_wrapper (const char *path, int oflag, ...)
     typedef int (*open64_ptr_t) (const char *, int, mode_t, ...);
     open64_ptr_t func_ptr = NULL;
     int mode = 0;
+    const int access_mode = oflag & O_ACCMODE;
+    bool is_managed = false;
+    int guard_fd = -1;
+    dyad_rc_t consume_rc = DYAD_RC_OK;
     char upath[PATH_MAX + 1] = {'\0'};
 
     if (oflag & O_CREAT) {
@@ -615,7 +676,7 @@ static int dyad_open64_wrapper (const char *path, int oflag, ...)
         return -1;
     }
 
-    if ((mode != O_RDONLY) || is_path_dir (path)) {
+    if (access_mode != O_RDONLY || is_path_dir (path)) {
         // TODO: make sure if the directory mode is consistent
         goto real_call;
     }
@@ -626,8 +687,10 @@ static int dyad_open64_wrapper (const char *path, int oflag, ...)
     }
 
     IPRINTF (ctx, "DYAD_SYNC: enters open64 sync (\"%s\").", path);
-    if (DYAD_IS_ERROR (dyad_consume (ctx_mutable, path))) {
+    consume_rc = dyad_consume (ctx_mutable, path, &is_managed, &guard_fd);
+    if (DYAD_IS_ERROR (consume_rc)) {
         DPRINTF (ctx, "DYAD_SYNC: failed open64 sync (\"%s\").", path);
+        is_managed = false;
         goto real_call;
     }
     IPRINTF (ctx, "DYAD_SYNC: exits open64 sync (\"%s\").", path);
@@ -635,11 +698,20 @@ static int dyad_open64_wrapper (const char *path, int oflag, ...)
 real_call:;
     int ret = (func_ptr (path, oflag, mode));
 
+    if (ret >= 0 && is_managed) {
+        struct flock shared_lock;
+        dyad_rc_t rc = dyad_ofd_shared_flock (ctx, ret, &shared_lock);
+        if (DYAD_IS_ERROR (rc)) {
+            dyad_ofd_release_flock (ctx, ret, &shared_lock);
+        }
+    }
+    dyad_close_consume_guard (guard_fd);
+
     // This lock is to prevent consumers that has direct access to the file
     // from reading the file being produced by a producer. For example,
     // either the file is on a shared storage or the consumer is on
     // the same node as where the producer is.
-    if ((ret > 0) && (mode == O_WRONLY || mode == O_APPEND) && !is_path_dir (path)) {
+    if (ret > 0 && access_mode != O_RDONLY && !is_path_dir (path)) {
         if ((ctx->relative_to_managed_path
              && (strncmp (path, DYAD_PATH_DELIM, ctx->delim_len) != 0))
             || cmp_canonical_path_prefix (ctx, true, path, upath, PATH_MAX)) {
@@ -663,6 +735,13 @@ real_call:;
  * Functionally equivalent to @c dyad_open_wrapper() but intercepts
  * @c fopen64() instead of @c open().
  *
+ * @param[in] path Path passed to @c fopen64().
+ * @param[in] mode C stream mode. DYAD synchronizes read-only @c r and
+ *                 @c rb modes and locks write-only @c w/@c wb/@c a/@c ab
+ *                 modes. Update modes containing @c + pass directly to libc.
+ * @return The stream returned by the real @c fopen64(), or @c NULL on
+ *         failure.
+ *
  * @see dyad_fopen_wrapper()
  */
 static FILE *dyad_fopen64_wrapper (const char *path, const char *mode)
@@ -671,6 +750,9 @@ static FILE *dyad_fopen64_wrapper (const char *path, const char *mode)
     DYAD_C_FUNCTION_UPDATE_STR ("path", "path");
     typedef FILE *(*fopen64_ptr_t) (const char *, const char *);
     fopen64_ptr_t func_ptr = NULL;
+    bool is_managed = false;
+    int guard_fd = -1;
+    dyad_rc_t consume_rc = DYAD_RC_OK;
     char upath[PATH_MAX + 1] = {'\0'};
 
     func_ptr = __extension__ (fopen64_ptr_t) gotcha_get_wrappee (wrappee_fopen64_handle);
@@ -681,7 +763,7 @@ static FILE *dyad_fopen64_wrapper (const char *path, const char *mode)
         return NULL;
     }
 
-    if ((strcmp (mode, "r") != 0) || is_path_dir (path)) {
+    if (mode == NULL || mode[0] != 'r' || strchr (mode, '+') != NULL || is_path_dir (path)) {
         // TODO: make sure if the directory mode is consistent
         goto real_call;
     }
@@ -692,8 +774,10 @@ static FILE *dyad_fopen64_wrapper (const char *path, const char *mode)
     }
 
     IPRINTF (ctx, "DYAD_SYNC: enters fopen64 sync (\"%s\").\n", path);
-    if (DYAD_IS_ERROR (dyad_consume (ctx_mutable, path))) {
+    consume_rc = dyad_consume (ctx_mutable, path, &is_managed, &guard_fd);
+    if (DYAD_IS_ERROR (consume_rc)) {
         DPRINTF (ctx, "DYAD_SYNC: failed fopen64 sync (\"%s\").\n", path);
+        is_managed = false;
         goto real_call;
     }
     IPRINTF (ctx, "DYAD_SYNC: exits fopen64 sync (\"%s\").\n", path);
@@ -701,12 +785,22 @@ static FILE *dyad_fopen64_wrapper (const char *path, const char *mode)
 real_call:;
     FILE *fh = (func_ptr (path, mode));
 
+    if (fh != NULL && is_managed) {
+        const int fd = fileno (fh);
+        struct flock shared_lock;
+        dyad_rc_t rc = dyad_ofd_shared_flock (ctx, fd, &shared_lock);
+        if (DYAD_IS_ERROR (rc)) {
+            dyad_ofd_release_flock (ctx, fd, &shared_lock);
+        }
+    }
+    dyad_close_consume_guard (guard_fd);
+
     // This lock is to prevent consumers that has direct access to the file
     // from reading the file being produced by a producer. For example,
     // either the file is on a shared storage or the consumer is on
     // the same node as where the producer is.
-    if ((fh != NULL) && ((strcmp (mode, "w") == 0) || (strcmp (mode, "a") == 0))
-        && !is_path_dir (path)) {
+    if (fh != NULL && mode != NULL && (mode[0] == 'w' || mode[0] == 'a')
+        && strchr (mode, '+') == NULL && !is_path_dir (path)) {
         if ((ctx->relative_to_managed_path
              && (strncmp (path, DYAD_PATH_DELIM, ctx->delim_len) != 0))
             || cmp_canonical_path_prefix (ctx, true, path, upath, PATH_MAX)) {

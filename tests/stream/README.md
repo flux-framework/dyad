@@ -62,3 +62,41 @@ exit
 integration tests that require a live Flux environment with the DYAD module loaded.
 `combined_test.cpp` and `io_test.cpp` support test logic (not standalone executables),
 while `test_stream.cpp` is the main entry point.
+
+## Reader-lock regression
+
+Compile `test_stream_reader_lock.cpp` with the same command as `test_stream.cpp`.
+With the DYAD service running, first publish then consume:
+
+```bash
+flux run -n 1 ./test_stream_reader_lock ${DYAD_PATH} producer
+flux run -n 1 ./test_stream_reader_lock ${DYAD_PATH} consumer
+```
+
+The consumer checks both the explicit `open()` path and the constructor path.
+While each `ifstream_dyad` is open, a separate process must be unable to take
+an exclusive POSIX lock; after `close()`, it must succeed.
+
+## C interception-wrapper reader-lock regression
+
+Compile `tests/wrapper/test_reader_lock.c`, then run it with
+`libdyad_wrapper.so` preloaded after the producer step above:
+
+```bash
+cc -std=c11 -Wall -Wextra -pedantic -DDYAD_HAS_CONFIG \
+  -I${DYAD_SOURCE}/include -I${DYAD_SOURCE}/src -I${DYAD_BUILD}/include \
+  tests/wrapper/test_reader_lock.c -L${DYAD_BUILD}/lib \
+  -Wl,-rpath,${DYAD_BUILD}/lib -ldyad_client -ldyad_utils -ldyad_ctx -o test_reader_lock
+DYAD_PATH_PRODUCER=${DYAD_PATH}/ DYAD_PATH_CONSUMER=${DYAD_PATH}/ \
+  DYAD_KVS_NAMESPACE=dyad_stream_reader_lock \
+  LD_PRELOAD=${DYAD_INSTALL}/lib/libdyad_wrapper.so \
+  ./test_reader_lock ${DYAD_PATH}/reader_lock_open.txt
+```
+
+It verifies the guard handoff against the cache eviction lock: eviction is
+blocked while the transferred guard is held, remains blocked after the real
+reader descriptor replaces it, and succeeds after reader close. It also
+verifies failed intercepted `open()` cleanup, plus the ordinary acquire and
+release checks for intercepted C `open()` and `fopen()` calls. Competing opens
+bypass interception deliberately so they measure the parent locks rather than
+taking another reader lock.

@@ -52,6 +52,19 @@
 
 #define DYAD_PATH_DELIM "/"
 
+/* Restrict-qualified pointers in C and C++ sources. */
+#if defined(__cplusplus)
+#if defined(__INTEL_COMPILER) || defined(__ICC)
+#define DYAD_RESTRICT __restrict
+#elif defined(__GNUC__) || defined(__clang__)
+#define DYAD_RESTRICT __restrict__
+#else
+#define DYAD_RESTRICT
+#endif
+#else
+#define DYAD_RESTRICT restrict
+#endif
+
 // #define DYAD_NOOP_MACRO do {} while (0)
 #define DYAD_NOOP_MACRO
 

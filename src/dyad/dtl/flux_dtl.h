@@ -101,9 +101,9 @@ dyad_rc_t dyad_dtl_flux_init (const dyad_ctx_t *ctx,
  * @retval DYAD_RC_BADPACK @c json_pack() failed to create the object.
  */
 dyad_rc_t dyad_dtl_flux_rpc_pack (const dyad_ctx_t *ctx,
-                                  const char *restrict upath,
+                                  const char *DYAD_RESTRICT upath,
                                   uint32_t producer_rank,
-                                  json_t **restrict packed_obj);
+                                  json_t **DYAD_RESTRICT packed_obj);
 
 /**
  * @brief Unpacks a file fetch request from an incoming Flux RPC message.
@@ -164,11 +164,11 @@ dyad_rc_t dyad_dtl_flux_rpc_unpack (const dyad_ctx_t *ctx, const flux_msg_t *msg
  * @retval DYAD_RC_BADPACK @c json_pack() failed to create the object.
  */
 dyad_rc_t dyad_dtl_flux_rpc_pack_range (const dyad_ctx_t *ctx,
-                                        const char *restrict upath,
+                                        const char *DYAD_RESTRICT upath,
                                         uint32_t producer_rank,
                                         size_t offset,
                                         size_t length,
-                                        json_t **restrict packed_obj);
+                                        json_t **DYAD_RESTRICT packed_obj);
 
 /**
  * @brief Unpacks a byte-range fetch request from an incoming Flux RPC message.

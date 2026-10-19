@@ -57,6 +57,10 @@ int init(int* argc, char*** argv) {
   return 0;
 }
 int finalize() {
+  if (info.flux_handle != nullptr) {
+    flux_close(info.flux_handle);
+    info.flux_handle = nullptr;
+  }
   MPI_Finalize();
   return 0;
 }

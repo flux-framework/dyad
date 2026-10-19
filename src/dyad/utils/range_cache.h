@@ -20,6 +20,7 @@
 #if defined(__cplusplus)
 #include <cstddef>
 #else
+#include <stdbool.h>
 #include <stddef.h>
 #endif  // defined(__cplusplus)
 
@@ -59,12 +60,12 @@ extern "C" {
  * process sharing @p local_path, local or remote) hit the cache instead
  * of re-reading the origin.
  *
- * Coordination across concurrent callers uses @c dyad_shared_flock() /
- * @c dyad_excl_flock() on the bitmap file (not on @p local_path itself,
- * so large reads/writes to the data file are never serialized by the
- * bookkeeping lock): a shared lock is used to check for a full hit, and
- * only escalates to an exclusive lock (with a re-check, since another
- * process may have filled the span while this one waited) on a miss.
+ * Coordination across concurrent callers uses cache-specific Linux
+ * open-file-description locks on both the bitmap and data files. A shared
+ * bitmap lock checks for a full hit; on a miss it escalates to an exclusive
+ * bitmap lock and re-checks, since another caller may have filled the span
+ * while this one waited. The data-file OFD lock prevents eviction while a
+ * fetched span is written, without serializing the slow origin read.
  *
  * This function does not read data into a caller-supplied buffer itself
  * -- once it returns @c DYAD_RC_OK, the caller is expected to read the
@@ -86,6 +87,9 @@ extern "C" {
  * @param[in] length       Length, in bytes, of the requested range. If 0,
  *                         this function is a no-op that returns
  *                         @c DYAD_RC_OK immediately.
+ *                         If the range extends past the end of
+ *                         @p origin_path, only the portion within the
+ *                         source file is cached.
  *
  * @return @c dyad_rc_t    Return code indicating the outcome:
  * @retval DYAD_RC_OK      @p origin_path is @c NULL, @p length is 0, or
@@ -95,7 +99,8 @@ extern "C" {
  *                         @p origin_path).
  * @retval DYAD_RC_BADFIO  A filesystem operation (open/stat/read/write)
  *                         on @p local_path, its bitmap file, or
- *                         @p origin_path failed.
+ *                         @p origin_path failed; or @p offset is outside
+ *                         the source file or the requested range overflows.
  * @retval DYAD_RC_SYSFAIL A memory allocation failed.
  * @retval DYAD_RC_BADBUF  @p local_path is too long to build the bitmap
  *                         file's path.
@@ -105,6 +110,40 @@ dyad_rc_t dyad_range_cache_ensure (const dyad_ctx_t *ctx,
                                    const char *origin_path,
                                    size_t offset,
                                    size_t length);
+
+/**
+ * @brief Reports whether a range-cache bitmap marks the complete local file
+ *        as present.
+ *
+ * @param[in]  ctx              DYAD context used for synchronization.
+ * @param[in]  local_path       Path of the local data file.
+ * @param[out] has_range_cache  True when @p local_path has a range-cache
+ *                               bitmap; false for an ordinary local file.
+ * @param[out] complete         True when every block of a range-cached file
+ *                               is marked present. True for an ordinary
+ *                               local file.
+ *
+ * @return @c DYAD_RC_OK on success, @c DYAD_RC_BADBUF if the bitmap path is
+ *         too long, @c DYAD_RC_BADFIO for a filesystem failure, or
+ *         @c DYAD_RC_SYSFAIL if allocation fails.
+ */
+dyad_rc_t dyad_range_cache_is_complete (const dyad_ctx_t *ctx,
+                                        const char *local_path,
+                                        bool *has_range_cache,
+                                        bool *complete);
+
+/**
+ * @brief Marks every block in an existing range-cache bitmap as present.
+ *
+ * @param[in] ctx        DYAD context used for synchronization.
+ * @param[in] local_path Path of a fully populated local data file.
+ *
+ * @return @c DYAD_RC_OK on success or when no bitmap exists,
+ *         @c DYAD_RC_BADBUF if the bitmap path is too long,
+ *         @c DYAD_RC_BADFIO for a filesystem failure, or @c DYAD_RC_SYSFAIL
+ *         if allocation fails.
+ */
+dyad_rc_t dyad_range_cache_mark_complete (const dyad_ctx_t *ctx, const char *local_path);
 
 #if defined(__cplusplus)
 }

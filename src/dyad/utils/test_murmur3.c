@@ -39,6 +39,12 @@
  *
  * This is a standalone test executable and is not part of the DYAD library.
  */
+#if defined(DYAD_HAS_CONFIG)
+#include <dyad/dyad_config.hpp>
+#else
+#error "no config"
+#endif
+
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,8 +52,8 @@
 
 #include "dyad/utils/murmur3.h"
 
-static int gen_path_key (const char *restrict str,
-                         char *restrict path_key,
+static int gen_path_key (const char *DYAD_RESTRICT str,
+                         char *DYAD_RESTRICT path_key,
                          const size_t len,
                          const uint32_t depth,
                          const uint32_t width)
@@ -61,9 +67,14 @@ static int gen_path_key (const char *restrict str,
     size_t cx = 0ul;
     int n = 0;
     const char *str_long = str;
-    size_t str_len = strlen (str);
+    size_t str_len = 0ul;
 
-    if (str == NULL || path_key == NULL || len == 0ul || str_len == 0ul) {
+    if (str == NULL || path_key == NULL || len == 0ul) {
+        return -1;
+    }
+
+    str_len = strlen (str);
+    if (str_len == 0ul) {
         return -1;
     }
 

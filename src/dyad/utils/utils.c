@@ -112,9 +112,9 @@ uint32_t hash_path_prefix (const char *str, const uint32_t seed, const size_t le
     return (hash[0] ^ hash[1] ^ hash[2] ^ hash[3]) + 1;
 }
 
-char *concat_str (char *__restrict__ str,
-                  const char *__restrict__ to_append,
-                  const char *__restrict__ connector,
+char *concat_str (char *DYAD_RESTRICT str,
+                  const char *DYAD_RESTRICT to_append,
+                  const char *DYAD_RESTRICT connector,
                   size_t str_capacity)
 {
     const size_t str_len_org = strlen (str);
@@ -160,10 +160,10 @@ char *concat_str (char *__restrict__ str,
     return str;
 }
 
-bool extract_user_path (const char *__restrict__ prefix,
-                        const char *__restrict__ full,
-                        const char *__restrict__ delim,
-                        char *__restrict__ upath,
+bool extract_user_path (const char *DYAD_RESTRICT prefix,
+                        const char *DYAD_RESTRICT full,
+                        const char *DYAD_RESTRICT delim,
+                        char *DYAD_RESTRICT upath,
                         const size_t upath_capacity)
 {
     size_t prefix_len = strlen (prefix);
@@ -226,10 +226,10 @@ bool extract_user_path (const char *__restrict__ prefix,
     return true;
 }
 
-bool cmp_canonical_path_prefix (const dyad_ctx_t *__restrict__ ctx,
+bool cmp_canonical_path_prefix (const dyad_ctx_t *DYAD_RESTRICT ctx,
                                 const bool is_prod,
-                                const char *__restrict__ path,
-                                char *__restrict__ upath,
+                                const char *DYAD_RESTRICT path,
+                                char *DYAD_RESTRICT upath,
                                 const size_t upath_capacity)
 {
     // Only works when there are no multiple absolute paths via hardlinks
@@ -393,6 +393,7 @@ int mkdir_as_needed (const char *path, const mode_t m)
         if (stat (path, &sb) == 0) {          // already exist
             if (S_ISDIR (sb.st_mode) == 0) {  // not a directory
                 DYAD_LOG_DEBUG (NULL, "DYAD UTIL: \"%s\" already exists not as a directory.", path);
+                umask (old_mask);
                 return -4;
             } else if ((sb.st_mode & RWX_UGO) ^ (m & RWX_UGO)) {
                 DYAD_LOG_DEBUG (NULL,
@@ -402,8 +403,10 @@ int mkdir_as_needed (const char *path, const mode_t m)
                                 path,
                                 (sb.st_mode & RWX_UGO),
                                 (m & RWX_UGO));
+                umask (old_mask);
                 return 5;  // already exists but with different mode
             }
+            umask (old_mask);
             return 1;  // already exists
         }
         DYAD_LOG_DEBUG (NULL,
@@ -411,6 +414,7 @@ int mkdir_as_needed (const char *path, const mode_t m)
                         path,
                         strerror (errno));
         perror ("mkdir_as_needed() ");
+        umask (old_mask);
         return -1;
     }
     umask (old_mask);
@@ -521,19 +525,19 @@ ssize_t get_file_size (int fd)
 }
 #endif
 
-dyad_rc_t dyad_excl_flock (const dyad_ctx_t *__restrict__ ctx,
+dyad_rc_t dyad_excl_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
                            int fd,
-                           struct flock *__restrict__ lock)
+                           struct flock *DYAD_RESTRICT lock)
 {
     dyad_rc_t rc = DYAD_RC_OK;
     DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
-    DYAD_LOG_DEBUG (ctx,
-                    "DYAD UTIL: [node %u rank %u pid %d] Applies an exclusive lock on fd %d.",
-                    ctx->node_idx,
-                    ctx->rank,
-                    ctx->pid,
-                    fd);
+    DYAD_WORKER_LOG_DEBUG (
+        "DYAD UTIL: [node %u rank %u pid %d] Applies an exclusive lock on fd %d.",
+        ctx->node_idx,
+        ctx->rank,
+        ctx->pid,
+        fd);
     if (!lock) {
         rc = DYAD_RC_BADFIO;
         goto excl_flock_end;
@@ -544,7 +548,7 @@ dyad_rc_t dyad_excl_flock (const dyad_ctx_t *__restrict__ ctx,
     lock->l_len = 0;
     lock->l_pid = ctx->pid;                  // getpid();
     if (fcntl (fd, F_SETLKW, lock) == -1) {  // will wait until able to lock
-        DYAD_LOG_ERROR (ctx, "DYAD UTIL: Cannot apply exclusive lock on fd %d.", fd);
+        DYAD_WORKER_LOG_ERROR ("DYAD UTIL: Cannot apply exclusive lock on fd %d.", fd);
         rc = DYAD_RC_BADFIO;
         goto excl_flock_end;
     }
@@ -554,9 +558,9 @@ excl_flock_end:;
     return rc;
 }
 
-dyad_rc_t dyad_try_excl_flock (const dyad_ctx_t *__restrict__ ctx,
+dyad_rc_t dyad_try_excl_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
                                int fd,
-                               struct flock *__restrict__ lock)
+                               struct flock *DYAD_RESTRICT lock)
 {
     dyad_rc_t rc = DYAD_RC_OK;
     DYAD_C_FUNCTION_START ();
@@ -592,19 +596,18 @@ try_excl_flock_end:;
     return rc;
 }
 
-dyad_rc_t dyad_shared_flock (const dyad_ctx_t *__restrict__ ctx,
+dyad_rc_t dyad_shared_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
                              int fd,
-                             struct flock *__restrict__ lock)
+                             struct flock *DYAD_RESTRICT lock)
 {
     DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
     dyad_rc_t rc = DYAD_RC_OK;
-    DYAD_LOG_DEBUG (ctx,
-                    "DYAD UTIL: [node %u rank %u pid %d] Applies a shared lock on fd %d.",
-                    ctx->node_idx,
-                    ctx->rank,
-                    ctx->pid,
-                    fd);
+    DYAD_WORKER_LOG_DEBUG ("DYAD UTIL: [node %u rank %u pid %d] Applies a shared lock on fd %d.",
+                           ctx->node_idx,
+                           ctx->rank,
+                           ctx->pid,
+                           fd);
     if (!lock) {
         rc = DYAD_RC_BADFIO;
         goto shared_flock_end;
@@ -615,7 +618,7 @@ dyad_rc_t dyad_shared_flock (const dyad_ctx_t *__restrict__ ctx,
     lock->l_len = 0;
     lock->l_pid = ctx->pid;                  // getpid();
     if (fcntl (fd, F_SETLKW, lock) == -1) {  // will wait until able to lock
-        DYAD_LOG_ERROR (ctx, "DYAD UTIL: Cannot apply shared lock on fd %d.", fd);
+        DYAD_WORKER_LOG_ERROR ("DYAD UTIL: Cannot apply shared lock on fd %d.", fd);
         rc = DYAD_RC_BADFIO;
         goto shared_flock_end;
     }
@@ -625,26 +628,34 @@ shared_flock_end:;
     return rc;
 }
 
-dyad_rc_t dyad_release_flock (const dyad_ctx_t *__restrict__ ctx,
+dyad_rc_t dyad_release_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
                               int fd,
-                              struct flock *__restrict__ lock)
+                              struct flock *DYAD_RESTRICT lock)
 {
     DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
     dyad_rc_t rc = DYAD_RC_OK;
-    DYAD_LOG_DEBUG (ctx,
-                    "DYAD UTIL: [node %u rank %u pid %d] Releases a lock on fd %d.",
-                    ctx->node_idx,
-                    ctx->rank,
-                    ctx->pid,
-                    fd);
+    DYAD_WORKER_LOG_DEBUG ("DYAD UTIL: [node %u rank %u pid %d] Releases a lock on fd %d.",
+                           ctx->node_idx,
+                           ctx->rank,
+                           ctx->pid,
+                           fd);
     if (!lock) {
         rc = DYAD_RC_BADFIO;
         goto release_flock_end;
     }
+    // Always unlock the whole file, matching how dyad_excl_flock() /
+    // dyad_shared_flock() acquire it.  Callers on the close()/fclose()
+    // wrapper paths pass a struct flock that was never used to acquire a
+    // lock, so its l_whence/l_start/l_len would otherwise be uninitialised
+    // when handed to fcntl().
     lock->l_type = F_UNLCK;
+    lock->l_whence = SEEK_SET;
+    lock->l_start = 0;
+    lock->l_len = 0;
+    lock->l_pid = ctx->pid;
     if (fcntl (fd, F_SETLKW, lock) == -1) {  // will just unlock
-        DYAD_LOG_ERROR (ctx, "DYAD UTIL: Cannot release lock on fd %d.", fd);
+        DYAD_WORKER_LOG_ERROR ("DYAD UTIL: Cannot release lock on fd %d.", fd);
         rc = DYAD_RC_BADFIO;
         goto release_flock_end;
     }
@@ -652,6 +663,95 @@ dyad_rc_t dyad_release_flock (const dyad_ctx_t *__restrict__ ctx,
 release_flock_end:;
     DYAD_C_FUNCTION_END ();
     return rc;
+}
+
+/**
+ * @brief Applies or releases a whole-file OFD lock.
+ *
+ * @param[in]     ctx         DYAD context used for logging.
+ * @param[in]     fd          Descriptor whose open file description owns the lock.
+ * @param[in,out] lock        Lock description to populate and submit to @c fcntl().
+ * @param[in]     lock_type   Requested lock type.
+ * @param[in]     command     OFD @c fcntl() command.
+ * @param[in]     nonblocking Whether a conflicting lock returns @c DYAD_RC_BUSY.
+ *
+ * @retval DYAD_RC_OK     The operation succeeded.
+ * @retval DYAD_RC_BUSY   A nonblocking acquisition found a conflicting lock.
+ * @retval DYAD_RC_BADFIO @p lock was NULL or @c fcntl() failed.
+ */
+static dyad_rc_t dyad_ofd_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                 int fd,
+                                 struct flock *DYAD_RESTRICT lock,
+                                 short lock_type,
+                                 int command,
+                                 bool nonblocking)
+{
+    if (lock == NULL) {
+        return DYAD_RC_BADFIO;
+    }
+    lock->l_type = lock_type;
+    lock->l_whence = SEEK_SET;
+    lock->l_start = 0;
+    lock->l_len = 0;
+    // Linux requires l_pid to be zero for F_OFD_* lock operations.
+    lock->l_pid = 0;
+    if (fcntl (fd, command, lock) == 0) {
+        return DYAD_RC_OK;
+    }
+    if (nonblocking && (errno == EAGAIN || errno == EACCES)) {
+        return DYAD_RC_BUSY;
+    }
+    DYAD_WORKER_LOG_ERROR ("DYAD UTIL: Cannot update OFD lock on fd %d.", fd);
+    return DYAD_RC_BADFIO;
+}
+
+dyad_rc_t dyad_cache_excl_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                 int fd,
+                                 struct flock *DYAD_RESTRICT lock)
+{
+    return dyad_ofd_flock (ctx, fd, lock, F_WRLCK, F_OFD_SETLKW, false);
+}
+
+dyad_rc_t dyad_cache_try_excl_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                     int fd,
+                                     struct flock *DYAD_RESTRICT lock)
+{
+    return dyad_ofd_flock (ctx, fd, lock, F_WRLCK, F_OFD_SETLK, true);
+}
+
+dyad_rc_t dyad_cache_shared_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                   int fd,
+                                   struct flock *DYAD_RESTRICT lock)
+{
+    return dyad_ofd_flock (ctx, fd, lock, F_RDLCK, F_OFD_SETLKW, false);
+}
+
+dyad_rc_t dyad_cache_release_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                    int fd,
+                                    struct flock *DYAD_RESTRICT lock)
+{
+    return dyad_ofd_flock (ctx, fd, lock, F_UNLCK, F_OFD_SETLK, false);
+}
+
+dyad_rc_t dyad_ofd_excl_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                               int fd,
+                               struct flock *DYAD_RESTRICT lock)
+{
+    return dyad_ofd_flock (ctx, fd, lock, F_WRLCK, F_OFD_SETLKW, false);
+}
+
+dyad_rc_t dyad_ofd_shared_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                 int fd,
+                                 struct flock *DYAD_RESTRICT lock)
+{
+    return dyad_ofd_flock (ctx, fd, lock, F_RDLCK, F_OFD_SETLKW, false);
+}
+
+dyad_rc_t dyad_ofd_release_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                  int fd,
+                                  struct flock *DYAD_RESTRICT lock)
+{
+    return dyad_ofd_flock (ctx, fd, lock, F_UNLCK, F_OFD_SETLK, false);
 }
 
 #if DYAD_SYNC_DIR

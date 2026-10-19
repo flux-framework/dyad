@@ -110,6 +110,10 @@ void dyad_stream_core::init (const bool reinit)
     }
     DYAD_CPP_FUNCTION ();
 
+    if (m_ctx == NULL || m_ctx->h == NULL) {
+        abort ();
+    }
+
     if (m_ctx != NULL) {
         if ((e = getenv (DYAD_PATH_CONSUMER_ENV))) {
             m_is_cons = (strlen (e) != 0);
@@ -153,6 +157,10 @@ void dyad_stream_core::init (const dyad_params &p)
                               p.m_origin_path.empty () ? nullptr : p.m_origin_path.c_str ());
     DYAD_CPP_FUNCTION ();
     m_ctx = m_ctx_mutable = dyad_ctx_get ();
+    if (DYAD_IS_ERROR (rc) || m_ctx == NULL || m_ctx->h == NULL) {
+        abort ();
+    }
+
     if (!DYAD_IS_ERROR (rc) && m_ctx != NULL) {
         m_is_prod = !p.m_prod_managed_path.empty ();
         m_is_cons = !p.m_cons_managed_path.empty ();
@@ -209,11 +217,14 @@ bool dyad_stream_core::is_dyad_consumer () const
     return m_is_cons;
 }
 
-bool dyad_stream_core::open_sync (const char *path)
+bool dyad_stream_core::open_sync (const char *path, int *guard_fd)
 {
     DYAD_CPP_FUNCTION ();
     DYAD_CPP_FUNCTION_UPDATE ("path", path);
     DYAD_LOG_DEBUG (m_ctx, "DYAD_SYNC OPEN: enters sync (\"%s\").", path);
+    if (guard_fd != NULL) {
+        *guard_fd = -1;
+    }
     if (!m_initialized) {
         // TODO log
         return true;
@@ -223,7 +234,9 @@ bool dyad_stream_core::open_sync (const char *path)
         return true;
     }
 
-    dyad_rc_t rc = dyad_consume (m_ctx_mutable, path);
+    bool is_managed = false;
+    dyad_rc_t rc = dyad_consume (m_ctx_mutable, path, &is_managed, guard_fd);
+    (void)is_managed;
 
     if (DYAD_IS_ERROR (rc)) {
         DPRINTF (m_ctx, "DYAD_SYNC OPEN: failed sync (\"%s\").", path);
@@ -232,6 +245,17 @@ bool dyad_stream_core::open_sync (const char *path)
 
     DYAD_LOG_DEBUG (m_ctx, "DYAD_SYNC OEPN: exists sync (\"%s\").\n", path);
     return true;
+}
+
+void dyad_stream_core::close_consume_guard (int guard_fd) const
+{
+    if (guard_fd < 0) {
+        return;
+    }
+    const bool reenter = m_ctx_mutable->reenter;
+    m_ctx_mutable->reenter = false;
+    (void)close (guard_fd);
+    m_ctx_mutable->reenter = reenter;
 }
 
 bool dyad_stream_core::close_sync (const char *path)
@@ -300,6 +324,19 @@ int dyad_stream_core::file_lock_shared (int fd) const
     return rc;
 }
 
+int dyad_stream_core::file_lock_shared_ofd (int fd) const
+{
+    struct flock shared_flock;
+
+    dyad_rc_t rc = dyad_ofd_shared_flock (m_ctx, fd, &shared_flock);
+
+    if (DYAD_IS_ERROR (rc)) {
+        dyad_ofd_release_flock (m_ctx, fd, &shared_flock);
+    }
+
+    return rc;
+}
+
 int dyad_stream_core::file_unlock (int fd) const
 {
     struct flock a_flock;
@@ -307,7 +344,8 @@ int dyad_stream_core::file_unlock (int fd) const
     return dyad_release_flock (m_ctx, fd, &a_flock);
 }
 
-bool dyad_stream_core::cmp_canonical_path_prefix (bool is_prod, const char *const __restrict__ path)
+bool dyad_stream_core::cmp_canonical_path_prefix (bool is_prod,
+                                                  const char *const DYAD_RESTRICT path)
 {
     memset (upath, '\0', PATH_MAX);
     return ::cmp_canonical_path_prefix (m_ctx, is_prod, path, upath, PATH_MAX);

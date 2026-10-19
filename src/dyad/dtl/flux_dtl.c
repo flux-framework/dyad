@@ -54,9 +54,9 @@ dtl_flux_init_region_finish:
 }
 
 dyad_rc_t dyad_dtl_flux_rpc_pack (const dyad_ctx_t *ctx,
-                                  const char *restrict upath,
+                                  const char *DYAD_RESTRICT upath,
                                   uint32_t producer_rank,
-                                  json_t **restrict packed_obj)
+                                  json_t **DYAD_RESTRICT packed_obj)
 {
     DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("upath", upath);
@@ -94,11 +94,11 @@ dtl_flux_rpc_unpack_region_finish:
 }
 
 dyad_rc_t dyad_dtl_flux_rpc_pack_range (const dyad_ctx_t *ctx,
-                                        const char *restrict upath,
+                                        const char *DYAD_RESTRICT upath,
                                         uint32_t producer_rank,
                                         size_t offset,
                                         size_t length,
-                                        json_t **restrict packed_obj)
+                                        json_t **DYAD_RESTRICT packed_obj)
 {
     DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("upath", upath);
@@ -222,6 +222,8 @@ dyad_rc_t dyad_dtl_flux_send (const dyad_ctx_t *ctx, void *buf, size_t buflen)
     DYAD_C_FUNCTION_START ();
     dyad_rc_t dyad_rc = DYAD_RC_OK;
     int rc = 0;
+    if (buflen == DYAD_DTL_SEND_ERROR)
+        return DYAD_RC_OK;
     DYAD_LOG_INFO (ctx, "Send data to consumer using a Flux RPC response");
     rc = flux_respond_raw (ctx->dtl_handle->private_dtl.flux_dtl_handle->h,
                            ctx->dtl_handle->private_dtl.flux_dtl_handle->msg,
@@ -319,6 +321,11 @@ dyad_rc_t dyad_dtl_flux_send_detached (const dyad_ctx_t *ctx,
     dyad_rc_t dyad_rc = DYAD_RC_OK;
     int rc = 0;
     struct dyad_dtl_flux_req_state *state = (struct dyad_dtl_flux_req_state *)req_state;
+    if (buflen == DYAD_DTL_SEND_ERROR) {
+        flux_msg_decref (state->msg);
+        free (state);
+        return DYAD_RC_OK;
+    }
 
     DYAD_LOG_INFO (ctx, "Send data to consumer using a Flux RPC response (detached)");
     rc = flux_respond_raw (state->h, state->msg, buf, buflen);

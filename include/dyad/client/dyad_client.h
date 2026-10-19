@@ -153,10 +153,10 @@ DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_free_metadata (dyad_metadata_
  * - **Shared storage** (e.g., a parallel or network filesystem visible across
  *   multiple nodes): The file is visible to all consumers if it exists. An
  *   exclusive lock is acquired to synchronize access. A file size of zero
- *   indicates the producer has not yet written the file, so the lock is
- *   released and the function waits for the file to be published via the
- *   Flux KVS before returning. No data transfer is performed since the file
- *   is directly accessible once available.
+ *   indicates the producer has not yet written the file, so the function
+ *   waits for the file to be published via the Flux KVS while holding the
+ *   lock. No data transfer is performed since the file is directly accessible
+ *   once available.
  *
  * - **Node-local storage**: The file being empty means it is either not yet
  *   produced or not yet visible locally. While holding the exclusive lock, the
@@ -167,23 +167,30 @@ DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_free_metadata (dyad_metadata_
  *   already written the file), @c dyad_fetch_metadata() frees and nulls the
  *   metadata object to signal that no remote transfer is needed. Otherwise,
  *   the file data is retrieved from the remote producer's Flux broker via
- *   @c dyad_get_data(), written to local disk, and the lock is released.
+ *   @c dyad_get_data() and written to local disk. On a successful reader-open
+ *   path, the lock is downgraded to a shared OFD guard and transferred to the
+ *   caller; otherwise it is released before return.
  *
- *  * An exclusive lock is acquired to serve two purposes. First, the producer
- * acquires the lock in @c dyad_open_wrapper() to prevent consumers with
- * direct file visibility (e.g. via shared storage or co-location on the
- * same node) from reading a partially written file, and releases it in
- * @c dyad_close_wrapper() once the file is fully written. Second, the
- * consumer acquires the lock here to ensure that only one consumer performs
- * the data fetch at a time, with other consumers blocking until the lock is
- * released. Because POSIX @c fcntl locks are cooperative, these guarantees
- * only hold between processes that also participate in locking.
+ * An exclusive OFD lock serves two purposes. The producer holds a conflicting
+ * POSIX lock in @c dyad_open_wrapper() while writing, preventing consumers
+ * with direct file visibility (for example, shared storage or co-location)
+ * from reading partial data. The consumer lock ensures that only one consumer
+ * performs a fetch at a time. POSIX and OFD record locks conflict, but both
+ * remain cooperative locks: processes that do not participate are not blocked.
  *
  * @param[in]     ctx    Pointer to the DYAD context. Must not be @c NULL and must
  *                       have a valid @c cons_managed_path set.
  * @param[in]     fname  Path to the file to be checked and made ready. May be an
  *                       absolute path or, if @c ctx->relative_to_managed_path is
  *                       set, a path relative to @c ctx->cons_managed_path.
+ * @param[out]    is_managed  Set to @c true when @p fname is under the
+ *                             consumer-managed path; otherwise set to @c false.
+ *                             Must not be @c NULL.
+ * @param[out]    guard_fd    Optional descriptor holding a shared OFD lock
+ *                             across the caller's real open. Set to @c -1 when
+ *                             no guard is transferred. The caller must close a
+ *                             transferred descriptor after locking its reader
+ *                             descriptor, including if the real open fails.
  *
  * @return @c dyad_rc_t return code indicating the outcome:
  * @retval DYAD_RC_OK              The file is ready to read, was already available,
@@ -191,7 +198,9 @@ DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_free_metadata (dyad_metadata_
  * @retval DYAD_RC_NOCTX           The context @p ctx or its Flux handle is @c NULL.
  * @retval DYAD_RC_BADMANAGEDPATH  The consumer-managed path in the context is @c NULL.
  * @retval DYAD_RC_BADFIO          A file I/O error occurred (open or close failed).
- * @retval DYAD_RC_*               Any error code propagated from @c dyad_excl_flock(),
+ * @retval DYAD_RC_*               Any error code propagated from
+ *                                 @c dyad_ofd_excl_flock(),
+ *                                 @c dyad_ofd_shared_flock(),
  *                                 @c dyad_fetch_metadata(), @c dyad_get_data(), or
  *                                 @c dyad_cons_store().
  *
@@ -200,7 +209,10 @@ DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_free_metadata (dyad_metadata_
  *
  * @warning The caller must ensure @p ctx remains valid for the duration of this call.
  */
-DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_consume (dyad_ctx_t *ctx, const char *fname);
+DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_consume (dyad_ctx_t *ctx,
+                                                            const char *fname,
+                                                            bool *is_managed,
+                                                            int *guard_fd);
 
 /**
  * @brief Ensures a file is ready to be read using caller-supplied metadata.
@@ -219,9 +231,9 @@ DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_consume (dyad_ctx_t *ctx, con
  * local disk via @c dyad_cons_store().
  *
  * As with @c dyad_consume(), an exclusive lock is acquired for consumer-to-consumer
- * synchronization. Because POSIX @c fcntl locks are cooperative, the producer —
- * which does not acquire any lock — is unaffected and may write the file
- * regardless of any consumer lock held.
+ * synchronization. The producer's POSIX exclusive lock and the consumer's
+ * OFD lock conflict. As with all @c fcntl record locks, processes that do not
+ * participate in locking are not constrained by them.
  *
  * The typical usage pattern from Python is:
  *  1. Call @c dyad_get_metadata() to obtain @p mdata, optionally waiting for

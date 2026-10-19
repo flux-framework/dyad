@@ -45,8 +45,10 @@ struct dyad_dtl_ucx {
     /**
      * Decoded UCX address of the remote peer. Producer side only — decoded
      * from base64 in @c dyad_dtl_ucx_rpc_unpack() and allocated via
-     * @c malloc(). Released via @c free() during finalization. Not used
-     * on the consumer side.
+     * @c malloc(). On an endpoint-cache miss its ownership moves to the
+     * cache and it remains valid until that endpoint is disconnected; on a
+     * cache hit or failed setup it is released by close or finalization.
+     * Not used on the consumer side.
      */
     ucp_address_t *remote_address;
     size_t remote_addr_len;  ///< Length of @c remote_address in bytes.
@@ -156,6 +158,9 @@ typedef struct dyad_dtl_ucx dyad_dtl_ucx_t;
  *     performs RDMA into the producer's buffer; it will be populated per
  *     transfer in @c dyad_dtl_ucx_rpc_unpack() with the consumer's
  *     packed key decoded from the RPC payload.
+ *     If this allocation or key packing fails, initialization stops and
+ *     finalization receives cleared buffer state, preventing a second
+ *     unmap of memory already released by the failed allocation.
  *  8. Wires all DTL function pointers.
  *  9. Performs a loopback connection warmup via @c ucx_warmup() to
  *     prime the UCX connection machinery before the first real transfer.
@@ -425,9 +430,8 @@ dyad_rc_t dyad_dtl_ucx_return_buffer (const dyad_ctx_t *ctx, void **data_buf);
  * Behavior differs by communication direction:
  *
  * - @c DYAD_COMM_SEND (producer): Looks up the consumer's endpoint
- *   in the endpoint cache via @c dyad_ucx_ep_cache_find() using
- *   @c dtl_handle->remote_address as the key. If no cached endpoint
- *   exists, creates a new one via @c dyad_ucx_ep_cache_insert(), which
+ *   in the endpoint cache using the consumer connection key. If no cached
+ *   endpoint exists, creates a new one via @c dyad_ucx_ep_cache_insert(), which
  *   calls @c ucp_ep_create() and stores the result in the cache.
  *   The endpoint is stored in @c dtl_handle->ep for use by
  *   @c ucx_send_no_wait(). If @p debug is @c true, prints endpoint
@@ -488,6 +492,13 @@ dyad_rc_t dyad_dtl_ucx_establish_connection (const dyad_ctx_t *ctx);
 dyad_rc_t dyad_dtl_ucx_send (const dyad_ctx_t *ctx, void *buf, size_t buflen);
 
 /**
+ * @brief Writes the signed @c -1 failure prefix into the consumer's UCX buffer.
+ *
+ * @param[in] ctx Producer-side UCX DTL context for the accepted request.
+ * @return @c DYAD_RC_OK when the marker was delivered; a UCX error otherwise.
+ */
+
+/**
  * @brief Receives file data from the producer via UCX RDMA push.
  *
  * @details
@@ -500,10 +511,6 @@ dyad_rc_t dyad_dtl_ucx_send (const dyad_ctx_t *ctx, void *buf, size_t buflen);
  * the caller from the pre-allocated buffer via
  * @c dyad_dtl_ucx_get_buffer().
  *
- * @note The return value of @c ucx_recv_no_wait() is intentionally
- *       discarded (@c (void)stat_ptr) since it always returns @c NULL
- *       for the UCX backend — the actual completion is signalled by
- *       the buffer sentinel, not by a UCX request handle.
  *
  * @note Unlike the Flux RPC backend where @p buf and @p buflen are
  *       populated with a newly allocated copy of the received data,
@@ -516,11 +523,9 @@ dyad_rc_t dyad_dtl_ucx_send (const dyad_ctx_t *ctx, void *buf, size_t buflen);
  *                    is in @c dtl_handle->net_buf.
  * @param[out] buflen Not populated by this function.
  *
- * @return Always returns @c DYAD_RC_OK.
+ * @return Always returns @c DYAD_RC_OK after the prefix arrives.
  *
- * @todo Add error handling for cases where the RDMA push fails or
- *       times out. The current implementation spins indefinitely if
- *       the sentinel never becomes non-zero.
+ * @todo Add a timeout for the case where the prefix never arrives.
  */
 dyad_rc_t dyad_dtl_ucx_recv (const dyad_ctx_t *ctx, void **buf, size_t *buflen);
 
@@ -541,9 +546,10 @@ dyad_rc_t dyad_dtl_ucx_recv (const dyad_ctx_t *ctx, void **buf, size_t *buflen);
  *   avoiding the cost of reconnection. LRU eviction of stale endpoints
  *   from the cache is not yet implemented (see TODO).
  *
- *   @c dtl_handle->remote_address is set to @c NULL but not freed —
- *   the pointer is still referenced by the endpoint cache entry and
- *   must remain valid until the cache entry is evicted (see TODO).
+ *   On an endpoint-cache miss, ownership of @c remote_address already
+ *   moved into the cache, which frees it after disconnecting the endpoint.
+ *   On a cache hit or a failed setup, this function frees the remaining
+ *   per-request address allocation.
  *
  * - @c DYAD_COMM_RECV (consumer): No-op beyond resetting
  *   @c dtl_handle->comm_tag to 0. The consumer has no endpoint to
@@ -561,9 +567,6 @@ dyad_rc_t dyad_dtl_ucx_recv (const dyad_ctx_t *ctx, void **buf, size_t *buflen);
  *       The commented-out @c ucx_disconnect() call shows the intended
  *       disconnect path that would be used on eviction.
  *
- * @todo Free @c dtl_handle->remote_address here once the endpoint
- *       cache no longer references it, either by copying the address
- *       into the cache entry or by reference-counting it.
  */
 dyad_rc_t dyad_dtl_ucx_close_connection (const dyad_ctx_t *ctx);
 

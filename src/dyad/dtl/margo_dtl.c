@@ -6,6 +6,7 @@
 
 #include <assert.h>
 #include <inttypes.h>
+#include <stdatomic.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,6 +23,11 @@
 #include <margo.h>
 #include <mercury.h>
 #include <mercury_macros.h>
+
+static dyad_rc_t dyad_dtl_margo_send_error_to (const dyad_ctx_t *ctx,
+                                               margo_instance_id mid,
+                                               hg_id_t sendrecv_rpc_id,
+                                               hg_addr_t remote_addr);
 
 /**
  * @brief Mercury/Margo RPC input structure for a data transfer request.
@@ -69,14 +75,16 @@ MERCURY_GEN_PROC (margo_rpc_out_t, ((int32_t)(ret)))
  *  5. Performs an RDMA pull (@c HG_BULK_PULL) from the producer's
  *     bulk handle into the local buffer via @c margo_bulk_transfer().
  *  6. Responds to the producer with @c out.ret = 0 to signal
- *     completion, then frees the input and destroys the RPC handle.
+ *     completion, or a nonzero value if receive-buffer allocation,
+ *     registration, or the RDMA pull failed. It then frees the input and
+ *     destroys the RPC handle.
  *  7. Sets @c margo_handle->recv_ready = 1 to unblock the consumer
  *     thread waiting in a busy loop on that flag.
  *
- * @note All Mercury/Margo calls are checked with @c assert(). This
- *       means any failure aborts the process rather than returning an
- *       error code. Error handling should be improved in a future
- *       revision.
+ * A negative @c in.n is the producer-failure marker. In that case this
+ * handler does not allocate or perform an RDMA pull; it publishes
+ * @c recv_failed and @c recv_ready so @c dyad_dtl_margo_recv() returns
+ * @c DYAD_RC_BADFIO.
  *
  * @note The receive buffer allocated in step 4 is stored in
  *       @c margo_handle->recv_buffer and must be freed by the caller
@@ -85,20 +93,17 @@ MERCURY_GEN_PROC (margo_rpc_out_t, ((int32_t)(ret)))
  * @note @c DEFINE_MARGO_RPC_HANDLER() wraps this function to register
  *       it with the Margo runtime as a ULT (user-level thread) handler.
  *
- * @todo Replace @c assert() calls with proper error handling that
- *       propagates failures back to the caller rather than aborting.
- *
  * @param[in] h  Mercury RPC handle for the incoming request.
+ * @return None. The RPC response carries completion to the producer.
  */
 static void data_ready_rpc (hg_handle_t h)
 {
-    hg_return_t ret;
-    margo_rpc_in_t in;
-    margo_rpc_out_t out;
-    hg_bulk_t local_bulk;
-    // clang-format off
-    (void) ret;
-    // clang-format on
+    hg_return_t ret = HG_SUCCESS;
+    margo_rpc_in_t in = {.n = 0, .bulk = HG_BULK_NULL};
+    margo_rpc_out_t out = {.ret = -1};
+    hg_bulk_t local_bulk = HG_BULK_NULL;
+    bool have_input = false;
+    bool recv_failed = true;
 
     margo_instance_id mid = margo_hg_handle_get_instance (h);
     margo_set_log_level (mid, MARGO_LOG_INFO);
@@ -109,10 +114,20 @@ static void data_ready_rpc (hg_handle_t h)
     dyad_dtl_margo_t *margo_handle = (dyad_dtl_margo_t *)margo_registered_data (mid, info->id);
 
     ret = margo_get_input (h, &in);
-    assert (ret == HG_SUCCESS);
+    if (ret != HG_SUCCESS) {
+        goto data_ready_publish;
+    }
+    have_input = true;
 
+    if (in.n < 0) {
+        out.ret = 0;
+        goto data_ready_publish;
+    }
     margo_handle->recv_len = (size_t)in.n;
     margo_handle->recv_buffer = malloc (margo_handle->recv_len);
+    if (margo_handle->recv_buffer == NULL) {
+        goto data_ready_publish;
+    }
 
     ret = margo_bulk_create (mid,
                              1,
@@ -120,7 +135,9 @@ static void data_ready_rpc (hg_handle_t h)
                              &margo_handle->recv_len,
                              HG_BULK_WRITE_ONLY,
                              &local_bulk);
-    assert (ret == HG_SUCCESS);
+    if (ret != HG_SUCCESS) {
+        goto data_ready_publish;
+    }
 
     // RDMA pull from the producer (which for now is the flux borker)
     ret = margo_bulk_transfer (mid,
@@ -131,28 +148,41 @@ static void data_ready_rpc (hg_handle_t h)
                                local_bulk,
                                0,
                                margo_handle->recv_len);
-    assert (ret == HG_SUCCESS);
-
-    // DYAD_LOG_DEBUG(ctx, "[MARGO DTL] RDMA pulled from the producer.");
+    if (ret != HG_SUCCESS) {
+        goto data_ready_publish;
+    }
 
     // Every margo_bulk_create() above must be paired with a free, or the
     // registration leaks on the CXI NIC's finite memory-registration table
     // (fi_mr_enable() ENOSPC after a few dozen requests under concurrent
     // load -- this was previously unfreed on every single request).
     ret = margo_bulk_free (local_bulk);
-    assert (ret == HG_SUCCESS);
-
+    local_bulk = HG_BULK_NULL;
+    if (ret != HG_SUCCESS) {
+        goto data_ready_publish;
+    }
+    recv_failed = false;
     out.ret = 0;
+
+data_ready_publish:
+    if (recv_failed) {
+        if (local_bulk != HG_BULK_NULL) {
+            margo_bulk_free (local_bulk);
+        }
+        free (margo_handle->recv_buffer);
+        margo_handle->recv_buffer = NULL;
+        margo_handle->recv_len = 0;
+    }
+    atomic_store_explicit (&margo_handle->recv_failed, recv_failed, memory_order_release);
     ret = margo_respond (h, &out);
-    assert (ret == HG_SUCCESS);
-    ret = margo_free_input (h, &in);
-    assert (ret == HG_SUCCESS);
-    ret = margo_destroy (h);
-    assert (ret == HG_SUCCESS);
+    if (have_input) {
+        margo_free_input (h, &in);
+    }
+    margo_destroy (h);
 
     // set the ready flag so the client (should be in the busy-while
     // loop) can proceed with the pulled data.
-    margo_handle->recv_ready = 1;
+    atomic_store_explicit (&margo_handle->recv_ready, true, memory_order_release);
 }
 DEFINE_MARGO_RPC_HANDLER (data_ready_rpc)
 
@@ -297,9 +327,19 @@ dyad_rc_t dyad_dtl_margo_init (const dyad_ctx_t *ctx,
     }
 
     margo_handle = ctx->dtl_handle->private_dtl.margo_dtl_handle;
+    /* Initialization below acquires Margo resources in stages. Any failed
+     * stage deliberately enters the shared cleanup path, so every resource
+     * field must have a safe invalid value before the first fallible call. */
     margo_handle->h = (flux_t *)ctx->h;  // flux handle
     margo_handle->debug = debug;
-    margo_handle->recv_ready = 0;
+    margo_handle->mid = MARGO_INSTANCE_NULL;
+    margo_handle->local_addr = HG_ADDR_NULL;
+    margo_handle->remote_addr = HG_ADDR_NULL;
+    margo_handle->sendrecv_rpc_id = 0;
+    atomic_init (&margo_handle->recv_ready, false);
+    atomic_init (&margo_handle->recv_failed, false);
+    margo_handle->recv_len = 0;
+    margo_handle->recv_buffer = NULL;
     margo_handle->addr_cache = NULL;
     margo_handle->addr_cache_len = 0;
     margo_handle->addr_cache_cap = 0;
@@ -385,8 +425,6 @@ dyad_rc_t dyad_dtl_margo_init (const dyad_ctx_t *ctx,
             goto error;
         }
     }
-    margo_handle->remote_addr = NULL;
-
     ctx->dtl_handle->rpc_pack = dyad_dtl_margo_rpc_pack;
     ctx->dtl_handle->rpc_unpack = dyad_dtl_margo_rpc_unpack;
     ctx->dtl_handle->rpc_pack_range = dyad_dtl_margo_rpc_pack_range;
@@ -486,9 +524,9 @@ dyad_rc_t dyad_dtl_margo_addr_cache_lookup (const dyad_ctx_t *ctx,
 }
 
 dyad_rc_t dyad_dtl_margo_rpc_pack (const dyad_ctx_t *ctx,
-                                   const char *restrict upath,
+                                   const char *DYAD_RESTRICT upath,
                                    uint32_t producer_rank,
-                                   json_t **restrict packed_obj)
+                                   json_t **DYAD_RESTRICT packed_obj)
 {
     DYAD_C_FUNCTION_START ();
     dyad_rc_t rc = DYAD_RC_OK;
@@ -698,6 +736,8 @@ dyad_rc_t dyad_dtl_margo_rpc_unpack_range (const dyad_ctx_t *ctx,
         rc = DYAD_RC_BADUNPACK;
         goto dtl_margo_rpc_unpack_range_region_finish;
     }
+    /* Normal DYAD clients originate these fields as size_t. A negative
+     * value can only arrive through a malformed or incompatible RPC. */
     *offset = (size_t)offset_val;
     *length = (size_t)length_val;
 
@@ -738,10 +778,18 @@ dyad_rc_t dyad_dtl_margo_establish_connection (const dyad_ctx_t *ctx)
     return rc;
 }
 
-// Shared body for dyad_dtl_margo_send() and dyad_dtl_margo_send_detached():
-// registers buf as a bulk handle and RDMA-pushes it to remote_addr. Safe to
-// call from any thread -- touches only Margo/Argobots/Mercury state, no
-// Flux handle.
+/**
+ * @brief Sends one Margo RDMA data-transfer RPC to a consumer.
+ *
+ * @param[in] ctx Producer DYAD context used for logging.
+ * @param[in] mid Producer Margo instance.
+ * @param[in] sendrecv_rpc_id Registered transfer RPC identifier.
+ * @param[in] remote_addr Borrowed destination address of the consumer.
+ * @param[in] buf Data buffer to register for the consumer's RDMA pull.
+ * @param[in] buflen Number of bytes in @p buf.
+ * @return @c DYAD_RC_OK on acknowledgement; @c DYAD_RC_MARGOINIT_FAIL on a
+ *         Margo bulk, RPC, or response failure.
+ */
 static dyad_rc_t dyad_dtl_margo_send_to (const dyad_ctx_t *ctx,
                                          margo_instance_id mid,
                                          hg_id_t sendrecv_rpc_id,
@@ -755,11 +803,14 @@ static dyad_rc_t dyad_dtl_margo_send_to (const dyad_ctx_t *ctx,
 
     DYAD_LOG_DEBUG (ctx, "[MARGO DTL] margo_send is called, buflen: %ld.", buflen);
 
-    hg_size_t segment_sizes[1] = {buflen};
+    if (buflen == DYAD_DTL_SEND_ERROR) {
+        return dyad_dtl_margo_send_error_to (ctx, mid, sendrecv_rpc_id, remote_addr);
+    }
+    hg_size_t segment_sizes[1] = {(hg_size_t)buflen};
     void *segment_ptrs[1] = {buf};
-    hg_bulk_t local_bulk;
+    hg_bulk_t local_bulk = HG_BULK_NULL;
     margo_rpc_in_t args;
-    hg_handle_t mh;
+    hg_handle_t mh = HG_HANDLE_NULL;
     margo_rpc_out_t resp;
 
     // Register my local data
@@ -790,6 +841,11 @@ static dyad_rc_t dyad_dtl_margo_send_to (const dyad_ctx_t *ctx,
         DYAD_LOG_ERROR (ctx, "margo_get_output failed: %d", (int)ret);
         goto margo_error;
     }
+    if (resp.ret != 0) {
+        DYAD_LOG_ERROR (ctx, "Consumer failed to receive Margo transfer");
+        margo_free_output (mh, &resp);
+        goto margo_error;
+    }
     margo_free_output (mh, &resp);
     margo_destroy (mh);
     // Every margo_bulk_create() above must be paired with a free, or the
@@ -814,7 +870,45 @@ margo_error_bulk:;
         margo_bulk_free (local_bulk);
     }
 
+    DYAD_C_FUNCTION_END ();
     return DYAD_RC_MARGOINIT_FAIL;
+}
+
+/**
+ * @brief Sends the Margo @c n == -1 producer-failure control RPC.
+ *
+ * @param[in] ctx Producer DYAD context used for logging.
+ * @param[in] mid Producer Margo instance.
+ * @param[in] sendrecv_rpc_id Registered transfer RPC identifier.
+ * @param[in] remote_addr Borrowed destination address of the consumer.
+ * @return @c DYAD_RC_OK if the consumer acknowledges the marker;
+ *         @c DYAD_RC_MARGOINIT_FAIL for a Margo RPC failure.
+ */
+static dyad_rc_t dyad_dtl_margo_send_error_to (const dyad_ctx_t *ctx,
+                                               margo_instance_id mid,
+                                               hg_id_t sendrecv_rpc_id,
+                                               hg_addr_t remote_addr)
+{
+    hg_return_t ret;
+    hg_handle_t mh = HG_HANDLE_NULL;
+    margo_rpc_in_t args = {.n = -1, .bulk = HG_BULK_NULL};
+    margo_rpc_out_t resp;
+    bool consumer_failed = false;
+
+    ret = margo_create (mid, remote_addr, sendrecv_rpc_id, &mh);
+    if (ret == HG_SUCCESS)
+        ret = margo_forward (mh, &args);
+    if (ret == HG_SUCCESS)
+        ret = margo_get_output (mh, &resp);
+    if (ret == HG_SUCCESS) {
+        consumer_failed = (resp.ret != 0);
+        margo_free_output (mh, &resp);
+    }
+    if (mh != HG_HANDLE_NULL)
+        margo_destroy (mh);
+    if (ret != HG_SUCCESS || consumer_failed)
+        DYAD_LOG_ERROR (ctx, "Margo failed-transfer notification failed: %d", (int)ret);
+    return ret == HG_SUCCESS && !consumer_failed ? DYAD_RC_OK : DYAD_RC_MARGOINIT_FAIL;
 }
 
 dyad_rc_t dyad_dtl_margo_send (const dyad_ctx_t *ctx, void *buf, size_t buflen)
@@ -828,6 +922,13 @@ dyad_rc_t dyad_dtl_margo_send (const dyad_ctx_t *ctx, void *buf, size_t buflen)
                                    buflen);
 }
 
+/**
+ * @brief Sends a failure marker using the shared request destination.
+ *
+ * @param[in] ctx Producer Margo DTL context with @c remote_addr set.
+ * @return @c DYAD_RC_OK if the marker is acknowledged; otherwise
+ *         @c DYAD_RC_MARGOINIT_FAIL.
+ */
 dyad_rc_t dyad_dtl_margo_detach_request (const dyad_ctx_t *ctx, void **req_state)
 {
     DYAD_C_FUNCTION_START ();
@@ -842,10 +943,8 @@ dyad_rc_t dyad_dtl_margo_detach_request (const dyad_ctx_t *ctx, void **req_state
     state->mid = margo_handle->mid;
     state->sendrecv_rpc_id = margo_handle->sendrecv_rpc_id;
     state->remote_addr = margo_handle->remote_addr;
-    // Transfer ownership out of the shared field so a later request's
-    // margo_addr_lookup() can't be mistaken for this one, and so this
-    // address gets freed exactly once (by send_detached()) instead of
-    // being silently overwritten/leaked as today's serial code does.
+    // Move the borrowed cache pointer out of the shared field so a later
+    // request's margo_addr_lookup() cannot be mistaken for this one.
     margo_handle->remote_addr = NULL;
     *req_state = state;
 
@@ -876,6 +975,14 @@ dyad_rc_t dyad_dtl_margo_send_detached (const dyad_ctx_t *ctx,
     return rc;
 }
 
+/**
+ * @brief Sends a failure marker and consumes detached request state.
+ *
+ * @param[in] ctx Producer Margo DTL context.
+ * @param[in] req_state Detached request state consumed regardless of result.
+ * @return @c DYAD_RC_OK if the marker is acknowledged; otherwise
+ *         @c DYAD_RC_MARGOINIT_FAIL.
+ */
 dyad_rc_t dyad_dtl_margo_abort_detached (const dyad_ctx_t *ctx, void *req_state)
 {
     struct dyad_dtl_margo_req_state *state = (struct dyad_dtl_margo_req_state *)req_state;
@@ -893,8 +1000,15 @@ dyad_rc_t dyad_dtl_margo_recv (const dyad_ctx_t *ctx, void **buf, size_t *buflen
 
     dyad_dtl_margo_t *margo_handle = ctx->dtl_handle->private_dtl.margo_dtl_handle;
 
-    while (!margo_handle->recv_ready) {
+    while (!atomic_load_explicit (&margo_handle->recv_ready, memory_order_acquire)) {
         usleep (100);
+    }
+
+    if (atomic_load_explicit (&margo_handle->recv_failed, memory_order_acquire)) {
+        atomic_store_explicit (&margo_handle->recv_failed, false, memory_order_relaxed);
+        atomic_store_explicit (&margo_handle->recv_ready, false, memory_order_relaxed);
+        DYAD_C_FUNCTION_END ();
+        return DYAD_RC_BADFIO;
     }
 
     DYAD_LOG_DEBUG (ctx, "[MARGO DTL] margo_recv received %ld bytes.", margo_handle->recv_len);
@@ -908,7 +1022,7 @@ dyad_rc_t dyad_dtl_margo_recv (const dyad_ctx_t *ctx, void **buf, size_t *buflen
     free (margo_handle->recv_buffer);
     margo_handle->recv_buffer = NULL;
     margo_handle->recv_len = 0;
-    margo_handle->recv_ready = 0;
+    atomic_store_explicit (&margo_handle->recv_ready, false, memory_order_relaxed);
 
     DYAD_C_FUNCTION_END ();
     return rc;
@@ -939,9 +1053,9 @@ dyad_rc_t dyad_dtl_margo_finalize (const dyad_ctx_t *ctx)
     margo_handle = ctx->dtl_handle->private_dtl.margo_dtl_handle;
 
     if (margo_handle->mid != MARGO_INSTANCE_NULL) {
-        margo_addr_free (margo_handle->mid, margo_handle->local_addr);
-        if (margo_handle->remote_addr != NULL)
-            margo_addr_free (margo_handle->mid, margo_handle->remote_addr);
+        if (margo_handle->local_addr != HG_ADDR_NULL) {
+            margo_addr_free (margo_handle->mid, margo_handle->local_addr);
+        }
         for (size_t i = 0; i < margo_handle->addr_cache_len; i++) {
             margo_addr_free (margo_handle->mid, margo_handle->addr_cache[i].addr);
             free (margo_handle->addr_cache[i].addr_str);

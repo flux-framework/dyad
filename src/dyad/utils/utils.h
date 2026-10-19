@@ -141,9 +141,9 @@ uint32_t hash_path_prefix (const char *str, const uint32_t seed, const size_t le
  * @note This function allocates a temporary heap buffer internally for the
  *       concatenation and frees it before returning.
  */
-char *concat_str (char *__restrict__ str,
-                  const char *__restrict__ to_append,
-                  const char *__restrict__ connector,
+char *concat_str (char *DYAD_RESTRICT str,
+                  const char *DYAD_RESTRICT to_append,
+                  const char *DYAD_RESTRICT connector,
                   size_t str_capacity);
 
 /**
@@ -202,10 +202,10 @@ char *concat_str (char *__restrict__ str,
  *       should zero-initialize the buffer before calling to ensure the result
  *       is null-terminated.
  */
-bool extract_user_path (const char *__restrict__ prefix,
-                        const char *__restrict__ full,
-                        const char *__restrict__ delim,
-                        char *__restrict__ upath,
+bool extract_user_path (const char *DYAD_RESTRICT prefix,
+                        const char *DYAD_RESTRICT full,
+                        const char *DYAD_RESTRICT delim,
+                        char *DYAD_RESTRICT upath,
                         const size_t upath_capacity);
 
 /**
@@ -271,10 +271,10 @@ bool extract_user_path (const char *__restrict__ prefix,
  * @note This function only works correctly when there are no multiple absolute
  *       paths to the same file via hard links.
  */
-bool cmp_canonical_path_prefix (const dyad_ctx_t *__restrict__ ctx,
+bool cmp_canonical_path_prefix (const dyad_ctx_t *DYAD_RESTRICT ctx,
                                 const bool is_prod,
-                                const char *__restrict__ path,
-                                char *__restrict__ upath,
+                                const char *DYAD_RESTRICT path,
+                                char *DYAD_RESTRICT upath,
                                 const size_t upath_capacity);
 
 /**
@@ -455,9 +455,9 @@ ssize_t get_file_size (int fd);
  * @retval DYAD_RC_OK      The lock was successfully acquired.
  * @retval DYAD_RC_BADFIO  The @c fcntl() call failed to acquire the lock.
  */
-dyad_rc_t dyad_excl_flock (const dyad_ctx_t *__restrict__ ctx,
+dyad_rc_t dyad_excl_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
                            int fd,
-                           struct flock *__restrict__ lock);
+                           struct flock *DYAD_RESTRICT lock);
 /**
  * @brief Attempts to acquire an exclusive (write) lock without blocking.
  *
@@ -482,9 +482,9 @@ dyad_rc_t dyad_excl_flock (const dyad_ctx_t *__restrict__ ctx,
  * @retval DYAD_RC_BADFIO  The @c fcntl() call failed for a reason other than
  *                        the lock being held (e.g. bad file descriptor).
  */
-dyad_rc_t dyad_try_excl_flock (const dyad_ctx_t *__restrict__ ctx,
+dyad_rc_t dyad_try_excl_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
                                int fd,
-                               struct flock *__restrict__ lock);
+                               struct flock *DYAD_RESTRICT lock);
 /**
  * @brief Acquires a shared (read) lock on an open file descriptor.
  *
@@ -506,9 +506,9 @@ dyad_rc_t dyad_try_excl_flock (const dyad_ctx_t *__restrict__ ctx,
  * @retval DYAD_RC_OK      The shared lock was successfully acquired.
  * @retval DYAD_RC_BADFIO  The @c fcntl() call failed to acquire the lock.
  */
-dyad_rc_t dyad_shared_flock (const dyad_ctx_t *__restrict__ ctx,
+dyad_rc_t dyad_shared_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
                              int fd,
-                             struct flock *__restrict__ lock);
+                             struct flock *DYAD_RESTRICT lock);
 /**
  * @brief Releases a lock previously acquired on an open file descriptor.
  *
@@ -531,9 +531,115 @@ dyad_rc_t dyad_shared_flock (const dyad_ctx_t *__restrict__ ctx,
  * @retval DYAD_RC_OK      The shared lock was successfully acquired.
  * @retval DYAD_RC_BADFIO  The @c fcntl() call failed to acquire the lock.
  */
-dyad_rc_t dyad_release_flock (const dyad_ctx_t *__restrict__ ctx,
+dyad_rc_t dyad_release_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
                               int fd,
-                              struct flock *__restrict__ lock);
+                              struct flock *DYAD_RESTRICT lock);
+
+/**
+ * @brief Acquires an exclusive Linux open-file-description lock for cache I/O.
+ *
+ * @details
+ * Uses @c F_OFD_SETLKW rather than DYAD's traditional process-owned POSIX
+ * record locks. The lock belongs to @p fd's open file description, so cache
+ * worker threads in one process exclude each other and closing another
+ * descriptor for the same inode does not release this lock. OFD locks still
+ * conflict with traditional POSIX record locks held by other DYAD paths.
+ *
+ * @param[in]  ctx  DYAD context used for logging.
+ * @param[in]  fd   File descriptor of the open cache file to lock.
+ * @param[out] lock Lock description populated for a later release.
+ *
+ * @retval DYAD_RC_OK     The lock was acquired.
+ * @retval DYAD_RC_BADFIO The lock request failed.
+ */
+dyad_rc_t dyad_cache_excl_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                 int fd,
+                                 struct flock *DYAD_RESTRICT lock);
+
+/**
+ * @brief Attempts to acquire an exclusive cache OFD lock without waiting.
+ *
+ * @param[in]  ctx  DYAD context used for logging.
+ * @param[in]  fd   File descriptor of the open cache file to lock.
+ * @param[out] lock Lock description populated when acquisition succeeds.
+ *
+ * @retval DYAD_RC_OK     The lock was acquired.
+ * @retval DYAD_RC_BUSY   A conflicting lock is held.
+ * @retval DYAD_RC_BADFIO The lock request failed.
+ */
+dyad_rc_t dyad_cache_try_excl_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                     int fd,
+                                     struct flock *DYAD_RESTRICT lock);
+
+/**
+ * @brief Acquires a shared Linux open-file-description lock for cache I/O.
+ *
+ * @param[in]  ctx  DYAD context used for logging.
+ * @param[in]  fd   File descriptor of the open cache file to lock.
+ * @param[out] lock Lock description populated for a later release.
+ *
+ * @retval DYAD_RC_OK     The lock was acquired.
+ * @retval DYAD_RC_BADFIO The lock request failed.
+ */
+dyad_rc_t dyad_cache_shared_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                   int fd,
+                                   struct flock *DYAD_RESTRICT lock);
+
+/**
+ * @brief Releases a cache OFD lock acquired through the same descriptor.
+ *
+ * @param[in]     ctx  DYAD context used for logging.
+ * @param[in]     fd   Descriptor that acquired the cache OFD lock.
+ * @param[in,out] lock Lock description populated by a cache lock helper.
+ *
+ * @retval DYAD_RC_OK     The lock was released.
+ * @retval DYAD_RC_BADFIO The unlock request failed.
+ */
+dyad_rc_t dyad_cache_release_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                    int fd,
+                                    struct flock *DYAD_RESTRICT lock);
+
+/**
+ * @brief Acquires an exclusive Linux open-file-description lock.
+ *
+ * @param[in]  ctx  DYAD context used for logging.
+ * @param[in]  fd   Descriptor whose open file description owns the lock.
+ * @param[out] lock Lock description populated for a later release.
+ *
+ * @retval DYAD_RC_OK     The lock was acquired.
+ * @retval DYAD_RC_BADFIO The lock request failed.
+ */
+dyad_rc_t dyad_ofd_excl_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                               int fd,
+                               struct flock *DYAD_RESTRICT lock);
+
+/**
+ * @brief Acquires a shared Linux open-file-description lock.
+ *
+ * @param[in]  ctx  DYAD context used for logging.
+ * @param[in]  fd   Descriptor whose open file description owns the lock.
+ * @param[out] lock Lock description populated for a later release.
+ *
+ * @retval DYAD_RC_OK     The lock was acquired.
+ * @retval DYAD_RC_BADFIO The lock request failed.
+ */
+dyad_rc_t dyad_ofd_shared_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                 int fd,
+                                 struct flock *DYAD_RESTRICT lock);
+
+/**
+ * @brief Releases a Linux open-file-description lock.
+ *
+ * @param[in]     ctx  DYAD context used for logging.
+ * @param[in]     fd   Descriptor whose open file description owns the lock.
+ * @param[in,out] lock Lock description populated by an OFD lock helper.
+ *
+ * @retval DYAD_RC_OK     The lock was released.
+ * @retval DYAD_RC_BADFIO The unlock request failed.
+ */
+dyad_rc_t dyad_ofd_release_flock (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                  int fd,
+                                  struct flock *DYAD_RESTRICT lock);
 
 #if DYAD_SYNC_DIR
 /**

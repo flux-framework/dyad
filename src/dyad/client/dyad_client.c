@@ -73,8 +73,8 @@
  * @retval -1  @p str, @p path_key, or @p len is invalid, @p str is empty, or
  *             the generated key exceeded @p len.
  */
-DYAD_DLL_EXPORTED int gen_path_key (const char *restrict str,
-                                    char *restrict path_key,
+DYAD_DLL_EXPORTED int gen_path_key (const char *DYAD_RESTRICT str,
+                                    char *DYAD_RESTRICT path_key,
                                     const size_t len,
                                     const uint32_t depth,
                                     const uint32_t width)
@@ -89,9 +89,15 @@ DYAD_DLL_EXPORTED int gen_path_key (const char *restrict str,
     size_t cx = 0ul;
     int n = 0;
     const char *str_long = str;
-    size_t str_len = strlen (str);
+    size_t str_len = 0ul;
 
-    if (str == NULL || path_key == NULL || len == 0ul || str_len == 0ul) {
+    if (str == NULL || path_key == NULL || len == 0ul) {
+        DYAD_C_FUNCTION_END ();
+        return -1;
+    }
+
+    str_len = strlen (str);
+    if (str_len == 0ul) {
         DYAD_C_FUNCTION_END ();
         return -1;
     }
@@ -189,8 +195,8 @@ static void future_cleanup_cb (flux_future_t *f, void *arg)
  *       The commit may still complete, but the future may not be properly
  *       cleaned up.
  */
-DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_commit (const dyad_ctx_t *restrict ctx,
-                                               flux_kvs_txn_t *restrict txn)
+DYAD_CORE_FUNC_MODS dyad_rc_t dyad_kvs_commit (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                               flux_kvs_txn_t *DYAD_RESTRICT txn)
 {
     DYAD_C_FUNCTION_START ();
     flux_future_t *f = NULL;
@@ -257,8 +263,8 @@ kvs_commit_region_finish:;
  * @retval DYAD_RC_FLUXFAIL  The Flux KVS transaction could not be created or packed.
  * @retval DYAD_RC_*         Any error code propagated from @c dyad_kvs_commit().
  */
-DYAD_CORE_FUNC_MODS dyad_rc_t publish_via_flux (const dyad_ctx_t *restrict ctx,
-                                                const char *restrict upath)
+DYAD_CORE_FUNC_MODS dyad_rc_t publish_via_flux (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                                const char *DYAD_RESTRICT upath)
 {
     DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", ctx->fname);
@@ -341,7 +347,8 @@ publish_done:;
  * @note If @c ctx->check is set and the operation succeeds, the environment
  *       variable @c DYAD_CHECK_ENV is set to @c "ok".
  */
-DYAD_DLL_EXPORTED dyad_rc_t dyad_commit (dyad_ctx_t *restrict ctx, const char *restrict fname)
+DYAD_DLL_EXPORTED dyad_rc_t dyad_commit (dyad_ctx_t *DYAD_RESTRICT ctx,
+                                         const char *DYAD_RESTRICT fname)
 {
     DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", ctx->fname);
@@ -390,7 +397,8 @@ commit_done:;
     return rc;
 }
 
-static void print_mdata (const dyad_ctx_t *restrict ctx, const dyad_metadata_t *restrict mdata)
+static void print_mdata (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                         const dyad_metadata_t *DYAD_RESTRICT mdata)
 {
     if (mdata == NULL) {
         DYAD_LOG_INFO (ctx, "Cannot print a NULL metadata object!");
@@ -450,11 +458,11 @@ static void print_mdata (const dyad_ctx_t *restrict ctx, const dyad_metadata_t *
  * @retval DYAD_RC_BADMETADATA  The KVS response could not be unpacked to extract
  *                              the producer's broker rank.
  */
-DYAD_DLL_EXPORTED dyad_rc_t dyad_kvs_read (const dyad_ctx_t *restrict ctx,
-                                           const char *restrict topic,
-                                           const char *restrict upath,
+DYAD_DLL_EXPORTED dyad_rc_t dyad_kvs_read (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                           const char *DYAD_RESTRICT topic,
+                                           const char *DYAD_RESTRICT upath,
                                            bool should_wait,
-                                           dyad_metadata_t **restrict mdata)
+                                           dyad_metadata_t **DYAD_RESTRICT mdata)
 {
     DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("upath", upath);
@@ -571,10 +579,10 @@ kvs_read_end:;
  * @note The @c service_mux field in @p ctx controls how many Flux broker ranks
  *       map to a single node, and is used to determine node-level locality.
  */
-DYAD_CORE_FUNC_MODS dyad_rc_t dyad_fetch_metadata (const dyad_ctx_t *restrict ctx,
-                                                   const char *restrict fname,
-                                                   const char *restrict upath,
-                                                   dyad_metadata_t **restrict mdata)
+DYAD_CORE_FUNC_MODS dyad_rc_t dyad_fetch_metadata (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                                   const char *DYAD_RESTRICT fname,
+                                                   const char *DYAD_RESTRICT upath,
+                                                   dyad_metadata_t **DYAD_RESTRICT mdata)
 {
     DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", fname);
@@ -694,10 +702,10 @@ fetch_done:;
  *                              @c dtl_handle->establish_connection(), or
  *                              @c dtl_handle->recv().
  */
-DYAD_DLL_EXPORTED dyad_rc_t dyad_get_data (const dyad_ctx_t *restrict ctx,
-                                           const dyad_metadata_t *restrict mdata,
-                                           char **restrict file_data,
-                                           size_t *restrict file_len)
+DYAD_DLL_EXPORTED dyad_rc_t dyad_get_data (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                           const dyad_metadata_t *DYAD_RESTRICT mdata,
+                                           char **DYAD_RESTRICT file_data,
+                                           size_t *DYAD_RESTRICT file_len)
 {
     DYAD_C_FUNCTION_START ();
     dyad_rc_t rc = DYAD_RC_OK;
@@ -778,7 +786,7 @@ get_done:;
 #ifdef DYAD_ENABLE_UCX_DTL
     // For UCX RMA, file_size was prepended to the buffer by the server; extract it
     // here to get the true data length and advance past the prefix.
-    if (ctx->dtl_handle->mode == DYAD_DTL_UCX) {
+    if (rc == DYAD_RC_OK && ctx->dtl_handle->mode == DYAD_DTL_UCX) {
         ctx->dtl_handle->get_buffer (ctx, 0, (void **)file_data);
         ssize_t read_len = 0l;
         memcpy (&read_len, *file_data, sizeof (read_len));
@@ -827,12 +835,12 @@ get_done:;
  *
  * @return @c dyad_rc_t return code, same conventions as @c dyad_get_data().
  */
-DYAD_DLL_EXPORTED dyad_rc_t dyad_get_data_range (const dyad_ctx_t *restrict ctx,
-                                                 const dyad_metadata_t *restrict mdata,
+DYAD_DLL_EXPORTED dyad_rc_t dyad_get_data_range (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                                 const dyad_metadata_t *DYAD_RESTRICT mdata,
                                                  size_t offset,
                                                  size_t length,
-                                                 char **restrict file_data,
-                                                 size_t *restrict file_len)
+                                                 char **DYAD_RESTRICT file_data,
+                                                 size_t *DYAD_RESTRICT file_len)
 {
     DYAD_C_FUNCTION_START ();
     dyad_rc_t rc = DYAD_RC_OK;
@@ -945,11 +953,11 @@ get_range_done:;
  * @note If the operation succeeds and @c ctx->check is set, the environment
  *       variable @c DYAD_CHECK_ENV is set to @c "ok".
  */
-DYAD_CORE_FUNC_MODS dyad_rc_t dyad_cons_store (const dyad_ctx_t *restrict ctx,
-                                               const dyad_metadata_t *restrict mdata,
+DYAD_CORE_FUNC_MODS dyad_rc_t dyad_cons_store (const dyad_ctx_t *DYAD_RESTRICT ctx,
+                                               const dyad_metadata_t *DYAD_RESTRICT mdata,
                                                int fd,
                                                const size_t data_len,
-                                               char *restrict file_data)
+                                               char *DYAD_RESTRICT file_data)
 {
     DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_INT ("fd", fd);
@@ -958,7 +966,11 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_cons_store (const dyad_ctx_t *restrict ctx,
     char file_path[PATH_MAX + 1] = {'\0'};
     char file_path_copy[PATH_MAX + 1] = {'\0'};
     mode_t m = (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH | S_ISGID);
-    size_t written_len = 0;
+    size_t total_bytes_written = 0ul;
+    const size_t granularity = (size_t)DYAD_POSIX_TRANSFER_GRANULARITY;
+    size_t write_chunk_size = 0ul;
+    ssize_t write_result = 0;
+    int write_errno = 0;
     memset (file_path, 0, PATH_MAX + 1);
     memset (file_path_copy, 0, PATH_MAX + 1);
 
@@ -981,50 +993,56 @@ DYAD_CORE_FUNC_MODS dyad_rc_t dyad_cons_store (const dyad_ctx_t *restrict ctx,
     }
 
     // Write the file contents to the location specified by the user
-    if (data_len < DYAD_POSIX_TRANSFER_GRANULARITY) {
-        written_len = write (fd, file_data, data_len);
+    if (data_len < granularity) {
+        write_result = write (fd, file_data, data_len);
+        if (write_result <= 0) {
+            write_errno = errno;
+            goto write_failed;
+        }
+        total_bytes_written = (size_t)write_result;
     } else {
-        ssize_t written_data = 0;
-        ssize_t granularity = DYAD_POSIX_TRANSFER_GRANULARITY;
         DYAD_LOG_DEBUG (ctx,
-                        " writing file %s with bytes %zd is big. Writing in granularity %zd",
+                        " writing file %s with bytes %zu is big. Writing in granularity %zu",
                         file_path,
                         data_len,
                         granularity);
-        while (written_data < (ssize_t)data_len) {
-            ssize_t written_size = (ssize_t)(data_len - written_data) > granularity
-                                       ? granularity
-                                       : (ssize_t)(data_len - written_data);
-            written_len = write (fd, file_data + written_data, written_size);
-            DYAD_LOG_DEBUG (ctx,
-                            " writing file %s with bytes %zd of %zd",
-                            file_path,
-                            written_size,
-                            written_len);
-            if (written_len <= 0) {
-                DYAD_LOG_ERROR (ctx,
-                                "DYAD CLIENT: Failed to write file \"%s\" only read %zd of %zd of "
-                                "%zd. with "
-                                "code %d:%s.",
-                                file_path,
-                                written_len,
-                                written_size,
-                                data_len,
-                                errno,
-                                strerror (errno));
-                goto pull_done;
+        while (total_bytes_written < data_len) {
+            write_chunk_size = ((data_len - total_bytes_written) > granularity)
+                                   ? granularity
+                                   : (data_len - total_bytes_written);
+            write_result = write (fd, file_data + total_bytes_written, write_chunk_size);
+            if (write_result <= 0) {
+                write_errno = errno;
+                goto write_failed;
             }
-            written_data += written_len;
+            DYAD_LOG_DEBUG (ctx,
+                            " writing file %s with bytes %zu of %zd",
+                            file_path,
+                            write_chunk_size,
+                            write_result);
+            total_bytes_written += (size_t)write_result;
         }
-        written_len = written_data;
     }
-    if (written_len != data_len) {
+    if (total_bytes_written != data_len) {
         DYAD_LOG_ERROR (ctx, "DYAD CLIENT: cons store write of pulled file failed!\n");
         rc = DYAD_RC_BADFIO;
         goto pull_done;
     }
     DYAD_C_FUNCTION_UPDATE_INT ("data_len", data_len);
     rc = DYAD_RC_OK;
+    goto pull_done;
+
+write_failed:
+    rc = DYAD_RC_BADFIO;
+    if (write_result < 0) {
+        DYAD_LOG_ERROR (ctx,
+                        "DYAD CLIENT: Failed to write file \"%s\" with code %d:%s.",
+                        file_path,
+                        write_errno,
+                        strerror (write_errno));
+    } else {
+        DYAD_LOG_ERROR (ctx, "DYAD CLIENT: Write made no progress for file \"%s\".", file_path);
+    }
 
 pull_done:;
     // If "check" is set and the operation was successful, set the
@@ -1035,20 +1053,20 @@ pull_done:;
     return rc;
 }
 
-dyad_rc_t dyad_produce (dyad_ctx_t *restrict ctx, const char *restrict fname)
+dyad_rc_t dyad_produce (dyad_ctx_t *DYAD_RESTRICT ctx, const char *DYAD_RESTRICT fname)
 {
     DYAD_C_FUNCTION_START ();
-    ctx->fname = fname;
-    DYAD_C_FUNCTION_UPDATE_STR ("fname", ctx->fname);
-    DYAD_LOG_DEBUG (ctx, "DYAD CLIENT: Executing dyad_produce");
     dyad_rc_t rc = DYAD_RC_OK;
     // If the context is not defined, then it is not valid.
     // So, return DYAD_NOCTX
     if (!ctx || !ctx->h) {
-        DYAD_LOG_ERROR (ctx, "DYAD CLIENT: No CTX found in dyad_produce");
+        DYAD_LOG_STDERR ("DYAD CLIENT: No CTX found in dyad_produce\n");
         rc = DYAD_RC_NOCTX;
         goto produce_done;
     }
+    ctx->fname = fname;
+    DYAD_C_FUNCTION_UPDATE_STR ("fname", ctx->fname);
+    DYAD_LOG_DEBUG (ctx, "DYAD CLIENT: Executing dyad_produce");
     // If the producer-managed path is NULL or empty, then the context is not
     // valid for a producer operation. So, return DYAD_BADMANAGEDPATH
     if (ctx->prod_managed_path == NULL) {
@@ -1072,10 +1090,10 @@ produce_done:;
 /** This function is coupled with Python API. This populates `mdata' which
  * is used by `dyad_consume_w_metadata ()'
  */
-dyad_rc_t dyad_get_metadata (dyad_ctx_t *restrict ctx,
-                             const char *restrict fname,
+dyad_rc_t dyad_get_metadata (dyad_ctx_t *DYAD_RESTRICT ctx,
+                             const char *DYAD_RESTRICT fname,
                              bool should_wait,
-                             dyad_metadata_t **restrict mdata)
+                             dyad_metadata_t **DYAD_RESTRICT mdata)
 {
     DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", fname);
@@ -1189,7 +1207,10 @@ dyad_rc_t dyad_free_metadata (dyad_metadata_t **mdata)
     return DYAD_RC_OK;
 }
 
-dyad_rc_t dyad_consume (dyad_ctx_t *restrict ctx, const char *restrict fname)
+dyad_rc_t dyad_consume (dyad_ctx_t *DYAD_RESTRICT ctx,
+                        const char *DYAD_RESTRICT fname,
+                        bool *DYAD_RESTRICT is_managed,
+                        int *DYAD_RESTRICT guard_fd)
 {
     DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", fname);
@@ -1198,9 +1219,20 @@ dyad_rc_t dyad_consume (dyad_ctx_t *restrict ctx, const char *restrict fname)
     ssize_t file_size = -1;
     char *file_data = NULL;
     size_t data_len = 0ul;
+    bool range_cache_complete = true;
+    bool has_range_cache = false;
     dyad_metadata_t *mdata = NULL;
     struct flock exclusive_lock;
     char upath[PATH_MAX + 1] = {'\0'};
+
+    if (is_managed == NULL) {
+        rc = DYAD_RC_BADFIO;
+        goto consume_close;
+    }
+    *is_managed = false;
+    if (guard_fd != NULL) {
+        *guard_fd = -1;
+    }
 
     // If the context is not defined, then it is not valid.
     // So, return DYAD_NOCTX
@@ -1215,7 +1247,7 @@ dyad_rc_t dyad_consume (dyad_ctx_t *restrict ctx, const char *restrict fname)
         goto consume_close;
     }
 
-    if (ctx->relative_to_managed_path && (strlen (fname) > 0ul)
+    if (ctx->relative_to_managed_path && fname[0] != '\0'
         && (strncmp (fname, DYAD_PATH_DELIM, ctx->delim_len)
             != 0)) {  // fname is a relative path that is relative to the
                       // cons_managed_path
@@ -1229,6 +1261,7 @@ dyad_rc_t dyad_consume (dyad_ctx_t *restrict ctx, const char *restrict fname)
         rc = DYAD_RC_OK;
         goto consume_close;
     }
+    *is_managed = true;
     ctx->reenter = false;
 
     lock_fd = open (fname, O_RDWR | O_CREAT, 0666);
@@ -1238,14 +1271,26 @@ dyad_rc_t dyad_consume (dyad_ctx_t *restrict ctx, const char *restrict fname)
         rc = DYAD_RC_BADFIO;
         goto consume_close;
     }
-    rc = dyad_excl_flock (ctx, lock_fd, &exclusive_lock);
+    rc = dyad_ofd_excl_flock (ctx, lock_fd, &exclusive_lock);
     if (DYAD_IS_ERROR (rc)) {
-        dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+        dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
         goto consume_done;
     }
     file_size = get_file_size (lock_fd);
+    if (file_size > 0) {
+        rc = dyad_range_cache_is_complete (ctx, fname, &has_range_cache, &range_cache_complete);
+        if (DYAD_IS_ERROR (rc)) {
+            dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
+            goto consume_done;
+        }
+        if (has_range_cache && !range_cache_complete) {
+            // A sparse range cache has the origin's logical size even while
+            // some blocks are holes.  Fetch the whole file instead of
+            // treating those holes as valid local data.
+            file_size = 0;
+        }
+    }
     if (ctx->shared_storage) {
-        dyad_release_flock (ctx, lock_fd, &exclusive_lock);
         if (!ctx->use_fs_locks || file_size <= 0) {
             // As file size being zero means that consumer won the lock first. So has to
             // wait for kvs. or we cannot use file lock based synchronization as it
@@ -1253,6 +1298,7 @@ dyad_rc_t dyad_consume (dyad_ctx_t *restrict ctx, const char *restrict fname)
             rc = dyad_fetch_metadata (ctx, fname, upath, &mdata);
             if (DYAD_IS_ERROR (rc)) {
                 DYAD_LOG_ERROR (ctx, "dyad_fetch_metadata failed for shared storage!\n");
+                dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
                 goto consume_done;
             }
         }
@@ -1280,7 +1326,7 @@ dyad_rc_t dyad_consume (dyad_ctx_t *restrict ctx, const char *restrict fname)
             // and return the corresponding DYAD return code
             if (DYAD_IS_ERROR (rc)) {
                 DYAD_LOG_ERROR (ctx, "dyad_fetch_metadata failed!\n");
-                dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+                dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
                 goto consume_done;
             }
             // If dyad_fetch_metadata was successful, but mdata is still NULL,
@@ -1290,8 +1336,7 @@ dyad_rc_t dyad_consume (dyad_ctx_t *restrict ctx, const char *restrict fname)
             if (mdata == NULL) {
                 DYAD_LOG_INFO (ctx, "File '%s' is local!\n", fname);
                 rc = DYAD_RC_OK;
-                dyad_release_flock (ctx, lock_fd, &exclusive_lock);
-                goto consume_done;
+                goto consume_success;
             }
 
             // Call dyad_get_data to dispatch a RPC to the producer's Flux broker
@@ -1299,7 +1344,7 @@ dyad_rc_t dyad_consume (dyad_ctx_t *restrict ctx, const char *restrict fname)
             rc = dyad_get_data (ctx, mdata, &file_data, &data_len);
             if (DYAD_IS_ERROR (rc)) {
                 DYAD_LOG_ERROR (ctx, "dyad_get_data failed!\n");
-                dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+                dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
                 goto consume_done;
             }
             DYAD_C_FUNCTION_UPDATE_INT ("data_len", data_len);
@@ -1310,7 +1355,8 @@ dyad_rc_t dyad_consume (dyad_ctx_t *restrict ctx, const char *restrict fname)
                                 "Cannot open file (%s) in write mode for dyad_consume!\n",
                                 fname);
                 rc = DYAD_RC_BADFIO;
-                goto consume_close;
+                dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
+                goto consume_done;
             }
             // Call dyad_pull to fetch the data from the producer's
             // Flux broker
@@ -1322,18 +1368,27 @@ dyad_rc_t dyad_consume (dyad_ctx_t *restrict ctx, const char *restrict fname)
             }
             if (close (io_fd) != 0) {
                 rc = DYAD_RC_BADFIO;
-                dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+                dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
                 goto consume_done;
             }
             // If an error occured in dyad_pull, log it
             // and return the corresponding DYAD return code
             if (DYAD_IS_ERROR (rc)) {
                 DYAD_LOG_ERROR (ctx, "dyad_cons_store failed!\n");
-                dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+                dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
                 goto consume_done;
-            };
+            }
+            if (has_range_cache) {
+                rc = dyad_range_cache_mark_complete (ctx, fname);
+                if (DYAD_IS_ERROR (rc)) {
+                    dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
+                    goto consume_done;
+                }
+            }
         }
-        dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+    }
+consume_success:
+    if (!ctx->shared_storage) {
         // Best-effort: eviction failures must never turn a successful
         // consume into a reported error. No-ops if eviction is disabled.
         // Reached whether the file was already local or freshly fetched;
@@ -1341,9 +1396,24 @@ dyad_rc_t dyad_consume (dyad_ctx_t *restrict ctx, const char *restrict fname)
         // already-under-budget case a cheap no-op either way.
         dyad_cache_maybe_evict (ctx, ctx->cons_managed_path);
     }
+    if (guard_fd != NULL) {
+        struct flock shared_lock;
+        rc = dyad_ofd_shared_flock (ctx, lock_fd, &shared_lock);
+        if (DYAD_IS_ERROR (rc)) {
+            dyad_ofd_release_flock (ctx, lock_fd, &shared_lock);
+            goto consume_done;
+        }
+        *guard_fd = lock_fd;
+        lock_fd = -1;
+    } else {
+        dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
+    }
     DYAD_C_FUNCTION_UPDATE_INT ("file_size", file_size);
 consume_done:;
-    if (close (lock_fd) != 0) {
+    if (mdata != NULL) {
+        dyad_free_metadata (&mdata);
+    }
+    if (lock_fd >= 0 && close (lock_fd) != 0) {
         rc = DYAD_RC_BADFIO;
     }
     if (file_data != NULL) {
@@ -1351,14 +1421,15 @@ consume_done:;
     }
     // Set reenter to true to allow additional intercepting
 consume_close:;
-    ctx->reenter = true;
+    if (ctx != NULL)
+        ctx->reenter = true;
     DYAD_C_FUNCTION_END ();
     return rc;
 }
 
-dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t *restrict ctx,
+dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t *DYAD_RESTRICT ctx,
                                    const char *fname,
-                                   const dyad_metadata_t *restrict mdata)
+                                   const dyad_metadata_t *DYAD_RESTRICT mdata)
 {
     DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", fname);
@@ -1367,6 +1438,8 @@ dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t *restrict ctx,
     ssize_t file_size = -1;
     char *file_data = NULL;
     size_t data_len = 0ul;
+    bool range_cache_complete = true;
+    bool has_range_cache = false;
     struct flock exclusive_lock;
     // If the context is not defined, then it is not valid.
     // So, return DYAD_NOCTX
@@ -1396,12 +1469,23 @@ dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t *restrict ctx,
         rc = DYAD_RC_BADFIO;
         goto consume_close;
     }
-    rc = dyad_excl_flock (ctx, lock_fd, &exclusive_lock);
+    rc = dyad_ofd_excl_flock (ctx, lock_fd, &exclusive_lock);
     if (DYAD_IS_ERROR (rc)) {
-        dyad_release_flock (ctx, lock_fd, &exclusive_lock);
-        goto consume_close;
+        dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
+        goto consume_done;
     }
-    if ((file_size = get_file_size (lock_fd)) <= 0) {
+    file_size = get_file_size (lock_fd);
+    if (file_size > 0) {
+        rc = dyad_range_cache_is_complete (ctx, fname, &has_range_cache, &range_cache_complete);
+        if (DYAD_IS_ERROR (rc)) {
+            dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
+            goto consume_done;
+        }
+        if (has_range_cache && !range_cache_complete) {
+            file_size = 0;
+        }
+    }
+    if (file_size <= 0) {
         DYAD_LOG_INFO (ctx,
                        "DYAD CLIENT: [node %u rank %u pid %d] File (%s with fd %d) is not fetched "
                        "yet",
@@ -1416,7 +1500,7 @@ dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t *restrict ctx,
         rc = dyad_get_data (ctx, mdata, &file_data, &data_len);
         if (DYAD_IS_ERROR (rc)) {
             DYAD_LOG_ERROR (ctx, "dyad_get_data failed!\n");
-            dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+            dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
             goto consume_done;
         }
         DYAD_C_FUNCTION_UPDATE_INT ("data_len", data_len);
@@ -1425,7 +1509,8 @@ dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t *restrict ctx,
         if (io_fd == -1) {
             DYAD_LOG_ERROR (ctx, "Cannot open file (%s) in write mode for dyad_consume!\n", fname);
             rc = DYAD_RC_BADFIO;
-            goto consume_close;
+            dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
+            goto consume_done;
         }
         // Call dyad_pull to fetch the data from the producer's
         // Flux broker
@@ -1433,18 +1518,25 @@ dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t *restrict ctx,
 
         if (close (io_fd) != 0) {
             rc = DYAD_RC_BADFIO;
-            dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+            dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
             goto consume_done;
         }
         // If an error occured in dyad_pull, log it
         // and return the corresponding DYAD return code
         if (DYAD_IS_ERROR (rc)) {
             DYAD_LOG_ERROR (ctx, "dyad_cons_store failed!\n");
-            dyad_release_flock (ctx, io_fd, &exclusive_lock);
+            dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
             goto consume_done;
-        };
+        }
+        if (has_range_cache) {
+            rc = dyad_range_cache_mark_complete (ctx, fname);
+            if (DYAD_IS_ERROR (rc)) {
+                dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
+                goto consume_done;
+            }
+        }
     }
-    dyad_release_flock (ctx, lock_fd, &exclusive_lock);
+    dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
     // Best-effort: eviction failures must never turn a successful consume
     // into a reported error. No-ops if eviction is disabled. Reached
     // whether the file was already local or freshly fetched;
@@ -1454,27 +1546,33 @@ dyad_rc_t dyad_consume_w_metadata (dyad_ctx_t *restrict ctx,
     DYAD_C_FUNCTION_UPDATE_INT ("file_size", file_size);
 
     if (close (lock_fd) != 0) {
+        lock_fd = -1;
         rc = DYAD_RC_BADFIO;
         goto consume_done;
     }
+    lock_fd = -1;
     rc = DYAD_RC_OK;
 consume_done:;
+    if (lock_fd != -1) {
+        close (lock_fd);
+    }
     if (file_data != NULL) {
         ctx->dtl_handle->return_buffer (ctx, (void **)&file_data);
     }
 consume_close:;
     // Set reenter to true to allow additional intercepting
-    ctx->reenter = true;
+    if (ctx != NULL)
+        ctx->reenter = true;
     DYAD_C_FUNCTION_END ();
     return rc;
 }
 
-dyad_rc_t dyad_consume_range (dyad_ctx_t *restrict ctx,
-                              const char *restrict fname,
+dyad_rc_t dyad_consume_range (dyad_ctx_t *DYAD_RESTRICT ctx,
+                              const char *DYAD_RESTRICT fname,
                               size_t offset,
                               size_t length,
-                              void **restrict data,
-                              size_t *restrict data_len)
+                              void **DYAD_RESTRICT data,
+                              size_t *DYAD_RESTRICT data_len)
 {
     DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", fname);
@@ -1503,7 +1601,7 @@ dyad_rc_t dyad_consume_range (dyad_ctx_t *restrict ctx,
         goto consume_range_close;
     }
 
-    if (ctx->relative_to_managed_path && (strlen (fname) > 0ul)
+    if (ctx->relative_to_managed_path && fname[0] != '\0'
         && (strncmp (fname, DYAD_PATH_DELIM, ctx->delim_len) != 0)) {
         memcpy (upath, fname, strlen (fname));
     } else if (!cmp_canonical_path_prefix (ctx, false, fname, upath, PATH_MAX)) {
@@ -1588,7 +1686,8 @@ consume_range_done:;
         dyad_free_metadata (&mdata);
     }
 consume_range_close:;
-    ctx->reenter = true;
+    if (ctx != NULL)
+        ctx->reenter = true;
     DYAD_C_FUNCTION_END ();
     return rc;
 }
@@ -1630,7 +1729,7 @@ consume_range_close:;
  *       fails — the return code reflects whether any of them failed, but does
  *       not distinguish which one.
  */
-int dyad_sync_directory (dyad_ctx_t *restrict ctx, const char *restrict path)
+int dyad_sync_directory (dyad_ctx_t *DYAD_RESTRICT ctx, const char *DYAD_RESTRICT path)
 {
     DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("path", path);
@@ -1645,9 +1744,10 @@ int dyad_sync_directory (dyad_ctx_t *restrict ctx, const char *restrict path)
     strncpy (path_copy, path, PATH_MAX);
     odir = dirname (path_copy);
 
-    reenter = ctx->reenter;  // backup ctx->reenter
-    if (ctx != NULL)
+    if (ctx != NULL) {
+        reenter = ctx->reenter;  // backup ctx->reenter
         ctx->reenter = false;
+    }
 
     if ((odir_fd = open (odir, O_RDONLY)) < 0) {
         IPRINTF (ctx, "Cannot open the directory \"%s\"\n", odir);

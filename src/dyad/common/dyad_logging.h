@@ -28,6 +28,10 @@ extern "C" {
 #define DYAD_LOG_WARN(dyad_ctx, ...) DYAD_NOOP_MACRO
 #define DYAD_LOG_INFO(dyad_ctx, ...) DYAD_NOOP_MACRO
 #define DYAD_LOG_DEBUG(dyad_ctx, ...) DYAD_NOOP_MACRO
+#define DYAD_WORKER_LOG_ERROR(...) DYAD_NOOP_MACRO
+#define DYAD_WORKER_LOG_WARN(...) DYAD_NOOP_MACRO
+#define DYAD_WORKER_LOG_INFO(...) DYAD_NOOP_MACRO
+#define DYAD_WORKER_LOG_DEBUG(...) DYAD_NOOP_MACRO
 #define DYAD_LOG_STDOUT_REDIRECT(fpath) DYAD_NOOP_MACRO
 #define DYAD_LOG_STDERR_REDIRECT(fpath) DYAD_NOOP_MACRO
 //=============================================================================
@@ -40,6 +44,32 @@ extern "C" {
 #define DYAD_LOGGER_INIT() ;
 #define DYAD_LOG_STDOUT_REDIRECT(fpath) (void)!freopen ((fpath), "a+", stdout);
 #define DYAD_LOG_STDERR_REDIRECT(fpath) (void)!freopen ((fpath), "a+", stderr);
+
+/*
+ * Worker-reachable code must not call flux_log() on the Flux handle owned by
+ * the reactor thread.  Flux redirects module stderr, so preserve immediate
+ * diagnostics there.  Other logger backends use DYAD_LOG_* below.
+ */
+#ifdef DYAD_LOGGER_LEVEL_DEBUG
+#define DYAD_WORKER_LOG_DEBUG(...) DYAD_LOG_STDERR (__VA_ARGS__)
+#else
+#define DYAD_WORKER_LOG_DEBUG(...) DYAD_NOOP_MACRO
+#endif
+#ifdef DYAD_LOGGER_LEVEL_INFO
+#define DYAD_WORKER_LOG_INFO(...) DYAD_LOG_STDERR (__VA_ARGS__)
+#else
+#define DYAD_WORKER_LOG_INFO(...) DYAD_NOOP_MACRO
+#endif
+#ifdef DYAD_LOGGER_LEVEL_WARN
+#define DYAD_WORKER_LOG_WARN(...) DYAD_LOG_STDERR (__VA_ARGS__)
+#else
+#define DYAD_WORKER_LOG_WARN(...) DYAD_NOOP_MACRO
+#endif
+#ifdef DYAD_LOGGER_LEVEL_ERROR
+#define DYAD_WORKER_LOG_ERROR(...) DYAD_LOG_STDERR (__VA_ARGS__)
+#else
+#define DYAD_WORKER_LOG_ERROR(...) DYAD_NOOP_MACRO
+#endif
 
 #ifdef DYAD_UTIL_LOGGER
 #ifdef DYAD_LOGGER_LEVEL_DEBUG
@@ -141,6 +171,13 @@ extern "C" {
 #define DYAD_LOG_ERROR(dyad_ctx, ...) DYAD_NOOP_MACRO
 #endif
 #endif  // DYAD_LOGGER_FLUX ----------------------------------------------------
+
+#ifndef DYAD_WORKER_LOG_DEBUG
+#define DYAD_WORKER_LOG_DEBUG(...) DYAD_LOG_DEBUG (NULL, __VA_ARGS__)
+#define DYAD_WORKER_LOG_INFO(...) DYAD_LOG_INFO (NULL, __VA_ARGS__)
+#define DYAD_WORKER_LOG_WARN(...) DYAD_LOG_WARN (NULL, __VA_ARGS__)
+#define DYAD_WORKER_LOG_ERROR(...) DYAD_LOG_ERROR (NULL, __VA_ARGS__)
+#endif
 //=============================================================================
 #endif  // DYAD_LOGGER_NO_LOG
 //=============================================================================

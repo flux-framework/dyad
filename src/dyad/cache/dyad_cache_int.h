@@ -40,7 +40,7 @@ extern "C" {
  */
 struct dyad_cache_entry {
     char path[PATH_MAX + 1];  ///< Full path to the candidate file.
-    off_t size;               ///< Size in bytes, from stat().
+    off_t size;               ///< Allocated size in bytes, from @c st_blocks.
     time_t atime;             ///< Last-access time, from stat() -- used for the grace-period
                               ///< check regardless of which policy is active.
     int64_t recency_key;      ///< Ranking key from the active policy; smaller = evict first.
@@ -50,8 +50,9 @@ struct dyad_cache_entry {
  * @brief Scans a managed directory for eviction candidates.
  *
  * @details
- * Lists every regular file in @p managed_path except the cache lock file
- * itself (@c DYAD_CACHE_LOCK_FILENAME), @c stat()s each one, and
+ * Recursively lists every regular file in @p managed_path and its
+ * subdirectories except cache lock files (@c DYAD_CACHE_LOCK_FILENAME) and
+ * range-cache bitmap sidecars, @c stat()s each data file, and
  * populates @p out_entries (caller-owned, must be released with
  * @c free()) with one @c dyad_cache_entry per file, ranked via
  * @c ctx->cache_policy->get_recency_key(). Also reports the total size
@@ -86,13 +87,13 @@ dyad_rc_t dyad_cache_scan_dir (const dyad_ctx_t *ctx,
  *    is already at or below capacity, returns immediately without
  *    taking any lock.
  * 2. Acquires an exclusive lock on
- *    @c managed_path/DYAD_CACHE_LOCK_FILENAME (reusing @c dyad_excl_flock()),
+ *    @c managed_path/DYAD_CACHE_LOCK_FILENAME with a cache OFD lock,
  *    then re-scans and re-checks usage in case another process already
  *    evicted enough while this one was waiting for the lock.
  * 3. Sorts candidates by recency key ascending (oldest/least-recently
  *    used first per the active policy) and @c unlink()s them, skipping
  *    any candidate that is currently locked by another process (via
- *    @c dyad_try_excl_flock()) or was accessed within
+ *    @c dyad_cache_try_excl_flock()) or was accessed within
  *    @c ctx->cache_grace_period_sec, until usage drops to
  *    @c ctx->cache_low_watermark_frac * ctx->cache_capacity_bytes.
  * 4. Releases the directory lock.
