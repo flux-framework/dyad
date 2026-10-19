@@ -172,7 +172,7 @@ static bool test_reader_locks (const char *path)
         return false;
     }
 
-    FILE *stream = fopen (path, "r");
+    FILE *stream = fopen (path, "rb");
     if (stream == NULL || !check_exclusive_lock (path, true)) {
         if (stream != NULL) {
             (void)fclose (stream);

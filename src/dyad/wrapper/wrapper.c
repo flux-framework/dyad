@@ -344,6 +344,12 @@ real_call:;
  * held through the real open until the stream descriptor has its shared OFD
  * reader lock, which @c fclose() releases with the descriptor.
  *
+ * @param[in] path Path passed to @c fopen().
+ * @param[in] mode C stream mode. DYAD synchronizes read-only @c r and
+ *                 @c rb modes and locks write-only @c w/@c wb/@c a/@c ab
+ *                 modes. Update modes containing @c + pass directly to libc.
+ * @return The stream returned by the real @c fopen(), or @c NULL on failure.
+ *
  * @see dyad_open_wrapper()
  */
 static FILE *dyad_fopen_wrapper (const char *path, const char *mode)
@@ -365,7 +371,7 @@ static FILE *dyad_fopen_wrapper (const char *path, const char *mode)
         return NULL;
     }
 
-    if ((strcmp (mode, "r") != 0) || is_path_dir (path)) {
+    if (mode == NULL || mode[0] != 'r' || strchr (mode, '+') != NULL || is_path_dir (path)) {
         // TODO: make sure if the directory mode is consistent
         goto real_call;
     }
@@ -401,8 +407,8 @@ real_call:;
     // from reading the file being produced by a producer. For example,
     // either the file is on a shared storage or the consumer is on
     // the same node as where the producer is.
-    if ((fh != NULL) && ((strcmp (mode, "w") == 0) || (strcmp (mode, "a") == 0))
-        && !is_path_dir (path)) {
+    if (fh != NULL && mode != NULL && (mode[0] == 'w' || mode[0] == 'a')
+        && strchr (mode, '+') == NULL && !is_path_dir (path)) {
         if ((ctx->relative_to_managed_path
              && (strncmp (path, DYAD_PATH_DELIM, ctx->delim_len) != 0))
             || cmp_canonical_path_prefix (ctx, true, path, upath, PATH_MAX)) {
@@ -729,6 +735,13 @@ real_call:;
  * Functionally equivalent to @c dyad_open_wrapper() but intercepts
  * @c fopen64() instead of @c open().
  *
+ * @param[in] path Path passed to @c fopen64().
+ * @param[in] mode C stream mode. DYAD synchronizes read-only @c r and
+ *                 @c rb modes and locks write-only @c w/@c wb/@c a/@c ab
+ *                 modes. Update modes containing @c + pass directly to libc.
+ * @return The stream returned by the real @c fopen64(), or @c NULL on
+ *         failure.
+ *
  * @see dyad_fopen_wrapper()
  */
 static FILE *dyad_fopen64_wrapper (const char *path, const char *mode)
@@ -750,7 +763,7 @@ static FILE *dyad_fopen64_wrapper (const char *path, const char *mode)
         return NULL;
     }
 
-    if ((strcmp (mode, "r") != 0) || is_path_dir (path)) {
+    if (mode == NULL || mode[0] != 'r' || strchr (mode, '+') != NULL || is_path_dir (path)) {
         // TODO: make sure if the directory mode is consistent
         goto real_call;
     }
@@ -786,8 +799,8 @@ real_call:;
     // from reading the file being produced by a producer. For example,
     // either the file is on a shared storage or the consumer is on
     // the same node as where the producer is.
-    if ((fh != NULL) && ((strcmp (mode, "w") == 0) || (strcmp (mode, "a") == 0))
-        && !is_path_dir (path)) {
+    if (fh != NULL && mode != NULL && (mode[0] == 'w' || mode[0] == 'a')
+        && strchr (mode, '+') == NULL && !is_path_dir (path)) {
         if ((ctx->relative_to_managed_path
              && (strncmp (path, DYAD_PATH_DELIM, ctx->delim_len) != 0))
             || cmp_canonical_path_prefix (ctx, true, path, upath, PATH_MAX)) {
