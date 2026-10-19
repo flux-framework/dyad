@@ -88,7 +88,6 @@ dyad_rc_t dyad_dtl_finalize (dyad_ctx_t *ctx)
         rc = DYAD_RC_BADDTLMODE;
     }
     // clang-format on
-    rc = DYAD_RC_OK;
 
 dtl_finalize_done:;
     free (ctx->dtl_handle);

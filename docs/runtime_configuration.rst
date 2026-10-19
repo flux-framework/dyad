@@ -23,15 +23,13 @@ variables is shown below.
 +------------------------------------+-----------------+--------------+----------+-----------------------------------------------------------------+
 | :code:`DYAD_MARGO_PROTO` [#thr]_   | String          | No           | ofi\+tcp | Specify network protocol when :code:`DYAD_DTL_MODE=MARGO`       |
 +------------------------------------+-----------------+--------------+----------+-----------------------------------------------------------------+
-| :code:`DYAD_PATH_RELATIVE`         | 0 or 1          | No           | 0        | The presence of this variable in the environment indicates that |
-|                                    |                 |              |          |                                                                 |
-|                                    |                 |              |          | DYAD treats relative paths as relative to the managed directory |
+| :code:`DYAD_PATH_RELATIVE`         | Set or unset    | No           | Unset    | When set (including ``=0``), relative paths are interpreted     |
+|                                    |                 |              |          | relative to the managed directory.                              |
 +------------------------------------+-----------------+--------------+----------+-----------------------------------------------------------------+
-| :code:`DYAD_SHARED_STORAGE`        | 0 or 1          | No           | 0        | 1: only per-file access synchronization for consumer            |
-|                                    |                 |              |          |                                                                 |
-|                                    |                 |              |          | but no transfer or the overhead associated with it              |
+| :code:`DYAD_SHARED_STORAGE`        | Set or unset    | No           | Unset    | When set (including ``=0``), DYAD synchronizes access on shared |
+|                                    |                 |              |          | storage but does not transfer file data.                        |
 +------------------------------------+-----------------+--------------+----------+-----------------------------------------------------------------+
-| :code:`DYAD_ASYNC_PUBLISH`         | 0 or 1          | No           | 0        | Enable asynchronous metadata publishing by producers.           |
+| :code:`DYAD_ASYNC_PUBLISH`         | Set or unset    | No           | Unset    | When set (including ``=0``), publish metadata asynchronously.   |
 +------------------------------------+-----------------+--------------+----------+-----------------------------------------------------------------+
 | :code:`DYAD_SERVICE_MUX`           | integer >= 1    | No           | 1        | Number of Flux brokers sharing node-local storage.              |
 +------------------------------------+-----------------+--------------+----------+-----------------------------------------------------------------+
@@ -55,12 +53,36 @@ variables is shown below.
 | :code:`DYAD_CACHE_GRACE_PERIOD`    | Integer (sec)   | No           | 5        | Skip eviction candidates accessed more recently than this many  |
 |                                    |                 |              |          | seconds.                                                        |
 +------------------------------------+-----------------+--------------+----------+-----------------------------------------------------------------+
+
+Additional controls
+-------------------
+
+- ``DYAD_FSYNC_WRITE``: presence-based switch that makes producers call
+  ``fsync()`` before metadata publication.
+- ``DYAD_SYNC_DEBUG`` and ``DYAD_SYNC_CHECK``: presence-based switches for
+  synchronization debug logging and health checks.
+- ``DYAD_REINIT``: presence-based switch that forces context
+  reinitialization when an initialization entry point is called again.
+- ``DYAD_GOTCHA_PRIORITY``: integer priority for the preload wrapper; higher
+  priorities run before lower priorities.
+- ``DYAD_PATH_ORIGIN``: optional fallback source path used only by lazy
+  range-cache fills. Whole-file consumption does not fetch from this path.
+- ``DYAD_FETCH_WORKER_THREADS``: positive integer controlling the Flux
+  module's range-fetch worker pool; defaults to 8 and is not a client-context
+  setting.
+
 .. [#two] For DYAD to do anything, at least one of :code:`DYAD_PATH_PRODUCER` or :code:`DYAD_PATH_CONSUMER` must be provided.
    Applications will still work if neither are provided, but DYAD will not do anything.
 
 .. [#thr] When built with the cmake option :code:`DYAD_ENABLE_MARGO_DATA=ON` and run
    with the env variable :code:`DYAD_DTL_MODE=MARGO`, :code:`DYAD_MARGO_PROTO`
    specifies the network protocol. See the table below for example values.
+
+.. note::
+
+   ``DYAD_PATH_RELATIVE``, ``DYAD_SHARED_STORAGE``, and
+   ``DYAD_ASYNC_PUBLISH`` are presence-based switches. Setting one to ``0``
+   still enables it; leave it unset to disable it.
 
 .. [#for] The Flux KVS supports organized categorization of data through hierarchical `key structuring <https://flux-framework.readthedocs.io/projects/flux-core/en/latest/man1/flux-kvs.html>`_. DYAD leverages this capability to optimize hash lookup performance by increasing the likelihood of early search termination when no matching entry exists in the store. The search key is hashed across multiple levels using different seeds. A match is confirmed only if corresponding entries are found at all levels, with an exact key-string match at the final level.
 

@@ -1,4 +1,5 @@
 #include <dyad/client/dyad_client_int.h>
+#include <dyad/dtl/dyad_dtl_api.h>
 
 /**
  * Test cases
@@ -67,4 +68,16 @@ TEST_CASE("gen_path_key", "[module=dyad_core]"
     int result = gen_path_key(str, path_key, sizeof(path_key), 3, 5);
     REQUIRE(result == -1);
   }
+}
+
+TEST_CASE ("dyad_dtl_finalize reports an invalid mode", "[module=dyad_core]")
+{
+    dyad_ctx_t ctx = {};
+    ctx.dtl_handle = static_cast<dyad_dtl_t *> (calloc (1, sizeof (*ctx.dtl_handle)));
+    REQUIRE (ctx.dtl_handle != nullptr);
+
+    ctx.dtl_handle->mode = static_cast<dyad_dtl_mode_t> (DYAD_DTL_END);
+
+    REQUIRE (dyad_dtl_finalize (&ctx) == DYAD_RC_BADDTLMODE);
+    REQUIRE (ctx.dtl_handle == nullptr);
 }

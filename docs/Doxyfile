@@ -19,6 +19,7 @@ PREDEFINED = DYAD_DLL_EXPORTED= \
              DYAD_PFA_ANNOTATE= \
              DYAD_CORE_FUNC_MODS= \
              DYAD_DLL_EXPORTED= \
+             DYAD_RESTRICT= \
              __restrict__= \
              restrict= \
              "__attribute__(x)=" \

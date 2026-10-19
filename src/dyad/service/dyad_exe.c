@@ -54,7 +54,7 @@ static void usage (int status)
         "    -p, --producer_managed_path:  Mandatory argument.\n"
         "                                  Path to the producer data directory.\n"
         "    -m, --mode:  DTL mode. Need an argument.\n"
-        "                 Either 'FLUX_RPC' (default) or 'UCX'.\n"
+        "                 'FLUX_RPC' (default), 'UCX', or 'MARGO'.\n"
         "    -i, --info_log: Specify the file into which to redirect\n"
         "                    info logging. Does nothing if DYAD was not\n"
         "                    configured with '-DDYAD_LOGGER=PRINTF'.\n"

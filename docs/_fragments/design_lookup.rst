@@ -80,8 +80,9 @@ run time, without requiring recompilation:
 
 The combination of ``DYAD_KEY_BINS`` and ``DYAD_KEY_DEPTH`` allows users
 to tune the trade-off between key space size and lookup performance for
-their workload. The defaults (``DYAD_KEY_DEPTH=2``,
-``DYAD_KEY_BINS=256``) are suitable for most use cases.
+their workload. The environment-based defaults are ``DYAD_KEY_DEPTH=3`` and
+``DYAD_KEY_BINS=1024``. The C++ ``dyad_params`` defaults are separate
+constructor defaults and do not change the environment-based values.
 
 The :ref:`next section <dyad_local-file-access>` details how concurrent accesses to the same file by
 multiple workers — as in Case 1 — are coordinated. It also describes

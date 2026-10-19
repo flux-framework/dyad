@@ -1273,7 +1273,7 @@ static void show_help (void)
     DYAD_LOG_STDOUT ("    -d, --debug: Enable debugging log message.\n");
     DYAD_LOG_STDOUT (
         "    -m, --mode:  DTL mode. Need an argument.\n"
-        "                 Either 'FLUX_RPC' (default) or 'UCX'.\n");
+        "                 'FLUX_RPC' (default), 'UCX', or 'MARGO'.\n");
     DYAD_LOG_STDOUT (
         "    -i, --info_log: Specify the file into which to redirect\n"
         "                    info logging. Does nothing if DYAD was not\n"

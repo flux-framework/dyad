@@ -231,11 +231,10 @@ There are several custom CMake options available to configure a DYAD build:
    made dynamically at launch time. Ensure that ``DYAD_DTL_MODE`` is set
    consistently in both the service and client environments.
 
-   If none of the three DTL-related CMake options are set, DYAD defaults to
-   using **FLUX RPC** for data transfer. While DYAD currently supports four
-   different data transfer methods, the client relies only on FLUX RPC to send
-   transfer requests to the service. In the future, we plan to offer alternative,
-   portable RPC methods.
+   If neither optional DTL CMake option is enabled, DYAD uses **FLUX RPC** for
+   data transfer. All three DTLs use Flux RPC for the control request from a
+   consumer to the producer service; UCX and Margo use their own data path
+   after that request is received.
 
    **flux-core** is required to build DYAD. cmake build proceedure for dyad will
    attempt to find it under the path ``FLUX_CORE_PREFIX`` if it is set.
@@ -272,7 +271,7 @@ simply adding the following before the shell command that launches their applica
 
 .. code-block:: shell
 
-   $ LD_PRELOAD=path/to/dyad_wrapper.so
+   $ LD_PRELOAD=/path/to/libdyad_wrapper.so your-application
 
 Once preloaded, DYAD's C API will intercept the :code:`open` and :code:`fopen` functions when consuming
 files and the :code:`close` and :code:`fclose` functions when producing files.
@@ -324,7 +323,7 @@ A simple example of using DYAD's C++ API in a producer application is shown belo
 
 .. code-block:: cpp
 
-   #include <dyad_stream_api.hpp>
+   #include <dyad/stream/dyad_stream_api.hpp>
 
    void produce_file(std::string& full_path, int32_t* data, std::size_t data_size)
    {
@@ -337,8 +336,8 @@ A simple example of using DYAD's C++ API in a producer application is shown belo
 
 After replacing C++ Standard Library file streams with their DYAD equivalents,
 there is one final requirement to using the C++ API. When compiling your code,
-you must link the associated library (i.e., :code:`libdyad_stream.so` or
-:code:`libdyad_stream.a`). This library can be found in the :code:`lib`
+you must link the associated library (i.e., :code:`libdyad_fstream.so` or
+:code:`libdyad_fstream.a`). This library can be found in the :code:`lib`
 subdirectory of the install prefix.
 
 
@@ -431,19 +430,20 @@ have found the path to :code:`dyad.so`, you can load the module on the current F
 
 .. code-block:: shell
 
-   $ flux module load path/to/dyad.so <DYAD_PATH_PRODUCER>
+   $ dyad start -p <DYAD_PATH_PRODUCER> --mode <FLUX_RPC|UCX|MARGO>
 
-The :code:`dyad.so` module takes a single command-line argument: the producer-managed directory. The producer
-uses this directory as the root from which the module will look for files to transfer.
+The installed ``dyad`` command loads the module on all Flux brokers. Its
+``start`` command requires ``-p``/``--producer_managed_path`` and accepts
+``-m``/``--mode`` for ``FLUX_RPC`` (default), ``UCX``, or ``MARGO``. It also
+accepts ``-o``/``--origin_path`` to configure lazy origin-backed range fills.
+The producer-managed directory is the root from which the module looks for
+files to transfer.
 
-Note that the command above will only load the module on the Flux broker on which the command is run.
-This can be an issue if you are submitting jobs because you will not know on which broker your jobs will be run.
-As a result, it is **highly** recommended that you launch the DYAD module on all brokers in your Flux instance. You can
-do this by running:
-
-.. code-block:: shell
-
-   $ flux exec -r all flux module load path/to/dyad.so <DYAD_PATH_PRODUCER>
+``dyad start`` uses ``flux exec -r all`` so the module is loaded on every
+broker in the current Flux instance. For manual loading, the module path is
+normally ``<prefix>/lib/dyad.so``; loading it on only one broker serves only
+requests routed to that broker. The same module options may be supplied to
+``flux module load``.
 
 
 .. _DYAD_enabling_apps:
@@ -469,7 +469,7 @@ The table below list the essential ones. For the full list of variables, refer t
 +--------------------------------+                 +              +          +-----------------------------------------------------------------+
 | :code:`DYAD_PATH_CONSUMER`     |                 |              |          | The consumer-managed path of the application                    |
 +--------------------------------+-----------------+--------------+----------+-----------------------------------------------------------------+
-| :code:`DYAD_DTL_MODEE`         | String          | No           | FLUX_RPC | Choose data transfer method among MARGO, UCX, FLUX_RPC          |
+| :code:`DYAD_DTL_MODE`          | String          | No           | FLUX_RPC | Choose data transfer method among MARGO, UCX, FLUX_RPC          |
 +--------------------------------+-----------------+--------------+----------+-----------------------------------------------------------------+
 
 .. [#one] For DYAD to do anything, at least one of :code:`DYAD_PATH_PRODUCER` or :code:`DYAD_PATH_CONSUMER` must be provided.
