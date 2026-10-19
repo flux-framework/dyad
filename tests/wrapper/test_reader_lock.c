@@ -20,6 +20,10 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include <dyad/client/dyad_client.h>
+#include <dyad/core/dyad_ctx.h>
+#include <dyad/utils/utils.h>
+
 /**
  * @brief Checks a parent-held reader lock from a separate process.
  *
@@ -59,6 +63,92 @@ static bool check_exclusive_lock (const char *path, bool expect_blocked)
     int status = 0;
     return waitpid (pid, &status, 0) == pid && WIFEXITED (status)
            && WEXITSTATUS (status) == EXIT_SUCCESS;
+}
+
+/**
+ * @brief Checks whether cache eviction can lock a candidate file.
+ *
+ * @param[in] ctx             Initialized DYAD context.
+ * @param[in] path            Existing file to test.
+ * @param[in] expect_blocked  True when the cache lock must conflict.
+ * @return @c true when the cache lock has the requested outcome; otherwise
+ *         @c false.
+ */
+static bool check_cache_lock (dyad_ctx_t *ctx, const char *path, bool expect_blocked)
+{
+    const int fd = (int)syscall (SYS_openat, AT_FDCWD, path, O_RDWR);
+    if (fd < 0) {
+        return false;
+    }
+    struct flock lock;
+    const dyad_rc_t rc = dyad_cache_try_excl_flock (ctx, fd, &lock);
+    if (rc == DYAD_RC_OK) {
+        (void)dyad_cache_release_flock (ctx, fd, &lock);
+    }
+    (void)syscall (SYS_close, fd);
+    return (rc == DYAD_RC_BUSY) == expect_blocked;
+}
+
+/**
+ * @brief Verifies the consume guard protects the reader-lock handoff.
+ *
+ * @param[in] path  Existing DYAD-managed file to consume and open.
+ * @return @c true when cache eviction is blocked by the guard and then by the
+ *         application reader lock, and proceeds after reader close; otherwise
+ *         @c false.
+ */
+static bool test_guard_handoff (const char *path)
+{
+    dyad_ctx_t *ctx = dyad_ctx_get ();
+    bool is_managed = false;
+    int guard_fd = -1;
+    if (ctx == NULL || DYAD_IS_ERROR (dyad_consume (ctx, path, &is_managed, &guard_fd))
+        || !is_managed || guard_fd < 0 || !check_cache_lock (ctx, path, true)) {
+        if (guard_fd >= 0) {
+            (void)syscall (SYS_close, guard_fd);
+        }
+        return false;
+    }
+
+    const int reader_fd = (int)syscall (SYS_openat, AT_FDCWD, path, O_RDONLY);
+    if (reader_fd < 0) {
+        (void)syscall (SYS_close, guard_fd);
+        return false;
+    }
+    struct flock reader_lock;
+    if (DYAD_IS_ERROR (dyad_ofd_shared_flock (ctx, reader_fd, &reader_lock))) {
+        (void)syscall (SYS_close, reader_fd);
+        (void)syscall (SYS_close, guard_fd);
+        return false;
+    }
+    (void)syscall (SYS_close, guard_fd);
+    if (!check_cache_lock (ctx, path, true)) {
+        (void)dyad_ofd_release_flock (ctx, reader_fd, &reader_lock);
+        (void)syscall (SYS_close, reader_fd);
+        return false;
+    }
+    (void)dyad_ofd_release_flock (ctx, reader_fd, &reader_lock);
+    (void)syscall (SYS_close, reader_fd);
+    return check_cache_lock (ctx, path, false);
+}
+
+/**
+ * @brief Verifies a failed intercepted open releases its transferred guard.
+ *
+ * @param[in] path  Existing managed regular file to open as a directory.
+ * @return @c true when @c open() fails with @c ENOTDIR and cache eviction can
+ *         subsequently lock the file; otherwise @c false.
+ */
+static bool test_failed_open_releases_guard (const char *path)
+{
+    dyad_ctx_t *ctx = dyad_ctx_get ();
+    errno = 0;
+    const int fd = open (path, O_RDONLY | O_DIRECTORY);
+    if (fd >= 0) {
+        (void)close (fd);
+        return false;
+    }
+    return ctx != NULL && errno == ENOTDIR && check_cache_lock (ctx, path, false);
 }
 
 /**
@@ -103,5 +193,8 @@ static bool test_reader_locks (const char *path)
  */
 int main (int argc, char **argv)
 {
-    return argc == 2 && test_reader_locks (argv[1]) ? EXIT_SUCCESS : EXIT_FAILURE;
+    return argc == 2 && test_guard_handoff (argv[1]) && test_failed_open_releases_guard (argv[1])
+                   && test_reader_locks (argv[1])
+               ? EXIT_SUCCESS
+               : EXIT_FAILURE;
 }

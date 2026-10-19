@@ -83,7 +83,10 @@ Compile `tests/wrapper/test_reader_lock.c`, then run it with
 `libdyad_wrapper.so` preloaded after the producer step above:
 
 ```bash
-cc -std=c11 -Wall -Wextra -pedantic tests/wrapper/test_reader_lock.c -o test_reader_lock
+cc -std=c11 -Wall -Wextra -pedantic -DDYAD_HAS_CONFIG \
+  -I${DYAD_SOURCE}/include -I${DYAD_SOURCE}/src -I${DYAD_BUILD}/include \
+  tests/wrapper/test_reader_lock.c -L${DYAD_BUILD}/lib \
+  -Wl,-rpath,${DYAD_BUILD}/lib -ldyad_client -ldyad_utils -ldyad_ctx -o test_reader_lock
 DYAD_PATH_PRODUCER=${DYAD_PATH}/ DYAD_PATH_CONSUMER=${DYAD_PATH}/ \
   DYAD_KVS_NAMESPACE=dyad_stream_reader_lock \
   LD_PRELOAD=${DYAD_INSTALL}/lib/libdyad_wrapper.so \
