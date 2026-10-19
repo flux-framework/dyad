@@ -593,12 +593,22 @@ static void dyad_fetch_work_item_destroy (dyad_mod_ctx_t *mod_ctx,
     free (item);
 }
 
-// Runs on the reactor thread (registered as a flux_fd_watcher_create()
-// callback on completion_pipe's read end): drains the pipe, then finishes
-// every item on the completion queue -- the data send, for backends where
-// it wasn't already done on a worker thread (item->req_state still set),
-// and always the trailing flux_respond_error() that closes the streaming
-// RPC.
+/**
+ * @brief Completes queued range-fetch requests on the Flux reactor thread.
+ *
+ * @details
+ * Drains the completion pipe and completes every queued request. For a
+ * request whose detached DTL send has not yet run, sends its data first. A
+ * successful send is followed by the normal @c ENODATA streaming-RPC end
+ * marker. If that send fails, responds with @c ECOMM instead, so the
+ * consumer cannot interpret an undelivered range as a clean empty result.
+ *
+ * @param[in] r       Flux reactor invoking the callback.
+ * @param[in] w       Completion-pipe watcher that triggered the callback.
+ * @param[in] revents Ready-event mask reported by Flux.
+ * @param[in] arg     Module context as a @c dyad_mod_ctx_t pointer.
+ * @return None. Flux invokes this callback for its side effects.
+ */
 static void dyad_fetch_completion_watcher_cb (flux_reactor_t *r,
                                               flux_watcher_t *w,
                                               int revents,
@@ -622,6 +632,7 @@ static void dyad_fetch_completion_watcher_cb (flux_reactor_t *r,
 
     while (items != NULL) {
         struct dyad_fetch_work_item *item = items;
+        int stream_result = ENODATA;
         items = items->next;
         item->next = NULL;
 
@@ -635,12 +646,14 @@ static void dyad_fetch_completion_watcher_cb (flux_reactor_t *r,
                     DYAD_LOG_ERROR (ctx,
                                     "DYAD_MOD: rpc_send_detached failed for \"%s\".",
                                     item->fullpath);
+                    stream_result = ECOMM;
                 }
             }
-            if (flux_respond_error (ctx->h, item->msg, ENODATA, NULL) < 0) {
+            if (flux_respond_error (ctx->h, item->msg, stream_result, NULL) < 0) {
                 DYAD_LOG_DEBUG (ctx,
-                                "DYAD_MOD: %s: flux_respond_error with ENODATA failed\n",
-                                __func__);
+                                "DYAD_MOD: %s: flux_respond_error with %d failed\n",
+                                __func__,
+                                stream_result);
             }
         } else {
             if (item->req_state != NULL) {
