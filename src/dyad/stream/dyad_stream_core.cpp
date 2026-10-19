@@ -217,11 +217,14 @@ bool dyad_stream_core::is_dyad_consumer () const
     return m_is_cons;
 }
 
-bool dyad_stream_core::open_sync (const char *path)
+bool dyad_stream_core::open_sync (const char *path, int *guard_fd)
 {
     DYAD_CPP_FUNCTION ();
     DYAD_CPP_FUNCTION_UPDATE ("path", path);
     DYAD_LOG_DEBUG (m_ctx, "DYAD_SYNC OPEN: enters sync (\"%s\").", path);
+    if (guard_fd != NULL) {
+        *guard_fd = -1;
+    }
     if (!m_initialized) {
         // TODO log
         return true;
@@ -232,7 +235,7 @@ bool dyad_stream_core::open_sync (const char *path)
     }
 
     bool is_managed = false;
-    dyad_rc_t rc = dyad_consume (m_ctx_mutable, path, &is_managed);
+    dyad_rc_t rc = dyad_consume (m_ctx_mutable, path, &is_managed, guard_fd);
     (void)is_managed;
 
     if (DYAD_IS_ERROR (rc)) {
@@ -242,6 +245,17 @@ bool dyad_stream_core::open_sync (const char *path)
 
     DYAD_LOG_DEBUG (m_ctx, "DYAD_SYNC OEPN: exists sync (\"%s\").\n", path);
     return true;
+}
+
+void dyad_stream_core::close_consume_guard (int guard_fd) const
+{
+    if (guard_fd < 0) {
+        return;
+    }
+    const bool reenter = m_ctx_mutable->reenter;
+    m_ctx_mutable->reenter = false;
+    (void)close (guard_fd);
+    m_ctx_mutable->reenter = reenter;
 }
 
 bool dyad_stream_core::close_sync (const char *path)

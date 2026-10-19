@@ -1209,7 +1209,8 @@ dyad_rc_t dyad_free_metadata (dyad_metadata_t **mdata)
 
 dyad_rc_t dyad_consume (dyad_ctx_t *DYAD_RESTRICT ctx,
                         const char *DYAD_RESTRICT fname,
-                        bool *DYAD_RESTRICT is_managed)
+                        bool *DYAD_RESTRICT is_managed,
+                        int *DYAD_RESTRICT guard_fd)
 {
     DYAD_C_FUNCTION_START ();
     DYAD_C_FUNCTION_UPDATE_STR ("fname", fname);
@@ -1229,6 +1230,9 @@ dyad_rc_t dyad_consume (dyad_ctx_t *DYAD_RESTRICT ctx,
         goto consume_close;
     }
     *is_managed = false;
+    if (guard_fd != NULL) {
+        *guard_fd = -1;
+    }
 
     // If the context is not defined, then it is not valid.
     // So, return DYAD_NOCTX
@@ -1287,7 +1291,6 @@ dyad_rc_t dyad_consume (dyad_ctx_t *DYAD_RESTRICT ctx,
         }
     }
     if (ctx->shared_storage) {
-        dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
         if (!ctx->use_fs_locks || file_size <= 0) {
             // As file size being zero means that consumer won the lock first. So has to
             // wait for kvs. or we cannot use file lock based synchronization as it
@@ -1295,6 +1298,7 @@ dyad_rc_t dyad_consume (dyad_ctx_t *DYAD_RESTRICT ctx,
             rc = dyad_fetch_metadata (ctx, fname, upath, &mdata);
             if (DYAD_IS_ERROR (rc)) {
                 DYAD_LOG_ERROR (ctx, "dyad_fetch_metadata failed for shared storage!\n");
+                dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
                 goto consume_done;
             }
         }
@@ -1332,8 +1336,7 @@ dyad_rc_t dyad_consume (dyad_ctx_t *DYAD_RESTRICT ctx,
             if (mdata == NULL) {
                 DYAD_LOG_INFO (ctx, "File '%s' is local!\n", fname);
                 rc = DYAD_RC_OK;
-                dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
-                goto consume_done;
+                goto consume_success;
             }
 
             // Call dyad_get_data to dispatch a RPC to the producer's Flux broker
@@ -1383,7 +1386,9 @@ dyad_rc_t dyad_consume (dyad_ctx_t *DYAD_RESTRICT ctx,
                 }
             }
         }
-        dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
+    }
+consume_success:
+    if (!ctx->shared_storage) {
         // Best-effort: eviction failures must never turn a successful
         // consume into a reported error. No-ops if eviction is disabled.
         // Reached whether the file was already local or freshly fetched;
@@ -1391,12 +1396,24 @@ dyad_rc_t dyad_consume (dyad_ctx_t *DYAD_RESTRICT ctx,
         // already-under-budget case a cheap no-op either way.
         dyad_cache_maybe_evict (ctx, ctx->cons_managed_path);
     }
+    if (guard_fd != NULL) {
+        struct flock shared_lock;
+        rc = dyad_ofd_shared_flock (ctx, lock_fd, &shared_lock);
+        if (DYAD_IS_ERROR (rc)) {
+            dyad_ofd_release_flock (ctx, lock_fd, &shared_lock);
+            goto consume_done;
+        }
+        *guard_fd = lock_fd;
+        lock_fd = -1;
+    } else {
+        dyad_ofd_release_flock (ctx, lock_fd, &exclusive_lock);
+    }
     DYAD_C_FUNCTION_UPDATE_INT ("file_size", file_size);
 consume_done:;
     if (mdata != NULL) {
         dyad_free_metadata (&mdata);
     }
-    if (close (lock_fd) != 0) {
+    if (lock_fd >= 0 && close (lock_fd) != 0) {
         rc = DYAD_RC_BADFIO;
     }
     if (file_data != NULL) {

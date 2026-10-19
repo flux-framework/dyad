@@ -195,6 +195,22 @@ static __attribute__ ((destructor)) void dyad_wrapper_fini (void)
 }
 
 /**
+ * @brief Closes a short-lived consumer lock guard without publishing a file.
+ *
+ * @param[in] guard_fd  Transferred guard descriptor, or a negative value.
+ */
+static void dyad_close_consume_guard (int guard_fd)
+{
+    if (guard_fd < 0) {
+        return;
+    }
+    const bool reenter = ctx_mutable->reenter;
+    ctx_mutable->reenter = false;
+    (void)close (guard_fd);
+    ctx_mutable->reenter = reenter;
+}
+
+/**
  * @brief GOTCHA wrapper for @c open() that integrates DYAD synchronization
  *        and data transfer.
  *
@@ -247,6 +263,7 @@ static int dyad_open_wrapper (const char *path, int oflag, ...)
     int mode = 0;
     const int access_mode = oflag & O_ACCMODE;
     bool is_managed = false;
+    int guard_fd = -1;
     dyad_rc_t consume_rc = DYAD_RC_OK;
     char upath[PATH_MAX + 1] = {'\0'};
 
@@ -276,7 +293,7 @@ static int dyad_open_wrapper (const char *path, int oflag, ...)
     }
 
     IPRINTF (ctx, "DYAD_SYNC: enters open sync (\"%s\").", path);
-    consume_rc = dyad_consume (ctx_mutable, path, &is_managed);
+    consume_rc = dyad_consume (ctx_mutable, path, &is_managed, &guard_fd);
     if (DYAD_IS_ERROR (consume_rc)) {
         DPRINTF (ctx, "DYAD_SYNC: failed open sync (\"%s\").", path);
         is_managed = false;
@@ -294,6 +311,7 @@ real_call:;
             dyad_ofd_release_flock (ctx, ret, &shared_lock);
         }
     }
+    dyad_close_consume_guard (guard_fd);
 
     // This lock is to prevent consumers that has direct access to the file
     // from reading the file being produced by a producer. For example,
@@ -332,6 +350,7 @@ static FILE *dyad_fopen_wrapper (const char *path, const char *mode)
     typedef FILE *(*fopen_ptr_t) (const char *, const char *);
     fopen_ptr_t func_ptr = NULL;
     bool is_managed = false;
+    int guard_fd = -1;
     dyad_rc_t consume_rc = DYAD_RC_OK;
     char upath[PATH_MAX + 1] = {'\0'};
 
@@ -354,7 +373,7 @@ static FILE *dyad_fopen_wrapper (const char *path, const char *mode)
     }
 
     IPRINTF (ctx, "DYAD_SYNC: enters fopen sync (\"%s\").\n", path);
-    consume_rc = dyad_consume (ctx_mutable, path, &is_managed);
+    consume_rc = dyad_consume (ctx_mutable, path, &is_managed, &guard_fd);
     if (DYAD_IS_ERROR (consume_rc)) {
         DPRINTF (ctx, "DYAD_SYNC: failed fopen sync (\"%s\").\n", path);
         is_managed = false;
@@ -373,6 +392,7 @@ real_call:;
             dyad_ofd_release_flock (ctx, fd, &shared_lock);
         }
     }
+    dyad_close_consume_guard (guard_fd);
 
     // This lock is to prevent consumers that has direct access to the file
     // from reading the file being produced by a producer. For example,
@@ -628,6 +648,7 @@ static int dyad_open64_wrapper (const char *path, int oflag, ...)
     int mode = 0;
     const int access_mode = oflag & O_ACCMODE;
     bool is_managed = false;
+    int guard_fd = -1;
     dyad_rc_t consume_rc = DYAD_RC_OK;
     char upath[PATH_MAX + 1] = {'\0'};
 
@@ -657,7 +678,7 @@ static int dyad_open64_wrapper (const char *path, int oflag, ...)
     }
 
     IPRINTF (ctx, "DYAD_SYNC: enters open64 sync (\"%s\").", path);
-    consume_rc = dyad_consume (ctx_mutable, path, &is_managed);
+    consume_rc = dyad_consume (ctx_mutable, path, &is_managed, &guard_fd);
     if (DYAD_IS_ERROR (consume_rc)) {
         DPRINTF (ctx, "DYAD_SYNC: failed open64 sync (\"%s\").", path);
         is_managed = false;
@@ -675,6 +696,7 @@ real_call:;
             dyad_ofd_release_flock (ctx, ret, &shared_lock);
         }
     }
+    dyad_close_consume_guard (guard_fd);
 
     // This lock is to prevent consumers that has direct access to the file
     // from reading the file being produced by a producer. For example,
@@ -713,6 +735,7 @@ static FILE *dyad_fopen64_wrapper (const char *path, const char *mode)
     typedef FILE *(*fopen64_ptr_t) (const char *, const char *);
     fopen64_ptr_t func_ptr = NULL;
     bool is_managed = false;
+    int guard_fd = -1;
     dyad_rc_t consume_rc = DYAD_RC_OK;
     char upath[PATH_MAX + 1] = {'\0'};
 
@@ -735,7 +758,7 @@ static FILE *dyad_fopen64_wrapper (const char *path, const char *mode)
     }
 
     IPRINTF (ctx, "DYAD_SYNC: enters fopen64 sync (\"%s\").\n", path);
-    consume_rc = dyad_consume (ctx_mutable, path, &is_managed);
+    consume_rc = dyad_consume (ctx_mutable, path, &is_managed, &guard_fd);
     if (DYAD_IS_ERROR (consume_rc)) {
         DPRINTF (ctx, "DYAD_SYNC: failed fopen64 sync (\"%s\").\n", path);
         is_managed = false;
@@ -754,6 +777,7 @@ real_call:;
             dyad_ofd_release_flock (ctx, fd, &shared_lock);
         }
     }
+    dyad_close_consume_guard (guard_fd);
 
     // This lock is to prevent consumers that has direct access to the file
     // from reading the file being produced by a producer. For example,

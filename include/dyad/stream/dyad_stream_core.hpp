@@ -118,10 +118,19 @@ class dyad_stream_core
      * initialized. Returns @c true if the file is ready or if no action is
      * needed (not a consumer, or not initialized).
      *
-     * @param[in] path  Path to the file being opened.
+     * @param[in]  path      Path to the file being opened.
+     * @param[out] guard_fd  Receives a short-lived shared OFD lock guard, or
+     *                       @c -1 when no guard is needed. May be @c NULL when
+     *                       the caller cannot perform an immediate reader open.
      * @return @c true on success or no-op, @c false if @c dyad_consume() failed.
      */
-    bool open_sync (const char *path);
+    bool open_sync (const char *path, int *guard_fd = NULL);
+
+    /**
+     * @brief Closes a transferred consumer lock guard.
+     * @param[in] guard_fd  Guard descriptor to close, or a negative value.
+     */
+    void close_consume_guard (int guard_fd) const;
 
     /**
      * @brief Publishes a file after a stream close.

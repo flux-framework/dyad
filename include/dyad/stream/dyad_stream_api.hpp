@@ -639,12 +639,14 @@ basic_ifstream_dyad<_CharT, _Traits>::basic_ifstream_dyad (const char *filename,
                                                            std::ios_base::openmode mode)
 {
     m_core.init ();
-    m_core.open_sync (filename);
+    int guard_fd = -1;
+    m_core.open_sync (filename, &guard_fd);
     m_stream = new basic_ifstream (filename, mode);
     if ((m_stream != nullptr) && (*m_stream)) {
         DYAD_SHARED_LOCK_CPP_IFSTREAM (*m_stream, m_core);
         m_filename = std::string{filename};
     }
+    m_core.close_consume_guard (guard_fd);
 }
 
 template <typename _CharT, typename _Traits>
@@ -672,12 +674,14 @@ basic_ifstream_dyad<_CharT, _Traits>::basic_ifstream_dyad (const char *filename,
                                                            std::ios_base::openmode mode)
 {
     m_core.init ();
-    m_core.open_sync (filename);
+    int guard_fd = -1;
+    m_core.open_sync (filename, &guard_fd);
     m_stream = std::unique_ptr<basic_ifstream> (new basic_ifstream (filename, mode));
     if ((m_stream != nullptr) && (*m_stream)) {
         DYAD_SHARED_LOCK_CPP_IFSTREAM (*m_stream, m_core);
         m_filename = std::string{filename};
     }
+    m_core.close_consume_guard (guard_fd);
 }
 
 template <typename _CharT, typename _Traits>
@@ -685,12 +689,14 @@ basic_ifstream_dyad<_CharT, _Traits>::basic_ifstream_dyad (const string &filenam
                                                            std::ios_base::openmode mode)
 {
     m_core.init ();
-    m_core.open_sync (filename.c_str ());
+    int guard_fd = -1;
+    m_core.open_sync (filename.c_str (), &guard_fd);
     m_stream = std::unique_ptr<basic_ifstream> (new basic_ifstream (filename, mode));
     if ((m_stream != nullptr) && (*m_stream)) {
         DYAD_SHARED_LOCK_CPP_IFSTREAM (*m_stream, m_core);
         m_filename = filename;
     }
+    m_core.close_consume_guard (guard_fd);
 }
 
 template <typename _CharT, typename _Traits>
@@ -706,12 +712,14 @@ basic_ifstream_dyad<_CharT, _Traits>::basic_ifstream_dyad (const _Path &filepath
                                                            std::ios_base::openmode mode)
 {
     m_core.init ();
-    m_core.open_sync (filepath.c_str ());
+    int guard_fd = -1;
+    m_core.open_sync (filepath.c_str (), &guard_fd);
     m_stream = std::unique_ptr<basic_ifstream> (new basic_ifstream (filepath.c_str (), mode));
     if ((m_stream != nullptr) && (*m_stream)) {
         DYAD_SHARED_LOCK_CPP_IFSTREAM (*m_stream, m_core);
         m_filename = std::string{filepath.c_str ()};
     }
+    m_core.close_consume_guard (guard_fd);
 }
 #endif  // c++17 filesystem
 
@@ -769,12 +777,14 @@ void basic_ifstream_dyad<_CharT, _Traits>::open (const char *filename, std::ios_
         // TODO: set fail bit if nullptr
         return;
     }
-    m_core.open_sync (filename);
+    int guard_fd = -1;
+    m_core.open_sync (filename, &guard_fd);
     m_stream->open (filename, mode);
     if ((m_stream != nullptr) && (*m_stream)) {
         DYAD_SHARED_LOCK_CPP_IFSTREAM (*m_stream, m_core);
         m_filename = std::string{filename};
     }
+    m_core.close_consume_guard (guard_fd);
 }
 
 template <typename _CharT, typename _Traits>

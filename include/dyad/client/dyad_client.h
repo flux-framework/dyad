@@ -187,6 +187,11 @@ DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_free_metadata (dyad_metadata_
  * @param[out]    is_managed  Set to @c true when @p fname is under the
  *                             consumer-managed path; otherwise set to @c false.
  *                             Must not be @c NULL.
+ * @param[out]    guard_fd    Optional descriptor holding a shared OFD lock
+ *                             across the caller's real open. Set to @c -1 when
+ *                             no guard is transferred. The caller must close a
+ *                             transferred descriptor after locking its reader
+ *                             descriptor, including if the real open fails.
  *
  * @return @c dyad_rc_t return code indicating the outcome:
  * @retval DYAD_RC_OK              The file is ready to read, was already available,
@@ -205,7 +210,8 @@ DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_free_metadata (dyad_metadata_
  */
 DYAD_PFA_ANNOTATE DYAD_DLL_EXPORTED dyad_rc_t dyad_consume (dyad_ctx_t *ctx,
                                                             const char *fname,
-                                                            bool *is_managed);
+                                                            bool *is_managed,
+                                                            int *guard_fd);
 
 /**
  * @brief Ensures a file is ready to be read using caller-supplied metadata.
