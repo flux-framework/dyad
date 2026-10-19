@@ -80,18 +80,17 @@ typedef union dyad_dtl_private dyad_dtl_private_t;
  * The function pointer protocol for a consumer fetch is:
  * @code
  * rpc_pack()           // consumer: pack the fetch request
- * rpc_recv_response()  // consumer: wait for initial RPC acknowledgement
+ * rpc_recv_response()  // consumer: record backend RPC state; does not block
  * establish_connection() // consumer: set up DTL data channel
- * get_buffer()         // consumer: allocate receive buffer
- * recv()               // consumer: receive file data
- * return_buffer()      // consumer: release receive buffer
+ * recv()               // consumer: receive file data and obtain its buffer
  * close_connection()   // consumer: tear down DTL data channel
+ * return_buffer()      // caller: release the received buffer after use
  * @endcode
  *
  * And for the producer service side:
  * @code
  * rpc_unpack()         // service: unpack the incoming fetch request
- * rpc_respond()        // service: send initial RPC acknowledgement
+ * rpc_respond()        // service: backend RPC-control hook (currently no-op)
  * get_buffer()         // service: allocate send buffer
  * establish_connection() // service: set up DTL data channel
  * send()               // service: send file data
@@ -171,7 +170,12 @@ struct dyad_dtl {
                                    size_t *length);
 
     /**
-     * @brief Sends the initial RPC acknowledgement from the service to the consumer.
+     * @brief Performs backend-specific RPC control work on the service.
+     *
+     * @details
+     * The currently supported backends do not send a separate initial
+     * acknowledgement, so their implementations are no-ops. The hook is
+     * retained as part of the common DTL interface.
      *
      * @param[in] ctx      DYAD context.
      * @param[in] orig_msg The incoming Flux RPC message to respond to.
@@ -180,7 +184,13 @@ struct dyad_dtl {
     dyad_rc_t (*rpc_respond) (const dyad_ctx_t *ctx, const flux_msg_t *orig_msg);
 
     /**
-     * @brief Waits for and receives the initial RPC response from the service.
+     * @brief Records backend state for the pending Flux RPC without waiting.
+     *
+     * @details
+     * Flux RPC stores @p f for its later streaming receive. UCX and Margo
+     * require no consumer-side RPC state here. This operation deliberately
+     * does not wait for the producer, allowing the consumer to enter its
+     * transport receive path without an extra handshake.
      *
      * @param[in] ctx DYAD context.
      * @param[in] f   Flux future representing the pending RPC response.

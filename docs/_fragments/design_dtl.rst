@@ -14,8 +14,9 @@ General DTL sequence
    :alt: General DYAD DTL data transfer sequence
 
    The abstract DTL interface sequence starting from ``dyad_get_data()``.
-   All backends follow this same call order — the implementation of each
-   step differs per backend.
+   Whole-file fetches use this common interface sequence, although buffer
+   ownership and the exact work at each step differ per backend. UCX does
+   not implement the separate range-fetch operations.
    The buffer allocated by ``get_buffer()`` serves different purposes on
    each side of the transfer. On the producer side, the file is read from
    local storage into the buffer, which is then passed to ``send()`` to
@@ -59,7 +60,8 @@ UCX backend
    The UCX backend uses a push model with pre-registered RDMA memory.
    The producer performs a one-sided ``ucp_put_nbx()`` directly into the
    consumer's pre-registered buffer. The consumer polls a size sentinel
-   to detect arrival. Endpoints are cached across transfers.
+   to detect arrival or a producer failure. Endpoints are cached across
+   transfers.
 
 Failure signaling
 =================
@@ -74,12 +76,13 @@ converts its transport-specific marker into a DYAD error.
 DTL backend comparison
 ======================
 
-All three DTL backends share the same abstract interface — the same
-sequence of ``rpc_pack()``, ``rpc_unpack()``, ``rpc_respond()``,
+All three DTL backends implement the same abstract whole-file-fetch
+operations: ``rpc_pack()``, ``rpc_unpack()``, ``rpc_respond()``,
 ``rpc_recv_response()``, ``establish_connection()``, ``get_buffer()``,
-``send()``, ``recv()``, ``return_buffer()``, and ``close_connection()``
-calls — but implement them very differently depending on the underlying
-transport.
+``send()``, ``recv()``, ``return_buffer()``, and ``close_connection()``.
+Their buffer ownership and exact call order differ by transport. Range
+fetches are implemented by Flux RPC and Margo; UCX does not implement the
+range operations.
 
 The **Flux RPC backend** is the simplest. Data travels entirely through
 the Flux broker message bus: the producer calls ``flux_respond_raw()``
@@ -88,9 +91,10 @@ with the file contents and the consumer reads them via
 setup — the Flux streaming RPC handles everything. The original request
 message (``flux_msg_t*``) is stored in the DTL handle after
 ``rpc_unpack()`` so that ``send()`` can route the response back to the
-correct consumer. Several steps are no-ops: ``rpc_respond()``,
-``rpc_recv_response()``, and both ``establish_connection()`` calls do
-nothing because the streaming RPC connection is implicit. This backend
+correct consumer. ``rpc_recv_response()`` stores the Flux future for the
+later streaming receive; it does not wait for an acknowledgement.
+``rpc_respond()`` and both ``establish_connection()`` calls are no-ops
+because the streaming RPC connection is implicit. This backend
 requires only Flux and is the most portable, but it routes all data
 through the broker and cannot exploit RDMA hardware.
 
@@ -110,7 +114,7 @@ destroys its own Margo RPC handle within ``send()``.
 
 The **UCX backend** uses a push model with pre-registered RDMA memory.
 During ``dyad_dtl_ucx_init()``, both producer and consumer allocate a
-large buffer (``UCX_MAX_TRANSFER_SIZE + sizeof(size_t)`` bytes) and register
+large buffer (``UCX_MAX_TRANSFER_SIZE + sizeof(ssize_t)`` bytes) and register
 it with UCX via ``ucp_mem_map()``. The consumer packs its buffer address
 (``cons_buf_ptr``) and the packed remote key (``rkey_buf``, base64-encoded)
 into the Flux RPC request. The producer decodes these during ``rpc_unpack()``,
