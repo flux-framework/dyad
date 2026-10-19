@@ -19,6 +19,22 @@ DYAD_IO = None
 # https://peps.python.org/pep-0343/
 @contextmanager
 def dyad_open(*args, dyad_ctx=None, metadata_wrapper=None, register_dyad_ctx=False, **kwargs):
+    """Open a file with DYAD synchronization.
+
+    A managed output is published only after the caller's ``with`` body and
+    the underlying file close both complete successfully. An exception from
+    the body closes the file without publishing it to consumers.
+
+    Args:
+        *args: Arguments forwarded to :func:`io.open`.
+        dyad_ctx: Optional initialized DYAD context.
+        metadata_wrapper: Optional previously fetched DYAD metadata.
+        register_dyad_ctx: Whether to register ``dyad_ctx`` as the default.
+        **kwargs: Keyword arguments forwarded to :func:`io.open`.
+
+    Yields:
+        The file object returned by :func:`io.open`.
+    """
     global DYAD_IO
     local_dyad_io = dyad_ctx
     if dyad_ctx is None:
@@ -50,7 +66,10 @@ def dyad_open(*args, dyad_ctx=None, metadata_wrapper=None, register_dyad_ctx=Fal
     file_obj = io.open(*args, **kwargs)
     try:
         yield file_obj
-    finally:
+    except BaseException:
+        file_obj.close()
+        raise
+    else:
         file_obj.close()
         if mode in ("w", "wb", "wt"):
             if (local_dyad_io.prod_path is not None and
