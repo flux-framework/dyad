@@ -7,6 +7,12 @@ Publications and Presentations
 Papers
 ######
 
+.. _paper-scw-2026:
+
+* C. Wang, W. Wu, H. Kim and J. Yeom,
+  "Sharing a Fabric with Collective Communication: Two Storage Penalties in DL Training,"
+  *International Parallel Data Systems Workshop (PDSW'26)*, Nov. 2026.
+
 .. _paper-sbacpad-2024:
 
 * H. Devarajan, I. Lumsden, C. Wang, K. Georgouli, T. Scogland, J. Yeom, and M. Taufer,
